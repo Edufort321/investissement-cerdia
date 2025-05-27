@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import ImageCarousel from '@/components/ImageCarousel'
 import Link from 'next/link'
 
 export default function ProjetsLocatifsPage() {
@@ -17,12 +17,13 @@ export default function ProjetsLocatifsPage() {
       <div className="grid md:grid-cols-2 gap-10">
         {/* Secret Garden */}
         <div className="bg-white shadow-md rounded-xl overflow-hidden border">
-          <Image
-            src="/images/secret-garden.jpg"
-            alt="Secret Garden"
-            width={800}
-            height={500}
-            className="w-full h-60 object-cover"
+          <ImageCarousel
+            images={[
+              '/images/secret-garden-1.jpg',
+              '/images/secret-garden-2.jpg',
+              '/images/secret-garden-3.jpg',
+              '/images/secret-garden-4.jpg'
+            ]}
           />
           <div className="p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">🌴 Secret Garden</h2>
@@ -32,7 +33,7 @@ export default function ProjetsLocatifsPage() {
               Projet locatif dans un environnement tropical avec gestion locative centralisée.
             </p>
             <Link
-              href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
+              href="https://drive.google.com/drive/folders/1Rp5nTtJyBLeztxnYSnZdS29PNCt34P78?usp=sharing"
               target="_blank"
               className="text-blue-700 underline font-semibold"
             >
@@ -43,12 +44,13 @@ export default function ProjetsLocatifsPage() {
 
         {/* Oasis Bay */}
         <div className="bg-white shadow-md rounded-xl overflow-hidden border">
-          <Image
-            src="/images/oasis-bay.jpg"
-            alt="Oasis Bay"
-            width={800}
-            height={500}
-            className="w-full h-60 object-cover"
+          <ImageCarousel
+            images={[
+              '/images/oasis-bay-1.jpg',
+              '/images/oasis-bay-2.jpg',
+              '/images/oasis-bay-3.jpg',
+              '/images/oasis-bay-4.jpg'
+            ]}
           />
           <div className="p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">🏝️ Oasis Bay</h2>
