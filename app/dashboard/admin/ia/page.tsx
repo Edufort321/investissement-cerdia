@@ -17,6 +17,30 @@ export default function AdminIACerdiaPage() {
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+
+  // 🔐 Vérifie si l'utilisateur est admin
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = session?.user.id
+
+      const { data, error } = await supabase
+        .from('users') // Assure-toi que cette table contient un champ 'role'
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      if (error || data?.role !== 'admin') {
+        setIsAdmin(false)
+        window.location.href = '/'
+      } else {
+        setIsAdmin(true)
+      }
+    }
+
+    checkRole()
+  }, [supabase])
 
   const handleSend = async () => {
     const trimmed = input.trim()
@@ -79,6 +103,32 @@ export default function AdminIACerdiaPage() {
       )
     }
   }
+
+  // 📄 Export CSV
+  const handleExport = () => {
+    const rows = history.map(h => ({
+      Utilisateur: h.user_id,
+      Question: h.question,
+      Réponse: h.answer,
+      Date: new Date(h.created_at).toLocaleString(),
+      Stratégique: h.is_strategic ? 'Oui' : 'Non'
+    }))
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      ['Utilisateur,Question,Réponse,Date,Stratégique']
+        .concat(rows.map(r => Object.values(r).join(',')))
+        .join('\n')
+
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', 'historique_ia_admin.csv')
+    document.body.appendChild(link)
+    link.click()
+  }
+
+  if (isAdmin === false) return null
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -159,6 +209,13 @@ export default function AdminIACerdiaPage() {
               </div>
             ))}
         </div>
+
+        <button
+          onClick={handleExport}
+          className="mt-4 text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded"
+        >
+          📄 Exporter CSV
+        </button>
       </div>
 
       <p className="text-sm text-center text-gray-500 italic mt-8">
