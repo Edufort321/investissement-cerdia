@@ -1,79 +1,47 @@
 'use client'
 
+import Image from 'next/image'
+import Link from 'next/link'
+
 export default function InvestirPage() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-bold text-blue-800 mb-6 text-center">
-        ✨ Candidature pour devenir investisseur CERDIA
+    <div className="max-w-5xl mx-auto px-6 py-12">
+      <h1 className="text-4xl font-bold text-center text-blue-900 mb-8">
+        💼 Rejoindre l’investissement CERDIA
       </h1>
 
-      <form
-        action="https://formspree.io/f/xxxxxxxx" // Remplace par TON ID Formspree
-        method="POST"
-        className="space-y-6"
-      >
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">Nom complet</label>
-          <input
-            required
-            type="text"
-            name="Nom complet"
-            className="w-full border px-4 py-2 rounded shadow-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">Courriel</label>
-          <input
-            required
-            type="email"
-            name="Courriel"
-            className="w-full border px-4 py-2 rounded shadow-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            Montant que vous envisagez d’investir
-          </label>
-          <input
-            required
-            type="number"
-            name="Montant prévu"
-            min={25000}
-            className="w-full border px-4 py-2 rounded shadow-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            Pourquoi souhaitez-vous investir avec CERDIA ?
-          </label>
-          <textarea
-            required
-            name="Motivation"
-            rows={4}
-            className="w-full border px-4 py-2 rounded shadow-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="bg-blue-700 text-white font-semibold px-6 py-2 rounded hover:bg-blue-800"
-        >
-          Soumettre ma candidature
-        </button>
-      </form>
-
-      <p className="text-sm italic text-gray-500 mt-10 text-center">
-        Toutes les demandes sont confidentielles. Seuls les candidats admissibles seront
-        invités à une rencontre avec un fondateur. Pour toute question, écrivez à{' '}
-        <a href="mailto:eric.dufort@cerdia.ai" className="text-blue-600 underline">
-          eric.dufort@cerdia.ai
-        </a>
-        .
+      <p className="text-lg text-gray-700 mb-6 text-center">
+        Investissement CERDIA ouvre ses portes à une sélection restreinte d’investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l’intelligence artificielle, avec une rentabilité durable à long terme.
       </p>
+
+      <div className="grid md:grid-cols-2 gap-10 my-12">
+        <div className="bg-white shadow rounded-lg overflow-hidden border">
+          <Image src="/images/secret-garden.jpg" alt="Secret Garden" width={600} height={400} className="w-full h-64 object-cover" />
+        </div>
+        <div className="bg-white shadow rounded-lg overflow-hidden border">
+          <Image src="/images/oasis-bay.jpg" alt="Oasis Bay" width={600} height={400} className="w-full h-64 object-cover" />
+        </div>
+      </div>
+
+      <div className="text-gray-700 space-y-4">
+        <p>
+          L’entrée dans notre programme d’investissement est conditionnelle à une entrevue avec l’un des fondateurs. Seuls les candidats alignés avec notre vision stratégique et notre rigueur à long terme seront invités à participer.
+        </p>
+        <p>
+          L’investissement minimum est de <strong>25 000 $</strong>, avec un engagement de <strong>5 ans minimum</strong>. Aucun frais de retrait anticipé ne sera permis. Notre approche est conçue pour maximiser la valeur à long terme et la stabilité du capital.
+        </p>
+        <p>
+          Chaque investisseur admis bénéficiera d’un accès privilégié aux unités CERDIA, d’un suivi personnalisé, et d’un partage stratégique de la croissance.
+        </p>
+      </div>
+
+      <div className="text-center mt-10">
+        <Link href="/devenir-investisseur">
+          <button className="bg-blue-800 text-white px-6 py-3 rounded-full text-lg hover:bg-blue-900 transition">
+            Devenir investisseur
+          </button>
+        </Link>
+      </div>
     </div>
   )
 }
-
