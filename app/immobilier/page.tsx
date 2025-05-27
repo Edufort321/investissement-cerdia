@@ -32,7 +32,7 @@ export default function ProjetsLocatifsPage() {
               Projet locatif dans un environnement tropical avec gestion locative centralisée.
             </p>
             <Link
-              href="https://drive.google.com/drive/folder/https://drive.google.com/drive/folders/1Rp5nTtJyBLeztxnYSnZdS29PNCt34P78?usp=sharing"
+              href="https://drive.google.com/drive/folders/1Rp5nTtJyBLeztxnYSnZdS29PNCt34P78?usp=sharing"
               target="_blank"
               className="text-blue-700 underline font-semibold"
             >
@@ -57,7 +57,7 @@ export default function ProjetsLocatifsPage() {
               Studios gérés par Meliá INNSiDE dans le complexe Cana Bay avec services haut de gamme.
             </p>
             <Link
-              href="https://drive.google.com/drive/folder/https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
+              href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
               target="_blank"
               className="text-blue-700 underline font-semibold"
             >
