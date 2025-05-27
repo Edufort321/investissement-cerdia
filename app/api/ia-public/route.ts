@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     console.log('📩 Prompt reçu :', prompt)
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-3.5-turbo', // ✅ modèle disponible sans restriction
       messages: [
         {
           role: 'system',
@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('❌ Erreur IA CERDIA :', error)
 
-    // 🛠️ Diagnostic plus clair si clé ou quota
     if (error.code === 'invalid_api_key') {
       return NextResponse.json({ error: '❌ Clé API OpenAI invalide.' }, { status: 401 })
     }
