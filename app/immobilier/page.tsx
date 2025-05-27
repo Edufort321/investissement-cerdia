@@ -33,7 +33,7 @@ export default function ProjetsLocatifsPage() {
               Projet locatif dans un environnement tropical avec gestion locative centralisée.
             </p>
             <Link
-              href="https://drive.google.com/drive/folders/1Rp5nTtJyBLeztxnYSnZdS29PNCt34P78?usp=sharing"
+              href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
               target="_blank"
               className="text-blue-700 underline font-semibold"
             >
