@@ -9,24 +9,25 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="max-w-6xl mx-auto px-6 py-16 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-[#0F1E47] font-serif mb-6 leading-tight">
-          A bold vision combining AI, real estate, education and luxury rentals
+          Une vision d’envergure alliant IA, immobilier, formation et luxe locatif
         </h1>
         <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-8">
-          Intelligence at the service of investment. Join an exclusive network and grow your capital strategically.
+          L'intelligence au service de l'investissement. Rejoignez un réseau haut de gamme 
+          et faites croître votre capital stratégiquement.
         </p>
-        <Link href="/en/investir">
+        <Link href="/investir">
           <button className="bg-[#0F1E47] text-white px-6 py-3 rounded-full text-lg hover:bg-[#1a2960] transition">
-            Become an investor
+            Devenir investisseur
           </button>
         </Link>
       </section>
 
-      {/* SLIDE 1 – AI */}
+      {/* SLIDE 1 – IA */}
       <section className="w-full cursor-pointer">
-        <Link href="/en/ia">
+        <Link href="/ia">
           <Image
             src="/cerdia-slide-intelligence.png"
-            alt="CERDIA Artificial Intelligence"
+            alt="Intelligence artificielle CERDIA"
             width={1920}
             height={800}
             className="w-full h-auto transition-transform duration-200 hover:scale-105"
@@ -35,12 +36,12 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* SLIDE 2 – REAL ESTATE */}
+      {/* SLIDE 2 – IMMOBILIER */}
       <section className="w-full cursor-pointer">
-        <Link href="/en/immobilier">
+        <Link href="/immobilier">
           <Image
             src="/cerdia-slide-immobilier.png"
-            alt="CERDIA Premium Real Estate"
+            alt="Immobilier d'exception CERDIA"
             width={1920}
             height={800}
             className="w-full h-auto transition-transform duration-200 hover:scale-105"
@@ -50,10 +51,10 @@ export default function Home() {
 
       {/* SLIDE 3 – ECOMMERCE */}
       <section className="w-full cursor-pointer">
-        <Link href="/en/ecommerce">
+        <Link href="/ecommerce">
           <Image
             src="/cerdia-slide-ecommerce.png"
-            alt="CERDIA eCommerce"
+            alt="eCommerce CERDIA"
             width={1920}
             height={800}
             className="w-full h-auto transition-transform duration-200 hover:scale-105"
@@ -61,12 +62,12 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* SLIDE 4 – RENTALS */}
+      {/* SLIDE 4 – LOCATION */}
       <section className="w-full cursor-pointer">
-        <Link href="/en/location">
+        <Link href="/location">
           <Image
             src="/cerdia-slide-location.png"
-            alt="CERDIA Luxury Rentals"
+            alt="Location haut de gamme CERDIA"
             width={1920}
             height={800}
             className="w-full h-auto transition-transform duration-200 hover:scale-105"
@@ -74,12 +75,12 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* SLIDE 5 – EDUCATION */}
+      {/* SLIDE 5 – FORMATION */}
       <section className="w-full cursor-pointer">
-        <Link href="/en/formation">
+        <Link href="/formation">
           <Image
             src="/cerdia-slide-formation.png"
-            alt="CERDIA Strategic Education"
+            alt="Formation stratégique CERDIA"
             width={1920}
             height={800}
             className="w-full h-auto transition-transform duration-200 hover:scale-105"
@@ -90,8 +91,8 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="bg-[#0F1E47] text-white py-6 mt-16">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
-          <p>&copy; 2025 Investissement CERDIA. All rights reserved.</p>
-          <p>AI-powered version by OpenAI – Based in Québec 🇨🇦</p>
+          <p>&copy; 2025 Investissement CERDIA. Tous droits réservés.</p>
+          <p>Version IA propulsée par OpenAI – Propulsé depuis le Québec 🇨🇦</p>
         </div>
       </footer>
     </div>
