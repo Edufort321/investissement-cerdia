@@ -10,7 +10,7 @@ export default function Navbar() {
         {/* Logo CERDIA uniquement */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/cerdia-logo.png"
+            src="/logo-cerdia.png"
             alt="CERDIA Logo"
             width={150}
             height={48}
