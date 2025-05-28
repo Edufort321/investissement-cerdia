@@ -1,23 +1,30 @@
-import '../styles/globals.css'
-import Navbar from '../components/Navbar'
+'use client'
 
-export const metadata = {
-  title: 'Investissement CERDIA',
-  description: 'Une vision d’envergure alliant IA, immobilier et formation haut de gamme.',
-}
+import Link from 'next/link'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function Navbar() {
   return (
-    <html lang="fr">
-      <body className="bg-gray-50 text-gray-800">
-        {/* Barre de navigation */}
-        <Navbar />
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        {/* Logo CERDIA */}
+        <Link href="/" className="flex items-center space-x-2">
+          <img src="/cerdia-logo.png" alt="CERDIA Logo" className="h-10 w-auto" />
+          <span className="font-bold text-lg text-[#0F1E47]">Investissement CERDIA</span>
+        </Link>
 
-        {/* Contenu principal */}
-        <main className="p-6 max-w-7xl mx-auto">
-          {children}
-        </main>
-      </body>
-    </html>
+        {/* Navigation */}
+        <nav className="flex gap-6 items-center text-sm md:text-base">
+          <Link href="/" className="hover:underline transition">Accueil</Link>
+          <Link href="/vision-cerdia" className="hover:underline transition">Vision</Link>
+          <Link href="/connexion" className="hover:underline transition">Connexion</Link>
+
+          <Link href="/investir">
+            <button className="bg-[#0F1E47] text-white px-4 py-2 rounded-full hover:bg-[#1a2960] transition">
+              Investir
+            </button>
+          </Link>
+        </nav>
+      </div>
+    </header>
   )
 }
