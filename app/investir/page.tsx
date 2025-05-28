@@ -1,47 +1,61 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
+import { useState } from 'react'
 
-export default function InvestirPage() {
+export default function FormInvestisseur() {
+  const [submitted, setSubmitted] = useState(false)
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault()
+    const form = e.target
+    const data = new FormData(form)
+
+    const res = await fetch('https://formspree.io/f/xldbqbrb', {
+      method: 'POST',
+      body: data,
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (res.ok) {
+      setSubmitted(true)
+      form.reset()
+    }
+  }
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-bold text-center text-blue-900 mb-8">
-        💼 Rejoindre l’investissement CERDIA
-      </h1>
+    <div className="max-w-2xl mx-auto px-6 py-12">
+      <h1 className="text-3xl font-bold text-center text-blue-800 mb-6">✨ Candidature pour devenir investisseur CERDIA</h1>
 
-      <p className="text-lg text-gray-700 mb-6 text-center">
-        Investissement CERDIA ouvre ses portes à une sélection restreinte d’investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l’intelligence artificielle, avec une rentabilité durable à long terme.
-      </p>
-
-      <div className="grid md:grid-cols-2 gap-10 my-12">
-        <div className="bg-white shadow rounded-lg overflow-hidden border">
-          <Image src="/images/secret-garden.jpg" alt="Secret Garden" width={600} height={400} className="w-full h-64 object-cover" />
-        </div>
-        <div className="bg-white shadow rounded-lg overflow-hidden border">
-          <Image src="/images/oasis-bay.jpg" alt="Oasis Bay" width={600} height={400} className="w-full h-64 object-cover" />
-        </div>
-      </div>
-
-      <div className="text-gray-700 space-y-4">
-        <p>
-          L’entrée dans notre programme d’investissement est conditionnelle à une entrevue avec l’un des fondateurs. Seuls les candidats alignés avec notre vision stratégique et notre rigueur à long terme seront invités à participer.
-        </p>
-        <p>
-          L’investissement minimum est de <strong>25 000 $</strong>, avec un engagement de <strong>5 ans minimum</strong>. Aucun frais de retrait anticipé ne sera permis. Notre approche est conçue pour maximiser la valeur à long terme et la stabilité du capital.
-        </p>
-        <p>
-          Chaque investisseur admis bénéficiera d’un accès privilégié aux unités CERDIA, d’un suivi personnalisé, et d’un partage stratégique de la croissance.
-        </p>
-      </div>
-
-      <div className="text-center mt-10">
-        <Link href="/devenir-investisseur">
-          <button className="bg-blue-800 text-white px-6 py-3 rounded-full text-lg hover:bg-blue-900 transition">
-            Devenir investisseur
+      {!submitted ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-1 font-medium">Nom complet</label>
+            <input type="text" name="nom" required className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Courriel</label>
+            <input type="email" name="email" required className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Montant que vous envisagez d’investir</label>
+            <input type="text" name="montant" required className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Pourquoi souhaitez-vous investir avec CERDIA ?</label>
+            <textarea name="motivation" rows={4} required className="w-full border rounded px-3 py-2" />
+          </div>
+          <button type="submit" className="bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">
+            Soumettre ma candidature
           </button>
-        </Link>
-      </div>
+        </form>
+      ) : (
+        <div className="text-center bg-green-100 border border-green-400 text-green-800 px-4 py-6 rounded mt-6">
+          <h2 className="text-xl font-semibold mb-2">✅ Merci de votre intérêt !</h2>
+          <p>Nous prendrons contact avec vous dans les plus brefs délais.</p>
+        </div>
+      )}
     </div>
   )
 }
