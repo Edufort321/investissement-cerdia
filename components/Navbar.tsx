@@ -7,14 +7,14 @@ export default function Navbar() {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        {/* Logo CERDIA uniquement */}
+        {/* Logo CERDIA agrandi */}
         <Link href="/" className="flex items-center">
           <Image
             src="/logo-cerdia.png"
             alt="CERDIA Logo"
-            width={150}
-            height={48}
-            className="h-12 w-auto"
+            width={225}     // 150 * 1.5
+            height={72}      // 48 * 1.5
+            className="h-[72px] w-auto"
             priority
           />
         </Link>
