@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Navbar() {
   return (
@@ -8,7 +9,13 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo CERDIA */}
         <Link href="/" className="flex items-center space-x-2">
-          <img src="/cerdia-logo.png" alt="CERDIA Logo" className="h-10 w-auto" />
+          <Image
+            src="/logo-cerdia.png" // Assure-toi que ce fichier est bien présent dans /public
+            alt="CERDIA Logo"
+            width={40}
+            height={40}
+            priority
+          />
           <span className="font-bold text-lg text-[#0F1E47]">Investissement CERDIA</span>
         </Link>
 
