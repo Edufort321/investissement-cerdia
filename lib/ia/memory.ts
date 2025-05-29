@@ -5,7 +5,8 @@ type MemoryMessage = {
   content: string
 }
 
-type MemoryEntry = {
+export type MemoryEntry = {
+  id?: string
   user_id: string
   role: string
   messages: MemoryMessage[]
@@ -28,7 +29,7 @@ export async function saveMemory(
   ])
 
   if (error) {
-    console.error('❌ Erreur enregistrement mémoire IA:', error.message)
+    console.error('❌ [IA MEMORY] Erreur d’insertion mémoire:', error.message)
     return false
   }
 
@@ -48,7 +49,7 @@ export async function getLastMemories(
     .limit(limit)
 
   if (error) {
-    console.error('❌ Erreur récupération mémoire IA:', error.message)
+    console.error('❌ [IA MEMORY] Erreur de lecture mémoire:', error.message)
     return null
   }
 
