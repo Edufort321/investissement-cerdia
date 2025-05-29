@@ -5,14 +5,14 @@ import { cookies } from 'next/headers'
 import { saveMemory } from '@/lib/ia/memory'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 })
 
 export async function POST(req: NextRequest) {
   const { prompt } = await req.json()
 
   try {
-    // 1. Authentification via Supabase (Route Handler)
+    // 1. Authentification Supabase
     const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { session },
@@ -28,21 +28,21 @@ export async function POST(req: NextRequest) {
 
     const user = session.user
 
-    // 2. Vérifie que le profil est lié à un rôle
+    // 2. Vérifie que le profil existe et est admin (⚠️ l'ID doit correspondre exactement à auth.uid)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', user.id) // ← ⚠️ ID doit être égal à auth.users.uid
       .single()
 
-    if (profileError || !profile) {
+    if (profileError || !profile || profile.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Aucun profil ou rôle trouvé pour cet utilisateur.' },
+        { error: 'Accès refusé. Rôle administrateur requis.' },
         { status: 403 }
       )
     }
 
-    // 3. Appel à OpenAI
+    // 3. Appel GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des sections web et améliorer la vision d’affaires.
-Sois professionnel, clair et structuré.
+Ta mission est de générer des idées de développement, d’optimiser les composants techniques (React, TypeScript), de créer des contenus web professionnels, et de soutenir la vision stratégique de l’entreprise.
+Sois structuré, clair, créatif et proactif.
           `.trim(),
         },
         {
@@ -73,7 +73,6 @@ Sois professionnel, clair et structuré.
     return NextResponse.json({ result })
   } catch (err: any) {
     console.error('❌ Erreur IA Admin:', err)
-
     return NextResponse.json(
       { error: 'Erreur IA admin : ' + (err.message || 'Erreur inconnue') },
       { status: 500 }
