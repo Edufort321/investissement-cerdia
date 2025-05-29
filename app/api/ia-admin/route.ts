@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -9,38 +9,39 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
+  const supabase = createMiddlewareClient({ cookies })
   const { prompt } = await req.json()
 
   try {
-    console.log('🔵 Nouvelle requête IA ADMIN reçue :', prompt)
+    console.log('📨 [IA-ADMIN] Commande reçue :', prompt)
 
     // 1. Authentification Supabase
-    const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession()
 
     if (sessionError || !session) {
-      console.warn('🛑 Aucun utilisateur connecté.')
+      console.warn('🔒 Utilisateur non authentifié.')
       return NextResponse.json(
-        { error: 'Utilisateur non authentifié. Veuillez vous connecter.' },
+        { error: 'Utilisateur non authentifié.' },
         { status: 401 }
       )
     }
 
     const user = session.user
-    console.log('✅ Utilisateur connecté :', user.email, '→ ID:', user.id)
+    console.log('✅ Utilisateur connecté :', user.email, 'ID:', user.id)
 
-    // 2. Recherche du profil (selon ID exact — doit correspondre à auth.users.uid)
+    // 2. Récupération du rôle via la table `profiles`
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    console.log('🧠 Données profil trouvées :', profile)
-    if (profileError) console.error('❌ Erreur de lecture du profil :', profileError)
+    if (profileError) {
+      console.error('❌ Erreur Supabase:', profileError.message)
+    }
 
     if (!profile || profile.role !== 'admin') {
       return NextResponse.json(
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 3. Appel à GPT-4
+    // 3. Appel à OpenAI GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Ta mission est de générer des idées de développement, d’optimiser les composants techniques (React, TypeScript), de créer des contenus web professionnels, et de soutenir la vision stratégique de l’entreprise.
-Sois structuré, clair, créatif et proactif.
+Ta mission est de générer des idées d’investissement, d’optimiser la technologie web (Next.js, Supabase, React), d’évaluer des stratégies financières, et d’assister l’administration à atteindre 1 milliard sur 20 ans.
+Réponds toujours de manière structurée, claire, et professionnelle.
           `.trim(),
         },
         {
@@ -70,20 +71,19 @@ Sois structuré, clair, créatif et proactif.
     })
 
     const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
-    console.log('🟢 Réponse GPT-4 obtenue')
 
     // 4. Sauvegarde mémoire IA
     await saveMemory(supabase, user.id, profile.role, [
       { role: 'user', content: prompt },
       { role: 'ia', content: result },
     ])
-    console.log('📦 Mémoire IA sauvegardée')
 
+    console.log('✅ Réponse IA envoyée et sauvegardée.')
     return NextResponse.json({ result })
   } catch (err: any) {
-    console.error('❌ Erreur IA Admin finale :', err)
+    console.error('🔥 Erreur IA Admin:', err.message || err)
     return NextResponse.json(
-      { error: 'Erreur IA admin : ' + (err.message || 'Erreur inconnue') },
+      { error: 'Erreur interne : ' + (err.message || 'Erreur inconnue') },
       { status: 500 }
     )
   }
