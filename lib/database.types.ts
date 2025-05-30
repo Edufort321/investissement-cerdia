@@ -15,9 +15,15 @@ export interface Database {
           user_id: string
           role: string
           messages: Json
+          created_at?: string
+          id?: number
         }
         Update: {
+          user_id?: string
+          role?: string
           messages?: Json
+          created_at?: string
+          id?: number
         }
       }
     }
