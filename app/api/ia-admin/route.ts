@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/lib/database.types' // ⚠️ assure-toi que ce fichier existe (on fera l'étape 2 juste après)
 import OpenAI from 'openai'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -8,12 +10,11 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-  const { prompt } = await req.json()
-
   try {
-    // ✅ Connexion via middleware
-    const supabase = createMiddlewareClient({ req, res: NextResponse.next() })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { prompt } = await req.json()
 
+    // 🔐 Authentification utilisateur
     const {
       data: { session },
       error: sessionError,
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const user = session.user
 
-    // ✅ Vérifie le rôle dans le profil
+    // 🔍 Récupération du rôle (admin ou non)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ✅ Requête à GPT-4
+    // ✨ Requête OpenAI
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -51,9 +52,10 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des contenus web professionnels et soutenir la vision stratégique de l’entreprise.
+Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript),
+créer des contenus web professionnels et soutenir la vision stratégique de l’entreprise.
 Sois structuré, clair, créatif et proactif.
-          `.trim(),
+`.trim(),
         },
         {
           role: 'user',
@@ -64,7 +66,7 @@ Sois structuré, clair, créatif et proactif.
 
     const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
 
-    // ✅ Enregistre en mémoire
+    // 💾 Enregistrement mémoire IA
     await saveMemory(supabase, user.id, profile.role, [
       { role: 'user', content: prompt },
       { role: 'ia', content: result },
