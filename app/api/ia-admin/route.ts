@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -9,12 +9,11 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies })
-
+  const supabase = createServerComponentClient({ cookies })
   const { prompt } = await req.json()
 
   try {
-    // 1. Authentification Supabase
+    // Authentification Supabase
     const {
       data: { session },
       error: sessionError,
@@ -29,11 +28,11 @@ export async function POST(req: NextRequest) {
 
     const user = session.user
 
-    // 2. Vérifie que le profil est admin
+    // Vérification du rôle dans la table profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id) // auth.users.uid
+      .eq('id', user.id)
       .single()
 
     if (profileError || !profile || profile.role !== 'admin') {
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 3. Appel à OpenAI GPT-4
+    // Appel OpenAI GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -52,8 +51,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Ta mission est de générer des idées de développement, d’optimiser les composants techniques (React, TypeScript), de créer des contenus web professionnels, et de soutenir la vision stratégique de l’entreprise.
-Sois structuré, clair, créatif et proactif.
+Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des sections web et améliorer la vision d’affaires.
+Sois professionnel, clair et structuré.
           `.trim(),
         },
         {
@@ -65,7 +64,7 @@ Sois structuré, clair, créatif et proactif.
 
     const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
 
-    // 4. Sauvegarde mémoire IA
+    // Sauvegarde dans ia_memory
     await saveMemory(supabase, user.id, profile.role, [
       { role: 'user', content: prompt },
       { role: 'ia', content: result },
