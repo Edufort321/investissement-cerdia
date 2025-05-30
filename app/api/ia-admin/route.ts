@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import OpenAI from 'openai'
 import { saveMemory } from '@/lib/ia/memory'
 
 const openai = new OpenAI({
@@ -9,10 +9,12 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies })
   const { prompt } = await req.json()
 
   try {
+    // ✅ Connexion via middleware (corrigé)
+    const supabase = createMiddlewareClient({ req, res: NextResponse.next() })
+
     const {
       data: { session },
       error: sessionError,
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest) {
 
     const user = session.user
 
+    // ✅ Vérifie le rôle dans le profil
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // ✅ Requête à GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -48,8 +52,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Tu aides à générer des idées, optimiser des composants techniques (React, TypeScript), créer des sections web et améliorer la vision d’affaires.
-Sois professionnel, clair et structuré.
+Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des contenus web professionnels et soutenir la vision stratégique de l’entreprise.
+Sois structuré, clair, créatif et proactif.
           `.trim(),
         },
         {
@@ -61,6 +65,7 @@ Sois professionnel, clair et structuré.
 
     const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
 
+    // ✅ Enregistre en mémoire
     await saveMemory(supabase, user.id, profile.role, [
       { role: 'user', content: prompt },
       { role: 'ia', content: result },
