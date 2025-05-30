@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import OpenAI from 'openai'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -12,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { prompt } = await req.json()
 
   try {
-    // ✅ Connexion via middleware (corrigé)
+    // ✅ Connexion via middleware
     const supabase = createMiddlewareClient({ req, res: NextResponse.next() })
 
     const {
