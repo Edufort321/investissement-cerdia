@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -9,11 +9,10 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = createMiddlewareClient({ cookies })
   const { prompt } = await req.json()
 
   try {
-    // Authentification Supabase
     const {
       data: { session },
       error: sessionError,
@@ -28,7 +27,6 @@ export async function POST(req: NextRequest) {
 
     const user = session.user
 
-    // Vérification du rôle dans la table profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -42,7 +40,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Appel OpenAI GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       temperature: 0.5,
@@ -51,8 +48,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des sections web et améliorer la vision d’affaires.
-Sois professionnel, clair et structuré.
+Ta mission est de générer des idées de développement, d’optimiser les composants techniques (React, TypeScript), de créer des contenus web professionnels, et de soutenir la vision stratégique de l’entreprise.
+Sois structuré, clair, créatif et proactif.
           `.trim(),
         },
         {
@@ -64,7 +61,6 @@ Sois professionnel, clair et structuré.
 
     const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
 
-    // Sauvegarde dans ia_memory
     await saveMemory(supabase, user.id, profile.role, [
       { role: 'user', content: prompt },
       { role: 'ia', content: result },
