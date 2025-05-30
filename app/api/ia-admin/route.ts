@@ -5,9 +5,10 @@ import { Database } from '@/lib/database.types'
 
 export async function POST(req: NextRequest) {
   const supabase = createRouteHandlerClient<Database>({ cookies })
+
   const { prompt } = await req.json()
 
-  // Appel à OpenAI
+  // Requête à OpenAI
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -17,23 +18,26 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: 'gpt-4',
       messages: [
-        { role: 'system', content: 'Tu es l’assistant IA stratégique de Investissement CERDIA. Réponds avec clarté, intelligence, et précision professionnelle.' },
-        { role: 'user', content: prompt },
+        {
+          role: 'system',
+          content: `Tu es l'IA stratégique de direction pour Investissement CERDIA. Tu aides à créer des idées, optimiser du code et soutenir la stratégie.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
       ],
     }),
   })
 
   const json = await completion.json()
-  const result = json.choices?.[0]?.message?.content || 'Réponse vide'
+  const result = json.choices?.[0]?.message?.content || 'Réponse indisponible.'
 
-  // Enregistrement dans Supabase
-  const {
-    data,
-    error
-  } = await supabase.from('ia_memory').insert({
-    user_id: 'admin', // ou récupérer dynamiquement si authentifié
+  // Sauvegarde dans la table ia_memory
+  const { error } = await supabase.from('ia_memory').insert({
+    user_id: 'admin',
     role: 'admin',
-    messages: [{ prompt, result }],
+    messages: [{ role: 'user', content: prompt }, { role: 'ia', content: result }]
   })
 
   if (error) {
