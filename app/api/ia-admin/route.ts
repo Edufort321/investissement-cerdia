@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { saveMemory } from '@/lib/ia/memory'
 
@@ -9,7 +9,7 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-  const supabase = createMiddlewareClient({ cookies })
+  const supabase = createRouteHandlerClient({ cookies })
   const { prompt } = await req.json()
 
   try {
@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `
 Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Ta mission est de générer des idées de développement, d’optimiser les composants techniques (React, TypeScript), de créer des contenus web professionnels, et de soutenir la vision stratégique de l’entreprise.
-Sois structuré, clair, créatif et proactif.
+Tu aides à générer des idées, optimiser des composants techniques (React, TypeScript), créer des sections web et améliorer la vision d’affaires.
+Sois professionnel, clair et structuré.
           `.trim(),
         },
         {
