@@ -1,6 +1,4 @@
-// lib/types/supabase.ts
-
-import { Database } from '@/types/supabase-types'
+import { Database } from '@/lib/database.types'
 
 export type Tables = Database['public']['Tables']
 export type MemoryEntry = Tables['ia_memory']['Row']
