@@ -5,44 +5,48 @@ import { Database } from '@/lib/database.types'
 
 export async function POST(req: NextRequest) {
   const supabase = createRouteHandlerClient<Database>({ cookies })
-
   const { prompt } = await req.json()
 
-  // Requête à OpenAI
-  const completion = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY!}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4',
+  try {
+    // Requête GPT-4
+    const completion = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        temperature: 0.5,
+        messages: [
+          {
+            role: 'system',
+            content: `Tu es l’IA stratégique de direction pour Investissement CERDIA. Aide à structurer le projet, créer du code, générer des contenus et supporter les décisions.`,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
+    })
+
+    const json = await completion.json()
+    const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
+
+    // Enregistre dans la mémoire IA
+    await supabase.from('ia_memory').insert({
+      user_id: 'admin',
+      role: 'admin',
       messages: [
-        {
-          role: 'system',
-          content: `Tu es l'IA stratégique de direction pour Investissement CERDIA. Tu aides à créer des idées, optimiser du code et soutenir la stratégie.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+        { role: 'user', content: prompt },
+        { role: 'ia', content: result }
       ],
-    }),
-  })
+    })
 
-  const json = await completion.json()
-  const result = json.choices?.[0]?.message?.content || 'Réponse indisponible.'
-
-  // Sauvegarde dans la table ia_memory
-  const { error } = await supabase.from('ia_memory').insert({
-    user_id: 'admin',
-    role: 'admin',
-    messages: [{ role: 'user', content: prompt }, { role: 'ia', content: result }]
-  })
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ result })
+  } catch (err: any) {
+    console.error('❌ Erreur IA Admin:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  return NextResponse.json({ result })
 }
