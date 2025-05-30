@@ -1,70 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import OpenAI from 'openai'
-import { saveMemory } from '@/lib/ia/memory'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+import { Database } from '@/lib/database.types'
 
 export async function POST(req: NextRequest) {
-  const cookieStore = cookies()
-  const supabase = createMiddlewareClient({ req, res: NextResponse.next(), cookies: () => cookieStore })
-
+  const supabase = createRouteHandlerClient<Database>({ cookies })
   const { prompt } = await req.json()
 
-  try {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Utilisateur non authentifié. Veuillez vous connecter.' }, { status: 401 })
-    }
-
-    const user = session.user
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé. Rôle administrateur requis.' }, { status: 403 })
-    }
-
-    const completion = await openai.chat.completions.create({
+  // Appel à OpenAI
+  const completion = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY!}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       model: 'gpt-4',
-      temperature: 0.5,
       messages: [
-        {
-          role: 'system',
-          content: `
-Tu es l’IA stratégique de direction pour Investissement CERDIA.
-Tu aides à générer des idées de développement, optimiser des composants techniques (React, TypeScript), créer des contenus web professionnels et soutenir la vision stratégique de l’entreprise.
-Sois structuré, clair, créatif et proactif.
-          `.trim(),
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'system', content: 'Tu es l’assistant IA stratégique de Investissement CERDIA. Réponds avec clarté, intelligence, et précision professionnelle.' },
+        { role: 'user', content: prompt },
       ],
-    })
+    }),
+  })
 
-    const result = completion.choices[0].message?.content ?? 'Réponse indisponible.'
+  const json = await completion.json()
+  const result = json.choices?.[0]?.message?.content || 'Réponse vide'
 
-    await saveMemory(supabase, user.id, profile.role, [
-      { role: 'user', content: prompt },
-      { role: 'ia', content: result },
-    ])
+  // Enregistrement dans Supabase
+  const {
+    data,
+    error
+  } = await supabase.from('ia_memory').insert({
+    user_id: 'admin', // ou récupérer dynamiquement si authentifié
+    role: 'admin',
+    messages: [{ prompt, result }],
+  })
 
-    return NextResponse.json({ result })
-  } catch (err: any) {
-    console.error('❌ Erreur IA Admin:', err)
-    return NextResponse.json({ error: 'Erreur IA admin : ' + (err.message || 'Erreur inconnue') }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  return NextResponse.json({ result })
 }
