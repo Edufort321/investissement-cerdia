@@ -33,7 +33,7 @@ export default function EcommercePage() {
 
   return (
     <main className="px-6 py-12 max-w-7xl mx-auto">
-      {/* Traduction */}
+      {/* Bouton de langue */}
       <div className="flex justify-end mb-4">
         <button
           onClick={toggleLang}
@@ -43,28 +43,32 @@ export default function EcommercePage() {
         </button>
       </div>
 
-      {/* Vision stratégique */}
+      {/* Vision CERDIA */}
       {lang === 'fr' ? (
         <>
           <h1 className="text-4xl font-bold mb-4">Pourquoi cette boutique ?</h1>
           <p className="text-lg mb-10 text-gray-700 max-w-3xl">
-            La boutique CERDIA est née d’une idée simple : créer une passerelle entre l’eCommerce intelligent et l’investissement immobilier durable. Chaque produit vendu finance notre expansion immobilière internationale, tout en offrant aux clients des accessoires de qualité supérieure, testés, approuvés et optimisés par notre IA.
+            La boutique CERDIA est née d’une idée simple : créer une passerelle entre l’eCommerce intelligent et l’investissement immobilier durable. Chaque produit vendu finance notre expansion immobilière internationale, tout en offrant des articles optimisés par notre IA.
           </p>
         </>
       ) : (
         <>
           <h1 className="text-4xl font-bold mb-4">Why this shop?</h1>
           <p className="text-lg mb-10 text-gray-700 max-w-3xl">
-            The CERDIA store was born from a simple idea: to bridge intelligent eCommerce with sustainable real estate investment. Every product sold helps fund our international real estate expansion while delivering high-quality, AI-optimized travel gear to our customers.
+            The CERDIA store was born to bridge smart eCommerce with sustainable real estate investment. Every product sold helps fund our global real estate growth while offering AI-optimized gear.
           </p>
         </>
       )}
 
       {/* Produit vedette */}
       <section className="mb-20">
-        <h2 className="text-3xl font-bold mb-6">CERDIA BAG#1 – Sac à dos professionnel multifonction</h2>
+        <h2 className="text-3xl font-bold mb-4">CERDIA BAG#1 – {lang === 'fr' ? 'Sac à dos professionnel multifonction' : 'Smart travel & work backpack'}</h2>
+        <div className="text-sm mb-2 text-yellow-600 font-semibold">
+          🔔 {lang === 'fr' ? 'Disponible bientôt sur Amazon' : 'Coming soon on Amazon'}
+        </div>
+
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Carrousel */}
+          {/* Carrousel d’images */}
           <div className="flex-1">
             <div className="relative w-full max-w-xl aspect-[4/5] mx-auto mb-4">
               <Image
@@ -88,6 +92,7 @@ export default function EcommercePage() {
               </button>
             </div>
 
+            {/* Miniatures */}
             <div className="flex gap-2 mt-4 flex-wrap justify-center">
               {images.map((img, i) => (
                 <div
@@ -109,50 +114,68 @@ export default function EcommercePage() {
             </div>
           </div>
 
-          {/* Description multilingue */}
+          {/* Description dynamique */}
           <div className="flex-1">
             {lang === 'fr' ? (
               <>
                 <p className="text-lg mb-4">
-                  Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste, conçu pour les professionnels, étudiants et voyageurs. Il combine design moderne, efficacité et résistance à l'eau.
+                  Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste conçu pour les professionnels, étudiants et voyageurs.
                 </p>
                 <ul className="list-disc ml-5 mb-6">
-                  <li>Rangement ordinateur jusqu’à 17 pouces</li>
+                  <li>Pour ordinateur jusqu’à 17 pouces</li>
                   <li>Port USB intégré</li>
                   <li>Dossier respirant</li>
                   <li>Tissu imperméable</li>
-                  <li>Capacité 26 L</li>
+                  <li>Capacité : 26 L</li>
                 </ul>
-                <Link href="https://www.amazon.ca/dp/B09MQWWP87" target="_blank">
-                  <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
-                    Acheter sur Amazon
-                  </button>
-                </Link>
               </>
             ) : (
               <>
                 <p className="text-lg mb-4">
-                  The <strong>CERDIA BAG#1</strong> is a stylish and durable backpack designed for professionals, students, and travelers. It combines modern design with functionality and water resistance.
+                  The <strong>CERDIA BAG#1</strong> is a smart and durable backpack for professionals, students and travelers.
                 </p>
                 <ul className="list-disc ml-5 mb-6">
                   <li>Fits laptops up to 17 inches</li>
-                  <li>Built-in USB charging port</li>
+                  <li>Integrated USB port</li>
                   <li>Breathable padded back</li>
-                  <li>Water-resistant Oxford fabric</li>
-                  <li>26 L capacity</li>
+                  <li>Water-resistant Oxford material</li>
+                  <li>Capacity: 26 L</li>
                 </ul>
-                <Link href="https://www.amazon.ca/dp/B09MQWWP87" target="_blank">
-                  <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
-                    Buy on Amazon
-                  </button>
-                </Link>
               </>
             )}
+
+            <Link href="https://www.amazon.ca" target="_blank">
+              <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
+                {lang === 'fr' ? 'Voir sur Amazon' : 'Visit Amazon'}
+              </button>
+            </Link>
+
+            {/* Formulaire notification */}
+            <div className="mt-6">
+              <p className="text-sm font-medium mb-2">
+                {lang === 'fr'
+                  ? '🔔 Soyez notifié dès la mise en ligne :'
+                  : '🔔 Be notified as soon as it’s live:'}
+              </p>
+              <form className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  placeholder={lang === 'fr' ? 'Votre courriel' : 'Your email'}
+                  className="border px-4 py-2 rounded w-full sm:w-auto"
+                />
+                <button
+                  type="submit"
+                  className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  {lang === 'fr' ? 'M’avertir' : 'Notify me'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Produits futurs */}
+      {/* Produits à venir */}
       <section className="mb-20">
         <h2 className="text-2xl font-bold mb-4">
           {lang === 'fr' ? 'Prochains articles CERDIA' : 'Upcoming CERDIA Products'}
@@ -177,12 +200,14 @@ export default function EcommercePage() {
         </div>
       </section>
 
-      {/* Message SEO Amazon */}
-      <p className="text-center text-sm text-gray-500 mt-10 italic">
-        {lang === 'fr'
-          ? 'Vous venez d’Amazon ? Bienvenue dans la boutique officielle CERDIA. Chaque achat soutient notre mission d’investissement immobilier intelligent.'
-          : 'Coming from Amazon? Welcome to the official CERDIA store. Every purchase supports our smart real estate investment mission.'}
-      </p>
+      {/* Mini-bannière IA */}
+      <div className="bg-gray-100 text-center py-6 px-4 rounded-xl">
+        <p className="text-sm text-gray-700 max-w-3xl mx-auto">
+          {lang === 'fr'
+            ? '🧠 Cette boutique est propulsée par l’IA CERDIA. Chaque achat finance un projet immobilier durable.'
+            : '🧠 This shop is powered by CERDIA AI. Every purchase supports sustainable real estate development.'}
+        </p>
+      </div>
     </main>
   )
 }
