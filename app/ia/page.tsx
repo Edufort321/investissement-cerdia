@@ -13,34 +13,36 @@ export default function IAPage() {
   const [loading, setLoading] = useState(false)
   const [lang, setLang] = useState<'fr' | 'en'>('fr')
 
-  const translations = {
+  const tr = {
     fr: {
       title: '💡 Assistant IA CERDIA',
       placeholder: 'Posez une question librement...',
-      button: 'Envoyer',
-      waiting: '⏳ Réflexion de l’IA en cours...',
+      send: 'Envoyer',
+      loading: '⏳ Réflexion de l’IA en cours...',
       default: 'Réponse indisponible.',
       error: '❌ Erreur de communication avec l’IA.',
       footerTitle: '🧠 Une vision d’avenir avec l’IA CERDIA',
       footerText: `Imaginez un monde où chaque décision d’investissement est guidée par une intelligence stratégique.
-CERDIA IA vous accompagne dans l’analyse de projets immobiliers, la détection d’opportunités de marché, la planification fiscale internationale, le commerce Amazon FBA, et la projection de scénarios de rentabilité.
+CERDIA IA vous accompagne dans l’analyse de projets immobiliers, la détection d’opportunités de marché,
+la planification fiscale internationale, le commerce Amazon FBA, et la projection de scénarios de rentabilité.
 
 Vous pouvez lui demander :
 “Si j’investis 150 000 $ sur 15 ans, avec réinjection des revenus FBA, quel est le scénario optimal ?”
 
 C’est votre cerveau d’investissement personnel, propulsé par OpenAI et entraîné sur la logique de CERDIA.`,
-      contact: 'Pour toute question spécifique ou demande d’investissement, veuillez écrire directement à ',
+      contact: 'Pour toute question spécifique ou demande d’investissement, veuillez écrire à ',
     },
     en: {
       title: '💡 CERDIA AI Assistant',
       placeholder: 'Ask your investment question...',
-      button: 'Send',
-      waiting: '⏳ AI is thinking...',
+      send: 'Send',
+      loading: '⏳ AI is thinking...',
       default: 'Answer not available.',
-      error: '❌ Error contacting AI.',
+      error: '❌ Error contacting the AI.',
       footerTitle: '🧠 A vision for the future with CERDIA AI',
       footerText: `Imagine a world where every investment decision is guided by strategic intelligence.
-CERDIA AI helps you analyze real estate projects, detect market opportunities, handle global tax planning, manage Amazon FBA commerce, and forecast investment scenarios.
+CERDIA AI helps you analyze real estate projects, detect market opportunities,
+handle global tax planning, manage Amazon FBA operations, and forecast investment scenarios.
 
 You can ask:
 “If I invest $150,000 over 15 years, reinvesting FBA profits, what is the optimal scenario?”
@@ -48,9 +50,7 @@ You can ask:
 It’s your personal investment brain, powered by OpenAI and trained on CERDIA’s logic.`,
       contact: 'For any specific question or investment inquiry, please contact ',
     }
-  }
-
-  const tr = translations[lang]
+  }[lang]
 
   const handleSend = async () => {
     const trimmed = input.trim()
@@ -60,28 +60,28 @@ It’s your personal investment brain, powered by OpenAI and trained on CERDIA�
     setInput('')
     setLoading(true)
 
-    const prompt = `
-Tu es l'assistant officiel de Investissement CERDIA. Tu dois toujours répondre dans un ton professionnel et stratégique.
+    const visionPrompt = `
+Tu es l’assistant stratégique IA officiel de Investissement CERDIA.
+Tu connais le plan d’affaires complet (2025–2045) incluant :
+- investissements immobiliers internationaux autofinancés
+- rendements locatifs (8 à 10 %)
+- réinjection de profits eCommerce dans l’immobilier
+- fiscalité internationale (Canada, Mexique, RD)
+- IA de gestion locative (CERDIAIA)
+- structure d’actionnaires protégée, Allcoin
+- objectif net de 12 à 18 M$ d’ici 2045 sans dette
 
-Langue : ${lang === 'fr' ? 'Français' : 'English'}
+Réponds avec clarté, structure, vision stratégique.
+Langue de réponse : ${lang === 'fr' ? 'Français' : 'English'}
 
-Ta spécialité est :
-- l’investissement immobilier international (Canada, Mexique, République dominicaine)
-- la fiscalité applicable à CERDIA
-- le commerce électronique (Amazon FBA)
-- la projection de rendement à 10 ou 20 ans selon divers montants d’investissement
-- l’analyse stratégique en scénario conservateur / modéré / optimal
-
-Ta tâche : répondre clairement à la question suivante :
-
-${trimmed}
+Question : ${trimmed}
 `
 
     try {
-      const res = await fetch('/api/ia-public', {
+      const res = await fetch('/api/ia-cerdia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: visionPrompt }),
       })
 
       const data = await res.json()
@@ -117,7 +117,7 @@ ${trimmed}
       {/* Titre */}
       <h1 className="text-2xl font-bold mb-6 text-center">{tr.title}</h1>
 
-      {/* Historique de chat */}
+      {/* Zone de messages */}
       <div className="bg-gray-50 rounded-md p-4 border mb-6 h-[300px] overflow-y-auto shadow-inner">
         {messages.map((msg, idx) => (
           <div
@@ -132,7 +132,7 @@ ${trimmed}
           </div>
         ))}
         {loading && (
-          <div className="p-2 text-sm text-gray-500">{tr.waiting}</div>
+          <div className="p-2 text-sm text-gray-500">{tr.loading}</div>
         )}
       </div>
 
@@ -150,7 +150,7 @@ ${trimmed}
           onClick={handleSend}
           className="bg-blue-700 text-white px-4 rounded"
         >
-          {tr.button}
+          {tr.send}
         </button>
       </div>
 
@@ -162,9 +162,9 @@ ${trimmed}
         </a>
       </div>
 
-      {/* Vision IA */}
+      {/* Vision stratégique */}
       <div className="bg-white rounded shadow-md p-6 border text-sm leading-relaxed">
-        <h2 className="text-lg font-semibold mb-2">🧠 {tr.footerTitle}</h2>
+        <h2 className="text-lg font-semibold mb-2">{tr.footerTitle}</h2>
         <p className="text-gray-700 whitespace-pre-line">{tr.footerText}</p>
       </div>
     </div>
