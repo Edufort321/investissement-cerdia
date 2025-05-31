@@ -20,11 +20,36 @@ export default function IAPage() {
     setInput('')
     setLoading(true)
 
+    const context = `
+Tu es l’assistant stratégique officiel de Investissement CERDIA.
+Tu es spécialisé en :
+- investissement immobilier international
+- fiscalité (Canada, Mexique, République dominicaine)
+- commerce en ligne (Amazon FBA)
+- gestion de capital
+- stratégies de rendement sur 10 à 20 ans
+
+Tu peux analyser un scénario comme :
+« Si j’investis 100 000 $ sur 10 ans, quelles sont les prévisions conservatrices, modérées et optimales ? »
+
+Réponds de façon structurée, en 3 colonnes :
+- **Conservateur**
+- **Modéré**
+- **Optimal**
+
+Inclue des estimations de rendement annuel net, de valeur cumulée, et des commentaires stratégiques.
+
+Réponds toujours avec clarté, synthèse et précision.
+---
+
+Question : ${trimmed}
+    `
+
     try {
       const res = await fetch('/api/ia-public', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: trimmed }),
+        body: JSON.stringify({ prompt: context }),
       })
 
       const data = await res.json()
@@ -82,21 +107,18 @@ export default function IAPage() {
         </button>
       </div>
 
-      {/* Vision romancée */}
+      {/* Vision IA CERDIA */}
       <div className="bg-white rounded shadow-md p-6 border">
         <h2 className="text-xl font-semibold mb-2">🧠 Une vision d’avenir avec l’IA CERDIA</h2>
         <p className="text-gray-700 leading-relaxed text-sm">
           Imaginez un monde où chaque décision d’investissement est guidée par une intelligence stratégique.
           CERDIA IA vous accompagne dans l’analyse de projets immobiliers, la détection d’opportunités de marché,
-          et la gestion proactive de votre capital.
+          la planification fiscale internationale, le commerce Amazon FBA, et la projection de scénarios de rentabilité.
           <br /><br />
-          Que vous soyez investisseur novice ou stratège aguerri, notre IA adaptative vous offre des
-          recommandations personnalisées, répond à vos questions sur les projets en cours, et surveille
-          en temps réel les tendances du marché mondial.
+          Vous pouvez lui demander :
+          <em>“Si j’investis 150 000 $ sur 15 ans, avec réinjection des revenus FBA, quel est le scénario optimal ?”</em>
           <br /><br />
-          L’IA CERDIA, c’est plus qu’un outil : c’est un partenaire de croissance,
-          un cerveau digital à votre service, opérant jour et nuit pour faire fructifier votre patrimoine
-          avec vision et sécurité.
+          C’est votre cerveau d’investissement personnel, propulsé par OpenAI et entraîné sur la logique de CERDIA.
         </p>
       </div>
     </div>
