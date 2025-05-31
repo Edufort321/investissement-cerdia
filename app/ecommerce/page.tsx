@@ -43,7 +43,7 @@ export default function EcommercePage() {
         </button>
       </div>
 
-      {/* Vision CERDIA */}
+      {/* Vision stratégique */}
       {lang === 'fr' ? (
         <>
           <h1 className="text-4xl font-bold mb-4">Pourquoi cette boutique ?</h1>
@@ -60,11 +60,11 @@ export default function EcommercePage() {
         </>
       )}
 
-      {/* Produit vedette CERDIA BAG#1 */}
+      {/* Produit vedette */}
       <section className="mb-20">
         <h2 className="text-3xl font-bold mb-6">CERDIA BAG#1 – Sac à dos professionnel multifonction</h2>
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Carrousel avec flèches et ajustement automatique */}
+          {/* Carrousel */}
           <div className="flex-1">
             <div className="relative w-full max-w-xl aspect-[4/5] mx-auto mb-4">
               <Image
@@ -74,14 +74,12 @@ export default function EcommercePage() {
                 className="object-contain rounded-xl"
                 sizes="(max-width: 768px) 100vw, 600px"
               />
-              {/* Flèche gauche */}
               <button
                 onClick={() => setCurrent((current - 1 + images.length) % images.length)}
                 className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-r hover:bg-opacity-90"
               >
                 ◀
               </button>
-              {/* Flèche droite */}
               <button
                 onClick={() => setCurrent((current + 1) % images.length)}
                 className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-l hover:bg-opacity-90"
@@ -90,7 +88,6 @@ export default function EcommercePage() {
               </button>
             </div>
 
-            {/* Miniatures égales */}
             <div className="flex gap-2 mt-4 flex-wrap justify-center">
               {images.map((img, i) => (
                 <div
@@ -112,30 +109,54 @@ export default function EcommercePage() {
             </div>
           </div>
 
-          {/* Description produit */}
+          {/* Description multilingue */}
           <div className="flex-1">
-            <p className="text-lg mb-4">
-              Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste, conçu pour les professionnels, étudiants et voyageurs. Il combine design moderne, efficacité et résistance à l'eau.
-            </p>
-            <ul className="list-disc ml-5 mb-6">
-              <li>Rangement ordinateur jusqu’à 17 pouces</li>
-              <li>Port USB intégré</li>
-              <li>Dossier respirant</li>
-              <li>Tissu imperméable</li>
-              <li>Capacité 26 L</li>
-            </ul>
-            <Link href="https://www.amazon.ca/dp/B09MQWWP87" target="_blank">
-              <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
-                Acheter sur Amazon
-              </button>
-            </Link>
+            {lang === 'fr' ? (
+              <>
+                <p className="text-lg mb-4">
+                  Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste, conçu pour les professionnels, étudiants et voyageurs. Il combine design moderne, efficacité et résistance à l'eau.
+                </p>
+                <ul className="list-disc ml-5 mb-6">
+                  <li>Rangement ordinateur jusqu’à 17 pouces</li>
+                  <li>Port USB intégré</li>
+                  <li>Dossier respirant</li>
+                  <li>Tissu imperméable</li>
+                  <li>Capacité 26 L</li>
+                </ul>
+                <Link href="https://www.amazon.ca/dp/B09MQWWP87" target="_blank">
+                  <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
+                    Acheter sur Amazon
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="text-lg mb-4">
+                  The <strong>CERDIA BAG#1</strong> is a stylish and durable backpack designed for professionals, students, and travelers. It combines modern design with functionality and water resistance.
+                </p>
+                <ul className="list-disc ml-5 mb-6">
+                  <li>Fits laptops up to 17 inches</li>
+                  <li>Built-in USB charging port</li>
+                  <li>Breathable padded back</li>
+                  <li>Water-resistant Oxford fabric</li>
+                  <li>26 L capacity</li>
+                </ul>
+                <Link href="https://www.amazon.ca/dp/B09MQWWP87" target="_blank">
+                  <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
+                    Buy on Amazon
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Galerie produits à venir */}
+      {/* Produits futurs */}
       <section className="mb-20">
-        <h2 className="text-2xl font-bold mb-4">Prochains articles CERDIA</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {lang === 'fr' ? 'Prochains articles CERDIA' : 'Upcoming CERDIA Products'}
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {futureProducts.map((product, i) => (
             <div
@@ -156,9 +177,11 @@ export default function EcommercePage() {
         </div>
       </section>
 
-      {/* Message SEO pour visiteurs Amazon */}
+      {/* Message SEO Amazon */}
       <p className="text-center text-sm text-gray-500 mt-10 italic">
-        Vous venez d’Amazon ? Bienvenue dans la boutique officielle CERDIA. Chaque achat soutient notre mission d’investissement immobilier intelligent.
+        {lang === 'fr'
+          ? 'Vous venez d’Amazon ? Bienvenue dans la boutique officielle CERDIA. Chaque achat soutient notre mission d’investissement immobilier intelligent.'
+          : 'Coming from Amazon? Welcome to the official CERDIA store. Every purchase supports our smart real estate investment mission.'}
       </p>
     </main>
   )
