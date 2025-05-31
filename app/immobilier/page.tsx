@@ -1,80 +1,107 @@
 'use client'
 
-import ImageCarousel from '@/components/ImageCarousel'
+import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 
-export default function ProjetsLocatifsPage() {
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-bold text-center text-blue-800 mb-8">
-        🏘️ Projets Locatifs en Acquisition
-      </h1>
+export default function ImmobilierPage() {
+  const [lang, setLang] = useState<'fr' | 'en'>('fr')
 
-      <p className="text-lg text-center text-gray-700 mb-12">
-        Investissement CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme.
+  const toggleLang = () => {
+    setLang((prev) => (prev === 'fr' ? 'en' : 'fr'))
+  }
+
+  return (
+    <main className="max-w-7xl mx-auto px-6 py-12">
+      {/* Sélecteur de langue */}
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={toggleLang}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm"
+        >
+          {lang === 'fr' ? (
+            <>
+              <span role="img" aria-label="US Flag">🇺🇸</span>
+              <span>Switch to English</span>
+            </>
+          ) : (
+            <>
+              <span role="img" aria-label="Canada Flag">🇨🇦</span>
+              <span>Passer en français</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Titre + description */}
+      <h2 className="text-3xl font-bold text-[#2234B9] mb-2">
+        {lang === 'fr' ? '🏡 Projets Locatifs en Acquisition' : '🏡 Rental Projects in Acquisition'}
+      </h2>
+      <p className="text-gray-700 mb-10 max-w-3xl">
+        {lang === 'fr'
+          ? "Investissement CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme."
+          : "Investissement CERDIA focuses its acquisitions on high-end rental projects in areas with strong long-term growth and return potential."}
       </p>
 
-      <div className="grid md:grid-cols-2 gap-10">
+      {/* Cartes projets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Secret Garden */}
-        <div className="bg-white shadow-md rounded-xl overflow-hidden border">
-          <ImageCarousel
-            images={[
-              '/images/secret-garden-1.jpg',
-              '/images/secret-garden-2.jpg',
-              '/images/secret-garden-3.jpg',
-              '/images/secret-garden-4.jpg'
-            ]}
+        <div className="bg-white rounded-xl shadow p-6">
+          <Image
+            src="/images/secret-garden.jpg"
+            alt="Secret Garden"
+            width={800}
+            height={500}
+            className="rounded-lg mb-4 w-full object-cover"
           />
-          <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">🌴 Secret Garden</h2>
-            <p className="text-gray-700 mb-4">
-              Unité acquise : H212<br />
-              Livraison prévue : Mars 2026<br />
-              Projet locatif dans un environnement tropical avec gestion locative centralisée.
-            </p>
-            <Link
-              href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
-              target="_blank"
-              className="text-blue-700 underline font-semibold"
-            >
-              📂 Consulter le dossier Secret Garden
-            </Link>
-          </div>
+          <h3 className="text-xl font-semibold mb-2">🌴 Secret Garden</h3>
+          <ul className="text-sm text-gray-700 mb-2">
+            <li>{lang === 'fr' ? 'Unité acquise : H212' : 'Unit acquired: H212'}</li>
+            <li>{lang === 'fr' ? 'Livraison prévue : Mars 2026' : 'Delivery expected: March 2026'}</li>
+          </ul>
+          <p className="mb-4 text-gray-700 text-sm">
+            {lang === 'fr'
+              ? "Projet locatif dans un environnement tropical avec gestion locative centralisée."
+              : "Rental project in a tropical environment with centralized property management."}
+          </p>
+          <Link href="/secret-garden" className="text-blue-600 underline font-medium">
+            {lang === 'fr' ? '📂 Consulter le dossier Secret Garden' : '📂 View the Secret Garden file'}
+          </Link>
         </div>
 
         {/* Oasis Bay */}
-        <div className="bg-white shadow-md rounded-xl overflow-hidden border">
-          <ImageCarousel
-            images={[
-              '/images/oasis-bay-1.jpg',
-              '/images/oasis-bay-2.jpg',
-              '/images/oasis-bay-3.jpg',
-              '/images/oasis-bay-4.jpg'
-            ]}
+        <div className="bg-white rounded-xl shadow p-6">
+          <Image
+            src="/images/oasis-bay.jpg"
+            alt="Oasis Bay"
+            width={800}
+            height={500}
+            className="rounded-lg mb-4 w-full object-cover"
           />
-          <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">🏝️ Oasis Bay</h2>
-            <p className="text-gray-700 mb-4">
-              Unités acquises : A301 et A302<br />
-              Studios gérés par Meliá INNSiDE dans le complexe Cana Bay avec services haut de gamme.
-            </p>
-            <Link
-              href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
-              target="_blank"
-              className="text-blue-700 underline font-semibold"
-            >
-              📂 Consulter le dossier Oasis Bay
-            </Link>
-          </div>
+          <h3 className="text-xl font-semibold mb-2">🌴 Oasis Bay</h3>
+          <ul className="text-sm text-gray-700 mb-2">
+            <li>{lang === 'fr' ? 'Unités acquises : A301 et A302' : 'Units acquired: A301 and A302'}</li>
+          </ul>
+          <p className="mb-4 text-gray-700 text-sm">
+            {lang === 'fr'
+              ? "Studios gérés par Meliá INNSIDE dans le complexe Cana Bay avec services haut de gamme."
+              : "Studios managed by Meliá INNSIDE in the Cana Bay complex with premium services."}
+          </p>
+          <Link href="/oasis-bay" className="text-blue-600 underline font-medium">
+            {lang === 'fr' ? '📂 Consulter le dossier Oasis Bay' : '📂 View the Oasis Bay file'}
+          </Link>
         </div>
       </div>
 
-      <p className="text-sm text-center text-gray-500 italic mt-10">
-        Pour toute question sur ces projets ou l’investissement locatif CERDIA, contactez :{' '}
-        <a href="mailto:eric.dufort@cerdia.ai" className="underline text-blue-600">
+      {/* Note contact */}
+      <p className="text-center text-sm text-gray-600 mt-10">
+        {lang === 'fr'
+          ? "Pour toute question sur ces projets ou l’investissement locatif CERDIA, contactez :"
+          : "For any question about these projects or CERDIA rental investments, contact:"}{' '}
+        <a href="mailto:eric.dufort@cerdia.ai" className="text-blue-600 underline">
           eric.dufort@cerdia.ai
         </a>
       </p>
-    </div>
+    </main>
   )
 }
