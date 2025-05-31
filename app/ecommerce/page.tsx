@@ -5,10 +5,16 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 const images = [
-  '/sac-1.jpg',
-  '/sac-2.jpg',
-  '/sac-3.jpg',
-  '/sac-4.jpg',
+  '/images/cerdia-bag-1/bag1-1.png',
+  '/images/cerdia-bag-1/bag1-2.png',
+  '/images/cerdia-bag-1/bag1-3.png',
+  '/images/cerdia-bag-1/bag1-4.png',
+  '/images/cerdia-bag-1/bag1-5.png',
+  '/images/cerdia-bag-1/bag1-6.png',
+  '/images/cerdia-bag-1/bag1-7.png',
+  '/images/cerdia-bag-1/bag1-8.png',
+  '/images/cerdia-bag-1/bag1-9-blue-navy.png',
+  '/images/cerdia-bag-1/bag1-10-dark-gray.png',
 ]
 
 export default function EcommerceProduct() {
@@ -16,7 +22,7 @@ export default function EcommerceProduct() {
 
   return (
     <section className="px-6 py-12 max-w-7xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6">Sac à dos professionnel CERDIA</h2>
+      <h2 className="text-3xl font-bold mb-6">CERDIA BAG#1 – Sac à dos professionnel multifonction</h2>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex-1">
           <Image
@@ -26,7 +32,7 @@ export default function EcommerceProduct() {
             height={600}
             className="rounded-2xl object-cover"
           />
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-4 flex-wrap">
             {images.map((img, i) => (
               <Image
                 key={i}
@@ -42,7 +48,7 @@ export default function EcommerceProduct() {
         </div>
         <div className="flex-1">
           <p className="text-lg mb-4">
-            Sac haut de gamme, conçu pour le confort et la fonctionnalité :
+            Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste, conçu pour les professionnels, étudiants et voyageurs. Il combine design moderne, efficacité et résistance à l'eau.
           </p>
           <ul className="list-disc ml-5 mb-6">
             <li>Rangement ordinateur jusqu’à 17 pouces</li>
