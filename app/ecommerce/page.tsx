@@ -64,21 +64,39 @@ export default function EcommercePage() {
       <section className="mb-20">
         <h2 className="text-3xl font-bold mb-6">CERDIA BAG#1 – Sac à dos professionnel multifonction</h2>
         <div className="flex flex-col md:flex-row gap-8">
+          {/* Carrousel */}
           <div className="flex-1">
-            <Image
-              src={images[current]}
-              alt="Sac à dos CERDIA"
-              width={600}
-              height={600}
-              className="rounded-2xl object-cover"
-            />
+            <div className="relative w-full max-w-xl h-[500px] mx-auto mb-4">
+              <Image
+                src={images[current]}
+                alt={`Image ${current + 1}`}
+                fill
+                className="rounded-xl object-cover"
+              />
+              {/* Flèche gauche */}
+              <button
+                onClick={() => setCurrent((current - 1 + images.length) % images.length)}
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-r hover:bg-opacity-90"
+              >
+                ◀
+              </button>
+              {/* Flèche droite */}
+              <button
+                onClick={() => setCurrent((current + 1) % images.length)}
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-l hover:bg-opacity-90"
+              >
+                ▶
+              </button>
+            </div>
+
+            {/* Miniatures */}
             <div className="flex gap-2 mt-4 flex-wrap">
               {images.map((img, i) => (
                 <Image
                   key={i}
                   src={img}
-                  width={90}
-                  height={90}
+                  width={130}
+                  height={130}
                   alt={`Miniature ${i + 1}`}
                   onClick={() => setCurrent(i)}
                   className={`rounded cursor-pointer border ${current === i ? 'border-blue-600' : 'border-gray-300'}`}
@@ -87,6 +105,7 @@ export default function EcommercePage() {
             </div>
           </div>
 
+          {/* Description */}
           <div className="flex-1">
             <p className="text-lg mb-4">
               Le <strong>CERDIA BAG#1</strong> est un sac à dos élégant et robuste, conçu pour les professionnels, étudiants et voyageurs. Il combine design moderne, efficacité et résistance à l'eau.
@@ -107,7 +126,7 @@ export default function EcommercePage() {
         </div>
       </section>
 
-      {/* Galerie de produits futurs */}
+      {/* Galerie des produits à venir */}
       <section className="mb-20">
         <h2 className="text-2xl font-bold mb-4">Prochains articles CERDIA</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -130,7 +149,7 @@ export default function EcommercePage() {
         </div>
       </section>
 
-      {/* Message SEO et Amazon */}
+      {/* Message SEO pour trafic Amazon */}
       <p className="text-center text-sm text-gray-500 mt-10 italic">
         Vous venez d’Amazon ? Bienvenue dans la boutique officielle CERDIA. Chaque achat soutient notre mission d’investissement immobilier intelligent.
       </p>
