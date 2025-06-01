@@ -1,23 +1,30 @@
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import OpenAI from 'openai'
-import { CERDIA_VISION_PROMPT } from '@/lib/ia-cerdia-prompt'
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai';
+import OpenAI from 'openai';
+import { CERDIA_VISION_PROMPT } from '@/lib/ia-cerdia-prompt';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Création d'une instance OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-export const runtime = 'edge'
+// Route handler (Next.js 14 avec app router)
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { prompt } = await req.json()
+  const { messages } = await req.json();
+
+  // Ajoute le contexte CERDIA à la première requête de l'utilisateur
+  const cerdiavision = {
+    role: 'system',
+    content: CERDIA_VISION_PROMPT,
+  };
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
-    messages: [
-      { role: 'system', content: CERDIA_VISION_PROMPT },
-      { role: 'user', content: prompt }
-    ]
-  })
+    messages: [cerdiavision, ...messages],
+  });
 
-  const stream = OpenAIStream(response)
-  return new StreamingTextResponse(stream)
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
 }
