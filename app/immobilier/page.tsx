@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 
 export default function ImmobilierPage() {
   const [lang, setLang] = useState<'fr' | 'en'>('fr')
@@ -10,7 +9,8 @@ export default function ImmobilierPage() {
   const t = {
     fr: {
       titre: '🏡 Projets Locatifs en Acquisition',
-      description: "Investissement CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme.",
+      description:
+        "Investissement CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme.",
       secretTitle: '🌴 Secret Garden',
       secretUnit: 'Unité acquise : H212',
       secretDelivery: 'Livraison prévue : Mars 2026',
@@ -24,7 +24,8 @@ export default function ImmobilierPage() {
     },
     en: {
       titre: '🏡 Rental Projects in Acquisition',
-      description: "Investissement CERDIA focuses its acquisitions on high-end rental projects in areas with strong long-term growth and return potential.",
+      description:
+        "Investissement CERDIA focuses its acquisitions on high-end rental projects in areas with strong long-term growth and return potential.",
       secretTitle: '🌴 Secret Garden',
       secretUnit: 'Unit acquired: H212',
       secretDelivery: 'Delivery expected: March 2026',
@@ -75,9 +76,14 @@ export default function ImmobilierPage() {
             <li>{tr.secretDelivery}</li>
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
-          <Link href="/secret-garden" className="text-blue-600 underline font-medium">
+          <a
+            href="https://drive.google.com/drive/folders/1jNl8QBlMKIbNt0FPNlJo7MjR1XAixZRz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline font-medium"
+          >
             {tr.secretLink}
-          </Link>
+          </a>
         </div>
 
         {/* Oasis Bay */}
@@ -94,9 +100,14 @@ export default function ImmobilierPage() {
             <li>{tr.oasisUnit}</li>
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
-          <Link href="/oasis-bay" className="text-blue-600 underline font-medium">
+          <a
+            href="https://drive.google.com/drive/folders/1oeCV9DQBDOMYUbm8IguF9JS1dqxTxYmc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline font-medium"
+          >
             {tr.oasisLink}
-          </Link>
+          </a>
         </div>
       </div>
 
