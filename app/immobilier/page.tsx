@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import 'swiper/css'
 
 export default function ImmobilierPage() {
   const [lang, setLang] = useState<'fr' | 'en'>('fr')
@@ -43,7 +45,7 @@ export default function ImmobilierPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-12">
-      {/* Sélecteur de langue uniforme */}
+      {/* Langue */}
       <div className="flex justify-end mb-6">
         <select
           value={lang}
@@ -55,7 +57,7 @@ export default function ImmobilierPage() {
         </select>
       </div>
 
-      {/* Titre + description */}
+      {/* Titre et description */}
       <h2 className="text-3xl font-bold text-[#2234B9] mb-2">{tr.titre}</h2>
       <p className="text-gray-700 mb-10 max-w-3xl">{tr.description}</p>
 
@@ -63,13 +65,19 @@ export default function ImmobilierPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Secret Garden */}
         <div className="bg-white rounded-xl shadow p-6">
-          <Image
-            src="/images/secret-garden.jpg"
-            alt="Secret Garden"
-            width={800}
-            height={500}
-            className="rounded-lg mb-4 w-full object-cover"
-          />
+          <Swiper spaceBetween={10} slidesPerView={1} className="mb-4 rounded-lg overflow-hidden">
+            {[1, 2, 3, 4].map((i) => (
+              <SwiperSlide key={i}>
+                <Image
+                  src={`/images/secret-garden-${i}.jpg`}
+                  alt={`Secret Garden ${i}`}
+                  width={800}
+                  height={500}
+                  className="w-full object-cover"
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
           <h3 className="text-xl font-semibold mb-2">{tr.secretTitle}</h3>
           <ul className="text-sm text-gray-700 mb-2">
             <li>{tr.secretUnit}</li>
@@ -77,7 +85,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1jNl8QBlMKIbNt0FPNlJo7MjR1XAixZRz"
+            href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
@@ -88,20 +96,26 @@ export default function ImmobilierPage() {
 
         {/* Oasis Bay */}
         <div className="bg-white rounded-xl shadow p-6">
-          <Image
-            src="/images/oasis-bay.jpg"
-            alt="Oasis Bay"
-            width={800}
-            height={500}
-            className="rounded-lg mb-4 w-full object-cover"
-          />
+          <Swiper spaceBetween={10} slidesPerView={1} className="mb-4 rounded-lg overflow-hidden">
+            {[1, 2, 3, 4].map((i) => (
+              <SwiperSlide key={i}>
+                <Image
+                  src={`/images/oasis-bay-${i}.jpg`}
+                  alt={`Oasis Bay ${i}`}
+                  width={800}
+                  height={500}
+                  className="w-full object-cover"
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
           <h3 className="text-xl font-semibold mb-2">{tr.oasisTitle}</h3>
           <ul className="text-sm text-gray-700 mb-2">
             <li>{tr.oasisUnit}</li>
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1oeCV9DQBDOMYUbm8IguF9JS1dqxTxYmc"
+            href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
