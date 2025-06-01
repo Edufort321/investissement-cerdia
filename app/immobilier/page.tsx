@@ -47,7 +47,7 @@ export default function ImmobilierPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-12">
-      {/* Langue */}
+      {/* Sélecteur de langue */}
       <div className="flex justify-end mb-6">
         <select
           value={lang}
@@ -59,11 +59,11 @@ export default function ImmobilierPage() {
         </select>
       </div>
 
-      {/* Titre et description */}
+      {/* Titre */}
       <h2 className="text-3xl font-bold text-[#2234B9] mb-2">{tr.titre}</h2>
       <p className="text-gray-700 mb-10 max-w-3xl">{tr.description}</p>
 
-      {/* Cartes projets */}
+      {/* Projets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Secret Garden */}
         <div className="bg-white rounded-xl shadow p-6">
@@ -94,7 +94,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=drive_link"
+            href="https://drive.google.com/drive/folders/1jNl8QBlMKIbNt0FPNlJo7MjR1XAixZRz"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
@@ -131,7 +131,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=drive_link"
+            href="https://drive.google.com/drive/folders/1oeCV9DQBDOMYUbm8IguF9JS1dqxTxYmc"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
