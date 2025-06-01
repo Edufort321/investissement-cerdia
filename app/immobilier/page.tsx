@@ -94,7 +94,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1jNl8QBlMKIbNt0FPNlJo7MjR1XAixZRz"
+            href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
@@ -131,7 +131,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1oeCV9DQBDOMYUbm8IguF9JS1dqxTxYmc"
+            href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
