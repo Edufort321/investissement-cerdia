@@ -1,12 +1,13 @@
 'use server'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { readFile } from 'fs/promises'
 import { revalidatePath } from 'next/cache'
 
-// Simulation d'une base de données temporaire en mémoire (à remplacer par Supabase ou Firestore plus tard)
+// Mémoire dynamique pour apprentissage complémentaire (manuel ou API)
 let cerdiapedia: string[] = [
   "CERDIA a été fondée en 2025 par Éric Dufort.",
-  "La stratégie vise une rentabilité nette de 20 à 30 %.",
+  "La stratégie vise une rentabilité nette de 15 à 20 %.",
   "L'entreprise fonctionne sans dette bancaire.",
   "CERDIA Commerce réinjecte tous les profits dans l'immobilier."
 ]
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '❌ Donnée invalide.' }, { status: 400 })
     }
 
-    cerdiapedia.unshift(note.trim()) // Ajouter la nouvelle donnée au début
+    cerdiapedia.unshift(note.trim())
 
     console.log('🧠 Nouvelle connaissance ajoutée à CERDIA IA :', note)
 
@@ -32,5 +33,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ cerdiapedia })
+  try {
+    const vision = await readFile('/mnt/data/vision_cerdia_2025_2045.txt', 'utf-8')
+    return NextResponse.json({ cerdiapedia, vision })
+  } catch (err) {
+    console.error('❌ Erreur lecture fichier vision :', err)
+    return NextResponse.json({ error: 'Erreur de lecture du fichier vision.' }, { status: 500 })
+  }
 }
