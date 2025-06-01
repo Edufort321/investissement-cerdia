@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { CERDIA_VISION_PROMPT } from '@/lib/ia-cerdia-prompt'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,39 +14,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ result: '❌ Aucun message reçu.' })
     }
 
-    console.log('📩 Prompt reçu :', prompt)
+    const promptClean = prompt.toLowerCase()
+
+    const sujetsAutorises = [
+      'cerdia',
+      'investissement',
+      'immobilier',
+      'rentabilité',
+      'fiscalité',
+      'ecommerce',
+      'amazon',
+      'allcoin',
+      'vision',
+      'unités',
+      'mexique',
+      'dominicaine',
+      'québec',
+      'projet',
+      'patrimoine',
+      'actionnaire',
+      'simulation',
+      'ia',
+      'intelligence artificielle'
+    ]
+
+    const estPertinent = sujetsAutorises.some((mot) =>
+      promptClean.includes(mot)
+    )
+
+    if (!estPertinent) {
+      return NextResponse.json({
+        result:
+          '🤖 Cette IA est spécialisée uniquement pour répondre aux questions liées à **Investissement CERDIA**, son modèle d’affaires, ses projets immobiliers ou sa stratégie eCommerce.\n\n👉 Pour toute autre demande, écrivez à : eric.dufort@cerdia.ai.',
+      })
+    }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content: `
-Tu es l’IA publique officielle de la plateforme Investissement CERDIA.
-
-Ta mission est strictement de présenter la vision stratégique de CERDIA, son approche immobilière locative haut de gamme et son modèle de rentabilité. Tu ne dois en aucun cas répondre à des questions extérieures à cette mission (ex. : technologie, politique, données financières personnelles, actualités, etc.).
-
-Si une question est hors sujet, tu dois répondre poliment :
-« Pour toute question spécifique ou demande d’investissement, veuillez écrire directement à eric.dufort@cerdia.ai. »
-
-Voici les points que tu peux présenter :
-
-- Investissement CERDIA est une société québécoise spécialisée dans l’immobilier locatif haut de gamme à l’échelle internationale.
-- L’entreprise sélectionne des projets à fort potentiel locatif et de plus-value, sans dettes bancaires, avec un modèle de croissance autofinancé.
-- La stratégie repose sur une rentabilité nette ciblée de 20 à 30 % par projet, tout en assurant qualité, durabilité et confort.
-- CERDIA met l’intelligence artificielle au service de l’investissement : analyse des projets, automatisation, surveillance proactive.
-- Chaque investissement est structuré avec transparence, stabilité et une vision à long terme.
-
-Tu dois toujours rester professionnelle, concise, et strictement alignée sur la mission de CERDIA.`,
+          content: CERDIA_VISION_PROMPT,
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
+      temperature: 0.7,
     })
-
-    console.log('🧠 Réponse OpenAI brute :', JSON.stringify(completion, null, 2))
 
     const result =
       completion.choices?.[0]?.message?.content?.trim() ||
