@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
+import { Pagination, Autoplay } from 'swiper/modules'
 import 'swiper/css'
+import 'swiper/css/pagination'
 
 export default function ImmobilierPage() {
   const [lang, setLang] = useState<'fr' | 'en'>('fr')
@@ -65,7 +67,14 @@ export default function ImmobilierPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Secret Garden */}
         <div className="bg-white rounded-xl shadow p-6">
-          <Swiper spaceBetween={10} slidesPerView={1} className="mb-4 rounded-lg overflow-hidden">
+          <Swiper
+            spaceBetween={10}
+            slidesPerView={1}
+            pagination={{ clickable: true }}
+            autoplay={{ delay: 3000 }}
+            modules={[Pagination, Autoplay]}
+            className="mb-4 rounded-lg overflow-hidden"
+          >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
                 <Image
@@ -85,7 +94,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1jNl8QBlMKIbNt0FPNlJo7MjR1XAixZRz"
+            href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
@@ -96,7 +105,14 @@ export default function ImmobilierPage() {
 
         {/* Oasis Bay */}
         <div className="bg-white rounded-xl shadow p-6">
-          <Swiper spaceBetween={10} slidesPerView={1} className="mb-4 rounded-lg overflow-hidden">
+          <Swiper
+            spaceBetween={10}
+            slidesPerView={1}
+            pagination={{ clickable: true }}
+            autoplay={{ delay: 3000 }}
+            modules={[Pagination, Autoplay]}
+            className="mb-4 rounded-lg overflow-hidden"
+          >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
                 <Image
@@ -115,7 +131,7 @@ export default function ImmobilierPage() {
           </ul>
           <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
           <a
-            href="https://drive.google.com/drive/folders/1oeCV9DQBDOMYUbm8IguF9JS1dqxTxYmc"
+            href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline font-medium"
