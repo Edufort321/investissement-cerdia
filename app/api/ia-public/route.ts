@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import fs from 'fs'
+import path from 'path'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+// Chemin absolu pour charger la vision de CERDIA
+const visionFilePath = path.resolve(process.cwd(), 'public/vision_cerdia_2025_2045.txt')
+let visionContent = 'Vision stratégique indisponible.'
+
+try {
+  visionContent = fs.readFileSync(visionFilePath, 'utf-8')
+  console.log('📘 Vision CERDIA chargée avec succès.')
+} catch (err) {
+  console.warn('⚠️ Impossible de lire le fichier de vision CERDIA.')
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,8 +25,6 @@ export async function POST(req: NextRequest) {
     if (!prompt || prompt.trim() === '') {
       return NextResponse.json({ result: '❌ Aucun message reçu.' })
     }
-
-    console.log('📩 Prompt reçu :', prompt)
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -35,10 +46,10 @@ Ta mission est de répondre exclusivement à des questions liées à :
 ❌ Si la question sort de ce cadre (ex. : météo, politique, technologie externe, questions personnelles), tu DOIS répondre poliment :
 « Pour toute question spécifique ou demande d’investissement, veuillez écrire directement à eric.dufort@cerdia.ai. »
 
-Réponds toujours de manière structurée, claire, alignée sur le plan d’affaires officiel, et surtout, avec professionnalisme.
-Tu es un assistant stratégique, pas un chatbot généraliste.
+Voici la vision de l’entreprise (à connaître par cœur) :
+${visionContent}
 
-Tu représentes : Investissement CERDIA inc. – Vision 2045.
+Tu es un assistant stratégique, pas un chatbot généraliste. Réponds toujours de manière claire, structurée et professionnelle.
           `.trim(),
         },
         {
