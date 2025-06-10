@@ -1,24 +1,31 @@
 'use client'
+
 import { useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Database } from '@/lib/database.types'
 
 export default function ConnexionPage() {
   const router = useRouter()
+  const supabase = createClientComponentClient<Database>()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message)
     } else {
-      router.push('/dashboard') // Redirection après succès
+      router.push('/dashboard')
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleLogin()
     }
   }
 
@@ -32,20 +39,27 @@ export default function ConnexionPage() {
         placeholder="Courriel"
         className="border p-2 w-full mb-2"
         onChange={(e) => setEmail(e.target.value)}
+        value={email}
+        onKeyDown={(e) => e.key === 'Enter' && document.getElementById('password')?.focus()}
+        autoFocus
       />
 
-      {/* Mot de passe avec icône œil */}
+      {/* Mot de passe */}
       <div className="relative mb-2">
         <input
+          id="password"
           type={showPassword ? 'text' : 'password'}
           placeholder="Mot de passe"
           className="border p-2 w-full pr-10"
           onChange={(e) => setPassword(e.target.value)}
+          value={password}
+          onKeyDown={handleKeyDown}
         />
         <button
           type="button"
           className="absolute top-2 right-2 text-gray-600"
           onClick={() => setShowPassword(!showPassword)}
+          tabIndex={-1}
         >
           {showPassword ? '🙈' : '👁️'}
         </button>
@@ -68,4 +82,3 @@ export default function ConnexionPage() {
     </div>
   )
 }
-
