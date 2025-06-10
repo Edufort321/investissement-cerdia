@@ -37,24 +37,14 @@ export default function AdminIACerdiaPage() {
         setIsAdmin(true)
       }
     }
+
     checkRole()
   }, [supabase])
-
-  const formatMessage = (text: string) => {
-    return text.split('\n').map((line, idx) => {
-      if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
-        return <p key={idx} className="font-semibold text-blue-700 text-lg mt-2 mb-1">{line.replace(/\*\*/g, '')}</p>
-      } else if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
-        return <li key={idx} className="ml-4 list-disc">{line.replace(/^[-\u2022]\s*/, '')}</li>
-      } else {
-        return <p key={idx} className="text-gray-800 mb-2">{line}</p>
-      }
-    })
-  }
 
   const handleSend = async () => {
     const trimmed = input.trim()
     if (!trimmed) return
+
     setMessages((prev) => [...prev, { type: 'user', text: trimmed }])
     setInput('')
     setLoading(true)
@@ -63,10 +53,11 @@ export default function AdminIACerdiaPage() {
       const res = await fetch('/api/ia-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: trimmed })
+        body: JSON.stringify({ prompt: trimmed }),
       })
 
       const data = await res.json()
+
       if (data.result) {
         setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
       } else {
@@ -76,6 +67,7 @@ export default function AdminIACerdiaPage() {
       console.error('Erreur IA Admin:', e)
       setMessages((prev) => [...prev, { type: 'ia', text: '❌ Erreur de communication avec IA Admin.' }])
     }
+
     setLoading(false)
   }
 
@@ -85,9 +77,10 @@ export default function AdminIACerdiaPage() {
       const res = await fetch('/api/ia/propose-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       })
       const data = await res.json()
+
       if (data.result) {
         setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
       } else {
@@ -109,6 +102,7 @@ export default function AdminIACerdiaPage() {
 
       if (!error) setHistory(data || [])
     }
+
     fetchHistory()
   }, [supabase])
 
@@ -148,10 +142,36 @@ export default function AdminIACerdiaPage() {
     link.click()
   }
 
+  function formatMessage(text: string) {
+    return text
+      .split('\n')
+      .map((line, idx) => {
+        if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
+          return (
+            <p key={idx} className="font-semibold text-blue-700 text-lg mt-2 mb-1">
+              {line.replace(/\*\*/g, '')}
+            </p>
+          )
+        } else if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
+          return (
+            <li key={idx} className="ml-4 list-disc">
+              {line.replace(/^[-•]\s*/, '')}
+            </li>
+          )
+        } else {
+          return (
+            <p key={idx} className="text-gray-800 mb-2">
+              {line}
+            </p>
+          )
+        }
+      })
+  }
+
   if (isAdmin === false) return null
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-8 py-10">
       <h1 className="text-3xl font-bold text-center mb-6">
         🧠 IA CERDIA – Mode Administrateur
       </h1>
@@ -178,18 +198,18 @@ export default function AdminIACerdiaPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Commande IA stratégique, exemple : ajoute une section dans /page.tsx..."
-          className="flex-1 border p-2 rounded shadow"
+          className="flex-1 border p-3 rounded shadow text-base"
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
         <button
           onClick={handleSend}
-          className="bg-blue-800 hover:bg-blue-900 text-white px-4 rounded"
+          className="bg-blue-800 hover:bg-blue-900 text-white px-6 py-2 rounded text-base"
         >
           Envoyer
         </button>
         <button
           onClick={handleProposeTask}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 rounded"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 rounded text-base"
         >
           ➕ Proposer une tâche IA
         </button>
@@ -217,8 +237,10 @@ export default function AdminIACerdiaPage() {
               <div key={idx} className="border-b px-4 py-3">
                 <p className="text-sm font-bold text-blue-700">👤 {h.user_id}</p>
                 <p className="text-gray-800">💬 {h.question}</p>
-                <p className="text-green-700 text-sm mt-1">{h.answer}</p>
-                <p className="text-xs text-gray-400 mt-1">📅 {new Date(h.created_at).toLocaleString()}</p>
+                <p className="text-green-700 text-sm mt-1 whitespace-pre-line">{h.answer}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  📅 {new Date(h.created_at).toLocaleString()}
+                </p>
 
                 {h.is_strategic ? (
                   <span className="text-xs text-red-600 font-semibold">🔥 Stratégique</span>
