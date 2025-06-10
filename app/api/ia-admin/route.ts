@@ -46,7 +46,13 @@ export async function POST(req: NextRequest) {
     })
 
     const json = await completion.json()
+
+    if (json.error) {
+      console.error('🔴 Erreur OpenAI:', json.error)
+    }
+
     const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
+    console.log('✅ Résultat IA:', result)
 
     // 🧠 2. Sauvegarde mémoire
     const { error: memError } = await supabase.from('ia_memory').insert({
@@ -59,10 +65,10 @@ export async function POST(req: NextRequest) {
     })
 
     if (memError) {
-      console.error('Erreur Supabase (ia_memory):', memError)
+      console.error('❌ Erreur Supabase (ia_memory):', memError)
     }
 
-    // ⚙️ 3. Déclenche une proposition de tâche si c’est une commande de ce type
+    // ⚙️ 3. Déclenche une proposition de tâche si nécessaire
     if (prompt.toLowerCase().includes('propose une tâche') || prompt.toLowerCase().includes('tâche ia')) {
       try {
         await proposeTask({
@@ -72,13 +78,13 @@ export async function POST(req: NextRequest) {
           note: `Généré par IA admin sur base du prompt : "${prompt}"`,
         })
       } catch (taskError) {
-        console.error('Erreur proposeTask():', taskError)
+        console.error('❌ Erreur proposeTask():', taskError)
       }
     }
 
     return NextResponse.json({ result })
   } catch (e) {
-    console.error('Erreur IA Admin route:', e)
+    console.error('❌ Erreur IA Admin route:', e)
     return NextResponse.json({ error: '❌ Erreur serveur IA Admin.' }, { status: 500 })
   }
 }
