@@ -37,14 +37,24 @@ export default function AdminIACerdiaPage() {
         setIsAdmin(true)
       }
     }
-
     checkRole()
   }, [supabase])
+
+  const formatMessage = (text: string) => {
+    return text.split('\n').map((line, idx) => {
+      if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
+        return <p key={idx} className="font-semibold text-blue-700 text-lg mt-2 mb-1">{line.replace(/\*\*/g, '')}</p>
+      } else if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
+        return <li key={idx} className="ml-4 list-disc">{line.replace(/^[-\u2022]\s*/, '')}</li>
+      } else {
+        return <p key={idx} className="text-gray-800 mb-2">{line}</p>
+      }
+    })
+  }
 
   const handleSend = async () => {
     const trimmed = input.trim()
     if (!trimmed) return
-
     setMessages((prev) => [...prev, { type: 'user', text: trimmed }])
     setInput('')
     setLoading(true)
@@ -53,27 +63,19 @@ export default function AdminIACerdiaPage() {
       const res = await fetch('/api/ia-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: trimmed }),
+        body: JSON.stringify({ prompt: trimmed })
       })
 
       const data = await res.json()
-
       if (data.result) {
         setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
       } else {
-        setMessages((prev) => [
-          ...prev,
-          { type: 'ia', text: '❌ Réponse non disponible.' },
-        ])
+        setMessages((prev) => [...prev, { type: 'ia', text: '❌ Réponse non disponible.' }])
       }
     } catch (e) {
       console.error('Erreur IA Admin:', e)
-      setMessages((prev) => [
-        ...prev,
-        { type: 'ia', text: '❌ Erreur de communication avec IA Admin.' },
-      ])
+      setMessages((prev) => [...prev, { type: 'ia', text: '❌ Erreur de communication avec IA Admin.' }])
     }
-
     setLoading(false)
   }
 
@@ -83,10 +85,9 @@ export default function AdminIACerdiaPage() {
       const res = await fetch('/api/ia/propose-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({})
       })
       const data = await res.json()
-
       if (data.result) {
         setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
       } else {
@@ -94,10 +95,7 @@ export default function AdminIACerdiaPage() {
       }
     } catch (e) {
       console.error('Erreur propose-task:', e)
-      setMessages((prev) => [
-        ...prev,
-        { type: 'ia', text: '❌ Erreur de communication avec IA.' },
-      ])
+      setMessages((prev) => [...prev, { type: 'ia', text: '❌ Erreur de communication avec IA.' }])
     }
     setLoading(false)
   }
@@ -111,7 +109,6 @@ export default function AdminIACerdiaPage() {
 
       if (!error) setHistory(data || [])
     }
-
     fetchHistory()
   }, [supabase])
 
@@ -154,25 +151,25 @@ export default function AdminIACerdiaPage() {
   if (isAdmin === false) return null
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold text-center mb-6">
         🧠 IA CERDIA – Mode Administrateur
       </h1>
 
-      <div className="bg-gray-100 p-4 rounded-md shadow-inner h-[400px] overflow-y-auto mb-6">
+      <div className="bg-gray-100 p-6 rounded-md shadow-inner h-[550px] overflow-y-auto mb-6 space-y-4">
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`p-3 rounded mb-2 max-w-[85%] ${
+            className={`whitespace-pre-wrap p-4 rounded-lg max-w-[85%] leading-relaxed text-[15px] ${
               msg.type === 'user'
-                ? 'bg-blue-200 ml-auto text-right'
-                : 'bg-white text-left border'
+                ? 'bg-blue-100 ml-auto text-right border border-blue-300'
+                : 'bg-white text-left border border-gray-300'
             }`}
           >
-            {msg.text}
+            {formatMessage(msg.text)}
           </div>
         ))}
-        {loading && <p className="text-sm text-gray-500">⏳ Réponse IA en cours...</p>}
+        {loading && <p className="text-sm text-gray-500 italic text-center">⏳ Réponse IA en cours...</p>}
       </div>
 
       <div className="flex gap-2 mb-10">
@@ -221,9 +218,7 @@ export default function AdminIACerdiaPage() {
                 <p className="text-sm font-bold text-blue-700">👤 {h.user_id}</p>
                 <p className="text-gray-800">💬 {h.question}</p>
                 <p className="text-green-700 text-sm mt-1">{h.answer}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  📅 {new Date(h.created_at).toLocaleString()}
-                </p>
+                <p className="text-xs text-gray-400 mt-1">📅 {new Date(h.created_at).toLocaleString()}</p>
 
                 {h.is_strategic ? (
                   <span className="text-xs text-red-600 font-semibold">🔥 Stratégique</span>
