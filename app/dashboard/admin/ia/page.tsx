@@ -1,79 +1,85 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Database } from "@/types/supabase"
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Database } from '@/types/supabase'
 
 interface Message {
-  type: "user" | "ia"
+  type: 'user' | 'ia'
   text: string
 }
 
 export default function AdminIACerdiaPage() {
   const supabase = createClientComponentClient<Database>()
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-  const [input, setInput] = useState("")
+
+  const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<any[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
+  // ✅ Vérification simple : connecté ou non
   useEffect(() => {
-    const checkAdmin = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const userId = session?.user.id
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", userId)
-        .single()
-
-      if (error || data?.role !== "admin") {
-        setIsAdmin(false)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        window.location.href = '/connexion'
       } else {
         setIsAdmin(true)
       }
     }
-    checkAdmin()
+
+    checkSession()
   }, [supabase])
 
   const handleSend = async () => {
     const trimmed = input.trim()
     if (!trimmed) return
 
-    setMessages((prev) => [...prev, { type: "user", text: trimmed }])
-    setInput("")
+    setMessages((prev) => [...prev, { type: 'user', text: trimmed }])
+    setInput('')
     setLoading(true)
 
     try {
-      const res = await fetch("/api/ia-admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/ia-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: trimmed }),
       })
+
       const data = await res.json()
-      setMessages((prev) => [...prev, { type: "ia", text: data.result || "Réponse indisponible." }])
+
+      if (data.result) {
+        setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
+      } else {
+        setMessages((prev) => [...prev, { type: 'ia', text: '❌ Réponse non disponible.' }])
+      }
     } catch (e) {
-      setMessages((prev) => [...prev, { type: "ia", text: "❌ Erreur de communication avec IA Admin." }])
+      console.error('Erreur IA Admin:', e)
+      setMessages((prev) => [...prev, { type: 'ia', text: '❌ Erreur de communication avec IA Admin.' }])
     }
+
     setLoading(false)
   }
 
   const handleProposeTask = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/ia/propose-task", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+      const res = await fetch('/api/ia/propose-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
       })
       const data = await res.json()
-      setMessages((prev) => [...prev, { type: "ia", text: data.result || "❌ Aucune tâche proposée." }])
+      if (data.result) {
+        setMessages((prev) => [...prev, { type: 'ia', text: data.result }])
+      } else {
+        setMessages((prev) => [...prev, { type: 'ia', text: '❌ Aucune tâche proposée.' }])
+      }
     } catch (e) {
-      setMessages((prev) => [...prev, { type: "ia", text: "❌ Erreur de communication avec IA." }])
+      console.error('Erreur propose-task:', e)
+      setMessages((prev) => [...prev, { type: 'ia', text: '❌ Erreur de communication avec IA.' }])
     }
     setLoading(false)
   }
@@ -81,17 +87,22 @@ export default function AdminIACerdiaPage() {
   useEffect(() => {
     const fetchHistory = async () => {
       const { data, error } = await supabase
-        .from("ia_memory")
-        .select("*")
-        .order("created_at", { ascending: false })
+        .from('ia_memory')
+        .select('*')
+        .order('created_at', { ascending: false })
 
       if (!error) setHistory(data || [])
     }
+
     fetchHistory()
   }, [supabase])
 
   const markAsStrategic = async (id: string) => {
-    const { error } = await supabase.from("ia_memory").update({ is_strategic: true }).eq("id", id)
+    const { error } = await supabase
+      .from('ia_memory')
+      .update({ is_strategic: true })
+      .eq('id', id)
+
     if (!error) {
       setHistory((prev) =>
         prev.map((item) => (item.id === id ? { ...item, is_strategic: true } : item))
@@ -100,48 +111,44 @@ export default function AdminIACerdiaPage() {
   }
 
   const handleExport = () => {
-    const rows = history.map((h) => ({
+    const rows = history.map(h => ({
       Utilisateur: h.user_id,
       Question: h.question,
       Réponse: h.answer,
       Date: new Date(h.created_at).toLocaleString(),
-      Stratégique: h.is_strategic ? "Oui" : "Non",
+      Stratégique: h.is_strategic ? 'Oui' : 'Non'
     }))
+
     const csvContent =
-      "data:text/csv;charset=utf-8," +
-      ["Utilisateur,Question,Réponse,Date,Stratégique"]
-        .concat(rows.map((r) => Object.values(r).join(",")))
-        .join("\n")
+      'data:text/csv;charset=utf-8,' +
+      ['Utilisateur,Question,Réponse,Date,Stratégique']
+        .concat(rows.map(r => Object.values(r).join(',')))
+        .join('\n')
+
     const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", "historique_ia_admin.csv")
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', 'historique_ia_admin.csv')
     document.body.appendChild(link)
     link.click()
   }
 
   const formatMessage = (text: string) => {
-    return text.split("\n").map((line, idx) => {
-      if (line.trim().startsWith("**") && line.trim().endsWith("**")) {
-        return <p key={idx} className="font-semibold text-blue-700 text-lg mt-2 mb-1">{line.replace(/\*\*/g, "")}</p>
-      } else if (line.trim().startsWith("- ") || line.trim().startsWith("\u2022 ")) {
-        return <li key={idx} className="ml-4 list-disc">{line.replace(/^[-\u2022]\s*/, "")}</li>
+    return text.split('\n').map((line, idx) => {
+      if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
+        return <p key={idx} className="font-semibold text-blue-700 text-lg mt-2 mb-1">{line.replace(/\*\*/g, '')}</p>
+      } else if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
+        return <li key={idx} className="ml-4 list-disc">{line.replace(/^[-•]\s*/, '')}</li>
       } else {
         return <p key={idx} className="text-gray-800 mb-2">{line}</p>
       }
     })
   }
 
-  if (isAdmin === null) {
-    return <div className="text-center mt-10 text-gray-500">Vérification des accès...</div>
-  }
-
-  if (isAdmin === false) {
-    return <div className="text-center mt-10 text-red-600 font-semibold">Accès refusé</div>
-  }
+  if (isAdmin === false) return <p className="text-center text-red-500 mt-20">⛔ Accès refusé</p>
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-8 py-10">
       <h1 className="text-3xl font-bold text-center mb-6">🧠 IA CERDIA – Mode Administrateur</h1>
 
       <div className="bg-gray-100 p-6 rounded-md shadow-inner h-[550px] overflow-y-auto mb-6 space-y-4">
@@ -149,9 +156,9 @@ export default function AdminIACerdiaPage() {
           <div
             key={i}
             className={`whitespace-pre-wrap p-4 rounded-lg max-w-[85%] leading-relaxed text-[15px] ${
-              msg.type === "user"
-                ? "bg-blue-100 ml-auto text-right border border-blue-300"
-                : "bg-white text-left border border-gray-300"
+              msg.type === 'user'
+                ? 'bg-blue-100 ml-auto text-right border border-blue-300'
+                : 'bg-white text-left border border-gray-300'
             }`}
           >
             {formatMessage(msg.text)}
@@ -167,7 +174,7 @@ export default function AdminIACerdiaPage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Commande IA stratégique, exemple : ajoute une section dans /page.tsx..."
           className="flex-1 border p-3 rounded shadow text-base"
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
         <button
           onClick={handleSend}
