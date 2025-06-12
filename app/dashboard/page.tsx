@@ -39,7 +39,7 @@ export default function DashboardInvestisseur() {
       {/* Google Sheet en temps réel */}
       <div className="w-full h-[600px] mb-10 border rounded shadow overflow-hidden">
         <iframe
-          src="https://docs.google.com/spreadsheets/d/1wiWWrfgCXLDlBrMUzkn5GQl6YAVXFhKU/pubhtml?widget=true&headers=false"
+          src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT5C4EvVbE3xHtuSL5-qz9xiFgGjKM3Vjuyzo5Oa62sRqsZ0hxEjXaxKi3EmxTc1w/pubhtml?gid=2004171736&single=true"
           width="100%"
           height="100%"
           frameBorder="0"
