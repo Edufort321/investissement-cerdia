@@ -2,12 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('❌ SUPABASE_URL ou SUPABASE_ANON_KEY manquant dans les variables d’environnement.')
-}
+// ✅ Variables Supabase directement inscrites ici (temporairement)
+const SUPABASE_URL = 'https://swvolnvknfmakgmjhoml.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3dm9sbnZrbmZtYWtnbWpob21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTkzMjMwMTAsImV4cCI6MjAxNDg5OTAxfQ.A78ddzUnRJ7Z2_HSYkM1oAfuPaibmrEmHlYucjlAk1g'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -19,7 +16,7 @@ async function getStrategicSystemMessages() {
     .eq('role', 'system')
 
   if (error) {
-    console.error('❌ Supabase fetch error:', error.message)
+    console.error('❌ Supabase error:', error.message)
     return []
   }
 
@@ -36,7 +33,7 @@ export async function POST(req: NextRequest) {
   const { vision, user_id = 'admin@cerdia.ai' } = await req.json()
 
   if (!vision?.trim()) {
-    return NextResponse.json({ error: '❌ Vision manquante.' }, { status: 400 })
+    return NextResponse.json({ error: '❌ Aucune vision fournie.' }, { status: 400 })
   }
 
   const strategicMessages = await getStrategicSystemMessages()
@@ -52,7 +49,7 @@ export async function POST(req: NextRequest) {
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}`,
+      Authorization: `Bearer sk-xxxxxx`, // 🔁 Remplace par ta vraie clé OpenAI
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -74,7 +71,7 @@ export async function POST(req: NextRequest) {
   }])
 
   if (insertError) {
-    console.error('⚠️ Erreur d’insertion mémoire:', insertError.message)
+    console.error('⚠️ Erreur insertion mémoire:', insertError.message)
   }
 
   return NextResponse.json({ result })
