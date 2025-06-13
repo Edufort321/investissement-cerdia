@@ -2,19 +2,23 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// ✅ Sécurité : variables d’environnement
-const SUPABASE_URL = process.env.SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY!
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY!
+// ✅ DEBUG : Loguer les variables d'environnement (à retirer après test)
+console.log("🔍 SUPABASE_URL =", process.env.SUPABASE_URL)
+console.log("🔍 SUPABASE_ANON_KEY =", process.env.SUPABASE_ANON_KEY)
+console.log("🔍 OPENAI_API_KEY =", process.env.OPENAI_API_KEY)
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !OPENAI_API_KEY) {
+// 🔐 Vérifier que les clés existent
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.OPENAI_API_KEY) {
   throw new Error('❌ SUPABASE_URL ou SUPABASE_ANON_KEY ou OPENAI_API_KEY manquant dans les variables d’environnement.')
 }
 
-// 🔗 Connexion Supabase sécurisée
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// 🔐 Initialiser Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+)
 
-// 🧠 Lire les messages stratégiques de type "system"
+// 🧠 Charger les messages stratégiques
 async function getStrategicSystemMessages() {
   const { data, error } = await supabase
     .from('ia_memory')
@@ -29,16 +33,15 @@ async function getStrategicSystemMessages() {
 
   return data.flatMap((entry) => {
     try {
-      if (Array.isArray(entry.messages)) return entry.messages
-      return JSON.parse(entry.messages)
-    } catch (e) {
+      return Array.isArray(entry.messages) ? entry.messages : JSON.parse(entry.messages)
+    } catch {
       console.warn('⚠️ Format JSON invalide dans messages.')
       return []
     }
   })
 }
 
-// 📬 Traitement de la requête POST
+// 📬 Route POST
 export async function POST(req: NextRequest) {
   const { vision, user_id = 'admin@cerdia.ai' } = await req.json()
 
@@ -46,7 +49,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '❌ Aucune vision fournie.' }, { status: 400 })
   }
 
-  // 🧠 Charger la mémoire stratégique
   const strategicMessages = await getStrategicSystemMessages()
 
   const baseSystem = [
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -79,7 +81,7 @@ export async function POST(req: NextRequest) {
   const json = await completion.json()
   const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
 
-  // 📝 Enregistrement dans Supabase
+  // 📝 Enregistrement mémoire
   const { error: insertError } = await supabase.from('ia_memory').insert([
     {
       role: 'user',
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
   ])
 
   if (insertError) {
-    console.error('⚠️ Erreur lors de l’enregistrement de la mémoire:', insertError.message)
+    console.error('⚠️ Erreur enregistrement mémoire :', insertError.message)
   }
 
   return NextResponse.json({ result })
