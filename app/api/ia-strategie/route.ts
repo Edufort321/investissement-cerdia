@@ -2,17 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// 1. Initialisation Supabase
+// 🔐 Initialisation Supabase avec environnement sécurisé
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_ANON_KEY!
 )
 
-// 2. Chargement de la mémoire stratégique depuis la BD
+// 🧠 Fonction pour charger les messages stratégiques (rôle "system")
 async function getStrategicSystemMessages() {
   const { data, error } = await supabase
     .from('ia_memory')
-    .select('role, messages')
+    .select('messages')
     .eq('is_strategic', true)
     .eq('role', 'system')
 
@@ -23,27 +23,27 @@ async function getStrategicSystemMessages() {
 
   return data.flatMap((entry) => {
     try {
-      return Array.isArray(entry.messages)
-        ? entry.messages
-        : JSON.parse(entry.messages)
+      if (Array.isArray(entry.messages)) return entry.messages
+      return JSON.parse(entry.messages)
     } catch (e) {
+      console.warn('⚠️ Format invalide détecté dans messages.')
       return []
     }
   })
 }
 
-// 3. Route POST
+// 📬 Route POST IA stratégique
 export async function POST(req: NextRequest) {
   const { vision } = await req.json()
 
-  if (!vision) {
-    return NextResponse.json({ error: '❌ Vision manquante.' }, { status: 400 })
+  if (!vision || vision.trim() === '') {
+    return NextResponse.json({ error: '❌ Aucune vision n’a été fournie à l’IA stratégique.' }, { status: 400 })
   }
 
-  // 4. Charger la mémoire stratégique
+  // 🧠 Charger la mémoire stratégique depuis Supabase
   const strategicMessages = await getStrategicSystemMessages()
 
-  // Fallback si mémoire vide
+  // 🧱 Fallback par défaut si aucune mémoire stratégique en base
   const baseSystem = [
     {
       role: 'system',
@@ -52,12 +52,13 @@ export async function POST(req: NextRequest) {
     },
   ]
 
+  // 🧩 Fusion des messages à envoyer à OpenAI
   const messages = [
-    ...((strategicMessages.length > 0) ? strategicMessages : baseSystem),
+    ...(strategicMessages.length > 0 ? strategicMessages : baseSystem),
     { role: 'user', content: vision },
   ]
 
-  // 5. Appel OpenAI
+  // 🤖 Appel OpenAI
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -72,6 +73,8 @@ export async function POST(req: NextRequest) {
   })
 
   const json = await completion.json()
+
+  // ✅ Résultat ou erreur
   const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
 
   return NextResponse.json({ result })
