@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// 🔐 Initialisation Supabase avec environnement sécurisé
+// 🔐 Initialiser Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_ANON_KEY!
 )
 
-// 🧠 Fonction pour charger les messages stratégiques (rôle "system")
+// 🧠 Lire les messages stratégiques de type "system"
 async function getStrategicSystemMessages() {
   const { data, error } = await supabase
     .from('ia_memory')
@@ -26,24 +26,23 @@ async function getStrategicSystemMessages() {
       if (Array.isArray(entry.messages)) return entry.messages
       return JSON.parse(entry.messages)
     } catch (e) {
-      console.warn('⚠️ Format invalide détecté dans messages.')
+      console.warn('⚠️ Format JSON invalide dans messages.')
       return []
     }
   })
 }
 
-// 📬 Route POST IA stratégique
+// 📬 Traitement de la requête POST
 export async function POST(req: NextRequest) {
-  const { vision } = await req.json()
+  const { vision, user_id = 'admin@cerdia.ai' } = await req.json()
 
   if (!vision || vision.trim() === '') {
-    return NextResponse.json({ error: '❌ Aucune vision n’a été fournie à l’IA stratégique.' }, { status: 400 })
+    return NextResponse.json({ error: '❌ Aucune vision fournie.' }, { status: 400 })
   }
 
-  // 🧠 Charger la mémoire stratégique depuis Supabase
+  // 🧠 Charger la mémoire stratégique
   const strategicMessages = await getStrategicSystemMessages()
 
-  // 🧱 Fallback par défaut si aucune mémoire stratégique en base
   const baseSystem = [
     {
       role: 'system',
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
     },
   ]
 
-  // 🧩 Fusion des messages à envoyer à OpenAI
   const messages = [
     ...(strategicMessages.length > 0 ? strategicMessages : baseSystem),
     { role: 'user', content: vision },
@@ -73,9 +71,22 @@ export async function POST(req: NextRequest) {
   })
 
   const json = await completion.json()
-
-  // ✅ Résultat ou erreur
   const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
+
+  // 📝 Enregistrement dans Supabase
+  const { error: insertError } = await supabase.from('ia_memory').insert([
+    {
+      role: 'user',
+      user_id,
+      question: vision,
+      answer: result,
+      is_strategic: false,
+    },
+  ])
+
+  if (insertError) {
+    console.error('⚠️ Erreur lors de l’enregistrement de la mémoire:', insertError.message)
+  }
 
   return NextResponse.json({ result })
 }
