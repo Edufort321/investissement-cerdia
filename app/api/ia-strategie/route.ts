@@ -2,12 +2,19 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// ✅ Variables Supabase directement inscrites ici (temporairement)
-const SUPABASE_URL = 'https://swvolnvknfmakgmjhoml.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3dm9sbnZrbmZtYWtnbWpob21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTkzMjMwMTAsImV4cCI6MjAxNDg5OTAxfQ.A78ddzUnRJ7Z2_HSYkM1oAfuPaibmrEmHlYucjlAk1g'
+// ✅ Sécurité : variables d’environnement
+const SUPABASE_URL = process.env.SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY!
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY!
 
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !OPENAI_API_KEY) {
+  throw new Error('❌ SUPABASE_URL ou SUPABASE_ANON_KEY ou OPENAI_API_KEY manquant dans les variables d’environnement.')
+}
+
+// 🔗 Connexion Supabase sécurisée
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+// 🧠 Lire les messages stratégiques de type "system"
 async function getStrategicSystemMessages() {
   const { data, error } = await supabase
     .from('ia_memory')
@@ -16,40 +23,50 @@ async function getStrategicSystemMessages() {
     .eq('role', 'system')
 
   if (error) {
-    console.error('❌ Supabase error:', error.message)
+    console.error('❌ Erreur Supabase:', error.message)
     return []
   }
 
   return data.flatMap((entry) => {
     try {
-      return Array.isArray(entry.messages) ? entry.messages : JSON.parse(entry.messages)
-    } catch {
+      if (Array.isArray(entry.messages)) return entry.messages
+      return JSON.parse(entry.messages)
+    } catch (e) {
+      console.warn('⚠️ Format JSON invalide dans messages.')
       return []
     }
   })
 }
 
+// 📬 Traitement de la requête POST
 export async function POST(req: NextRequest) {
   const { vision, user_id = 'admin@cerdia.ai' } = await req.json()
 
-  if (!vision?.trim()) {
+  if (!vision || vision.trim() === '') {
     return NextResponse.json({ error: '❌ Aucune vision fournie.' }, { status: 400 })
   }
 
+  // 🧠 Charger la mémoire stratégique
   const strategicMessages = await getStrategicSystemMessages()
 
-  const messages = [
-    ...(strategicMessages.length ? strategicMessages : [{
+  const baseSystem = [
+    {
       role: 'system',
-      content: "Tu es l’IA chef stratégique de Investissement CERDIA. Structure et analyse des visions à long terme, organise les étapes, identifie les leviers d'action, propose des modules IA."
-    }]),
+      content:
+        "Tu es l’IA chef stratégique de Investissement CERDIA. Structure et analyse des visions à long terme, organise les étapes, identifie les leviers d'action, propose des modules IA.",
+    },
+  ]
+
+  const messages = [
+    ...(strategicMessages.length > 0 ? strategicMessages : baseSystem),
     { role: 'user', content: vision },
   ]
 
+  // 🤖 Appel à OpenAI
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer sk-xxxxxx`, // 🔁 Remplace par ta vraie clé OpenAI
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -62,16 +79,19 @@ export async function POST(req: NextRequest) {
   const json = await completion.json()
   const result = json.choices?.[0]?.message?.content ?? 'Réponse indisponible.'
 
-  const { error: insertError } = await supabase.from('ia_memory').insert([{
-    role: 'user',
-    user_id,
-    question: vision,
-    answer: result,
-    is_strategic: false,
-  }])
+  // 📝 Enregistrement dans Supabase
+  const { error: insertError } = await supabase.from('ia_memory').insert([
+    {
+      role: 'user',
+      user_id,
+      question: vision,
+      answer: result,
+      is_strategic: false,
+    },
+  ])
 
   if (insertError) {
-    console.error('⚠️ Erreur insertion mémoire:', insertError.message)
+    console.error('⚠️ Erreur lors de l’enregistrement de la mémoire:', insertError.message)
   }
 
   return NextResponse.json({ result })
