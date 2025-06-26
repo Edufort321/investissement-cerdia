@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -29,6 +29,17 @@ export default function EcommercePage() {
     images: [""],
   });
 
+  // 1. Charger depuis localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("affiliated_products");
+    if (saved) setProducts(JSON.parse(saved));
+  }, []);
+
+  // 2. Sauvegarder à chaque changement
+  useEffect(() => {
+    localStorage.setItem("affiliated_products", JSON.stringify(products));
+  }, [products]);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     index?: number
@@ -37,6 +48,10 @@ export default function EcommercePage() {
     if (name === "images" && index !== undefined) {
       const updatedImages = [...newProduct.images];
       updatedImages[index] = value;
+      // Ajouter un nouveau champ vide automatiquement si le dernier est rempli
+      if (index === updatedImages.length - 1 && value.trim() !== "") {
+        updatedImages.push("");
+      }
       setNewProduct({ ...newProduct, images: updatedImages });
     } else {
       setNewProduct({ ...newProduct, [name]: value });
@@ -45,7 +60,7 @@ export default function EcommercePage() {
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    setProducts([...products, newProduct]);
+    setProducts([...products, { ...newProduct, images: newProduct.images.filter((img) => img) }]);
     setNewProduct({
       name: "",
       amazonCa: "",
@@ -62,8 +77,6 @@ export default function EcommercePage() {
     updated.splice(index, 1);
     setProducts(updated);
   };
-
-  const filteredImages = (images: string[]) => images.filter((img) => img);
 
   return (
     <main className="px-6 py-12 max-w-7xl mx-auto">
@@ -140,16 +153,18 @@ export default function EcommercePage() {
                 placeholder="Lien TikTok"
                 className="w-full border p-2 rounded"
               />
-              {Array.from({ length: 10 }).map((_, i) => (
+
+              {newProduct.images.map((img, i) => (
                 <input
                   key={i}
                   name="images"
-                  value={newProduct.images[i] || ""}
+                  value={img}
                   onChange={(e) => handleInputChange(e, i)}
                   placeholder={`Image ${i + 1}`}
                   className="w-full border p-2 rounded"
                 />
               ))}
+
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
@@ -167,13 +182,9 @@ export default function EcommercePage() {
             key={i}
             className="bg-white p-4 rounded shadow text-center relative"
           >
-            {filteredImages(product.images).length > 0 && (
-              <ProductCard product={product} />
-            )}
+            <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
-            <p className="text-sm text-gray-500 mb-2">
-              {product.description}
-            </p>
+            <p className="text-sm text-gray-500 mb-2">{product.description}</p>
             <div className="flex justify-center gap-2 mb-2">
               {product.amazonCa && (
                 <Link href={product.amazonCa} target="_blank">
@@ -218,16 +229,18 @@ function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
   const images = product.images.filter((img) => img);
 
+  if (images.length === 0) return null;
+
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
-      {images.length > 0 && (
+      <Image
+        src={images[current]}
+        alt={product.name}
+        fill
+        className="object-contain rounded"
+      />
+      {images.length > 1 && (
         <>
-          <Image
-            src={images[current]}
-            alt={product.name}
-            fill
-            className="object-contain rounded"
-          />
           <button
             onClick={() => setCurrent((current - 1 + images.length) % images.length)}
             className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
