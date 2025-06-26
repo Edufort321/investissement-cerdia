@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -13,6 +13,8 @@ interface Product {
   tiktokUrl: string;
   images: string[];
   categories: string[];
+  priceCa: string;
+  priceUs: string;
 }
 
 const PASSWORD = '321MdlTamara!$';
@@ -23,6 +25,7 @@ export default function EcommercePage() {
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | ''>('');
   const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState<Product>({
@@ -33,6 +36,8 @@ export default function EcommercePage() {
     tiktokUrl: '',
     images: [''],
     categories: [],
+    priceCa: '',
+    priceUs: '',
   });
 
   useEffect(() => {
@@ -82,6 +87,8 @@ export default function EcommercePage() {
       tiktokUrl: '',
       images: [''],
       categories: [],
+      priceCa: '',
+      priceUs: '',
     });
     setShowForm(false);
   };
@@ -97,7 +104,15 @@ export default function EcommercePage() {
 
   const filteredProducts = categoryFilter
     ? products.filter((p) => p.categories.includes(categoryFilter))
-    : products;
+    : [...products];
+
+  if (sortOrder) {
+    filteredProducts.sort((a, b) => {
+      const aPrice = parseFloat(a.priceCa.replace(',', '.'));
+      const bPrice = parseFloat(b.priceCa.replace(',', '.'));
+      return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+    });
+  }
 
   const requestPassword = () => {
     const tryPwd = prompt('Mot de passe admin :');
@@ -125,12 +140,18 @@ export default function EcommercePage() {
             {cat}
           </button>
         ))}
+        <button onClick={() => setSortOrder('asc')} className="ml-auto px-3 py-1 bg-green-200 rounded">Prix ↑</button>
+        <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">Prix ↓</button>
       </div>
+
+      <p className="text-xs text-gray-500 mb-4">⚠️ Les prix peuvent différer de ceux affichés sur le site du vendeur.</p>
 
       {showForm && passwordEntered && (
         <form onSubmit={handleAddProduct} className="bg-white p-6 mb-6 rounded shadow space-y-4">
           <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
           <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description (max 100 caractères)" maxLength={100} className="w-full border p-2 rounded" required />
+          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD (ex. 450,00)" className="w-full border p-2 rounded" />
+          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD (ex. 350.00)" className="w-full border p-2 rounded" />
           <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
           <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
           <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
@@ -209,7 +230,8 @@ export default function EcommercePage() {
             <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
-            <div className="flex justify-center gap-2 mb-2">
+            <p className="text-sm">Prix : {product.priceCa && `CA$ ${product.priceCa}`} {product.priceUs && ` | US$ ${product.priceUs}`}</p>
+            <div className="flex justify-center gap-2 mb-2 mt-1">
               {product.amazonCa && (
                 <Link href={product.amazonCa} target="_blank"><button className="bg-blue-600 text-white px-3 py-1 rounded">Amazon.ca</button></Link>
               )}
