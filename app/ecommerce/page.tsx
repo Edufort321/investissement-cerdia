@@ -6,21 +6,13 @@ import Link from 'next/link'
 
 const images = [
   '/images/bag1-1.png',
-  '/images/bag1-2.png',
-  '/images/bag1-3.png',
-  '/images/bag1-4.png',
-  '/images/bag1-5.png',
-  '/images/bag1-6.png',
-  '/images/bag1-7.png',
-  '/images/bag1-8.png',
-  '/images/bag1-9-blue-navy.png',
-  '/images/bag1-10-dark-gray.png',
 ]
 
 const futureProducts = Array.from({ length: 8 }, (_, i) => ({
   name: `CERDIA FUTURE #${i + 2}`,
   image: `/images/cerdia-future-${i + 2}.png`,
-  status: 'À venir',
+  amazonCA: 'https://www.amazon.ca/dp/B0CXYZ1234?tag=cerdia-20',
+  amazonCOM: 'https://www.amazon.com/dp/B0CXYZ1234?tag=cerdiaus-20',
 }))
 
 export default function EcommercePage() {
@@ -70,7 +62,7 @@ export default function EcommercePage() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Carrousel d’images */}
+          {/* Image principale */}
           <div className="flex-1">
             <div className="relative w-full max-w-xl aspect-[4/5] mx-auto mb-4">
               <Image
@@ -80,39 +72,6 @@ export default function EcommercePage() {
                 className="object-contain rounded-xl"
                 sizes="(max-width: 768px) 100vw, 600px"
               />
-              <button
-                onClick={() => setCurrent((current - 1 + images.length) % images.length)}
-                className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-r hover:bg-opacity-90"
-              >
-                ◀
-              </button>
-              <button
-                onClick={() => setCurrent((current + 1) % images.length)}
-                className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 px-2 py-1 rounded-l hover:bg-opacity-90"
-              >
-                ▶
-              </button>
-            </div>
-
-            {/* Miniatures */}
-            <div className="flex gap-2 mt-4 flex-wrap justify-center">
-              {images.map((img, i) => (
-                <div
-                  key={i}
-                  className={`w-[90px] h-[90px] rounded overflow-hidden border ${
-                    current === i ? 'border-blue-600' : 'border-gray-300'
-                  } cursor-pointer`}
-                  onClick={() => setCurrent(i)}
-                >
-                  <Image
-                    src={img}
-                    alt={`Miniature ${i + 1}`}
-                    width={90}
-                    height={90}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ))}
             </div>
           </div>
 
@@ -146,67 +105,75 @@ export default function EcommercePage() {
               </>
             )}
 
-            <Link href="https://www.amazon.ca" target="_blank">
-              <button className="bg-blue-800 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition">
-                {lang === 'fr' ? 'Voir sur Amazon' : 'Visit Amazon'}
-              </button>
-            </Link>
-
-            {/* Formulaire notification */}
-            <div className="mt-6">
-              <p className="text-sm font-medium mb-2">
-                {lang === 'fr'
-                  ? '🔔 Soyez notifié dès la mise en ligne :'
-                  : '🔔 Be notified as soon as it’s live:'}
-              </p>
-              <form className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  placeholder={lang === 'fr' ? 'Votre courriel' : 'Your email'}
-                  className="border px-4 py-2 rounded w-full sm:w-auto"
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  {lang === 'fr' ? 'M’avertir' : 'Notify me'}
+            <div className="flex gap-3">
+              <Link href="https://www.amazon.ca/dp/B0CXYZ1234?tag=cerdia-20" target="_blank">
+                <button className="bg-yellow-500 text-black px-4 py-2 rounded hover:bg-yellow-600">
+                  Amazon.ca
                 </button>
-              </form>
+              </Link>
+              <Link href="https://www.amazon.com/dp/B0CXYZ1234?tag=cerdiaus-20" target="_blank">
+                <button className="bg-orange-400 text-black px-4 py-2 rounded hover:bg-orange-500">
+                  Amazon.com
+                </button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Section Affiliation Amazon */}
+      {/* Section Produits futurs CERDIA */}
       <section className="mb-20">
         <h2 className="text-2xl font-bold mb-6">
-          {lang === 'fr'
-            ? 'Affiliation Amazon & SiteStripe'
-            : 'Amazon Affiliate & SiteStripe'}
+          {lang === 'fr' ? 'Produits CERDIA à venir' : 'Upcoming CERDIA Products'}
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {futureProducts.map((product, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-xl shadow p-4 text-center hover:shadow-md transition"
-            >
-              <a
-                href="https://www.amazon.ca/dp/B0CXYZ1234?tag=cerdia-20"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  width={200}
-                  height={200}
-                  className="mx-auto mb-2 rounded object-contain"
-                />
-                <h3 className="font-semibold text-[#2a2a2a] mb-1">{product.name}</h3>
-                <p className="text-sm text-[#555]">
-                  {lang === 'fr' ? 'Disponible sur Amazon' : 'Available on Amazon'}
+            <div key={i} className="flex flex-col md:flex-row gap-8">
+              {/* Image */}
+              <div className="flex-1">
+                <div className="relative w-full max-w-xs aspect-[4/5] mx-auto mb-4">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-contain rounded-xl"
+                    sizes="(max-width: 768px) 100vw, 300px"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
+                <p className="text-sm mb-4 text-yellow-700 font-medium">
+                  🔔 {lang === 'fr' ? 'Disponible bientôt sur Amazon' : 'Coming soon on Amazon'}
                 </p>
-              </a>
+                <p className="text-base mb-4 text-gray-700">
+                  {lang === 'fr'
+                    ? "Ce produit CERDIA fera bientôt partie de notre gamme officielle optimisée par l’IA. Idéal pour l’investissement intelligent et l’usage quotidien."
+                    : "This CERDIA product will soon join our official AI-optimized line. Ideal for smart investment and everyday use."}
+                </p>
+
+                <div className="flex gap-3">
+                  <a
+                    href={product.amazonCA}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded text-sm"
+                  >
+                    Amazon.ca
+                  </a>
+                  <a
+                    href={product.amazonCOM}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-orange-400 hover:bg-orange-500 text-black px-4 py-2 rounded text-sm"
+                  >
+                    Amazon.com
+                  </a>
+                </div>
+              </div>
             </div>
           ))}
         </div>
