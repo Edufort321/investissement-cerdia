@@ -91,6 +91,7 @@ export default function EcommercePage() {
   };
 
   const handleDeleteProduct = (index: number) => {
+    if (!passwordEntered) return;
     const updated = [...products];
     updated.splice(index, 1);
     saveProducts(updated);
@@ -125,14 +126,16 @@ export default function EcommercePage() {
           <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
           <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
           {Array.from({ length: 10 }).map((_, i) => (
-            <input
-              key={i}
-              name="images"
-              value={newProduct.images[i] || ''}
-              onChange={(e) => handleInputChange(e, i)}
-              placeholder={`Image ${i + 1}`}
-              className="w-full border p-2 rounded"
-            />
+            newProduct.images[i] || i === 0 ? (
+              <input
+                key={i}
+                name="images"
+                value={newProduct.images[i] || ''}
+                onChange={(e) => handleInputChange(e, i)}
+                placeholder={`Image ${i + 1}`}
+                className="w-full border p-2 rounded"
+              />
+            ) : null
           ))}
           <div className="space-y-2">
             <label className="font-semibold">Catégories :</label>
