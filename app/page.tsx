@@ -48,14 +48,14 @@ export default function Home() {
 
       {/* HERO SECTION */}
       <section className="max-w-6xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold text-[#0F1E47] font-serif mb-6 leading-tight">
+        <h1 className="text-4xl md:text-6xl font-bold text-[#2a2a2a] font-serif mb-6 leading-tight">
           {tr.title}
         </h1>
-        <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-8">
+        <p className="text-lg text-[#444] max-w-3xl mx-auto mb-8">
           {tr.subtitle}
         </p>
         <Link href="/investir">
-          <button className="bg-[#0F1E47] text-white px-6 py-3 rounded-full text-lg hover:bg-[#1a2960] transition">
+          <button className="bg-[#5e5e5e] text-white px-6 py-3 rounded-full text-lg hover:bg-[#3e3e3e] transition">
             {tr.button}
           </button>
         </Link>
@@ -63,12 +63,12 @@ export default function Home() {
 
       {/* VISION STRATÉGIQUE SECTION */}
       <section className="bg-white py-12 px-6 text-center max-w-4xl mx-auto">
-        <h2 className="text-3xl font-semibold text-[#0F1E47] mb-4">{tr.visionTitle}</h2>
-        <p className="text-gray-700 text-lg mb-6">
+        <h2 className="text-3xl font-semibold text-[#2a2a2a] mb-4">{tr.visionTitle}</h2>
+        <p className="text-[#444] text-lg mb-6">
           {tr.visionDesc}
         </p>
         <Link href="/vision-cerdia">
-          <button className="text-[#0F1E47] underline hover:text-blue-800 font-medium text-sm">
+          <button className="text-black underline hover:text-[#222] font-medium text-sm">
             {tr.visionCTA} →
           </button>
         </Link>
