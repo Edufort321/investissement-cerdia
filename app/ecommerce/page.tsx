@@ -59,16 +59,29 @@ export default function EcommercePage() {
   };
 
   const saveProduct = async () => {
+    const productToInsert = {
+      name: newProduct.name,
+      description: newProduct.description,
+      amazonca: newProduct.amazonCa,
+      amazoncom: newProduct.amazonCom,
+      tiktokurl: newProduct.tiktokUrl,
+      imageurls: newProduct.images,
+      categories: newProduct.categories,
+      price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
+      price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
+    };
+
     if (editIndex !== null && products[editIndex].id) {
       const { error } = await supabase
         .from('products')
-        .update(newProduct)
+        .update(productToInsert)
         .eq('id', products[editIndex].id);
       if (!error) fetchProducts();
     } else {
-      const { error } = await supabase.from('products').insert([newProduct]);
+      const { error } = await supabase.from('products').insert([productToInsert]);
       if (!error) fetchProducts();
     }
+
     resetForm();
   };
 
@@ -139,7 +152,6 @@ export default function EcommercePage() {
     <main className="px-4 py-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA connecté à Supabase</h1>
 
-      {/* Filter buttons */}
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
         {availableCategories.map((cat) => (
@@ -155,7 +167,6 @@ export default function EcommercePage() {
 
       {showForm && passwordEntered && (
         <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
-          {/* Input fields */}
           <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
           <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" className="w-full border p-2 rounded" required />
           <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-2 rounded" />
@@ -173,7 +184,6 @@ export default function EcommercePage() {
               className="w-full border p-2 rounded"
             />
           ))}
-          {/* Category checkboxes */}
           <div>
             <label className="font-semibold">Catégories :</label>
             <div className="flex flex-wrap gap-2">
