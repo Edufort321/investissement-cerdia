@@ -91,7 +91,10 @@ export default function EcommercePage() {
   };
 
   const handleDeleteProduct = (index: number) => {
-    if (!passwordEntered) return;
+    if (!passwordEntered) {
+      alert('Mot de passe requis pour supprimer.');
+      return;
+    }
     const updated = [...products];
     updated.splice(index, 1);
     saveProducts(updated);
@@ -126,16 +129,14 @@ export default function EcommercePage() {
           <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
           <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
           {Array.from({ length: 10 }).map((_, i) => (
-            newProduct.images[i] || i === 0 ? (
-              <input
-                key={i}
-                name="images"
-                value={newProduct.images[i] || ''}
-                onChange={(e) => handleInputChange(e, i)}
-                placeholder={`Image ${i + 1}`}
-                className="w-full border p-2 rounded"
-              />
-            ) : null
+            <input
+              key={i}
+              name="images"
+              value={newProduct.images[i] || ''}
+              onChange={(e) => handleInputChange(e, i)}
+              placeholder={`Image ${i + 1}`}
+              className="w-full border p-2 rounded"
+            />
           ))}
           <div className="space-y-2">
             <label className="font-semibold">Catégories :</label>
@@ -171,7 +172,10 @@ export default function EcommercePage() {
               className="border p-2 rounded w-full"
             />
           </div>
-          <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+          <div className="flex gap-4">
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            {editIndex !== null && <button type="button" onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>}
+          </div>
         </form>
       )}
 
