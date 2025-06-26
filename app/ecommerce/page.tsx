@@ -36,8 +36,10 @@ export default function EcommercePage() {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('products');
-    if (stored) setProducts(JSON.parse(stored));
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('products');
+      if (stored) setProducts(JSON.parse(stored));
+    }
   }, []);
 
   const saveProducts = (updated: Product[]) => {
@@ -45,7 +47,10 @@ export default function EcommercePage() {
     localStorage.setItem('products', JSON.stringify(updated));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index?: number
+  ) => {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
       const updatedImages = [...newProduct.images];
@@ -72,10 +77,6 @@ export default function EcommercePage() {
       updated.push(newProduct);
     }
     saveProducts(updated);
-    resetForm();
-  };
-
-  const resetForm = () => {
     setNewProduct({
       name: '',
       description: '',
@@ -86,7 +87,6 @@ export default function EcommercePage() {
       categories: [],
     });
     setShowForm(false);
-    setEditIndex(null);
   };
 
   const handleDeleteProduct = (index: number) => {
@@ -107,7 +107,7 @@ export default function EcommercePage() {
     <main className="px-6 py-12 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Catalogue CERDIA et coups de cœur Amazon SiteStripe</h1>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
         {availableCategories.map((cat) => (
           <button
@@ -118,6 +118,15 @@ export default function EcommercePage() {
             {cat}
           </button>
         ))}
+        <button
+          onClick={() => {
+            const stored = localStorage.getItem('products');
+            if (stored) setProducts(JSON.parse(stored));
+          }}
+          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-sm rounded"
+        >
+          🔄 Actualiser les produits
+        </button>
       </div>
 
       {showForm && passwordEntered && (
@@ -172,12 +181,8 @@ export default function EcommercePage() {
             />
           </div>
           <div className="flex gap-4">
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
-              {editIndex !== null ? 'Modifier' : 'Ajouter'}
-            </button>
-            <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white rounded">
-              Annuler
-            </button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            {editIndex !== null && <button type="button" onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>}
           </div>
         </form>
       )}
@@ -238,23 +243,30 @@ function ProductCard({ product }: { product: Product }) {
   const images = product.images.filter((img) => img);
 
   return (
-    <div className="relative aspect-[4/5] w-full mb-2">
+    <div className="relative w-full h-80 mb-2 overflow-hidden rounded border border-gray-200">
       {images.length > 0 && (
         <>
           <Image
             src={images[current]}
             alt={product.name}
+            className="object-contain w-full h-full"
             fill
-            className="object-contain rounded"
+            sizes="(max-width: 768px) 100vw, 33vw"
+            style={{ objectFit: 'contain' }}
+            priority
           />
           <button
             onClick={() => setCurrent((current - 1 + images.length) % images.length)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
-          >◀</button>
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white px-2 py-1 rounded-full shadow"
+          >
+            ◀
+          </button>
           <button
             onClick={() => setCurrent((current + 1) % images.length)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 px-2"
-          >▶</button>
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white px-2 py-1 rounded-full shadow"
+          >
+            ▶
+          </button>
         </>
       )}
     </div>
