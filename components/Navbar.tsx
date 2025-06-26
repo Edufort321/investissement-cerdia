@@ -32,16 +32,16 @@ export default function Navbar() {
   }, [])
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50 w-full">
+    <header className="bg-[#f2f2f2] shadow-sm sticky top-0 z-50 w-full">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
         {/* Logo CERDIA responsive */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo-cerdia3.png" // ✅ Nouveau logo ici
+            src="/logo-cerdia2.png"
             alt="Logo officiel Investissement CERDIA"
-            width={180}
-            height={60}
-            className="h-auto w-[120px] sm:w-[180px] md:w-[225px]"
+            width={120}
+            height={40}
+            className="h-auto w-[100px] sm:w-[140px] md:w-[160px]"
             priority
           />
         </Link>
@@ -52,7 +52,7 @@ export default function Navbar() {
           <Link href="/vision-cerdia" className="hover:underline transition">Vision</Link>
           <Link href="/connexion" className="hover:underline transition">Connexion</Link>
           <Link href="/investir">
-            <button className="bg-[#0F1E47] text-white px-4 py-2 rounded-full hover:bg-[#1a2960] transition">
+            <button className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition">
               Investir
             </button>
           </Link>
