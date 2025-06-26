@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 interface Product {
   name: string;
@@ -13,34 +13,30 @@ interface Product {
   images: string[];
 }
 
-const PASSWORD = '321MdlTamara!$';
+const PASSWORD = "321MdlTamara!$";
 
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [passwordEntered, setPasswordEntered] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordVerified, setPasswordVerified] = useState(false);
   const [newProduct, setNewProduct] = useState<Product>({
-    name: '',
-    amazonCa: '',
-    amazonCom: '',
-    tiktokUrl: '',
-    description: '',
-    images: [''],
+    name: "",
+    amazonCa: "",
+    amazonCom: "",
+    tiktokUrl: "",
+    description: "",
+    images: [""],
   });
 
-  // 🔄 Charger du localStorage au démarrage
+  // LocalStorage – persistance
   useEffect(() => {
-    const saved = localStorage.getItem('affiliatedProducts');
-    if (saved) {
-      setProducts(JSON.parse(saved));
-    }
+    const saved = localStorage.getItem("products");
+    if (saved) setProducts(JSON.parse(saved));
   }, []);
 
-  // 💾 Sauvegarder dans localStorage à chaque changement
   useEffect(() => {
-    localStorage.setItem('affiliatedProducts', JSON.stringify(products));
+    localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
 
   const handleInputChange = (
@@ -48,37 +44,35 @@ export default function EcommercePage() {
     index?: number
   ) => {
     const { name, value } = e.target;
-    if (name === 'images' && index !== undefined) {
-      const updated = [...newProduct.images];
-      updated[index] = value;
-      setNewProduct({ ...newProduct, images: updated });
+    if (name === "images" && index !== undefined) {
+      const updatedImages = [...newProduct.images];
+      updatedImages[index] = value;
+      setNewProduct({ ...newProduct, images: updatedImages });
     } else {
       setNewProduct({ ...newProduct, [name]: value });
     }
   };
 
-  const handleAddOrUpdateProduct = (e: React.FormEvent) => {
+  const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedList = [...products];
-    if (editingIndex !== null) {
-      updatedList[editingIndex] = newProduct;
-    } else {
-      updatedList.push(newProduct);
-    }
-    setProducts(updatedList);
+    setProducts([...products, newProduct]);
     setNewProduct({
-      name: '',
-      amazonCa: '',
-      amazonCom: '',
-      tiktokUrl: '',
-      description: '',
-      images: [''],
+      name: "",
+      amazonCa: "",
+      amazonCom: "",
+      tiktokUrl: "",
+      description: "",
+      images: [""],
     });
-    setEditingIndex(null);
     setShowForm(false);
+    setPasswordVerified(false);
   };
 
   const handleDeleteProduct = (index: number) => {
+    if (!passwordVerified) {
+      alert("Mot de passe requis pour supprimer");
+      return;
+    }
     const updated = [...products];
     updated.splice(index, 1);
     setProducts(updated);
@@ -86,122 +80,92 @@ export default function EcommercePage() {
 
   const filteredImages = (images: string[]) => images.filter((img) => img);
 
+  const requestPassword = () => {
+    const pwd = prompt("Mot de passe administrateur ?");
+    if (pwd === PASSWORD) {
+      setPasswordVerified(true);
+      return true;
+    } else {
+      alert("Mot de passe incorrect.");
+      return false;
+    }
+  };
+
   return (
     <main className="px-6 py-12 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Affiliation Amazon & SiteStripe</h1>
 
-      {!passwordEntered ? (
-        <div className="mb-6">
+      <button
+        className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        onClick={() => {
+          if (requestPassword()) setShowForm(!showForm);
+        }}
+      >
+        ➕ Ajouter un produit affilié
+      </button>
+
+      {showForm && passwordVerified && (
+        <form
+          onSubmit={handleAddProduct}
+          className="bg-white p-6 mb-12 rounded shadow-md space-y-4"
+        >
           <input
-            type="password"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            placeholder="Mot de passe admin"
-            className="border px-4 py-2 rounded mr-2"
+            name="name"
+            value={newProduct.name}
+            onChange={handleInputChange}
+            placeholder="Nom du produit"
+            className="w-full border p-2 rounded"
+            required
           />
-          <button
-            onClick={() => {
-              if (passwordInput === PASSWORD) setPasswordEntered(true);
-              else alert('Mot de passe incorrect');
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Entrer
-          </button>
-        </div>
-      ) : (
-        <>
-          <button
-            className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
-            onClick={() => {
-              setNewProduct({
-                name: '',
-                amazonCa: '',
-                amazonCom: '',
-                tiktokUrl: '',
-                description: '',
-                images: [''],
-              });
-              setEditingIndex(null);
-              setShowForm(true);
-            }}
-          >
-            ➕ {editingIndex !== null ? 'Modifier' : 'Ajouter'} un produit affilié
-          </button>
-
-          <button
-            className="mb-6 ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
-            onClick={() => {
-              if (confirm('Supprimer tous les produits? Cette action est irréversible.')) {
-                localStorage.removeItem('affiliatedProducts');
-                setProducts([]);
-              }
-            }}
-          >
-            🗑️ Réinitialiser les produits
-          </button>
-
-          {showForm && (
-            <form
-              onSubmit={handleAddOrUpdateProduct}
-              className="bg-white p-6 mb-12 rounded shadow-md space-y-4"
-            >
+          <input
+            name="description"
+            value={newProduct.description}
+            onChange={handleInputChange}
+            placeholder="Description (max 100 caractères)"
+            maxLength={100}
+            className="w-full border p-2 rounded"
+            required
+          />
+          <input
+            name="amazonCa"
+            value={newProduct.amazonCa}
+            onChange={handleInputChange}
+            placeholder="Lien Amazon.ca"
+            className="w-full border p-2 rounded"
+          />
+          <input
+            name="amazonCom"
+            value={newProduct.amazonCom}
+            onChange={handleInputChange}
+            placeholder="Lien Amazon.com"
+            className="w-full border p-2 rounded"
+          />
+          <input
+            name="tiktokUrl"
+            value={newProduct.tiktokUrl}
+            onChange={handleInputChange}
+            placeholder="Lien TikTok"
+            className="w-full border p-2 rounded"
+          />
+          {Array.from({ length: 10 }).map((_, i) =>
+            newProduct.images[i] || i === 0 ? (
               <input
-                name="name"
-                value={newProduct.name}
-                onChange={handleInputChange}
-                placeholder="Nom"
-                className="w-full border p-2 rounded"
-                required
-              />
-              <input
-                name="description"
-                value={newProduct.description}
-                onChange={handleInputChange}
-                placeholder="Description (max 100 caractères)"
-                maxLength={100}
+                key={i}
+                name="images"
+                value={newProduct.images[i] || ""}
+                onChange={(e) => handleInputChange(e, i)}
+                placeholder={`Image ${i + 1}`}
                 className="w-full border p-2 rounded"
               />
-              <input
-                name="amazonCa"
-                value={newProduct.amazonCa}
-                onChange={handleInputChange}
-                placeholder="Lien Amazon.ca"
-                className="w-full border p-2 rounded"
-              />
-              <input
-                name="amazonCom"
-                value={newProduct.amazonCom}
-                onChange={handleInputChange}
-                placeholder="Lien Amazon.com"
-                className="w-full border p-2 rounded"
-              />
-              <input
-                name="tiktokUrl"
-                value={newProduct.tiktokUrl}
-                onChange={handleInputChange}
-                placeholder="Lien TikTok"
-                className="w-full border p-2 rounded"
-              />
-              {Array.from({ length: 10 }).map((_, i) => (
-                <input
-                  key={i}
-                  name="images"
-                  value={newProduct.images[i] || ''}
-                  onChange={(e) => handleInputChange(e, i)}
-                  placeholder={`Image ${i + 1}`}
-                  className="w-full border p-2 rounded"
-                />
-              ))}
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
-              >
-                {editingIndex !== null ? 'Mettre à jour' : 'Ajouter'}
-              </button>
-            </form>
+            ) : null
           )}
-        </>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+          >
+            Ajouter
+          </button>
+        </form>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -240,26 +204,13 @@ export default function EcommercePage() {
                 Voir sur TikTok
               </Link>
             )}
-            {passwordEntered && (
-              <div className="absolute top-2 right-2 flex gap-2">
-                <button
-                  onClick={() => {
-                    setNewProduct(product);
-                    setEditingIndex(i);
-                    setShowForm(true);
-                  }}
-                  className="text-blue-500"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => handleDeleteProduct(i)}
-                  className="text-red-500"
-                >
-                  ✖
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => handleDeleteProduct(i)}
+              className="absolute top-2 right-2 text-red-500"
+              title="Supprimer"
+            >
+              ✖
+            </button>
           </div>
         ))}
       </div>
