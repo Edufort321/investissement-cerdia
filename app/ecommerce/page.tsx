@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -17,27 +17,29 @@ const PASSWORD = "321MdlTamara!$";
 
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
-  const [newProduct, setNewProduct] = useState<Product>({
+
+  const emptyProduct: Product = {
     name: "",
     amazonCa: "",
     amazonCom: "",
     tiktokUrl: "",
     description: "",
-    images: [""],
-  });
+    images: Array(10).fill(""),
+  };
 
-  // 1. Charger depuis localStorage
+  const [newProduct, setNewProduct] = useState<Product>(emptyProduct);
+
   useEffect(() => {
-    const saved = localStorage.getItem("affiliated_products");
-    if (saved) setProducts(JSON.parse(saved));
+    const stored = localStorage.getItem("affiliatedProducts");
+    if (stored) setProducts(JSON.parse(stored));
   }, []);
 
-  // 2. Sauvegarder à chaque changement
   useEffect(() => {
-    localStorage.setItem("affiliated_products", JSON.stringify(products));
+    localStorage.setItem("affiliatedProducts", JSON.stringify(products));
   }, [products]);
 
   const handleInputChange = (
@@ -48,27 +50,27 @@ export default function EcommercePage() {
     if (name === "images" && index !== undefined) {
       const updatedImages = [...newProduct.images];
       updatedImages[index] = value;
-      // Ajouter un nouveau champ vide automatiquement si le dernier est rempli
-      if (index === updatedImages.length - 1 && value.trim() !== "") {
-        updatedImages.push("");
-      }
       setNewProduct({ ...newProduct, images: updatedImages });
     } else {
       setNewProduct({ ...newProduct, [name]: value });
     }
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddOrUpdateProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    setProducts([...products, { ...newProduct, images: newProduct.images.filter((img) => img) }]);
-    setNewProduct({
-      name: "",
-      amazonCa: "",
-      amazonCom: "",
-      tiktokUrl: "",
-      description: "",
-      images: [""],
-    });
+    const trimmedImages = newProduct.images.filter((img) => img.trim() !== "");
+    const productToSave = { ...newProduct, images: trimmedImages };
+
+    if (editingIndex !== null) {
+      const updated = [...products];
+      updated[editingIndex] = productToSave;
+      setProducts(updated);
+      setEditingIndex(null);
+    } else {
+      setProducts([...products, productToSave]);
+    }
+
+    setNewProduct(emptyProduct);
     setShowForm(false);
   };
 
@@ -77,6 +79,14 @@ export default function EcommercePage() {
     updated.splice(index, 1);
     setProducts(updated);
   };
+
+  const handleEditProduct = (index: number) => {
+    setNewProduct({ ...products[index], images: [...products[index].images, ...Array(10).fill("")].slice(0, 10) });
+    setEditingIndex(index);
+    setShowForm(true);
+  };
+
+  const filteredImages = (images: string[]) => images.filter((img) => img);
 
   return (
     <main className="px-6 py-12 max-w-7xl mx-auto">
@@ -105,14 +115,18 @@ export default function EcommercePage() {
         <>
           <button
             className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setNewProduct(emptyProduct);
+              setEditingIndex(null);
+              setShowForm(true);
+            }}
           >
-            ➕ Ajouter un produit affilié
+            ➕ {editingIndex !== null ? "Modifier" : "Ajouter"} un produit affilié
           </button>
 
           {showForm && (
             <form
-              onSubmit={handleAddProduct}
+              onSubmit={handleAddOrUpdateProduct}
               className="bg-white p-6 mb-12 rounded shadow-md space-y-4"
             >
               <input
@@ -153,23 +167,21 @@ export default function EcommercePage() {
                 placeholder="Lien TikTok"
                 className="w-full border p-2 rounded"
               />
-
-              {newProduct.images.map((img, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                 <input
                   key={i}
                   name="images"
-                  value={img}
+                  value={newProduct.images[i] || ""}
                   onChange={(e) => handleInputChange(e, i)}
                   placeholder={`Image ${i + 1}`}
                   className="w-full border p-2 rounded"
                 />
               ))}
-
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
               >
-                Ajouter
+                {editingIndex !== null ? "Mettre à jour" : "Ajouter"}
               </button>
             </form>
           )}
@@ -182,7 +194,9 @@ export default function EcommercePage() {
             key={i}
             className="bg-white p-4 rounded shadow text-center relative"
           >
-            <ProductCard product={product} />
+            {filteredImages(product.images).length > 0 && (
+              <ProductCard product={product} />
+            )}
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
             <div className="flex justify-center gap-2 mb-2">
@@ -211,12 +225,20 @@ export default function EcommercePage() {
               </Link>
             )}
             {passwordEntered && (
-              <button
-                onClick={() => handleDeleteProduct(i)}
-                className="absolute top-2 right-2 text-red-500"
-              >
-                ✖
-              </button>
+              <>
+                <button
+                  onClick={() => handleEditProduct(i)}
+                  className="absolute top-2 left-2 text-green-600"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => handleDeleteProduct(i)}
+                  className="absolute top-2 right-2 text-red-500"
+                >
+                  ✖
+                </button>
+              </>
             )}
           </div>
         ))}
@@ -229,20 +251,20 @@ function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
   const images = product.images.filter((img) => img);
 
-  if (images.length === 0) return null;
-
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
-      <Image
-        src={images[current]}
-        alt={product.name}
-        fill
-        className="object-contain rounded"
-      />
-      {images.length > 1 && (
+      {images.length > 0 && (
         <>
+          <Image
+            src={images[current]}
+            alt={product.name}
+            fill
+            className="object-contain rounded"
+          />
           <button
-            onClick={() => setCurrent((current - 1 + images.length) % images.length)}
+            onClick={() =>
+              setCurrent((current - 1 + images.length) % images.length)
+            }
             className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
           >
             ◀
