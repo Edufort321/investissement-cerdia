@@ -3,9 +3,16 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 import { Pencil } from 'lucide-react';
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 interface Product {
+  id?: number;
   name: string;
   description: string;
   amazonCa: string;
@@ -41,15 +48,51 @@ export default function EcommercePage() {
   });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('products');
-      if (stored) setProducts(JSON.parse(stored));
-    }
+    fetchProducts();
   }, []);
 
-  const saveProducts = (updated: Product[]) => {
-    setProducts(updated);
-    localStorage.setItem('products', JSON.stringify(updated));
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from('products').select('*');
+    if (!error && data) {
+      setProducts(data);
+    }
+  };
+
+  const saveProduct = async () => {
+    if (editIndex !== null && products[editIndex].id) {
+      const { error } = await supabase
+        .from('products')
+        .update(newProduct)
+        .eq('id', products[editIndex].id);
+      if (!error) fetchProducts();
+    } else {
+      const { error } = await supabase.from('products').insert([newProduct]);
+      if (!error) fetchProducts();
+    }
+    resetForm();
+  };
+
+  const deleteProduct = async (id: number | undefined) => {
+    if (!passwordEntered || !id) return;
+    await supabase.from('products').delete().eq('id', id);
+    fetchProducts();
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setEditIndex(null);
+    setShowForm(false);
+    setNewProduct({
+      name: '',
+      description: '',
+      amazonCa: '',
+      amazonCom: '',
+      tiktokUrl: '',
+      images: [''],
+      categories: [],
+      priceCa: '',
+      priceUs: '',
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
@@ -67,39 +110,6 @@ export default function EcommercePage() {
     if (!availableCategories.includes(category)) {
       setAvailableCategories([...availableCategories, category]);
     }
-  };
-
-  const handleAddProduct = (e: React.FormEvent) => {
-    e.preventDefault();
-    const updated = [...products];
-    if (editIndex !== null) {
-      updated[editIndex] = newProduct;
-      setEditIndex(null);
-    } else {
-      updated.push(newProduct);
-    }
-    saveProducts(updated);
-    setNewProduct({
-      name: '',
-      description: '',
-      amazonCa: '',
-      amazonCom: '',
-      tiktokUrl: '',
-      images: [''],
-      categories: [],
-      priceCa: '',
-      priceUs: '',
-    });
-    setShowForm(false);
-  };
-
-  const handleDeleteProduct = (index: number) => {
-    if (!passwordEntered) return;
-    const updated = [...products];
-    updated.splice(index, 1);
-    saveProducts(updated);
-    setEditIndex(null);
-    setShowForm(false);
   };
 
   const filteredProducts = categoryFilter
@@ -127,8 +137,9 @@ export default function EcommercePage() {
 
   return (
     <main className="px-4 py-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA et coups de cœur Amazon SiteStripe</h1>
+      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA connecté à Supabase</h1>
 
+      {/* Filter buttons */}
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
         {availableCategories.map((cat) => (
@@ -136,22 +147,19 @@ export default function EcommercePage() {
             key={cat}
             onClick={() => setCategoryFilter(cat)}
             className={`px-3 py-1 rounded ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          >
-            {cat}
-          </button>
+          >{cat}</button>
         ))}
         <button onClick={() => setSortOrder('asc')} className="ml-auto px-3 py-1 bg-green-200 rounded">Prix ↑</button>
         <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">Prix ↓</button>
       </div>
 
-      <p className="text-xs text-gray-500 mb-4">⚠️ Les prix peuvent différer de ceux affichés sur le site du vendeur.</p>
-
       {showForm && passwordEntered && (
-        <form onSubmit={handleAddProduct} className="bg-white p-6 mb-6 rounded shadow space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
+          {/* Input fields */}
           <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
-          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description (max 100 caractères)" maxLength={100} className="w-full border p-2 rounded" required />
-          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD (ex. 450,00)" className="w-full border p-2 rounded" />
-          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD (ex. 350.00)" className="w-full border p-2 rounded" />
+          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" className="w-full border p-2 rounded" required />
+          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-2 rounded" />
+          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-2 rounded" />
           <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
           <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
           <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
@@ -165,6 +173,7 @@ export default function EcommercePage() {
               className="w-full border p-2 rounded"
             />
           ))}
+          {/* Category checkboxes */}
           <div>
             <label className="font-semibold">Catégories :</label>
             <div className="flex flex-wrap gap-2">
@@ -179,13 +188,12 @@ export default function EcommercePage() {
                         : newProduct.categories.filter((c) => c !== cat);
                       setNewProduct({ ...newProduct, categories: updated });
                     }}
-                  />{' '}
-                  {cat}
+                  /> {cat}
                 </label>
               ))}
             </div>
             <input
-              placeholder="Ajouter une nouvelle catégorie"
+              placeholder="Ajouter une catégorie"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -200,11 +208,11 @@ export default function EcommercePage() {
             />
           </div>
           <div className="flex gap-4">
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
             {editIndex !== null && (
               <>
-                <button type="button" onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>
-                <button type="button" onClick={() => handleDeleteProduct(editIndex)} className="px-4 py-2 bg-red-600 text-white rounded">Supprimer</button>
+                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>
+                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded">Supprimer</button>
               </>
             )}
           </div>
@@ -226,7 +234,7 @@ export default function EcommercePage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
-          <div key={i} className="bg-white p-3 rounded shadow text-center relative">
+          <div key={product.id} className="bg-white p-3 rounded shadow text-center relative">
             <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
@@ -268,14 +276,8 @@ function ProductCard({ product }: { product: Product }) {
             fill
             className="object-contain rounded"
           />
-          <button
-            onClick={() => setCurrent((current - 1 + images.length) % images.length)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
-          >◀</button>
-          <button
-            onClick={() => setCurrent((current + 1) % images.length)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 px-2"
-          >▶</button>
+          <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2">◀</button>
+          <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2">▶</button>
         </>
       )}
     </div>
