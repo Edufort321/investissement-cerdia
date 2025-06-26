@@ -47,10 +47,7 @@ export default function EcommercePage() {
     localStorage.setItem('products', JSON.stringify(updated));
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index?: number
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
       const updatedImages = [...newProduct.images];
@@ -90,10 +87,7 @@ export default function EcommercePage() {
   };
 
   const handleDeleteProduct = (index: number) => {
-    if (!passwordEntered) {
-      alert('Mot de passe requis pour supprimer.');
-      return;
-    }
+    if (!passwordEntered) return;
     const updated = [...products];
     updated.splice(index, 1);
     saveProducts(updated);
@@ -103,9 +97,20 @@ export default function EcommercePage() {
     ? products.filter((p) => p.categories.includes(categoryFilter))
     : products;
 
+  const requestPassword = () => {
+    const tryPwd = prompt('Mot de passe admin :');
+    if (tryPwd === PASSWORD) {
+      setPasswordEntered(true);
+      return true;
+    } else {
+      alert('Mot de passe incorrect.');
+      return false;
+    }
+  };
+
   return (
-    <main className="px-6 py-12 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Catalogue CERDIA et coups de cœur Amazon SiteStripe</h1>
+    <main className="px-4 py-8 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA et coups de cœur Amazon SiteStripe</h1>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
@@ -118,19 +123,10 @@ export default function EcommercePage() {
             {cat}
           </button>
         ))}
-        <button
-          onClick={() => {
-            const stored = localStorage.getItem('products');
-            if (stored) setProducts(JSON.parse(stored));
-          }}
-          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-sm rounded"
-        >
-          🔄 Actualiser les produits
-        </button>
       </div>
 
       {showForm && passwordEntered && (
-        <form onSubmit={handleAddProduct} className="bg-white p-6 mb-12 rounded shadow-md space-y-4">
+        <form onSubmit={handleAddProduct} className="bg-white p-6 mb-6 rounded shadow space-y-4">
           <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
           <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description (max 100 caractères)" maxLength={100} className="w-full border p-2 rounded" required />
           <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
@@ -146,7 +142,7 @@ export default function EcommercePage() {
               className="w-full border p-2 rounded"
             />
           ))}
-          <div className="space-y-2">
+          <div>
             <label className="font-semibold">Catégories :</label>
             <div className="flex flex-wrap gap-2">
               {availableCategories.map((cat) => (
@@ -177,7 +173,7 @@ export default function EcommercePage() {
                   }
                 }
               }}
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full mt-2"
             />
           </div>
           <div className="flex gap-4">
@@ -191,13 +187,7 @@ export default function EcommercePage() {
         className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
         onClick={() => {
           if (!passwordEntered) {
-            const tryPwd = prompt('Mot de passe admin :');
-            if (tryPwd === PASSWORD) {
-              setPasswordEntered(true);
-              setShowForm(true);
-            } else {
-              alert('Mot de passe incorrect.');
-            }
+            if (requestPassword()) setShowForm(true);
           } else {
             setShowForm(!showForm);
           }
@@ -206,9 +196,9 @@ export default function EcommercePage() {
         ➕ Ajouter un produit affilié
       </button>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
-          <div key={i} className="bg-white p-4 rounded shadow text-center relative">
+          <div key={i} className="bg-white p-3 rounded shadow text-center relative">
             <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
@@ -243,30 +233,23 @@ function ProductCard({ product }: { product: Product }) {
   const images = product.images.filter((img) => img);
 
   return (
-    <div className="relative w-full h-80 mb-2 overflow-hidden rounded border border-gray-200">
+    <div className="relative aspect-[4/5] w-full mb-2">
       {images.length > 0 && (
         <>
           <Image
             src={images[current]}
             alt={product.name}
-            className="object-contain w-full h-full"
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            style={{ objectFit: 'contain' }}
-            priority
+            className="object-contain rounded"
           />
           <button
             onClick={() => setCurrent((current - 1 + images.length) % images.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white px-2 py-1 rounded-full shadow"
-          >
-            ◀
-          </button>
+            className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
+          >◀</button>
           <button
             onClick={() => setCurrent((current + 1) % images.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white px-2 py-1 rounded-full shadow"
-          >
-            ▶
-          </button>
+            className="absolute right-0 top-1/2 -translate-y-1/2 px-2"
+          >▶</button>
         </>
       )}
     </div>
