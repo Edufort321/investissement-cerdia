@@ -32,12 +32,12 @@ export default function Navbar() {
   }, [])
 
   return (
-    <header className="bg-[#f2f2f2] shadow-sm sticky top-0 z-50 w-full">
+    <header className="bg-[#c7c7c7] shadow-sm sticky top-0 z-50 w-full">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
         {/* Logo CERDIA responsive */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo-cerdia2.png"
+            src="/logo-cerdia3.png"
             alt="Logo officiel Investissement CERDIA"
             width={120}
             height={40}
@@ -47,7 +47,7 @@ export default function Navbar() {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex gap-4 sm:gap-6 items-center text-sm sm:text-base mt-3 sm:mt-0">
+        <nav className="flex gap-4 sm:gap-6 items-center text-sm sm:text-base mt-3 sm:mt-0 text-black">
           <Link href="/" className="hover:underline transition">Accueil</Link>
           <Link href="/vision-cerdia" className="hover:underline transition">Vision</Link>
           <Link href="/connexion" className="hover:underline transition">Connexion</Link>
@@ -57,7 +57,7 @@ export default function Navbar() {
             </button>
           </Link>
           {isAdmin && (
-            <Link href="/dashboard/strategie" className="text-blue-900 font-semibold hover:underline transition">
+            <Link href="/dashboard/strategie" className="font-semibold hover:underline transition">
               🧭 Planification
             </Link>
           )}
@@ -66,4 +66,3 @@ export default function Navbar() {
     </header>
   )
 }
-
