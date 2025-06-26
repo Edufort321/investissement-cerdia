@@ -62,7 +62,9 @@ export default function EcommercePage() {
 
       {/* Produit vedette */}
       <section className="mb-20">
-        <h2 className="text-3xl font-bold mb-4">CERDIA BAG#1 – {lang === 'fr' ? 'Sac à dos professionnel multifonction' : 'Smart travel & work backpack'}</h2>
+        <h2 className="text-3xl font-bold mb-4">
+          CERDIA BAG#1 – {lang === 'fr' ? 'Sac à dos professionnel multifonction' : 'Smart travel & work backpack'}
+        </h2>
         <div className="text-sm mb-2 text-yellow-600 font-semibold">
           🔔 {lang === 'fr' ? 'Disponible bientôt sur Amazon' : 'Coming soon on Amazon'}
         </div>
@@ -175,10 +177,12 @@ export default function EcommercePage() {
         </div>
       </section>
 
-      {/* Produits à venir */}
+      {/* Section Affiliation Amazon */}
       <section className="mb-20">
-        <h2 className="text-2xl font-bold mb-4">
-          {lang === 'fr' ? 'Prochains articles CERDIA' : 'Upcoming CERDIA Products'}
+        <h2 className="text-2xl font-bold mb-6">
+          {lang === 'fr'
+            ? 'Affiliation Amazon & SiteStripe'
+            : 'Amazon Affiliate & SiteStripe'}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {futureProducts.map((product, i) => (
@@ -186,15 +190,23 @@ export default function EcommercePage() {
               key={i}
               className="bg-white rounded-xl shadow p-4 text-center hover:shadow-md transition"
             >
-              <Image
-                src={product.image}
-                alt={product.name}
-                width={200}
-                height={200}
-                className="mx-auto mb-2 rounded object-contain"
-              />
-              <h3 className="font-semibold">{product.name}</h3>
-              <p className="text-sm text-gray-500">{product.status}</p>
+              <a
+                href="https://www.amazon.ca/dp/B0CXYZ1234?tag=cerdia-20"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  width={200}
+                  height={200}
+                  className="mx-auto mb-2 rounded object-contain"
+                />
+                <h3 className="font-semibold text-[#2a2a2a] mb-1">{product.name}</h3>
+                <p className="text-sm text-[#555]">
+                  {lang === 'fr' ? 'Disponible sur Amazon' : 'Available on Amazon'}
+                </p>
+              </a>
             </div>
           ))}
         </div>
