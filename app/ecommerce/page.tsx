@@ -22,7 +22,6 @@ export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -37,10 +36,8 @@ export default function EcommercePage() {
   });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('products');
-      if (stored) setProducts(JSON.parse(stored));
-    }
+    const stored = localStorage.getItem('products');
+    if (stored) setProducts(JSON.parse(stored));
   }, []);
 
   const saveProducts = (updated: Product[]) => {
@@ -48,10 +45,7 @@ export default function EcommercePage() {
     localStorage.setItem('products', JSON.stringify(updated));
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index?: number
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
       const updatedImages = [...newProduct.images];
@@ -78,6 +72,10 @@ export default function EcommercePage() {
       updated.push(newProduct);
     }
     saveProducts(updated);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setNewProduct({
       name: '',
       description: '',
@@ -88,6 +86,7 @@ export default function EcommercePage() {
       categories: [],
     });
     setShowForm(false);
+    setEditIndex(null);
   };
 
   const handleDeleteProduct = (index: number) => {
@@ -173,8 +172,12 @@ export default function EcommercePage() {
             />
           </div>
           <div className="flex gap-4">
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
-            {editIndex !== null && <button type="button" onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>}
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+              {editIndex !== null ? 'Modifier' : 'Ajouter'}
+            </button>
+            <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white rounded">
+              Annuler
+            </button>
           </div>
         </form>
       )}
