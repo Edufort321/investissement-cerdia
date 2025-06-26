@@ -39,7 +39,7 @@ export default function Navbar() {
           <Image
             src="/logo-cerdia3.png"
             alt="Logo officiel Investissement CERDIA"
-            width={120}
+            width={80}
             height={40}
             className="h-auto w-[100px] sm:w-[140px] md:w-[160px]"
             priority
