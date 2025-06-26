@@ -37,7 +37,7 @@ export default function Navbar() {
         {/* Logo CERDIA responsive */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo-cerdia2.png" // ✅ Nouveau logo ici
+            src="/logo-cerdia3.png" // ✅ Nouveau logo ici
             alt="Logo officiel Investissement CERDIA"
             width={180}
             height={60}
