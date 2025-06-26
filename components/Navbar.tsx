@@ -37,7 +37,7 @@ export default function Navbar() {
         {/* Logo CERDIA responsive */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo-cerdia.png"
+            src="/logo-cerdia2.png"
             alt="CERDIA Logo"
             width={150}
             height={48}
