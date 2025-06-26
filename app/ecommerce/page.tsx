@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 interface Product {
   name: string;
@@ -13,33 +13,34 @@ interface Product {
   images: string[];
 }
 
-const PASSWORD = "321MdlTamara!$";
+const PASSWORD = '321MdlTamara!$';
 
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [newProduct, setNewProduct] = useState<Product>({
+    name: '',
+    amazonCa: '',
+    amazonCom: '',
+    tiktokUrl: '',
+    description: '',
+    images: [''],
+  });
 
-  const emptyProduct: Product = {
-    name: "",
-    amazonCa: "",
-    amazonCom: "",
-    tiktokUrl: "",
-    description: "",
-    images: Array(10).fill(""),
-  };
-
-  const [newProduct, setNewProduct] = useState<Product>(emptyProduct);
-
+  // 🔄 Charger du localStorage au démarrage
   useEffect(() => {
-    const stored = localStorage.getItem("affiliatedProducts");
-    if (stored) setProducts(JSON.parse(stored));
+    const saved = localStorage.getItem('affiliatedProducts');
+    if (saved) {
+      setProducts(JSON.parse(saved));
+    }
   }, []);
 
+  // 💾 Sauvegarder dans localStorage à chaque changement
   useEffect(() => {
-    localStorage.setItem("affiliatedProducts", JSON.stringify(products));
+    localStorage.setItem('affiliatedProducts', JSON.stringify(products));
   }, [products]);
 
   const handleInputChange = (
@@ -47,10 +48,10 @@ export default function EcommercePage() {
     index?: number
   ) => {
     const { name, value } = e.target;
-    if (name === "images" && index !== undefined) {
-      const updatedImages = [...newProduct.images];
-      updatedImages[index] = value;
-      setNewProduct({ ...newProduct, images: updatedImages });
+    if (name === 'images' && index !== undefined) {
+      const updated = [...newProduct.images];
+      updated[index] = value;
+      setNewProduct({ ...newProduct, images: updated });
     } else {
       setNewProduct({ ...newProduct, [name]: value });
     }
@@ -58,19 +59,22 @@ export default function EcommercePage() {
 
   const handleAddOrUpdateProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedImages = newProduct.images.filter((img) => img.trim() !== "");
-    const productToSave = { ...newProduct, images: trimmedImages };
-
+    const updatedList = [...products];
     if (editingIndex !== null) {
-      const updated = [...products];
-      updated[editingIndex] = productToSave;
-      setProducts(updated);
-      setEditingIndex(null);
+      updatedList[editingIndex] = newProduct;
     } else {
-      setProducts([...products, productToSave]);
+      updatedList.push(newProduct);
     }
-
-    setNewProduct(emptyProduct);
+    setProducts(updatedList);
+    setNewProduct({
+      name: '',
+      amazonCa: '',
+      amazonCom: '',
+      tiktokUrl: '',
+      description: '',
+      images: [''],
+    });
+    setEditingIndex(null);
     setShowForm(false);
   };
 
@@ -78,12 +82,6 @@ export default function EcommercePage() {
     const updated = [...products];
     updated.splice(index, 1);
     setProducts(updated);
-  };
-
-  const handleEditProduct = (index: number) => {
-    setNewProduct({ ...products[index], images: [...products[index].images, ...Array(10).fill("")].slice(0, 10) });
-    setEditingIndex(index);
-    setShowForm(true);
   };
 
   const filteredImages = (images: string[]) => images.filter((img) => img);
@@ -104,7 +102,7 @@ export default function EcommercePage() {
           <button
             onClick={() => {
               if (passwordInput === PASSWORD) setPasswordEntered(true);
-              else alert("Mot de passe incorrect");
+              else alert('Mot de passe incorrect');
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded"
           >
@@ -116,12 +114,31 @@ export default function EcommercePage() {
           <button
             className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
             onClick={() => {
-              setNewProduct(emptyProduct);
+              setNewProduct({
+                name: '',
+                amazonCa: '',
+                amazonCom: '',
+                tiktokUrl: '',
+                description: '',
+                images: [''],
+              });
               setEditingIndex(null);
               setShowForm(true);
             }}
           >
-            ➕ {editingIndex !== null ? "Modifier" : "Ajouter"} un produit affilié
+            ➕ {editingIndex !== null ? 'Modifier' : 'Ajouter'} un produit affilié
+          </button>
+
+          <button
+            className="mb-6 ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
+            onClick={() => {
+              if (confirm('Supprimer tous les produits? Cette action est irréversible.')) {
+                localStorage.removeItem('affiliatedProducts');
+                setProducts([]);
+              }
+            }}
+          >
+            🗑️ Réinitialiser les produits
           </button>
 
           {showForm && (
@@ -144,7 +161,6 @@ export default function EcommercePage() {
                 placeholder="Description (max 100 caractères)"
                 maxLength={100}
                 className="w-full border p-2 rounded"
-                required
               />
               <input
                 name="amazonCa"
@@ -171,7 +187,7 @@ export default function EcommercePage() {
                 <input
                   key={i}
                   name="images"
-                  value={newProduct.images[i] || ""}
+                  value={newProduct.images[i] || ''}
                   onChange={(e) => handleInputChange(e, i)}
                   placeholder={`Image ${i + 1}`}
                   className="w-full border p-2 rounded"
@@ -181,7 +197,7 @@ export default function EcommercePage() {
                 type="submit"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
               >
-                {editingIndex !== null ? "Mettre à jour" : "Ajouter"}
+                {editingIndex !== null ? 'Mettre à jour' : 'Ajouter'}
               </button>
             </form>
           )}
@@ -225,20 +241,24 @@ export default function EcommercePage() {
               </Link>
             )}
             {passwordEntered && (
-              <>
+              <div className="absolute top-2 right-2 flex gap-2">
                 <button
-                  onClick={() => handleEditProduct(i)}
-                  className="absolute top-2 left-2 text-green-600"
+                  onClick={() => {
+                    setNewProduct(product);
+                    setEditingIndex(i);
+                    setShowForm(true);
+                  }}
+                  className="text-blue-500"
                 >
-                  ✏️
+                  ✎
                 </button>
                 <button
                   onClick={() => handleDeleteProduct(i)}
-                  className="absolute top-2 right-2 text-red-500"
+                  className="text-red-500"
                 >
                   ✖
                 </button>
-              </>
+              </div>
             )}
           </div>
         ))}
@@ -262,9 +282,7 @@ function ProductCard({ product }: { product: Product }) {
             className="object-contain rounded"
           />
           <button
-            onClick={() =>
-              setCurrent((current - 1 + images.length) % images.length)
-            }
+            onClick={() => setCurrent((current - 1 + images.length) % images.length)}
             className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
           >
             ◀
