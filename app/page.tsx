@@ -97,7 +97,7 @@ export default function Home() {
       ))}
 
       {/* FOOTER */}
-      <footer className="bg-[#0F1E47] text-white py-6 mt-16">
+      <footer className="bg-black text-white py-6 mt-16">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
           <p>&copy; 2025 Investissement CERDIA. {tr.footer}</p>
           <p>{tr.powered}</p>
