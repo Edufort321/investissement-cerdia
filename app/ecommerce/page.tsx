@@ -1,4 +1,3 @@
-// ✅ 1. Fichier: app/ecommerce/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -15,23 +14,23 @@ interface Product {
 
 const initialProducts: Product[] = [
   {
-    name: 'CERDIA FUTURE #2',
-    amazonCa: 'https://amazon.ca/example2',
-    amazonCom: 'https://amazon.com/example2',
-    tiktokUrl: 'https://www.tiktok.com/@cerdia/video/1',
+    name: 'CERDIA FUTURE #1',
+    amazonCa: 'https://www.amazon.ca/dp/B09XYX',
+    amazonCom: 'https://www.amazon.com/dp/B09XYX',
+    tiktokUrl: 'https://www.tiktok.com/@cerdia/video/123456',
     images: [
-      '/images/cerdia-future-2.png',
-      '/images/cerdia-future-2-2.png',
-      '/images/cerdia-future-2-3.png',
-      '/images/cerdia-future-2-4.png',
-      '/images/cerdia-future-2-5.png',
-      '/images/cerdia-future-2-6.png',
-      '/images/cerdia-future-2-7.png',
-      '/images/cerdia-future-2-8.png',
-      '/images/cerdia-future-2-9.png',
-      '/images/cerdia-future-2-10.png',
-    ],
-  },
+      'https://m.media-amazon.com/images/I/71abcdef1.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef2.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef3.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef4.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef5.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef6.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef7.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef8.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef9.jpg',
+      'https://m.media-amazon.com/images/I/71abcdef10.jpg'
+    ]
+  }
 ]
 
 export default function EcommercePage() {
@@ -78,27 +77,31 @@ export default function EcommercePage() {
 
       {showForm && (
         <form onSubmit={handleAddProduct} className="bg-white p-6 mb-12 rounded shadow-md space-y-4">
-          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
+          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom du produit" className="w-full border p-2 rounded" required />
           <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" required />
           <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" required />
           <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" required />
+
           {Array.from({ length: 10 }).map((_, i) => (
             <input
               key={i}
               name="images"
               value={newProduct.images[i] || ''}
               onChange={(e) => handleInputChange(e, i)}
-              placeholder={`Image ${i + 1}`}
+              placeholder={`Lien image ${i + 1}`}
               className="w-full border p-2 rounded"
             />
           ))}
-          <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">Ajouter</button>
+
+          <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+            ➕ Ajouter ce produit
+          </button>
         </form>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {products.map((product, i) => (
-          <ProductCard key={i} product={product} />
+        {products.map((product, index) => (
+          <ProductCard key={index} product={product} />
         ))}
       </div>
     </main>
@@ -123,10 +126,16 @@ function ProductCard({ product }: { product: Product }) {
       <h3 className="font-semibold mb-1">{product.name}</h3>
       <p className="text-sm text-gray-500 mb-2">Disponible sur Amazon</p>
       <div className="flex justify-center gap-2 mb-2">
-        <Link href={product.amazonCa} target="_blank"><button className="bg-blue-600 text-white px-3 py-1 rounded">Amazon.ca</button></Link>
-        <Link href={product.amazonCom} target="_blank"><button className="bg-black text-white px-3 py-1 rounded">Amazon.com</button></Link>
+        <Link href={product.amazonCa} target="_blank">
+          <button className="bg-blue-600 text-white px-3 py-1 rounded">Amazon.ca</button>
+        </Link>
+        <Link href={product.amazonCom} target="_blank">
+          <button className="bg-black text-white px-3 py-1 rounded">Amazon.com</button>
+        </Link>
       </div>
-      <Link href={product.tiktokUrl} target="_blank" className="text-sm text-blue-700 underline">Voir sur TikTok</Link>
+      <Link href={product.tiktokUrl} target="_blank" className="text-sm text-blue-700 underline">
+        Voir sur TikTok
+      </Link>
     </div>
   )
 }
