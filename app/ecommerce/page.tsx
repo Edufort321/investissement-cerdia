@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+type Lang = "fr" | "en";
+
 interface Product {
   name: string;
   amazonCa: string;
@@ -15,12 +17,12 @@ interface Product {
 }
 
 const PASSWORD = "321MdlTamara!$";
-
-const DEFAULT_CATEGORIES = [
-  { key: "montre", labelFr: "Montres", labelEn: "Watches" },
-  { key: "lunette", labelFr: "Lunettes de soleil", labelEn: "Sunglasses" },
-  { key: "sac", labelFr: "Sacs à dos", labelEn: "Backpacks" },
-  { key: "voyage", labelFr: "Articles de voyage", labelEn: "Travel Gear" },
+const STORAGE_KEY = "cerdia_products";
+const defaultCategories = [
+  "Montres",
+  "Lunettes de soleil",
+  "Sacs à dos",
+  "Articles de voyage",
 ];
 
 export default function EcommercePage() {
@@ -28,9 +30,6 @@ export default function EcommercePage() {
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
-  const [language, setLanguage] = useState<"fr" | "en">("fr");
-  const [customCategory, setCustomCategory] = useState("");
   const [newProduct, setNewProduct] = useState<Product>({
     name: "",
     amazonCa: "",
@@ -40,42 +39,21 @@ export default function EcommercePage() {
     images: [""],
     categories: [],
   });
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [newCategory, setNewCategory] = useState("");
+  const [lang, setLang] = useState<Lang>("fr");
 
-  const texts = {
-    fr: {
-      title: "Affiliation Amazon & SiteStripe",
-      addButton: "Ajouter un produit affilié",
-      enterPassword: "Mot de passe admin",
-      wrongPassword: "Mot de passe incorrect",
-      add: "Ajouter",
-      amazonCa: "Amazon.ca",
-      amazonCom: "Amazon.com",
-      viewOnTikTok: "Voir sur TikTok",
-      name: "Nom du produit",
-      desc: "Description (max 100 caractères)",
-      image: "Image",
-      addCategory: "Ajouter une catégorie",
-      delete: "✖",
-    },
-    en: {
-      title: "Amazon & SiteStripe Affiliate",
-      addButton: "Add affiliate product",
-      enterPassword: "Admin password",
-      wrongPassword: "Incorrect password",
-      add: "Add",
-      amazonCa: "Amazon.ca",
-      amazonCom: "Amazon.com",
-      viewOnTikTok: "View on TikTok",
-      name: "Product name",
-      desc: "Description (max 100 characters)",
-      image: "Image",
-      addCategory: "Add a category",
-      delete: "✖",
-    },
-  }[language];
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) setProducts(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+  }, [products]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement>,
     index?: number
   ) => {
     const { name, value } = e.target;
@@ -83,11 +61,6 @@ export default function EcommercePage() {
       const updatedImages = [...newProduct.images];
       updatedImages[index] = value;
       setNewProduct({ ...newProduct, images: updatedImages });
-    } else if (name === "categories") {
-      const selected = Array.from(
-        (e.target as HTMLSelectElement).selectedOptions
-      ).map((o) => o.value);
-      setNewProduct({ ...newProduct, categories: selected });
     } else {
       setNewProduct({ ...newProduct, [name]: value });
     }
@@ -109,49 +82,54 @@ export default function EcommercePage() {
   };
 
   const handleDeleteProduct = (index: number) => {
+    if (!passwordEntered) return;
     const updated = [...products];
     updated.splice(index, 1);
     setProducts(updated);
   };
 
-  const filteredProducts = selectedFilter
-    ? products.filter((p) => p.categories.includes(selectedFilter))
+  const filteredProducts = selectedCategory
+    ? products.filter((p) => p.categories.includes(selectedCategory))
     : products;
 
-  const filteredImages = (images: string[]) => images.filter((img) => img);
+  const allCategories = Array.from(
+    new Set([...defaultCategories, ...products.flatMap((p) => p.categories)])
+  );
 
   return (
     <main className="px-6 py-12 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{texts.title}</h1>
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as "fr" | "en")}
-          className="border px-2 py-1 rounded"
+        <h1 className="text-3xl font-bold">
+          {lang === "fr"
+            ? "Catalogue CERDIA et coups de cœur Amazon SiteStripe"
+            : "CERDIA Catalog & Amazon SiteStripe Favorites"}
+        </h1>
+        <button
+          onClick={() => setLang(lang === "fr" ? "en" : "fr")}
+          className="px-4 py-2 text-sm rounded border"
         >
-          <option value="fr">FR</option>
-          <option value="en">EN</option>
-        </select>
+          {lang === "fr" ? "ENGLISH" : "FRANÇAIS"}
+        </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="mb-4 space-x-2">
         <button
-          onClick={() => setSelectedFilter(null)}
-          className={`px-3 py-1 rounded border ${
-            selectedFilter === null ? "bg-blue-600 text-white" : ""
+          onClick={() => setSelectedCategory(null)}
+          className={`px-3 py-1 rounded ${
+            !selectedCategory ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
-          All
+          {lang === "fr" ? "Tous" : "All"}
         </button>
-        {DEFAULT_CATEGORIES.map((cat) => (
+        {allCategories.map((cat) => (
           <button
-            key={cat.key}
-            onClick={() => setSelectedFilter(cat.key)}
-            className={`px-3 py-1 rounded border ${
-              selectedFilter === cat.key ? "bg-blue-600 text-white" : ""
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1 rounded ${
+              selectedCategory === cat ? "bg-blue-600 text-white" : "bg-gray-200"
             }`}
           >
-            {language === "fr" ? cat.labelFr : cat.labelEn}
+            {cat}
           </button>
         ))}
       </div>
@@ -160,15 +138,14 @@ export default function EcommercePage() {
         className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
         onClick={() => {
           if (!passwordEntered) {
-            const input = prompt(texts.enterPassword);
+            const input = prompt("Mot de passe / Password");
             if (input === PASSWORD) setPasswordEntered(true);
-            else alert(texts.wrongPassword);
-          } else {
-            setShowForm(!showForm);
+            else return alert("Mot de passe incorrect");
           }
+          setShowForm(!showForm);
         }}
       >
-        ➕ {texts.addButton}
+        ➕ {lang === "fr" ? "Ajouter un produit affilié" : "Add a product"}
       </button>
 
       {showForm && (
@@ -176,126 +153,106 @@ export default function EcommercePage() {
           onSubmit={handleAddProduct}
           className="bg-white p-6 mb-12 rounded shadow-md space-y-4"
         >
-          <input
-            name="name"
-            value={newProduct.name}
-            onChange={handleInputChange}
-            placeholder={texts.name}
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            name="description"
-            value={newProduct.description}
-            onChange={handleInputChange}
-            placeholder={texts.desc}
-            maxLength={100}
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            name="amazonCa"
-            value={newProduct.amazonCa}
-            onChange={handleInputChange}
-            placeholder="Lien Amazon.ca"
-            className="w-full border p-2 rounded"
-          />
-          <input
-            name="amazonCom"
-            value={newProduct.amazonCom}
-            onChange={handleInputChange}
-            placeholder="Lien Amazon.com"
-            className="w-full border p-2 rounded"
-          />
-          <input
-            name="tiktokUrl"
-            value={newProduct.tiktokUrl}
-            onChange={handleInputChange}
-            placeholder="Lien TikTok"
-            className="w-full border p-2 rounded"
-          />
+          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
+          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" maxLength={100} className="w-full border p-2 rounded" required />
+          <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
+          <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
+          <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
 
-          {Array.from({ length: 10 }).map((_, i) => (
+          {newProduct.images.map((img, i) => (
             <input
               key={i}
               name="images"
-              value={newProduct.images[i] || ""}
+              value={img}
               onChange={(e) => handleInputChange(e, i)}
-              placeholder={`${texts.image} ${i + 1}`}
+              placeholder={`Image ${i + 1}`}
               className="w-full border p-2 rounded"
             />
           ))}
 
-          <select
-            name="categories"
-            multiple
-            value={newProduct.categories}
-            onChange={handleInputChange}
-            className="w-full border p-2 rounded"
-          >
-            {DEFAULT_CATEGORIES.map((cat) => (
-              <option key={cat.key} value={cat.key}>
-                {language === "fr" ? cat.labelFr : cat.labelEn}
-              </option>
-            ))}
-          </select>
-
-          <input
-            value={customCategory}
-            onChange={(e) => setCustomCategory(e.target.value)}
-            placeholder={texts.addCategory}
-            className="w-full border p-2 rounded"
-          />
           <button
             type="button"
-            onClick={() => {
-              if (customCategory) {
-                setNewProduct({
-                  ...newProduct,
-                  categories: [...newProduct.categories, customCategory],
-                });
-                setCustomCategory("");
-              }
-            }}
-            className="text-sm underline text-blue-600"
+            onClick={() =>
+              setNewProduct({ ...newProduct, images: [...newProduct.images, ""] })
+            }
+            className="text-sm text-blue-600 underline"
           >
-            {texts.addCategory}
+            ➕ {lang === "fr" ? "Ajouter une image" : "Add image"}
           </button>
+
+          <div>
+            <label className="block mb-1 font-medium">
+              {lang === "fr" ? "Catégories" : "Categories"}
+            </label>
+            {allCategories.map((cat) => (
+              <label key={cat} className="inline-flex items-center mr-4">
+                <input
+                  type="checkbox"
+                  checked={newProduct.categories.includes(cat)}
+                  onChange={() => {
+                    const checked = newProduct.categories.includes(cat);
+                    const updated = checked
+                      ? newProduct.categories.filter((c) => c !== cat)
+                      : [...newProduct.categories, cat];
+                    setNewProduct({ ...newProduct, categories: updated });
+                  }}
+                />
+                <span className="ml-2">{cat}</span>
+              </label>
+            ))}
+            <div className="mt-2">
+              <input
+                type="text"
+                placeholder="Nouvelle catégorie"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="border p-2 rounded mr-2"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newCategory && !newProduct.categories.includes(newCategory)) {
+                    setNewProduct({
+                      ...newProduct,
+                      categories: [...newProduct.categories, newCategory],
+                    });
+                    setNewCategory("");
+                  }
+                }}
+                className="text-sm bg-gray-200 px-3 py-1 rounded"
+              >
+                {lang === "fr" ? "Ajouter" : "Add"}
+              </button>
+            </div>
+          </div>
 
           <button
             type="submit"
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
           >
-            {texts.add}
+            {lang === "fr" ? "Ajouter le produit" : "Add product"}
           </button>
         </form>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {filteredProducts.map((product, i) => (
-          <div
-            key={i}
-            className="bg-white p-4 rounded shadow text-center relative"
-          >
-            {filteredImages(product.images).length > 0 && (
-              <ProductCard product={product} />
-            )}
+          <div key={i} className="bg-white p-4 rounded shadow text-center relative">
+            <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
-            <p className="text-sm text-gray-500 mb-2">
-              {product.description}
-            </p>
+            <p className="text-sm text-gray-500 mb-2">{product.description}</p>
             <div className="flex justify-center gap-2 mb-2">
               {product.amazonCa && (
                 <Link href={product.amazonCa} target="_blank">
                   <button className="bg-blue-600 text-white px-3 py-1 rounded">
-                    {texts.amazonCa}
+                    Amazon.ca
                   </button>
                 </Link>
               )}
               {product.amazonCom && (
                 <Link href={product.amazonCom} target="_blank">
                   <button className="bg-black text-white px-3 py-1 rounded">
-                    {texts.amazonCom}
+                    Amazon.com
                   </button>
                 </Link>
               )}
@@ -306,7 +263,7 @@ export default function EcommercePage() {
                 target="_blank"
                 className="text-sm text-blue-700 underline"
               >
-                {texts.viewOnTikTok}
+                {lang === "fr" ? "Voir sur TikTok" : "View on TikTok"}
               </Link>
             )}
             {passwordEntered && (
@@ -314,7 +271,7 @@ export default function EcommercePage() {
                 onClick={() => handleDeleteProduct(i)}
                 className="absolute top-2 right-2 text-red-500"
               >
-                {texts.delete}
+                ✖
               </button>
             )}
           </div>
@@ -339,9 +296,7 @@ function ProductCard({ product }: { product: Product }) {
             className="object-contain rounded"
           />
           <button
-            onClick={() =>
-              setCurrent((current - 1 + images.length) % images.length)
-            }
+            onClick={() => setCurrent((current - 1 + images.length) % images.length)}
             className="absolute left-0 top-1/2 -translate-y-1/2 px-2"
           >
             ◀
