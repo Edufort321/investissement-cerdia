@@ -1,4 +1,4 @@
-// ... [imports identiques]
+'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -61,9 +61,7 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: Array.isArray(p.imageurls)
-          ? p.imageurls.filter((url: string) => typeof url === 'string' && url.startsWith('http'))
-          : typeof p.imageurls === 'string' && p.imageurls.startsWith('http') ? [p.imageurls] : [],
+        images: Array.isArray(p.imageurls) ? p.imageurls : typeof p.imageurls === 'string' ? [p.imageurls] : [],
         categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
@@ -140,7 +138,7 @@ export default function EcommercePage() {
   };
 
   const filteredProducts = categoryFilter
-    ? products.filter((p) => Array.isArray(p.categories) && p.categories.includes(categoryFilter))
+    ? products.filter((p) => (p.categories || []).includes(categoryFilter))
     : [...products];
 
   if (sortOrder) {
@@ -181,8 +179,65 @@ export default function EcommercePage() {
 
       {showForm && passwordEntered && (
         <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
-          {/* ...formulaire identique... */}
-          {/* Non modifié car déjà complet dans ton code */}
+          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
+          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" className="w-full border p-2 rounded" required />
+          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-2 rounded" />
+          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-2 rounded" />
+          <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
+          <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
+          <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
+          {Array.from({ length: 10 }).map((_, i) => (
+            <input
+              key={i}
+              name="images"
+              value={newProduct.images[i] || ''}
+              onChange={(e) => handleInputChange(e, i)}
+              placeholder={`Image ${i + 1}`}
+              className="w-full border p-2 rounded"
+            />
+          ))}
+          <div>
+            <label className="font-semibold">Catégories :</label>
+            <div className="flex flex-wrap gap-2">
+              {availableCategories.map((cat) => (
+                <label key={cat} className="text-sm">
+                  <input
+                    type="checkbox"
+                    checked={newProduct.categories.includes(cat)}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...newProduct.categories, cat]
+                        : newProduct.categories.filter((c) => c !== cat);
+                      setNewProduct({ ...newProduct, categories: updated });
+                    }}
+                  /> {cat}
+                </label>
+              ))}
+            </div>
+            <input
+              placeholder="Ajouter une catégorie"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  if (val) {
+                    handleAddCategory(val);
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }
+              }}
+              className="border p-2 rounded w-full mt-2"
+            />
+          </div>
+          <div className="flex gap-4">
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            {editIndex !== null && (
+              <>
+                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>
+                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded">Supprimer</button>
+              </>
+            )}
+          </div>
         </form>
       )}
 
@@ -231,13 +286,11 @@ export default function EcommercePage() {
 
 function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
-  const images = Array.isArray(product.images)
-    ? product.images.filter((img) => typeof img === 'string' && img.startsWith('http'))
-    : [];
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
 
   return (
-    <div className="relative aspect-[4/5] w-full mb-2 overflow-hidden rounded">
-      {images.length > 0 ? (
+    <div className="relative aspect-[4/5] w-full mb-2">
+      {images.length > 0 && (
         <>
           <Image
             src={images[current]}
@@ -245,11 +298,9 @@ function ProductCard({ product }: { product: Product }) {
             fill
             className="object-contain rounded"
           />
-          <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2 text-white bg-black bg-opacity-30">◀</button>
-          <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2 text-white bg-black bg-opacity-30">▶</button>
+          <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2">◀</button>
+          <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2">▶</button>
         </>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Aucune image</div>
       )}
     </div>
   );
