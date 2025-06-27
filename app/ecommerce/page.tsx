@@ -25,7 +25,26 @@ interface Product {
 }
 
 const PASSWORD = '321MdlTamara!$';
-const DEFAULT_CATEGORIES = ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'];
+
+// Catégories par défaut avec traductions
+const DEFAULT_CATEGORIES = {
+  fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
+  en: ['Watch', 'Sunglasses', 'Backpack', 'Travel item']
+};
+
+// Mapping pour associer les catégories FR/EN
+const CATEGORY_MAPPING = {
+  // Français vers Anglais
+  'Montre': 'Watch',
+  'Lunette de soleil': 'Sunglasses', 
+  'Sac à dos': 'Backpack',
+  'Article de voyage': 'Travel item',
+  // Anglais vers Français  
+  'Watch': 'Montre',
+  'Sunglasses': 'Lunette de soleil',
+  'Backpack': 'Sac à dos',
+  'Travel item': 'Article de voyage'
+};
 
 // Dictionnaire de traductions
 const translations = {
@@ -107,7 +126,7 @@ export default function EcommercePage() {
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | ''>('');
-  const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [newProduct, setNewProduct] = useState<Product>({
@@ -125,20 +144,51 @@ export default function EcommercePage() {
   // Fonction pour obtenir le texte traduit
   const t = (key: keyof typeof translations.fr) => translations[language][key];
 
+  // Fonction pour traduire une catégorie
+  const translateCategory = (category: string, targetLang: 'fr' | 'en'): string => {
+    if (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]) {
+      return targetLang === 'fr' ? 
+        (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] === category ? category : CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]) :
+        (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] === category ? category : CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]);
+    }
+    return category;
+  };
+
+  // Fonction pour normaliser une catégorie (la convertir vers la forme française pour le stockage)
+  const normalizeCategory = (category: string): string => {
+    // Si c'est une catégorie anglaise connue, on la convertit en français
+    if (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] && 
+        DEFAULT_CATEGORIES.en.includes(category)) {
+      return CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING];
+    }
+    return category;
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Mise à jour des catégories disponibles quand les produits changent
+  // Mise à jour des catégories disponibles quand les produits changent ou la langue change
   useEffect(() => {
-    const allCategories = new Set(DEFAULT_CATEGORIES);
+    const baseCategories = new Set(DEFAULT_CATEGORIES.fr);
+    
+    // Ajouter les catégories des produits existants (normalisées en français)
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
-        product.categories.forEach(cat => allCategories.add(cat));
+        product.categories.forEach(cat => {
+          const normalizedCat = normalizeCategory(cat);
+          baseCategories.add(normalizedCat);
+        });
       }
     });
-    setAvailableCategories(Array.from(allCategories));
-  }, [products]);
+    
+    // Convertir vers la langue actuelle pour l'affichage
+    const categoriesInCurrentLang = Array.from(baseCategories).map(cat => 
+      translateCategory(cat, language)
+    );
+    
+    setAvailableCategories(categoriesInCurrentLang);
+  }, [products, language]);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
@@ -162,6 +212,9 @@ export default function EcommercePage() {
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
+    // Normaliser les catégories avant la sauvegarde (convertir en français)
+    const normalizedCategories = newProduct.categories.map(cat => normalizeCategory(cat));
+    
     const productToInsert = {
       name: newProduct.name,
       description: newProduct.description,
@@ -173,7 +226,7 @@ export default function EcommercePage() {
       image3: filteredImages[2] || null,
       image4: filteredImages[3] || null,
       image5: filteredImages[4] || null,
-      categories: newProduct.categories.length > 0 ? newProduct.categories : null,
+      categories: normalizedCategories.length > 0 ? normalizedCategories : null,
       price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
       price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
     };
@@ -259,8 +312,18 @@ export default function EcommercePage() {
     console.log('Catégories mises à jour:', updatedCategories);
   };
 
+  // Filtrage des produits avec gestion de la traduction des catégories
   const filteredProducts = categoryFilter
-    ? products.filter((p) => (p.categories || []).includes(categoryFilter))
+    ? products.filter((p) => {
+        if (!p.categories) return false;
+        // Vérifier si le produit a la catégorie sélectionnée (en tenant compte des traductions)
+        return p.categories.some(cat => {
+          const translatedCat = translateCategory(cat, language);
+          const normalizedFilterCat = normalizeCategory(categoryFilter);
+          const normalizedProductCat = normalizeCategory(cat);
+          return translatedCat === categoryFilter || normalizedProductCat === normalizedFilterCat;
+        });
+      })
     : [...products];
 
   if (sortOrder) {
@@ -286,12 +349,18 @@ export default function EcommercePage() {
     const product = products[index];
     setEditIndex(index);
     setShowForm(true);
+    
+    // Traduire les catégories du produit vers la langue actuelle pour l'édition
+    const translatedCategories = Array.isArray(product.categories) 
+      ? product.categories.map(cat => translateCategory(cat, language))
+      : [];
+    
     setNewProduct({
       ...product,
-      categories: Array.isArray(product.categories) ? [...product.categories] : [],
+      categories: translatedCategories,
       images: [...product.images, '', '', '', '', ''].slice(0, 5)
     });
-    console.log(t('editingProduct'), product.name, 'Catégories:', product.categories);
+    console.log(t('editingProduct'), product.name, 'Catégories:', translatedCategories);
   };
 
   return (
@@ -473,7 +542,7 @@ export default function EcommercePage() {
               <div className="mb-2">
                 {product.categories.map((cat, idx) => (
                   <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
-                    {cat}
+                    {translateCategory(cat, language)}
                   </span>
                 ))}
               </div>
