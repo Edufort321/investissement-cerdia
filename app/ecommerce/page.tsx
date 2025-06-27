@@ -61,8 +61,11 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: p.imageurls || p.images || [],
-        categories: p.categories || [],
+        images: Array.isArray(p.imageurls) ? p.imageurls :
+                Array.isArray(p.images) ? p.images :
+                typeof p.imageurls === 'string' ? [p.imageurls] :
+                typeof p.images === 'string' ? [p.images] : [],
+        categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
       }));
@@ -286,7 +289,7 @@ export default function EcommercePage() {
 
 function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
-  const images = (product.images || []).filter(Boolean);
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
 
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
