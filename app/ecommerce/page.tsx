@@ -61,11 +61,7 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: [ p.image1,
-                 p.image2,
-                 p.image3,
-                 p.image4,
-                 p.image5 ].filter(Boolean),
+        images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
         categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
@@ -76,11 +72,7 @@ export default function EcommercePage() {
 
   const saveProduct = async () => {
     // Filtrer les images vides
-    image1: filteredImages[0] || null,
-image2: filteredImages[1] || null,
-image3: filteredImages[2] || null,
-image4: filteredImages[3] || null,
-image5: filteredImages[4] || null, = newProduct.images.filter(img => img.trim() !== '');
+    const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
     const productToInsert = {
       name: newProduct.name,
@@ -88,7 +80,11 @@ image5: filteredImages[4] || null, = newProduct.images.filter(img => img.trim() 
       amazonca: newProduct.amazonCa,
       amazoncom: newProduct.amazonCom,
       tiktokurl: newProduct.tiktokUrl,
-      imageurls: filteredImages,
+      image1: filteredImages[0] || null,
+      image2: filteredImages[1] || null,
+      image3: filteredImages[2] || null,
+      image4: filteredImages[3] || null,
+      image5: filteredImages[4] || null,
       categories: newProduct.categories,
       price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
       price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
