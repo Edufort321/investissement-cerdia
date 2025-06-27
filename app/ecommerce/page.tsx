@@ -61,7 +61,8 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: Array.isArray(p.imageurls) ? p.imageurls : typeof p.imageurls === 'string' ? [p.imageurls] : [],
+        images: Array.isArray(p.imageurls) ? p.imageurls.filter(Boolean) : 
+               typeof p.imageurls === 'string' && p.imageurls ? [p.imageurls] : [],
         categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
@@ -71,13 +72,16 @@ export default function EcommercePage() {
   };
 
   const saveProduct = async () => {
+    // Filtrer les images vides
+    const filteredImages = newProduct.images.filter(img => img.trim() !== '');
+    
     const productToInsert = {
       name: newProduct.name,
       description: newProduct.description,
       amazonca: newProduct.amazonCa,
       amazoncom: newProduct.amazonCom,
       tiktokurl: newProduct.tiktokUrl,
-      imageurls: newProduct.images,
+      imageurls: filteredImages,
       categories: newProduct.categories,
       price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
       price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
@@ -120,10 +124,14 @@ export default function EcommercePage() {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index?: number) => {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
       const updatedImages = [...newProduct.images];
+      // Assurer qu'il y a assez d'éléments dans le tableau
+      while (updatedImages.length <= index) {
+        updatedImages.push('');
+      }
       updatedImages[index] = value;
       setNewProduct({ ...newProduct, images: updatedImages });
     } else {
@@ -143,8 +151,8 @@ export default function EcommercePage() {
 
   if (sortOrder) {
     filteredProducts.sort((a, b) => {
-      const aPrice = parseFloat(a.priceCa.replace(',', '.'));
-      const bPrice = parseFloat(b.priceCa.replace(',', '.'));
+      const aPrice = parseFloat(a.priceCa.replace(',', '.')) || 0;
+      const bPrice = parseFloat(b.priceCa.replace(',', '.')) || 0;
       return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
     });
   }
@@ -179,28 +187,72 @@ export default function EcommercePage() {
 
       {showForm && passwordEntered && (
         <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
-          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
-          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" className="w-full border p-2 rounded" required />
-          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-2 rounded" />
-          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-2 rounded" />
-          <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
-          <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
-          <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
-          {Array.from({ length: 10 }).map((_, i) => (
+          <input 
+            name="name" 
+            value={newProduct.name} 
+            onChange={handleInputChange} 
+            placeholder="Nom" 
+            className="w-full border p-2 rounded" 
+            required 
+          />
+          <textarea 
+            name="description" 
+            value={newProduct.description} 
+            onChange={handleInputChange} 
+            placeholder="Description" 
+            className="w-full border p-2 rounded h-20 resize-vertical" 
+            required 
+          />
+          <input 
+            name="priceCa" 
+            value={newProduct.priceCa} 
+            onChange={handleInputChange} 
+            placeholder="Prix CAD" 
+            className="w-full border p-2 rounded" 
+          />
+          <input 
+            name="priceUs" 
+            value={newProduct.priceUs} 
+            onChange={handleInputChange} 
+            placeholder="Prix USD" 
+            className="w-full border p-2 rounded" 
+          />
+          <input 
+            name="amazonCa" 
+            value={newProduct.amazonCa} 
+            onChange={handleInputChange} 
+            placeholder="Lien Amazon.ca" 
+            className="w-full border p-2 rounded" 
+          />
+          <input 
+            name="amazonCom" 
+            value={newProduct.amazonCom} 
+            onChange={handleInputChange} 
+            placeholder="Lien Amazon.com" 
+            className="w-full border p-2 rounded" 
+          />
+          <input 
+            name="tiktokUrl" 
+            value={newProduct.tiktokUrl} 
+            onChange={handleInputChange} 
+            placeholder="Lien TikTok" 
+            className="w-full border p-2 rounded" 
+          />
+          {Array.from({ length: 5 }).map((_, i) => (
             <input
               key={i}
               name="images"
               value={newProduct.images[i] || ''}
               onChange={(e) => handleInputChange(e, i)}
-              placeholder={`Image ${i + 1}`}
+              placeholder={`URL Image ${i + 1}`}
               className="w-full border p-2 rounded"
             />
           ))}
           <div>
             <label className="font-semibold">Catégories :</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               {availableCategories.map((cat) => (
-                <label key={cat} className="text-sm">
+                <label key={cat} className="text-sm flex items-center">
                   <input
                     type="checkbox"
                     checked={newProduct.categories.includes(cat)}
@@ -210,6 +262,7 @@ export default function EcommercePage() {
                         : newProduct.categories.filter((c) => c !== cat);
                       setNewProduct({ ...newProduct, categories: updated });
                     }}
+                    className="mr-1"
                   /> {cat}
                 </label>
               ))}
@@ -230,11 +283,17 @@ export default function EcommercePage() {
             />
           </div>
           <div className="flex gap-4">
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              {editIndex !== null ? 'Modifier' : 'Ajouter'}
+            </button>
             {editIndex !== null && (
               <>
-                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>
-                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded">Supprimer</button>
+                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+                  Annuler
+                </button>
+                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                  Supprimer
+                </button>
               </>
             )}
           </div>
@@ -256,24 +315,47 @@ export default function EcommercePage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
-          <div key={product.id} className="bg-white p-3 rounded shadow text-center relative">
+          <div key={product.id || i} className="bg-white p-3 rounded shadow text-center relative">
             <ProductCard product={product} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
-            <p className="text-sm">Prix : {product.priceCa && `CA$ ${product.priceCa}`} {product.priceUs && ` | US$ ${product.priceUs}`}</p>
+            <p className="text-sm">
+              Prix : {product.priceCa && `CA$ ${product.priceCa}`} 
+              {product.priceUs && ` | US$ ${product.priceUs}`}
+            </p>
             <div className="flex justify-center gap-2 mb-2 mt-1">
               {product.amazonCa && (
-                <Link href={product.amazonCa} target="_blank"><button className="bg-blue-600 text-white px-3 py-1 rounded">Amazon.ca</button></Link>
+                <Link href={product.amazonCa} target="_blank" rel="noopener noreferrer">
+                  <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                    Amazon.ca
+                  </button>
+                </Link>
               )}
               {product.amazonCom && (
-                <Link href={product.amazonCom} target="_blank"><button className="bg-black text-white px-3 py-1 rounded">Amazon.com</button></Link>
+                <Link href={product.amazonCom} target="_blank" rel="noopener noreferrer">
+                  <button className="bg-black text-white px-3 py-1 rounded hover:bg-gray-800">
+                    Amazon.com
+                  </button>
+                </Link>
               )}
             </div>
             {product.tiktokUrl && (
-              <Link href={product.tiktokUrl} target="_blank" className="text-sm text-blue-700 underline">Voir sur TikTok</Link>
+              <Link href={product.tiktokUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline">
+                Voir sur TikTok
+              </Link>
             )}
             {passwordEntered && (
-              <button onClick={() => { setEditIndex(i); setShowForm(true); setNewProduct(product); }} className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1">
+              <button 
+                onClick={() => { 
+                  setEditIndex(i); 
+                  setShowForm(true); 
+                  setNewProduct({
+                    ...product,
+                    images: [...product.images, '', '', '', '', ''].slice(0, 5) // Assurer 5 slots pour l'édition
+                  }); 
+                }} 
+                className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1 hover:bg-gray-100"
+              >
                 <Pencil size={14} />
               </button>
             )}
@@ -287,19 +369,58 @@ export default function EcommercePage() {
 function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
   const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
+
+  // Si aucune image valide, afficher un placeholder
+  if (images.length === 0) {
+    return (
+      <div className="relative aspect-[4/5] w-full mb-2 bg-gray-200 flex items-center justify-center rounded">
+        <span className="text-gray-500">Aucune image</span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
-      {images.length > 0 && (
+      {!imageError[current] ? (
+        <Image
+          src={images[current]}
+          alt={product.name}
+          fill
+          className="object-contain rounded"
+          onError={() => setImageError({...imageError, [current]: true})}
+          unoptimized // Permet d'utiliser des URLs externes sans configuration
+        />
+      ) : (
+        <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
+          <span className="text-gray-500">Image non disponible</span>
+        </div>
+      )}
+      
+      {images.length > 1 && (
         <>
-          <Image
-            src={images[current]}
-            alt={product.name}
-            fill
-            className="object-contain rounded"
-          />
-          <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2">◀</button>
-          <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2">▶</button>
+          <button 
+            onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
+            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75"
+          >
+            ◀
+          </button>
+          <button 
+            onClick={() => setCurrent((current + 1) % images.length)} 
+            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75"
+          >
+            ▶
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {images.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full ${
+                  index === current ? 'bg-white' : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
+          </div>
         </>
       )}
     </div>
