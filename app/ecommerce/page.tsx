@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { Pencil, Globe } from 'lucide-react';
+import { Pencil, Globe, Plus, Trash2 } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,13 +15,13 @@ interface Product {
   id?: number;
   name: string;
   description: string;
-  amazonCa: string;
-  amazonCom: string;
-  tiktokUrl: string;
+  amazonCa?: string;
+  amazonCom?: string;
+  tiktokUrl?: string;
   images: string[];
   categories: string[];
-  priceCa: string;
-  priceUs: string;
+  priceCa?: string;
+  priceUs?: string;
 }
 
 const PASSWORD = '321MdlTamara!$';
@@ -82,6 +82,9 @@ const translations = {
     deleteError: 'Erreur lors de la suppression',
     imageError: 'Erreur de chargement image',
     editingProduct: 'Édition du produit',
+    addImage: 'Ajouter une image',
+    removeImage: 'Supprimer cette image',
+    images: 'Images',
   },
   en: {
     title: 'CERDIA Catalog connected to Supabase',
@@ -117,6 +120,9 @@ const translations = {
     deleteError: 'Error during deletion',
     imageError: 'Image loading error',
     editingProduct: 'Editing product',
+    addImage: 'Add image',
+    removeImage: 'Remove this image',
+    images: 'Images',
   }
 };
 
@@ -200,7 +206,7 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
+        images: [p.image1, p.image2, p.image3, p.image4, p.image5, p.image6, p.image7, p.image8, p.image9, p.image10].filter(Boolean),
         categories: Array.isArray(p.categories) ? p.categories : (p.categories ? [p.categories] : []),
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
@@ -215,21 +221,24 @@ export default function EcommercePage() {
     // Normaliser les catégories avant la sauvegarde (convertir en français)
     const normalizedCategories = newProduct.categories.map(cat => normalizeCategory(cat));
     
-    const productToInsert = {
+    // Préparer les données avec gestion dynamique des images
+    const productToInsert: any = {
       name: newProduct.name,
       description: newProduct.description,
-      amazonca: newProduct.amazonCa,
-      amazoncom: newProduct.amazonCom,
-      tiktokurl: newProduct.tiktokUrl,
-      image1: filteredImages[0] || null,
-      image2: filteredImages[1] || null,
-      image3: filteredImages[2] || null,
-      image4: filteredImages[3] || null,
-      image5: filteredImages[4] || null,
       categories: normalizedCategories.length > 0 ? normalizedCategories : null,
-      price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
-      price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
     };
+
+    // Ajouter seulement les champs non vides
+    if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
+    if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
+    if (newProduct.tiktokUrl?.trim()) productToInsert.tiktokurl = newProduct.tiktokUrl;
+    if (newProduct.priceCa?.trim()) productToInsert.price_ca = parseFloat(newProduct.priceCa.replace(',', '.'));
+    if (newProduct.priceUs?.trim()) productToInsert.price_us = parseFloat(newProduct.priceUs.replace(',', '.'));
+
+    // Gérer les images de manière dynamique (jusqu'à 10 pour l'exemple)
+    for (let i = 0; i < Math.min(filteredImages.length, 10); i++) {
+      productToInsert[`image${i + 1}`] = filteredImages[i];
+    }
 
     if (editIndex !== null && products[editIndex].id) {
       const { error } = await supabase
@@ -297,6 +306,24 @@ export default function EcommercePage() {
     }
   };
 
+  // Ajouter un champ d'image
+  const addImageField = () => {
+    setNewProduct({
+      ...newProduct,
+      images: [...newProduct.images, '']
+    });
+  };
+
+  // Supprimer un champ d'image
+  const removeImageField = (index: number) => {
+    const updatedImages = newProduct.images.filter((_, i) => i !== index);
+    // S'assurer qu'il y a au moins un champ vide
+    if (updatedImages.length === 0) {
+      updatedImages.push('');
+    }
+    setNewProduct({ ...newProduct, images: updatedImages });
+  };
+
   const handleAddCategory = (category: string) => {
     if (category && !availableCategories.includes(category)) {
       setAvailableCategories([...availableCategories, category]);
@@ -328,8 +355,8 @@ export default function EcommercePage() {
 
   if (sortOrder) {
     filteredProducts.sort((a, b) => {
-      const aPrice = parseFloat(a.priceCa.replace(',', '.')) || 0;
-      const bPrice = parseFloat(b.priceCa.replace(',', '.')) || 0;
+      const aPrice = parseFloat(a.priceCa?.replace(',', '.') || '0') || 0;
+      const bPrice = parseFloat(b.priceCa?.replace(',', '.') || '0') || 0;
       return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
     });
   }
@@ -355,12 +382,23 @@ export default function EcommercePage() {
       ? product.categories.map(cat => translateCategory(cat, language))
       : [];
     
+    // Assurer qu'il y a au moins un champ d'image vide à la fin
+    const productImages = [...product.images];
+    if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
+      productImages.push('');
+    }
+    
     setNewProduct({
       ...product,
       categories: translatedCategories,
-      images: [...product.images, '', '', '', '', ''].slice(0, 5)
+      images: productImages
     });
     console.log(t('editingProduct'), product.name, 'Catégories:', translatedCategories);
+  };
+
+  // Fonction pour vérifier si un champ a une valeur
+  const hasValue = (value: string | undefined): boolean => {
+    return value !== undefined && value.trim() !== '';
   };
 
   return (
@@ -418,20 +456,22 @@ export default function EcommercePage() {
             className="w-full border p-2 rounded h-20 resize-vertical" 
             required 
           />
-          <input 
-            name="priceCa" 
-            value={newProduct.priceCa} 
-            onChange={handleInputChange} 
-            placeholder={t('priceCad')} 
-            className="w-full border p-2 rounded" 
-          />
-          <input 
-            name="priceUs" 
-            value={newProduct.priceUs} 
-            onChange={handleInputChange} 
-            placeholder={t('priceUsd')} 
-            className="w-full border p-2 rounded" 
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input 
+              name="priceCa" 
+              value={newProduct.priceCa} 
+              onChange={handleInputChange} 
+              placeholder={t('priceCad')} 
+              className="w-full border p-2 rounded" 
+            />
+            <input 
+              name="priceUs" 
+              value={newProduct.priceUs} 
+              onChange={handleInputChange} 
+              placeholder={t('priceUsd')} 
+              className="w-full border p-2 rounded" 
+            />
+          </div>
           <input 
             name="amazonCa" 
             value={newProduct.amazonCa} 
@@ -453,17 +493,42 @@ export default function EcommercePage() {
             placeholder={t('tiktokLink')} 
             className="w-full border p-2 rounded" 
           />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <input
-              key={i}
-              name="images"
-              value={newProduct.images[i] || ''}
-              onChange={(e) => handleInputChange(e, i)}
-              placeholder={`${language === 'fr' ? 'URL Image' : 'Image URL'} ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
-              className="w-full border p-2 rounded"
-              type="url"
-            />
-          ))}
+          
+          {/* Section Images avec nombre illimité */}
+          <div className="space-y-2">
+            <label className="font-semibold block">{t('images')} :</label>
+            {newProduct.images.map((image, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  name="images"
+                  value={image}
+                  onChange={(e) => handleInputChange(e, i)}
+                  placeholder={`${language === 'fr' ? 'URL Image' : 'Image URL'} ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
+                  className="flex-1 border p-2 rounded"
+                  type="url"
+                />
+                {newProduct.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeImageField(i)}
+                    className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    title={t('removeImage')}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addImageField}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              <Plus size={16} />
+              {t('addImage')}
+            </button>
+          </div>
+
           <div>
             <label className="font-semibold">{t('categories')} :</label>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -538,6 +603,8 @@ export default function EcommercePage() {
             <ProductCard product={product} language={language} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
+            
+            {/* Affichage conditionnel des catégories */}
             {product.categories && product.categories.length > 0 && (
               <div className="mb-2">
                 {product.categories.map((cat, idx) => (
@@ -547,35 +614,48 @@ export default function EcommercePage() {
                 ))}
               </div>
             )}
-            <p className="text-sm">
-              {t('price')} : {product.priceCa && `CA$ ${product.priceCa}`} 
-              {product.priceUs && ` | US$ ${product.priceUs}`}
-            </p>
-            <div className="flex justify-center gap-2 mb-2 mt-1">
-              {product.amazonCa && (
-                <Link href={product.amazonCa} target="_blank" rel="noopener noreferrer">
-                  <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
-                    Amazon.ca
-                  </button>
-                </Link>
-              )}
-              {product.amazonCom && (
-                <Link href={product.amazonCom} target="_blank" rel="noopener noreferrer">
-                  <button className="bg-black text-white px-3 py-1 rounded hover:bg-gray-800">
-                    Amazon.com
-                  </button>
-                </Link>
-              )}
-            </div>
-            {product.tiktokUrl && (
-              <Link href={product.tiktokUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline">
+            
+            {/* Affichage conditionnel des prix - SEULEMENT si au moins un prix existe */}
+            {(hasValue(product.priceCa) || hasValue(product.priceUs)) && (
+              <p className="text-sm mb-2">
+                {t('price')} : 
+                {hasValue(product.priceCa) && ` CA$ ${product.priceCa}`}
+                {hasValue(product.priceCa) && hasValue(product.priceUs) && ' |'}
+                {hasValue(product.priceUs) && ` US$ ${product.priceUs}`}
+              </p>
+            )}
+            
+            {/* Affichage conditionnel des liens Amazon - SEULEMENT si au moins un lien existe */}
+            {(hasValue(product.amazonCa) || hasValue(product.amazonCom)) && (
+              <div className="flex justify-center gap-2 mb-2">
+                {hasValue(product.amazonCa) && (
+                  <Link href={product.amazonCa!} target="_blank" rel="noopener noreferrer">
+                    <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">
+                      Amazon.ca
+                    </button>
+                  </Link>
+                )}
+                {hasValue(product.amazonCom) && (
+                  <Link href={product.amazonCom!} target="_blank" rel="noopener noreferrer">
+                    <button className="bg-black text-white px-3 py-1 rounded hover:bg-gray-800 text-sm">
+                      Amazon.com
+                    </button>
+                  </Link>
+                )}
+              </div>
+            )}
+            
+            {/* Affichage conditionnel du lien TikTok - SEULEMENT si le lien existe */}
+            {hasValue(product.tiktokUrl) && (
+              <Link href={product.tiktokUrl!} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline block">
                 {t('viewOnTiktok')}
               </Link>
             )}
+            
             {passwordEntered && (
               <button 
                 onClick={() => handleEdit(i)}
-                className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1 hover:bg-gray-100"
+                className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1 hover:bg-gray-100 shadow-md"
               >
                 <Pencil size={14} />
               </button>
