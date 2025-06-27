@@ -55,9 +55,16 @@ export default function EcommercePage() {
     const { data, error } = await supabase.from('products').select('*');
     if (!error && data) {
       const cleaned = data.map((p) => ({
-        ...p,
-        categories: p.categories || [],
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        amazonCa: p.amazonca || '',
+        amazonCom: p.amazoncom || '',
+        tiktokUrl: p.tiktokurl || '',
         images: p.imageurls || p.images || [],
+        categories: p.categories || [],
+        priceCa: p.price_ca?.toString() || '',
+        priceUs: p.price_us?.toString() || '',
       }));
       setProducts(cleaned);
     }
@@ -279,7 +286,7 @@ export default function EcommercePage() {
 
 function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
-  const images = product.images.filter((img) => img);
+  const images = (product.images || []).filter(Boolean);
 
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
