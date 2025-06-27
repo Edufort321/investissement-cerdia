@@ -8,28 +8,24 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      // Amazon
+      // Domaines Amazon officiels
       { protocol: 'https', hostname: 'm.media-amazon.com' },
       { protocol: 'https', hostname: 'a.co' },
       { protocol: 'https', hostname: '**.amazonaws.com' },
       { protocol: 'https', hostname: '**.amazon.ca' },
       { protocol: 'https', hostname: '**.amazon.com' },
 
-      // TikTok CDN
-      { protocol: 'https', hostname: 'p16-sign-va.tiktokcdn.com' },
+      // Ajouts recommandés
+      { protocol: 'https', hostname: 'p16-sign-va.tiktokcdn.com' }, // TikTok
+      { protocol: 'https', hostname: 'cdn.cerdia.ai' },             // Ton CDN futur
+      { protocol: 'http', hostname: 'localhost' },                  // Tests locaux
 
-      // Ton futur CDN personnalisé ou Cloudflare
-      { protocol: 'https', hostname: 'cdn.cerdia.ai' },
-
-      // Optionnel : localhost pour tests
-      { protocol: 'http', hostname: 'localhost' }
+      // Fallback généraux (attention : large ouverture)
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' }
     ],
-    // Pour activer l'affichage immédiat sans erreur en dev
-    unoptimized: isDev,
+    unoptimized: isDev, // Optimisation désactivée en dev uniquement
   },
-  // Optionnel : Pour activer les fichiers statiques sitemap/robots plus tard
-  // output: 'export',
 };
 
 module.exports = nextConfig;
-
