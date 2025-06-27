@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production';
+
 const nextConfig = {
   i18n: {
     locales: ['fr', 'en'],
@@ -6,38 +8,28 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'm.media-amazon.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'a.co',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.amazonaws.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.amazon.ca',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.amazon.com',
-      },
-      // Ajouter tous les domaines possibles pour les images
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      }
-    ],
-    unoptimized: true, // Désactive l'optimisation pour éviter les problèmes
-  },
-}
+      // Amazon
+      { protocol: 'https', hostname: 'm.media-amazon.com' },
+      { protocol: 'https', hostname: 'a.co' },
+      { protocol: 'https', hostname: '**.amazonaws.com' },
+      { protocol: 'https', hostname: '**.amazon.ca' },
+      { protocol: 'https', hostname: '**.amazon.com' },
 
-module.exports = nextConfig
+      // TikTok CDN
+      { protocol: 'https', hostname: 'p16-sign-va.tiktokcdn.com' },
+
+      // Ton futur CDN personnalisé ou Cloudflare
+      { protocol: 'https', hostname: 'cdn.cerdia.ai' },
+
+      // Optionnel : localhost pour tests
+      { protocol: 'http', hostname: 'localhost' }
+    ],
+    // Pour activer l'affichage immédiat sans erreur en dev
+    unoptimized: isDev,
+  },
+  // Optionnel : Pour activer les fichiers statiques sitemap/robots plus tard
+  // output: 'export',
+};
+
+module.exports = nextConfig;
+
