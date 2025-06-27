@@ -62,7 +62,7 @@ export default function EcommercePage() {
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
         images: Array.isArray(p.imageurls) ? p.imageurls : typeof p.imageurls === 'string' ? [p.imageurls] : [],
-        categories: Array.isArray(p.categories) ? p.categories : typeof p.categories === 'string' ? [p.categories] : [],
+        categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
       }));
@@ -162,7 +162,7 @@ export default function EcommercePage() {
 
   return (
     <main className="px-4 py-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA connecté à Supabase</h1>
+      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA – Produits affiliés Amazon SiteStripe</h1>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
@@ -177,7 +177,22 @@ export default function EcommercePage() {
         <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">Prix ↓</button>
       </div>
 
-      {/* Form & Product rendering ... (inchangé) */}
+      {showForm && passwordEntered && (
+        // ... formulaire comme précédemment (inchangé)
+      )}
+
+      <button
+        className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        onClick={() => {
+          if (!passwordEntered) {
+            if (requestPassword()) setShowForm(true);
+          } else {
+            setShowForm(!showForm);
+          }
+        }}
+      >
+        ➕ Ajouter un produit affilié
+      </button>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
@@ -213,21 +228,21 @@ function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
   const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
 
+  if (images.length === 0) return null;
+
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
-      {images.length > 0 && images[current]?.startsWith('http') ? (
+      <Image
+        src={images[current]}
+        alt={product.name}
+        fill
+        className="object-contain rounded"
+      />
+      {images.length > 1 && (
         <>
-          <Image
-            src={images[current]}
-            alt={product.name}
-            fill
-            className="object-contain rounded"
-          />
           <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2">◀</button>
           <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2">▶</button>
         </>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Aucune image</div>
       )}
     </div>
   );
