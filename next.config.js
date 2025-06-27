@@ -8,21 +8,35 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'm.media-amazon.com', // Images Amazon produit
+        hostname: 'm.media-amazon.com',
       },
       {
         protocol: 'https',
-        hostname: 'a.co', // Lien court (si redirige vers image)
+        hostname: 'a.co',
       },
       {
         protocol: 'https',
-        hostname: '**.amazonaws.com', // S3 ou autre stockage
+        hostname: '**.amazonaws.com',
       },
       {
         protocol: 'https',
-        hostname: '**.amazon.ca', // optionnel selon les images utilisées
+        hostname: '**.amazon.ca',
       },
+      {
+        protocol: 'https',
+        hostname: '**.amazon.com',
+      },
+      // Ajouter tous les domaines possibles pour les images
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      }
     ],
+    unoptimized: true, // Désactive l'optimisation pour éviter les problèmes
   },
 }
 
