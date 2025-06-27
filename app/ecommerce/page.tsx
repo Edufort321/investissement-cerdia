@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { Pencil, Globe, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Globe, Plus, Trash2, Heart, Share2, ShoppingCart } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,12 +34,10 @@ const DEFAULT_CATEGORIES = {
 
 // Mapping pour associer les catégories FR/EN
 const CATEGORY_MAPPING = {
-  // Français vers Anglais
   'Montre': 'Watch',
   'Lunette de soleil': 'Sunglasses', 
   'Sac à dos': 'Backpack',
   'Article de voyage': 'Travel item',
-  // Anglais vers Français  
   'Watch': 'Montre',
   'Sunglasses': 'Lunette de soleil',
   'Backpack': 'Sac à dos',
@@ -49,11 +47,12 @@ const CATEGORY_MAPPING = {
 // Dictionnaire de traductions
 const translations = {
   fr: {
-    title: 'Catalogue CERDIA connecté à Supabase',
+    title: 'CERDIA',
+    subtitle: 'Produits Sitestripe',
     all: 'Tous',
     priceUp: 'Prix ↑',
     priceDown: 'Prix ↓',
-    addProduct: '➕ Ajouter un produit affilié',
+    addProduct: '➕ Ajouter',
     name: 'Nom',
     description: 'Description',
     priceCad: 'Prix CAD',
@@ -71,7 +70,7 @@ const translations = {
     price: 'Prix',
     noImage: 'Aucune image',
     imageNotAvailable: 'Image non disponible',
-    viewOnTiktok: 'Voir sur TikTok',
+    viewOnTiktok: 'TikTok',
     adminPassword: 'Mot de passe admin :',
     incorrectPassword: 'Mot de passe incorrect.',
     productUpdated: 'Produit mis à jour avec succès',
@@ -85,13 +84,18 @@ const translations = {
     addImage: 'Ajouter une image',
     removeImage: 'Supprimer cette image',
     images: 'Images',
+    priceNote: 'Prix peuvent varier',
+    indicativePrice: 'À partir de',
+    seeProduct: 'Voir le produit',
+    save: 'Sauvegarder',
   },
   en: {
-    title: 'CERDIA Catalog connected to Supabase',
+    title: 'CERDIA',
+    subtitle: 'Sitestripe Products',
     all: 'All',
     priceUp: 'Price ↑',
     priceDown: 'Price ↓',
-    addProduct: '➕ Add affiliate product',
+    addProduct: '➕ Add',
     name: 'Name',
     description: 'Description',
     priceCad: 'CAD Price',
@@ -109,7 +113,7 @@ const translations = {
     price: 'Price',
     noImage: 'No image',
     imageNotAvailable: 'Image not available',
-    viewOnTiktok: 'View on TikTok',
+    viewOnTiktok: 'TikTok',
     adminPassword: 'Admin password:',
     incorrectPassword: 'Incorrect password.',
     productUpdated: 'Product updated successfully',
@@ -123,10 +127,14 @@ const translations = {
     addImage: 'Add image',
     removeImage: 'Remove this image',
     images: 'Images',
+    priceNote: 'Prices may vary',
+    indicativePrice: 'From',
+    seeProduct: 'See product',
+    save: 'Save',
   }
 };
 
-export default function EcommercePage() {
+export default function MobileEcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
@@ -135,6 +143,7 @@ export default function EcommercePage() {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [newProduct, setNewProduct] = useState<Product>({
     name: '',
     description: '',
@@ -150,48 +159,54 @@ export default function EcommercePage() {
   // Fonction pour obtenir le texte traduit
   const t = (key: keyof typeof translations.fr) => translations[language][key];
 
-  // Fonction pour traduire une catégorie
-  const translateCategory = (category: string, targetLang: 'fr' | 'en'): string => {
-    if (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]) {
-      return targetLang === 'fr' ? 
-        (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] === category ? category : CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]) :
-        (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] === category ? category : CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING]);
-    }
-    return category;
+  // Fonction pour nettoyer une catégorie
+  const cleanCategory = (category: string): string => {
+    return category.replace(/['"\\]/g, '').trim();
   };
 
-  // Fonction pour normaliser une catégorie (la convertir vers la forme française pour le stockage)
-  const normalizeCategory = (category: string): string => {
-    // Si c'est une catégorie anglaise connue, on la convertit en français
-    if (CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING] && 
-        DEFAULT_CATEGORIES.en.includes(category)) {
-      return CATEGORY_MAPPING[category as keyof typeof CATEGORY_MAPPING];
+  // Fonction pour traduire une catégorie
+  const translateCategory = (category: string, targetLang: 'fr' | 'en'): string => {
+    const cleanCat = cleanCategory(category);
+    const mapping = CATEGORY_MAPPING[cleanCat as keyof typeof CATEGORY_MAPPING];
+    
+    if (mapping) {
+      return targetLang === 'en' ? mapping : cleanCat;
     }
-    return category;
+    return cleanCat;
+  };
+
+  // Fonction pour normaliser une catégorie
+  const normalizeCategory = (category: string): string => {
+    const cleanCat = cleanCategory(category);
+    const frenchVersion = Object.entries(CATEGORY_MAPPING).find(([fr, en]) => en === cleanCat)?.[0];
+    return frenchVersion || cleanCat;
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Mise à jour des catégories disponibles quand les produits changent ou la langue change
   useEffect(() => {
     const baseCategories = new Set(DEFAULT_CATEGORIES.fr);
     
-    // Ajouter les catégories des produits existants (normalisées en français)
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
         product.categories.forEach(cat => {
-          const normalizedCat = normalizeCategory(cat);
-          baseCategories.add(normalizedCat);
+          const cleanCat = cleanCategory(cat);
+          const normalizedCat = normalizeCategory(cleanCat);
+          if (normalizedCat && normalizedCat !== 'Montre' || !normalizedCat.includes('"')) {
+            baseCategories.add(normalizedCat);
+          }
         });
       }
     });
     
-    // Convertir vers la langue actuelle pour l'affichage
-    const categoriesInCurrentLang = Array.from(baseCategories).map(cat => 
-      translateCategory(cat, language)
-    );
+    baseCategories.delete('');
+    baseCategories.delete('undefined');
+    
+    const categoriesInCurrentLang = Array.from(baseCategories)
+      .filter(cat => cat && cat.trim() !== '')
+      .map(cat => translateCategory(cat, language));
     
     setAvailableCategories(categoriesInCurrentLang);
   }, [products, language]);
@@ -207,7 +222,9 @@ export default function EcommercePage() {
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
         images: [p.image1, p.image2, p.image3, p.image4, p.image5, p.image6, p.image7, p.image8, p.image9, p.image10].filter(Boolean),
-        categories: Array.isArray(p.categories) ? p.categories : (p.categories ? [p.categories] : []),
+        categories: Array.isArray(p.categories) 
+          ? p.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+          : (p.categories ? [cleanCategory(p.categories)].filter(cat => cat && cat.trim() !== '' && !cat.includes('"')) : []),
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
       }));
@@ -218,24 +235,22 @@ export default function EcommercePage() {
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
-    // Normaliser les catégories avant la sauvegarde (convertir en français)
-    const normalizedCategories = newProduct.categories.map(cat => normalizeCategory(cat));
+    const normalizedCategories = newProduct.categories
+      .map(cat => normalizeCategory(cleanCategory(cat)))
+      .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'));
     
-    // Préparer les données avec gestion dynamique des images
     const productToInsert: any = {
       name: newProduct.name,
       description: newProduct.description,
       categories: normalizedCategories.length > 0 ? normalizedCategories : null,
     };
 
-    // Ajouter seulement les champs non vides
     if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
     if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
     if (newProduct.tiktokUrl?.trim()) productToInsert.tiktokurl = newProduct.tiktokUrl;
-    if (newProduct.priceCa?.trim()) productToInsert.price_ca = parseFloat(newProduct.priceCa.replace(',', '.'));
-    if (newProduct.priceUs?.trim()) productToInsert.price_us = parseFloat(newProduct.priceUs.replace(',', '.'));
+    if (hasPriceValue(newProduct.priceCa)) productToInsert.price_ca = parseFloat(newProduct.priceCa!.replace(',', '.'));
+    if (hasPriceValue(newProduct.priceUs)) productToInsert.price_us = parseFloat(newProduct.priceUs!.replace(',', '.'));
 
-    // Gérer les images de manière dynamique (jusqu'à 10 pour l'exemple)
     for (let i = 0; i < Math.min(filteredImages.length, 10); i++) {
       productToInsert[`image${i + 1}`] = filteredImages[i];
     }
@@ -306,7 +321,6 @@ export default function EcommercePage() {
     }
   };
 
-  // Ajouter un champ d'image
   const addImageField = () => {
     setNewProduct({
       ...newProduct,
@@ -314,10 +328,8 @@ export default function EcommercePage() {
     });
   };
 
-  // Supprimer un champ d'image
   const removeImageField = (index: number) => {
     const updatedImages = newProduct.images.filter((_, i) => i !== index);
-    // S'assurer qu'il y a au moins un champ vide
     if (updatedImages.length === 0) {
       updatedImages.push('');
     }
@@ -336,18 +348,16 @@ export default function EcommercePage() {
       : newProduct.categories.filter((c) => c !== category);
     
     setNewProduct({ ...newProduct, categories: updatedCategories });
-    console.log('Catégories mises à jour:', updatedCategories);
   };
 
-  // Filtrage des produits avec gestion de la traduction des catégories
   const filteredProducts = categoryFilter
     ? products.filter((p) => {
-        if (!p.categories) return false;
-        // Vérifier si le produit a la catégorie sélectionnée (en tenant compte des traductions)
+        if (!p.categories || p.categories.length === 0) return false;
         return p.categories.some(cat => {
-          const translatedCat = translateCategory(cat, language);
-          const normalizedFilterCat = normalizeCategory(categoryFilter);
-          const normalizedProductCat = normalizeCategory(cat);
+          const cleanCat = cleanCategory(cat);
+          const translatedCat = translateCategory(cleanCat, language);
+          const normalizedFilterCat = normalizeCategory(cleanCategory(categoryFilter));
+          const normalizedProductCat = normalizeCategory(cleanCat);
           return translatedCat === categoryFilter || normalizedProductCat === normalizedFilterCat;
         });
       })
@@ -355,8 +365,879 @@ export default function EcommercePage() {
 
   if (sortOrder) {
     filteredProducts.sort((a, b) => {
-      const aPrice = parseFloat(a.priceCa?.replace(',', '.') || '0') || 0;
-      const bPrice = parseFloat(b.priceCa?.replace(',', '.') || '0') || 0;
+      const aPrice = hasPriceValue(a.priceCa) ? parseFloat(a.priceCa!.replace(',', '.')) : 0;
+      const bPrice = hasPriceValue(b.priceCa) ? parseFloat(b.priceCa!.replace(',', '.')) : 0;
+      return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+    });
+  }
+
+  // Fonction pour demander le mot de passe une seule fois par session
+  const requestPasswordOnce = () => {
+    if (passwordEntered) return true;
+    
+    const tryPwd = prompt(t('adminPassword'));
+    if (tryPwd === PASSWORD) {
+      setPasswordEntered(true);
+      return true;
+    } else {
+      alert(t('incorrectPassword'));
+      return false;
+    }
+  };
+
+  const handleAdminAction = (action: () => void) => {
+    if (requestPasswordOnce()) {
+      action();
+    }
+  };
+
+  const handleEdit = (index: number) => {
+    const product = products[index];
+    setEditIndex(index);
+    setShowForm(true);
+    
+    const translatedCategories = Array.isArray(product.categories) 
+      ? product.categories
+          .map(cat => cleanCategory(cat))
+          .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+          .map(cat => translateCategory(cat, language))
+      : [];
+    
+    const productImages = [...product.images];
+    if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
+      productImages.push('');
+    }
+    
+    setNewProduct({
+      ...product,
+      categories: translatedCategories,
+      images: productImages
+    });
+  };
+
+  const hasValue = (value: string | undefined): boolean => {
+    return value !== undefined && value.trim() !== '';
+  };
+
+  const hasPriceValue = (price: string | undefined): boolean => {
+    if (!price || price.trim() === '') return false;
+    const numericPrice = parseFloat(price.replace(',', '.'));
+    return numericPrice > 0;
+  };
+
+  const toggleFavorite = (productId: number) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(productId)) {
+      newFavorites.delete(productId);
+    } else {
+      newFavorites.add(productId);
+    }
+    setFavorites(newFavorites);
+  };
+
+  const getCardHeight = (index: number) => {
+    // Variation de hauteur pour effet Pinterest
+    const heights = ['h-80', 'h-96', 'h-72', 'h-88'];
+    return heights[index % heights.length];
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Mobile Optimized */}
+      <header className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
+              <p className="text-xs text-gray-600">{t('subtitle')}</p>
+            </div>
+            
+            {/* Language Selector */}
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-gray-600" />
+              <select 
+                value={language} 
+                onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+              >
+                <option value="fr">🇫🇷</option>
+                <option value="en">🇺🇸</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Filters - Horizontal Scroll */}
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <button 
+              onClick={() => setCategoryFilter('')} 
+              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {t('all')}
+            </button>
+            {availableCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                  categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Admin Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold">
+                {editIndex !== null ? t('modify') : t('add')}
+              </h2>
+              <button
+                onClick={resetForm}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="p-4 space-y-4">
+              <input 
+                name="name" 
+                value={newProduct.name} 
+                onChange={handleInputChange} 
+                placeholder={t('name')} 
+                className="w-full border p-3 rounded-lg" 
+                required 
+              />
+              <textarea 
+                name="description" 
+                value={newProduct.description} 
+                onChange={handleInputChange} 
+                placeholder={t('description')} 
+                className="w-full border p-3 rounded-lg h-20 resize-vertical" 
+                required 
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Prix CAD</label>
+                  <input 
+                    name="priceCa" 
+                    value={newProduct.priceCa} 
+                    onChange={handleInputChange} 
+                    placeholder="0.00" 
+                    className="w-full border p-3 rounded-lg" 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Prix USD</label>
+                  <input 
+                    name="priceUs" 
+                    value={newProduct.priceUs} 
+                    onChange={handleInputChange} 
+                    placeholder="0.00" 
+                    className="w-full border p-3 rounded-lg" 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Amazon.ca</label>
+                  <input 
+                    name="amazonCa" 
+                    value={newProduct.amazonCa} 
+                    onChange={handleInputChange} 
+                    placeholder="https://amazon.ca/..." 
+                    className="w-full border p-3 rounded-lg" 
+                    type="url"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Amazon.com</label>
+                  <input 
+                    name="amazonCom" 
+                    value={newProduct.amazonCom} 
+                    onChange={handleInputChange} 
+                    placeholder="https://amazon.com/..." 
+                    className="w-full border p-3 rounded-lg" 
+                    type="url"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">TikTok</label>
+                  <input 
+                    name="tiktokUrl" 
+                    value={newProduct.tiktokUrl} 
+                    onChange={handleInputChange} 
+                    placeholder="https://tiktok.com/..." 
+                    className="w-full border p-3 rounded-lg" 
+                    type="url"
+                  />
+                </div>
+              </div>
+              
+              {/* Images Section */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">{t('images')}:</label>
+                {newProduct.images.map((image, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      name="images"
+                      value={image}
+                      onChange={(e) => handleInputChange(e, i)}
+                      placeholder={`Image URL ${i + 1}`}
+                      className="flex-1 border p-3 rounded-lg text-sm"
+                      type="url"
+                    />
+                    {newProduct.images.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeImageField(i)}
+                        className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addImageField}
+                  className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} />
+                  {t('addImage')}
+                </button>
+              </div>
+
+              {/* Categories Section */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">{t('categories')}:</label>
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((cat) => (
+                    <label key={cat} className="flex items-center bg-gray-50 p-2 rounded-lg text-sm">
+                      <input
+                        type="checkbox"
+                        checked={newProduct.categories.includes(cat)}
+                        onChange={(e) => handleCategoryToggle(cat, e.target.checked)}
+                        className="mr-2"
+                      /> 
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
+                <input
+                  placeholder={t('addCategory')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val) {
+                        handleAddCategory(val);
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }
+                  }}
+                  className="w-full border p-3 rounded-lg"
+                />
+                {newProduct.categories.length > 0 && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      {t('selectedCategories')}: {newProduct.categories.join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {editIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteProduct(products[editIndex].id)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pinterest-style Grid */}
+      <main className="px-2 py-4">
+        {/* Masonry Grid */}
+        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+          {filteredProducts.map((product, i) => (
+            <PinterestCard 
+              key={product.id || i} 
+              product={product} 
+              language={language}
+              isFavorite={favorites.has(product.id || 0)}
+              onToggleFavorite={() => toggleFavorite(product.id || 0)}
+              onEdit={() => handleAdminAction(() => handleEdit(i))}
+              showAdmin={passwordEntered}
+              translations={translations}
+            />
+          ))}
+        </div>
+      </main>
+
+      {/* Floating Add Button */}
+      <button
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30"
+        onClick={() => handleAdminAction(() => setShowForm(true))}
+      >
+        <Plus size={24} />
+      </button>
+    </div>
+  );
+}
+
+interface PinterestCardProps {
+  product: Product;
+  language: 'fr' | 'en';
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onEdit: () => void;
+  showAdmin: boolean;
+  translations: any;
+}
+
+function PinterestCard({ product, language, isFavorite, onToggleFavorite, onEdit, showAdmin, translations }: PinterestCardProps) {
+  const [current, setCurrent] = useState(0);
+  const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  
+  const t = (key: string) => translations[language][key];
+
+  const hasValue = (value: string | undefined): boolean => {
+    return value !== undefined && value.trim() !== '';
+  };
+
+  const hasPriceValue = (price: string | undefined): boolean => {
+    if (!price || price.trim() === '') return false;
+    const numericPrice = parseFloat(price.replace(',', '.'));
+    return numericPrice > 0;
+  };
+
+  const cleanCategory = (category: string): string => {
+    return category.replace(/['"\\]/g, '').trim();
+  };
+
+  const translateCategory = (category: string): string => {
+    const cleanCat = cleanCategory(category);
+    const mapping = CATEGORY_MAPPING[cleanCat as keyof typeof CATEGORY_MAPPING];
+    return language === 'en' && mapping ? mapping : cleanCat;
+  };
+
+  return (
+    <div className="break-inside-avoid mb-2">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        {/* Image Section */}
+        <div className="relative aspect-[3/4] bg-gray-100">
+          {images.length > 0 ? (
+            <>
+              {!imageError[current] ? (
+                <Image
+                  src={images[current]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  onError={() => setImageError({...imageError, [current]: true})}
+                  unoptimized
+                  loader={({ src }) => src}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <span className="text-sm">{t('imageNotAvailable')}</span>
+                </div>
+              )}
+              
+              {/* Image Navigation */}
+              {images.length > 1 && (
+                <>
+                  <button 
+                    onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    ‹
+                  </button>
+                  <button 
+                    onClick={() => setCurrent((current + 1) % images.length)} 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    ›
+                  </button>
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                    {images.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          index === current ? 'bg-white' : 'bg-white bg-opacity-50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              {/* Top Actions */}
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                  onClick={onToggleFavorite}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    isFavorite ? 'bg-red-500 text-white' : 'bg-white bg-opacity-80 text-gray-600'
+                  }`}
+                >
+                  <Heart size={16} fill={isFavorite ? 'white' : 'none'} />
+                </button>
+                {showAdmin && (
+                  <button
+                    onClick={onEdit}
+                    className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <span className="text-sm">{t('noImage')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content Section */}
+        <div className="p-3">
+          {/* Title */}
+          <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-2">
+            {product.name}
+          </h3>
+
+          {/* Description */}
+          <p className="text-xs text-gray-600 line-clamp-3 mb-3">
+            {product.description}
+          </p>
+
+          {/* Categories */}
+          {product.categories && product.categories.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {product.categories
+                .map(cat => cleanCategory(cat))
+                .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+                .slice(0, 2) // Limite à 2 catégories pour l'espace
+                .map((cat, idx) => (
+                <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  {translateCategory(cat)}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Price */}
+          {(hasPriceValue(product.priceCa) || hasPriceValue(product.priceUs)) && (
+            <div className="mb-3">
+              <p className="font-semibold text-sm text-gray-900">
+                {t('indicativePrice')} 
+                {hasPriceValue(product.priceCa) && ` ${product.priceCa}'use client';
+
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+import { Pencil, Globe, Plus, Trash2, Heart, Share2, ShoppingCart } from 'lucide-react';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface Product {
+  id?: number;
+  name: string;
+  description: string;
+  amazonCa?: string;
+  amazonCom?: string;
+  tiktokUrl?: string;
+  images: string[];
+  categories: string[];
+  priceCa?: string;
+  priceUs?: string;
+}
+
+const PASSWORD = '321MdlTamara!$';
+
+// Catégories par défaut avec traductions
+const DEFAULT_CATEGORIES = {
+  fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
+  en: ['Watch', 'Sunglasses', 'Backpack', 'Travel item']
+};
+
+// Mapping pour associer les catégories FR/EN
+const CATEGORY_MAPPING = {
+  'Montre': 'Watch',
+  'Lunette de soleil': 'Sunglasses', 
+  'Sac à dos': 'Backpack',
+  'Article de voyage': 'Travel item',
+  'Watch': 'Montre',
+  'Sunglasses': 'Lunette de soleil',
+  'Backpack': 'Sac à dos',
+  'Travel item': 'Article de voyage'
+};
+
+// Dictionnaire de traductions
+const translations = {
+  fr: {
+    title: 'CERDIA',
+    subtitle: 'Produits Sitestripe',
+    all: 'Tous',
+    priceUp: 'Prix ↑',
+    priceDown: 'Prix ↓',
+    addProduct: '➕ Ajouter',
+    name: 'Nom',
+    description: 'Description',
+    priceCad: 'Prix CAD',
+    priceUsd: 'Prix USD',
+    amazonCaLink: 'Lien Amazon.ca',
+    amazonComLink: 'Lien Amazon.com',
+    tiktokLink: 'Lien TikTok',
+    categories: 'Catégories',
+    addCategory: 'Ajouter une catégorie',
+    selectedCategories: 'Catégories sélectionnées',
+    modify: 'Modifier',
+    add: 'Ajouter',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    price: 'Prix',
+    noImage: 'Aucune image',
+    imageNotAvailable: 'Image non disponible',
+    viewOnTiktok: 'TikTok',
+    adminPassword: 'Mot de passe admin :',
+    incorrectPassword: 'Mot de passe incorrect.',
+    productUpdated: 'Produit mis à jour avec succès',
+    productAdded: 'Produit ajouté avec succès',
+    productDeleted: 'Produit supprimé avec succès',
+    updateError: 'Erreur lors de la mise à jour',
+    addError: 'Erreur lors de l\'ajout',
+    deleteError: 'Erreur lors de la suppression',
+    imageError: 'Erreur de chargement image',
+    editingProduct: 'Édition du produit',
+    addImage: 'Ajouter une image',
+    removeImage: 'Supprimer cette image',
+    images: 'Images',
+    priceNote: 'Prix peuvent varier',
+    indicativePrice: 'À partir de',
+    seeProduct: 'Voir le produit',
+    save: 'Sauvegarder',
+  },
+  en: {
+    title: 'CERDIA',
+    subtitle: 'Sitestripe Products',
+    all: 'All',
+    priceUp: 'Price ↑',
+    priceDown: 'Price ↓',
+    addProduct: '➕ Add',
+    name: 'Name',
+    description: 'Description',
+    priceCad: 'CAD Price',
+    priceUsd: 'USD Price',
+    amazonCaLink: 'Amazon.ca Link',
+    amazonComLink: 'Amazon.com Link',
+    tiktokLink: 'TikTok Link',
+    categories: 'Categories',
+    addCategory: 'Add category',
+    selectedCategories: 'Selected categories',
+    modify: 'Modify',
+    add: 'Add',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    price: 'Price',
+    noImage: 'No image',
+    imageNotAvailable: 'Image not available',
+    viewOnTiktok: 'TikTok',
+    adminPassword: 'Admin password:',
+    incorrectPassword: 'Incorrect password.',
+    productUpdated: 'Product updated successfully',
+    productAdded: 'Product added successfully',
+    productDeleted: 'Product deleted successfully',
+    updateError: 'Error during update',
+    addError: 'Error during addition',
+    deleteError: 'Error during deletion',
+    imageError: 'Image loading error',
+    editingProduct: 'Editing product',
+    addImage: 'Add image',
+    removeImage: 'Remove this image',
+    images: 'Images',
+    priceNote: 'Prices may vary',
+    indicativePrice: 'From',
+    seeProduct: 'See product',
+    save: 'Save',
+  }
+};
+
+export default function MobileEcommercePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [passwordEntered, setPasswordEntered] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | ''>('');
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [newProduct, setNewProduct] = useState<Product>({
+    name: '',
+    description: '',
+    amazonCa: '',
+    amazonCom: '',
+    tiktokUrl: '',
+    images: [''],
+    categories: [],
+    priceCa: '',
+    priceUs: '',
+  });
+
+  // Fonction pour obtenir le texte traduit
+  const t = (key: keyof typeof translations.fr) => translations[language][key];
+
+  // Fonction pour nettoyer une catégorie
+  const cleanCategory = (category: string): string => {
+    return category.replace(/['"\\]/g, '').trim();
+  };
+
+  // Fonction pour traduire une catégorie
+  const translateCategory = (category: string, targetLang: 'fr' | 'en'): string => {
+    const cleanCat = cleanCategory(category);
+    const mapping = CATEGORY_MAPPING[cleanCat as keyof typeof CATEGORY_MAPPING];
+    
+    if (mapping) {
+      return targetLang === 'en' ? mapping : cleanCat;
+    }
+    return cleanCat;
+  };
+
+  // Fonction pour normaliser une catégorie
+  const normalizeCategory = (category: string): string => {
+    const cleanCat = cleanCategory(category);
+    const frenchVersion = Object.entries(CATEGORY_MAPPING).find(([fr, en]) => en === cleanCat)?.[0];
+    return frenchVersion || cleanCat;
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const baseCategories = new Set(DEFAULT_CATEGORIES.fr);
+    
+    products.forEach(product => {
+      if (Array.isArray(product.categories)) {
+        product.categories.forEach(cat => {
+          const cleanCat = cleanCategory(cat);
+          const normalizedCat = normalizeCategory(cleanCat);
+          if (normalizedCat && normalizedCat !== 'Montre' || !normalizedCat.includes('"')) {
+            baseCategories.add(normalizedCat);
+          }
+        });
+      }
+    });
+    
+    baseCategories.delete('');
+    baseCategories.delete('undefined');
+    
+    const categoriesInCurrentLang = Array.from(baseCategories)
+      .filter(cat => cat && cat.trim() !== '')
+      .map(cat => translateCategory(cat, language));
+    
+    setAvailableCategories(categoriesInCurrentLang);
+  }, [products, language]);
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from('products').select('*');
+    if (!error && data) {
+      const cleaned = data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        amazonCa: p.amazonca || '',
+        amazonCom: p.amazoncom || '',
+        tiktokUrl: p.tiktokurl || '',
+        images: [p.image1, p.image2, p.image3, p.image4, p.image5, p.image6, p.image7, p.image8, p.image9, p.image10].filter(Boolean),
+        categories: Array.isArray(p.categories) 
+          ? p.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+          : (p.categories ? [cleanCategory(p.categories)].filter(cat => cat && cat.trim() !== '' && !cat.includes('"')) : []),
+        priceCa: p.price_ca?.toString() || '',
+        priceUs: p.price_us?.toString() || '',
+      }));
+      setProducts(cleaned);
+    }
+  };
+
+  const saveProduct = async () => {
+    const filteredImages = newProduct.images.filter(img => img.trim() !== '');
+    
+    const normalizedCategories = newProduct.categories
+      .map(cat => normalizeCategory(cleanCategory(cat)))
+      .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'));
+    
+    const productToInsert: any = {
+      name: newProduct.name,
+      description: newProduct.description,
+      categories: normalizedCategories.length > 0 ? normalizedCategories : null,
+    };
+
+    if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
+    if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
+    if (newProduct.tiktokUrl?.trim()) productToInsert.tiktokurl = newProduct.tiktokUrl;
+    if (hasPriceValue(newProduct.priceCa)) productToInsert.price_ca = parseFloat(newProduct.priceCa!.replace(',', '.'));
+    if (hasPriceValue(newProduct.priceUs)) productToInsert.price_us = parseFloat(newProduct.priceUs!.replace(',', '.'));
+
+    for (let i = 0; i < Math.min(filteredImages.length, 10); i++) {
+      productToInsert[`image${i + 1}`] = filteredImages[i];
+    }
+
+    if (editIndex !== null && products[editIndex].id) {
+      const { error } = await supabase
+        .from('products')
+        .update(productToInsert)
+        .eq('id', products[editIndex].id);
+      if (!error) {
+        await fetchProducts();
+        console.log(t('productUpdated'));
+      } else {
+        console.error(t('updateError'), error);
+      }
+    } else {
+      const { error } = await supabase.from('products').insert([productToInsert]);
+      if (!error) {
+        await fetchProducts();
+        console.log(t('productAdded'));
+      } else {
+        console.error(t('addError'), error);
+      }
+    }
+
+    resetForm();
+  };
+
+  const deleteProduct = async (id: number | undefined) => {
+    if (!passwordEntered || !id) return;
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      await fetchProducts();
+      console.log(t('productDeleted'));
+    } else {
+      console.error(t('deleteError'), error);
+    }
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setEditIndex(null);
+    setShowForm(false);
+    setNewProduct({
+      name: '',
+      description: '',
+      amazonCa: '',
+      amazonCom: '',
+      tiktokUrl: '',
+      images: [''],
+      categories: [],
+      priceCa: '',
+      priceUs: '',
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index?: number) => {
+    const { name, value } = e.target;
+    if (name === 'images' && index !== undefined) {
+      const updatedImages = [...newProduct.images];
+      while (updatedImages.length <= index) {
+        updatedImages.push('');
+      }
+      updatedImages[index] = value;
+      setNewProduct({ ...newProduct, images: updatedImages });
+    } else {
+      setNewProduct({ ...newProduct, [name]: value });
+    }
+  };
+
+  const addImageField = () => {
+    setNewProduct({
+      ...newProduct,
+      images: [...newProduct.images, '']
+    });
+  };
+
+  const removeImageField = (index: number) => {
+    const updatedImages = newProduct.images.filter((_, i) => i !== index);
+    if (updatedImages.length === 0) {
+      updatedImages.push('');
+    }
+    setNewProduct({ ...newProduct, images: updatedImages });
+  };
+
+  const handleAddCategory = (category: string) => {
+    if (category && !availableCategories.includes(category)) {
+      setAvailableCategories([...availableCategories, category]);
+    }
+  };
+
+  const handleCategoryToggle = (category: string, checked: boolean) => {
+    const updatedCategories = checked
+      ? [...newProduct.categories, category]
+      : newProduct.categories.filter((c) => c !== category);
+    
+    setNewProduct({ ...newProduct, categories: updatedCategories });
+  };
+
+  const filteredProducts = categoryFilter
+    ? products.filter((p) => {
+        if (!p.categories || p.categories.length === 0) return false;
+        return p.categories.some(cat => {
+          const cleanCat = cleanCategory(cat);
+          const translatedCat = translateCategory(cleanCat, language);
+          const normalizedFilterCat = normalizeCategory(cleanCategory(categoryFilter));
+          const normalizedProductCat = normalizeCategory(cleanCat);
+          return translatedCat === categoryFilter || normalizedProductCat === normalizedFilterCat;
+        });
+      })
+    : [...products];
+
+  if (sortOrder) {
+    filteredProducts.sort((a, b) => {
+      const aPrice = hasPriceValue(a.priceCa) ? parseFloat(a.priceCa!.replace(',', '.')) : 0;
+      const bPrice = hasPriceValue(b.priceCa) ? parseFloat(b.priceCa!.replace(',', '.')) : 0;
       return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
     });
   }
@@ -377,12 +1258,13 @@ export default function EcommercePage() {
     setEditIndex(index);
     setShowForm(true);
     
-    // Traduire les catégories du produit vers la langue actuelle pour l'édition
     const translatedCategories = Array.isArray(product.categories) 
-      ? product.categories.map(cat => translateCategory(cat, language))
+      ? product.categories
+          .map(cat => cleanCategory(cat))
+          .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+          .map(cat => translateCategory(cat, language))
       : [];
     
-    // Assurer qu'il y a au moins un champ d'image vide à la fin
     const productImages = [...product.images];
     if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
       productImages.push('');
@@ -393,199 +1275,242 @@ export default function EcommercePage() {
       categories: translatedCategories,
       images: productImages
     });
-    console.log(t('editingProduct'), product.name, 'Catégories:', translatedCategories);
   };
 
-  // Fonction pour vérifier si un champ a une valeur
   const hasValue = (value: string | undefined): boolean => {
     return value !== undefined && value.trim() !== '';
   };
 
+  const hasPriceValue = (price: string | undefined): boolean => {
+    if (!price || price.trim() === '') return false;
+    const numericPrice = parseFloat(price.replace(',', '.'));
+    return numericPrice > 0;
+  };
+
+  const toggleFavorite = (productId: number) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(productId)) {
+      newFavorites.delete(productId);
+    } else {
+      newFavorites.add(productId);
+    }
+    setFavorites(newFavorites);
+  };
+
+  const getCardHeight = (index: number) => {
+    // Variation de hauteur pour effet Pinterest
+    const heights = ['h-80', 'h-96', 'h-72', 'h-88'];
+    return heights[index % heights.length];
+  };
+
   return (
-    <main className="px-4 py-8 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        
-        {/* Sélecteur de langue */}
-        <div className="flex items-center gap-2">
-          <Globe size={20} className="text-gray-600" />
-          <select 
-            value={language} 
-            onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
-            className="border border-gray-300 rounded px-3 py-1 bg-white"
-          >
-            <option value="fr">🇫🇷 Français</option>
-            <option value="en">🇺🇸 English</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button 
-          onClick={() => setCategoryFilter('')} 
-          className={`px-3 py-1 rounded ${categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}
-        >
-          {t('all')}
-        </button>
-        {availableCategories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategoryFilter(cat)}
-            className={`px-3 py-1 rounded ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          >{cat}</button>
-        ))}
-        <button onClick={() => setSortOrder('asc')} className="ml-auto px-3 py-1 bg-green-200 rounded">{t('priceUp')}</button>
-        <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">{t('priceDown')}</button>
-      </div>
-
-      {showForm && passwordEntered && (
-        <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
-          <input 
-            name="name" 
-            value={newProduct.name} 
-            onChange={handleInputChange} 
-            placeholder={t('name')} 
-            className="w-full border p-2 rounded" 
-            required 
-          />
-          <textarea 
-            name="description" 
-            value={newProduct.description} 
-            onChange={handleInputChange} 
-            placeholder={t('description')} 
-            className="w-full border p-2 rounded h-20 resize-vertical" 
-            required 
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input 
-              name="priceCa" 
-              value={newProduct.priceCa} 
-              onChange={handleInputChange} 
-              placeholder={t('priceCad')} 
-              className="w-full border p-2 rounded" 
-            />
-            <input 
-              name="priceUs" 
-              value={newProduct.priceUs} 
-              onChange={handleInputChange} 
-              placeholder={t('priceUsd')} 
-              className="w-full border p-2 rounded" 
-            />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Mobile Optimized */}
+      <header className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
+              <p className="text-xs text-gray-600">{t('subtitle')}</p>
+            </div>
+            
+            {/* Language Selector */}
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-gray-600" />
+              <select 
+                value={language} 
+                onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+              >
+                <option value="fr">🇫🇷</option>
+                <option value="en">🇺🇸</option>
+              </select>
+            </div>
           </div>
-          <input 
-            name="amazonCa" 
-            value={newProduct.amazonCa} 
-            onChange={handleInputChange} 
-            placeholder={t('amazonCaLink')} 
-            className="w-full border p-2 rounded" 
-          />
-          <input 
-            name="amazonCom" 
-            value={newProduct.amazonCom} 
-            onChange={handleInputChange} 
-            placeholder={t('amazonComLink')} 
-            className="w-full border p-2 rounded" 
-          />
-          <input 
-            name="tiktokUrl" 
-            value={newProduct.tiktokUrl} 
-            onChange={handleInputChange} 
-            placeholder={t('tiktokLink')} 
-            className="w-full border p-2 rounded" 
-          />
-          
-          {/* Section Images avec nombre illimité */}
-          <div className="space-y-2">
-            <label className="font-semibold block">{t('images')} :</label>
-            {newProduct.images.map((image, i) => (
-              <div key={i} className="flex gap-2">
-                <input
-                  name="images"
-                  value={image}
-                  onChange={(e) => handleInputChange(e, i)}
-                  placeholder={`${language === 'fr' ? 'URL Image' : 'Image URL'} ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
-                  className="flex-1 border p-2 rounded"
-                  type="url"
+
+          {/* Filters - Horizontal Scroll */}
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <button 
+              onClick={() => setCategoryFilter('')} 
+              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {t('all')}
+            </button>
+            {availableCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                  categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Admin Form Modal */}
+      {showForm && passwordEntered && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="p-4 space-y-4">
+              <h2 className="text-lg font-bold">{editIndex !== null ? t('modify') : t('add')}</h2>
+              
+              <input 
+                name="name" 
+                value={newProduct.name} 
+                onChange={handleInputChange} 
+                placeholder={t('name')} 
+                className="w-full border p-2 rounded" 
+                required 
+              />
+              <textarea 
+                name="description" 
+                value={newProduct.description} 
+                onChange={handleInputChange} 
+                placeholder={t('description')} 
+                className="w-full border p-2 rounded h-16 resize-vertical" 
+                required 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input 
+                  name="priceCa" 
+                  value={newProduct.priceCa} 
+                  onChange={handleInputChange} 
+                  placeholder="CAD $" 
+                  className="w-full border p-2 rounded text-sm" 
+                  type="number"
+                  step="0.01"
+                  min="0"
                 />
-                {newProduct.images.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeImageField(i)}
-                    className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                    title={t('removeImage')}
-                  >
-                    <Trash2 size={16} />
+                <input 
+                  name="priceUs" 
+                  value={newProduct.priceUs} 
+                  onChange={handleInputChange} 
+                  placeholder="USD $" 
+                  className="w-full border p-2 rounded text-sm" 
+                  type="number"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <input 
+                name="amazonCa" 
+                value={newProduct.amazonCa} 
+                onChange={handleInputChange} 
+                placeholder="Amazon.ca" 
+                className="w-full border p-2 rounded text-sm" 
+              />
+              <input 
+                name="amazonCom" 
+                value={newProduct.amazonCom} 
+                onChange={handleInputChange} 
+                placeholder="Amazon.com" 
+                className="w-full border p-2 rounded text-sm" 
+              />
+              <input 
+                name="tiktokUrl" 
+                value={newProduct.tiktokUrl} 
+                onChange={handleInputChange} 
+                placeholder="TikTok" 
+                className="w-full border p-2 rounded text-sm" 
+              />
+              
+              {/* Images */}
+              <div className="space-y-2">
+                <label className="font-medium text-sm">{t('images')}:</label>
+                {newProduct.images.map((image, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      name="images"
+                      value={image}
+                      onChange={(e) => handleInputChange(e, i)}
+                      placeholder={`Image ${i + 1}`}
+                      className="flex-1 border p-2 rounded text-sm"
+                      type="url"
+                    />
+                    {newProduct.images.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeImageField(i)}
+                        className="px-2 py-2 bg-red-500 text-white rounded"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addImageField}
+                  className="w-full py-2 bg-green-500 text-white rounded text-sm"
+                >
+                  + {t('addImage')}
+                </button>
+              </div>
+
+              {/* Categories */}
+              <div>
+                <label className="font-medium text-sm">{t('categories')}:</label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {availableCategories.map((cat) => (
+                    <label key={cat} className="text-xs flex items-center bg-gray-100 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={newProduct.categories.includes(cat)}
+                        onChange={(e) => handleCategoryToggle(cat, e.target.checked)}
+                        className="mr-1 scale-75"
+                      /> 
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded text-sm">
+                  {t('save')}
+                </button>
+                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded text-sm">
+                  {t('cancel')}
+                </button>
+                {editIndex !== null && (
+                  <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded text-sm">
+                    🗑️
                   </button>
                 )}
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addImageField}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              <Plus size={16} />
-              {t('addImage')}
-            </button>
+            </form>
           </div>
-
-          <div>
-            <label className="font-semibold">{t('categories')} :</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {availableCategories.map((cat) => (
-                <label key={cat} className="text-sm flex items-center bg-gray-50 p-2 rounded">
-                  <input
-                    type="checkbox"
-                    checked={newProduct.categories.includes(cat)}
-                    onChange={(e) => handleCategoryToggle(cat, e.target.checked)}
-                    className="mr-2"
-                  /> 
-                  <span>{cat}</span>
-                </label>
-              ))}
-            </div>
-            <input
-              placeholder={t('addCategory')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const val = (e.target as HTMLInputElement).value.trim();
-                  if (val) {
-                    handleAddCategory(val);
-                    (e.target as HTMLInputElement).value = '';
-                  }
-                }
-              }}
-              className="border p-2 rounded w-full mt-2"
-            />
-            {newProduct.categories.length > 0 && (
-              <div className="mt-2 p-2 bg-blue-50 rounded">
-                <small className="text-blue-700">
-                  {t('selectedCategories')}: {newProduct.categories.join(', ')}
-                </small>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-4">
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              {editIndex !== null ? t('modify') : t('add')}
-            </button>
-            {editIndex !== null && (
-              <>
-                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
-                  {t('cancel')}
-                </button>
-                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                  {t('delete')}
-                </button>
-              </>
-            )}
-          </div>
-        </form>
+        </div>
       )}
 
+      {/* Pinterest-style Grid */}
+      <main className="px-2 py-4">
+        {/* Masonry Grid */}
+        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+          {filteredProducts.map((product, i) => (
+            <PinterestCard 
+              key={product.id || i} 
+              product={product} 
+              language={language}
+              isFavorite={favorites.has(product.id || 0)}
+              onToggleFavorite={() => toggleFavorite(product.id || 0)}
+              onEdit={() => handleEdit(i)}
+              showAdmin={passwordEntered}
+              translations={translations}
+            />
+          ))}
+        </div>
+      </main>
+
+      {/* Floating Add Button */}
       <button
-        className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30"
         onClick={() => {
           if (!passwordEntered) {
             if (requestPassword()) setShowForm(true);
@@ -594,146 +1519,143 @@ export default function EcommercePage() {
           }
         }}
       >
-        {t('addProduct')}
+        <Plus size={24} />
       </button>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProducts.map((product, i) => (
-          <div key={product.id || i} className="bg-white p-3 rounded shadow text-center relative">
-            <ProductCard product={product} language={language} />
-            <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
-            <p className="text-sm text-gray-500 mb-2">{product.description}</p>
-            
-            {/* Affichage conditionnel des catégories */}
-            {product.categories && product.categories.length > 0 && (
-              <div className="mb-2">
-                {product.categories.map((cat, idx) => (
-                  <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
-                    {translateCategory(cat, language)}
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Affichage conditionnel des prix - SEULEMENT si au moins un prix existe */}
-            {(hasValue(product.priceCa) || hasValue(product.priceUs)) && (
-              <p className="text-sm mb-2">
-                {t('price')} : 
-                {hasValue(product.priceCa) && ` CA$ ${product.priceCa}`}
-                {hasValue(product.priceCa) && hasValue(product.priceUs) && ' |'}
-                {hasValue(product.priceUs) && ` US$ ${product.priceUs}`}
+interface PinterestCardProps {
+  product: Product;
+  language: 'fr' | 'en';
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onEdit: () => void;
+  showAdmin: boolean;
+  translations: any;
+}
+
+function PinterestCard({ product, language, isFavorite, onToggleFavorite, onEdit, showAdmin, translations }: PinterestCardProps) {
+  const [current, setCurrent] = useState(0);
+  const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  
+  const t = (key: string) => translations[language][key];
+
+  const hasValue = (value: string | undefined): boolean => {
+    return value !== undefined && value.trim() !== '';
+  };
+
+  const hasPriceValue = (price: string | undefined): boolean => {
+    if (!price || price.trim() === '') return false;
+    const numericPrice = parseFloat(price.replace(',', '.'));
+    return numericPrice > 0;
+  };
+
+  const cleanCategory = (category: string): string => {
+    return category.replace(/['"\\]/g, '').trim();
+  };
+
+  const translateCategory = (category: string): string => {
+    const cleanCat = cleanCategory(category);
+    const mapping = CATEGORY_MAPPING[cleanCat as keyof typeof CATEGORY_MAPPING];
+    return language === 'en' && mapping ? mapping : cleanCat;
+  };
+
+  return (
+    <div className="break-inside-avoid mb-2">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        {/* Image Section */}
+        <div className="relative aspect-[3/4] bg-gray-100">
+          {images.length > 0 ? (
+            <>
+              {!imageError[current] ? (
+                <Image
+                  src={images[current]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  onError={() => setImageError({...imageError, [current]: true})}
+                  unoptimized
+                  loader={({ src }) => src}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <span className="text-sm">{t('imageNotAvailable')}</span>
+                </div>
+              )}
+              
+              {/* Image Navigation */}
+              {images.length > 1 && (
+                <>
+                  <button 
+                    onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    ‹
+                  </button>
+                  <button 
+                    onClick={() => setCurrent((current + 1) % images.length)} 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    ›
+                  </button>
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                    {images.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          index === current ? 'bg-white' : 'bg-white bg-opacity-50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              {/* Top Actions */}
+              <div className="absolute top-2 right-2 flex gap-1">
+}
+                {hasPriceValue(product.priceCa) && hasPriceValue(product.priceUs) && ' |'}
+                {hasPriceValue(product.priceUs) && ` ${product.priceUs}`}
               </p>
-            )}
-            
-            {/* Affichage conditionnel des liens Amazon - SEULEMENT si au moins un lien existe */}
+              <p className="text-xs text-gray-500 italic">{t('priceNote')}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="space-y-2">
+            {/* Amazon Links */}
             {(hasValue(product.amazonCa) || hasValue(product.amazonCom)) && (
-              <div className="flex justify-center gap-2 mb-2">
+              <div className="flex gap-2">
                 {hasValue(product.amazonCa) && (
-                  <Link href={product.amazonCa!} target="_blank" rel="noopener noreferrer">
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">
-                      Amazon.ca
+                  <Link href={product.amazonCa!} target="_blank" rel="noopener noreferrer" className="flex-1">
+                    <button className="w-full bg-orange-500 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-orange-600 transition-colors">
+                      🛒 Amazon.ca
                     </button>
                   </Link>
                 )}
                 {hasValue(product.amazonCom) && (
-                  <Link href={product.amazonCom!} target="_blank" rel="noopener noreferrer">
-                    <button className="bg-black text-white px-3 py-1 rounded hover:bg-gray-800 text-sm">
-                      Amazon.com
+                  <Link href={product.amazonCom!} target="_blank" rel="noopener noreferrer" className="flex-1">
+                    <button className="w-full bg-gray-900 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
+                      🛒 Amazon.com
                     </button>
                   </Link>
                 )}
               </div>
             )}
-            
-            {/* Affichage conditionnel du lien TikTok - SEULEMENT si le lien existe */}
+
+            {/* TikTok Link */}
             {hasValue(product.tiktokUrl) && (
-              <Link href={product.tiktokUrl!} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline block">
-                {t('viewOnTiktok')}
+              <Link href={product.tiktokUrl!} target="_blank" rel="noopener noreferrer">
+                <button className="w-full bg-black text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
+                  🎵 {t('viewOnTiktok')}
+                </button>
               </Link>
             )}
-            
-            {passwordEntered && (
-              <button 
-                onClick={() => handleEdit(i)}
-                className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1 hover:bg-gray-100 shadow-md"
-              >
-                <Pencil size={14} />
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </main>
-  );
-}
-
-function ProductCard({ product, language }: { product: Product; language: 'fr' | 'en' }) {
-  const [current, setCurrent] = useState(0);
-  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
-  const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
-
-  const noImageText = language === 'fr' ? 'Aucune image' : 'No image';
-  const imageNotAvailableText = language === 'fr' ? 'Image non disponible' : 'Image not available';
-
-  if (images.length === 0) {
-    return (
-      <div className="relative aspect-[4/5] w-full mb-2 bg-gray-200 flex items-center justify-center rounded">
-        <span className="text-gray-500">{noImageText}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative aspect-[4/5] w-full mb-2">
-      {!imageError[current] ? (
-        <Image
-          src={images[current]}
-          alt={product.name}
-          fill
-          className="object-contain rounded"
-          onError={() => {
-            console.log(language === 'fr' ? 'Erreur de chargement image:' : 'Image loading error:', images[current]);
-            setImageError({...imageError, [current]: true});
-          }}
-          unoptimized
-          priority={current === 0}
-          loader={({ src }) => src}
-        />
-      ) : (
-        <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
-          <span className="text-gray-500 text-xs">{imageNotAvailableText}</span>
-          <div className="absolute bottom-1 left-1 right-1 text-xs text-gray-400 truncate">
-            {images[current]}
           </div>
         </div>
-      )}
-      
-      {images.length > 1 && (
-        <>
-          <button 
-            onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
-            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75"
-          >
-            ◀
-          </button>
-          <button 
-            onClick={() => setCurrent((current + 1) % images.length)} 
-            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75"
-          >
-            ▶
-          </button>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {images.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full ${
-                  index === current ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      </div>
     </div>
   );
 }
