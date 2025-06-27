@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -84,12 +82,16 @@ export default function EcommercePage() {
     };
 
     if (editIndex !== null && products[editIndex].id) {
-      await supabase.from('products').update(productToInsert).eq('id', products[editIndex].id);
+      const { error } = await supabase
+        .from('products')
+        .update(productToInsert)
+        .eq('id', products[editIndex].id);
+      if (!error) fetchProducts();
     } else {
-      await supabase.from('products').insert([productToInsert]);
+      const { error } = await supabase.from('products').insert([productToInsert]);
+      if (!error) fetchProducts();
     }
 
-    fetchProducts();
     resetForm();
   };
 
@@ -104,8 +106,15 @@ export default function EcommercePage() {
     setEditIndex(null);
     setShowForm(false);
     setNewProduct({
-      name: '', description: '', amazonCa: '', amazonCom: '', tiktokUrl: '',
-      images: [''], categories: [], priceCa: '', priceUs: ''
+      name: '',
+      description: '',
+      amazonCa: '',
+      amazonCom: '',
+      tiktokUrl: '',
+      images: [''],
+      categories: [],
+      priceCa: '',
+      priceUs: '',
     });
   };
 
@@ -127,7 +136,7 @@ export default function EcommercePage() {
   };
 
   const filteredProducts = categoryFilter
-    ? products.filter((p) => p.categories.includes(categoryFilter))
+    ? products.filter((p) => (p.categories || []).includes(categoryFilter))
     : [...products];
 
   if (sortOrder) {
@@ -151,7 +160,7 @@ export default function EcommercePage() {
 
   return (
     <main className="px-4 py-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA – Produits affiliés Amazon SiteStripe</h1>
+      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA connecté à Supabase</h1>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
@@ -166,28 +175,106 @@ export default function EcommercePage() {
         <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">Prix ↓</button>
       </div>
 
-      {/* Formulaire d'ajout ou modification */}
       {showForm && passwordEntered && (
         <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="bg-white p-6 mb-6 rounded shadow space-y-4">
-          {/* Champs classiques */}
-          {/* Images et Catégories */}
-          {/* Boutons */}
-          {/* Ce bloc reste inchangé */}
+          <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder="Nom" className="w-full border p-2 rounded" required />
+          <input name="description" value={newProduct.description} onChange={handleInputChange} placeholder="Description" className="w-full border p-2 rounded" required />
+          <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-2 rounded" />
+          <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-2 rounded" />
+          <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Lien Amazon.ca" className="w-full border p-2 rounded" />
+          <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Lien Amazon.com" className="w-full border p-2 rounded" />
+          <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="Lien TikTok" className="w-full border p-2 rounded" />
+          {Array.from({ length: 10 }).map((_, i) => (
+            <input
+              key={i}
+              name="images"
+              value={newProduct.images[i] || ''}
+              onChange={(e) => handleInputChange(e, i)}
+              placeholder={`Image ${i + 1}`}
+              className="w-full border p-2 rounded"
+            />
+          ))}
+          <div>
+            <label className="font-semibold">Catégories :</label>
+            <div className="flex flex-wrap gap-2">
+              {availableCategories.map((cat) => (
+                <label key={cat} className="text-sm">
+                  <input
+                    type="checkbox"
+                    checked={newProduct.categories.includes(cat)}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...newProduct.categories, cat]
+                        : newProduct.categories.filter((c) => c !== cat);
+                      setNewProduct({ ...newProduct, categories: updated });
+                    }}
+                  /> {cat}
+                </label>
+              ))}
+            </div>
+            <input
+              placeholder="Ajouter une catégorie"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  if (val) {
+                    handleAddCategory(val);
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }
+              }}
+              className="border p-2 rounded w-full mt-2"
+            />
+          </div>
+          <div className="flex gap-4">
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">{editIndex !== null ? 'Modifier' : 'Ajouter'}</button>
+            {editIndex !== null && (
+              <>
+                <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded">Annuler</button>
+                <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded">Supprimer</button>
+              </>
+            )}
+          </div>
         </form>
       )}
 
-      {/* Bouton d'ajout */}
-      <button className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
-        onClick={() => { if (!passwordEntered ? requestPassword() : true) setShowForm(!showForm); }}>
+      <button
+        className="mb-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        onClick={() => {
+          if (!passwordEntered) {
+            if (requestPassword()) setShowForm(true);
+          } else {
+            setShowForm(!showForm);
+          }
+        }}
+      >
         ➕ Ajouter un produit affilié
       </button>
 
-      {/* Liste de produits */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
           <div key={product.id} className="bg-white p-3 rounded shadow text-center relative">
             <ProductCard product={product} />
-            {/* Infos produit, liens, TikTok, bouton modifier... inchangés */}
+            <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
+            <p className="text-sm text-gray-500 mb-2">{product.description}</p>
+            <p className="text-sm">Prix : {product.priceCa && `CA$ ${product.priceCa}`} {product.priceUs && ` | US$ ${product.priceUs}`}</p>
+            <div className="flex justify-center gap-2 mb-2 mt-1">
+              {product.amazonCa && (
+                <Link href={product.amazonCa} target="_blank"><button className="bg-blue-600 text-white px-3 py-1 rounded">Amazon.ca</button></Link>
+              )}
+              {product.amazonCom && (
+                <Link href={product.amazonCom} target="_blank"><button className="bg-black text-white px-3 py-1 rounded">Amazon.com</button></Link>
+              )}
+            </div>
+            {product.tiktokUrl && (
+              <Link href={product.tiktokUrl} target="_blank" className="text-sm text-blue-700 underline">Voir sur TikTok</Link>
+            )}
+            {passwordEntered && (
+              <button onClick={() => { setEditIndex(i); setShowForm(true); setNewProduct(product); }} className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1">
+                <Pencil size={14} />
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -197,13 +284,18 @@ export default function EcommercePage() {
 
 function ProductCard({ product }: { product: Product }) {
   const [current, setCurrent] = useState(0);
-  const images = product.images.filter(Boolean);
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
 
   return (
     <div className="relative aspect-[4/5] w-full mb-2">
       {images.length > 0 && (
         <>
-          <Image src={images[current]} alt={product.name} fill className="object-contain rounded" />
+          <Image
+            src={images[current]}
+            alt={product.name}
+            fill
+            className="object-contain rounded"
+          />
           <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-0 top-1/2 -translate-y-1/2 px-2">◀</button>
           <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-0 top-1/2 -translate-y-1/2 px-2">▶</button>
         </>
