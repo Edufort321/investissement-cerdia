@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { Pencil } from 'lucide-react';
+import { Pencil, Globe } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +27,80 @@ interface Product {
 const PASSWORD = '321MdlTamara!$';
 const DEFAULT_CATEGORIES = ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'];
 
+// Dictionnaire de traductions
+const translations = {
+  fr: {
+    title: 'Catalogue CERDIA connecté à Supabase',
+    all: 'Tous',
+    priceUp: 'Prix ↑',
+    priceDown: 'Prix ↓',
+    addProduct: '➕ Ajouter un produit affilié',
+    name: 'Nom',
+    description: 'Description',
+    priceCad: 'Prix CAD',
+    priceUsd: 'Prix USD',
+    amazonCaLink: 'Lien Amazon.ca',
+    amazonComLink: 'Lien Amazon.com',
+    tiktokLink: 'Lien TikTok',
+    categories: 'Catégories',
+    addCategory: 'Ajouter une catégorie',
+    selectedCategories: 'Catégories sélectionnées',
+    modify: 'Modifier',
+    add: 'Ajouter',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    price: 'Prix',
+    noImage: 'Aucune image',
+    imageNotAvailable: 'Image non disponible',
+    viewOnTiktok: 'Voir sur TikTok',
+    adminPassword: 'Mot de passe admin :',
+    incorrectPassword: 'Mot de passe incorrect.',
+    productUpdated: 'Produit mis à jour avec succès',
+    productAdded: 'Produit ajouté avec succès',
+    productDeleted: 'Produit supprimé avec succès',
+    updateError: 'Erreur lors de la mise à jour',
+    addError: 'Erreur lors de l\'ajout',
+    deleteError: 'Erreur lors de la suppression',
+    imageError: 'Erreur de chargement image',
+    editingProduct: 'Édition du produit',
+  },
+  en: {
+    title: 'CERDIA Catalog connected to Supabase',
+    all: 'All',
+    priceUp: 'Price ↑',
+    priceDown: 'Price ↓',
+    addProduct: '➕ Add affiliate product',
+    name: 'Name',
+    description: 'Description',
+    priceCad: 'CAD Price',
+    priceUsd: 'USD Price',
+    amazonCaLink: 'Amazon.ca Link',
+    amazonComLink: 'Amazon.com Link',
+    tiktokLink: 'TikTok Link',
+    categories: 'Categories',
+    addCategory: 'Add category',
+    selectedCategories: 'Selected categories',
+    modify: 'Modify',
+    add: 'Add',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    price: 'Price',
+    noImage: 'No image',
+    imageNotAvailable: 'Image not available',
+    viewOnTiktok: 'View on TikTok',
+    adminPassword: 'Admin password:',
+    incorrectPassword: 'Incorrect password.',
+    productUpdated: 'Product updated successfully',
+    productAdded: 'Product added successfully',
+    productDeleted: 'Product deleted successfully',
+    updateError: 'Error during update',
+    addError: 'Error during addition',
+    deleteError: 'Error during deletion',
+    imageError: 'Image loading error',
+    editingProduct: 'Editing product',
+  }
+};
+
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -35,6 +109,7 @@ export default function EcommercePage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | ''>('');
   const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [newProduct, setNewProduct] = useState<Product>({
     name: '',
     description: '',
@@ -47,9 +122,23 @@ export default function EcommercePage() {
     priceUs: '',
   });
 
+  // Fonction pour obtenir le texte traduit
+  const t = (key: keyof typeof translations.fr) => translations[language][key];
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Mise à jour des catégories disponibles quand les produits changent
+  useEffect(() => {
+    const allCategories = new Set(DEFAULT_CATEGORIES);
+    products.forEach(product => {
+      if (Array.isArray(product.categories)) {
+        product.categories.forEach(cat => allCategories.add(cat));
+      }
+    });
+    setAvailableCategories(Array.from(allCategories));
+  }, [products]);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
@@ -62,7 +151,7 @@ export default function EcommercePage() {
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
         images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
-        categories: Array.isArray(p.categories) ? p.categories : [],
+        categories: Array.isArray(p.categories) ? p.categories : (p.categories ? [p.categories] : []),
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
       }));
@@ -71,7 +160,6 @@ export default function EcommercePage() {
   };
 
   const saveProduct = async () => {
-    // Filtrer les images vides
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
     const productToInsert = {
@@ -85,7 +173,7 @@ export default function EcommercePage() {
       image3: filteredImages[2] || null,
       image4: filteredImages[3] || null,
       image5: filteredImages[4] || null,
-      categories: newProduct.categories,
+      categories: newProduct.categories.length > 0 ? newProduct.categories : null,
       price_ca: parseFloat(newProduct.priceCa.replace(',', '.')) || 0,
       price_us: parseFloat(newProduct.priceUs.replace(',', '.')) || 0,
     };
@@ -95,10 +183,20 @@ export default function EcommercePage() {
         .from('products')
         .update(productToInsert)
         .eq('id', products[editIndex].id);
-      if (!error) fetchProducts();
+      if (!error) {
+        await fetchProducts();
+        console.log(t('productUpdated'));
+      } else {
+        console.error(t('updateError'), error);
+      }
     } else {
       const { error } = await supabase.from('products').insert([productToInsert]);
-      if (!error) fetchProducts();
+      if (!error) {
+        await fetchProducts();
+        console.log(t('productAdded'));
+      } else {
+        console.error(t('addError'), error);
+      }
     }
 
     resetForm();
@@ -106,8 +204,13 @@ export default function EcommercePage() {
 
   const deleteProduct = async (id: number | undefined) => {
     if (!passwordEntered || !id) return;
-    await supabase.from('products').delete().eq('id', id);
-    fetchProducts();
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      await fetchProducts();
+      console.log(t('productDeleted'));
+    } else {
+      console.error(t('deleteError'), error);
+    }
     resetForm();
   };
 
@@ -131,7 +234,6 @@ export default function EcommercePage() {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
       const updatedImages = [...newProduct.images];
-      // Assurer qu'il y a assez d'éléments dans le tableau
       while (updatedImages.length <= index) {
         updatedImages.push('');
       }
@@ -143,9 +245,18 @@ export default function EcommercePage() {
   };
 
   const handleAddCategory = (category: string) => {
-    if (!availableCategories.includes(category)) {
+    if (category && !availableCategories.includes(category)) {
       setAvailableCategories([...availableCategories, category]);
     }
+  };
+
+  const handleCategoryToggle = (category: string, checked: boolean) => {
+    const updatedCategories = checked
+      ? [...newProduct.categories, category]
+      : newProduct.categories.filter((c) => c !== category);
+    
+    setNewProduct({ ...newProduct, categories: updatedCategories });
+    console.log('Catégories mises à jour:', updatedCategories);
   };
 
   const filteredProducts = categoryFilter
@@ -161,22 +272,54 @@ export default function EcommercePage() {
   }
 
   const requestPassword = () => {
-    const tryPwd = prompt('Mot de passe admin :');
+    const tryPwd = prompt(t('adminPassword'));
     if (tryPwd === PASSWORD) {
       setPasswordEntered(true);
       return true;
     } else {
-      alert('Mot de passe incorrect.');
+      alert(t('incorrectPassword'));
       return false;
     }
   };
 
+  const handleEdit = (index: number) => {
+    const product = products[index];
+    setEditIndex(index);
+    setShowForm(true);
+    setNewProduct({
+      ...product,
+      categories: Array.isArray(product.categories) ? [...product.categories] : [],
+      images: [...product.images, '', '', '', '', ''].slice(0, 5)
+    });
+    console.log(t('editingProduct'), product.name, 'Catégories:', product.categories);
+  };
+
   return (
     <main className="px-4 py-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Catalogue CERDIA connecté à Supabase</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        
+        {/* Sélecteur de langue */}
+        <div className="flex items-center gap-2">
+          <Globe size={20} className="text-gray-600" />
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
+            className="border border-gray-300 rounded px-3 py-1 bg-white"
+          >
+            <option value="fr">🇫🇷 Français</option>
+            <option value="en">🇺🇸 English</option>
+          </select>
+        </div>
+      </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <button onClick={() => setCategoryFilter('')} className="px-3 py-1 rounded bg-gray-300">Tous</button>
+        <button 
+          onClick={() => setCategoryFilter('')} 
+          className={`px-3 py-1 rounded ${categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}
+        >
+          {t('all')}
+        </button>
         {availableCategories.map((cat) => (
           <button
             key={cat}
@@ -184,8 +327,8 @@ export default function EcommercePage() {
             className={`px-3 py-1 rounded ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           >{cat}</button>
         ))}
-        <button onClick={() => setSortOrder('asc')} className="ml-auto px-3 py-1 bg-green-200 rounded">Prix ↑</button>
-        <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">Prix ↓</button>
+        <button onClick={() => setSortOrder('asc')} className="ml-auto px-3 py-1 bg-green-200 rounded">{t('priceUp')}</button>
+        <button onClick={() => setSortOrder('desc')} className="px-3 py-1 bg-red-200 rounded">{t('priceDown')}</button>
       </div>
 
       {showForm && passwordEntered && (
@@ -194,7 +337,7 @@ export default function EcommercePage() {
             name="name" 
             value={newProduct.name} 
             onChange={handleInputChange} 
-            placeholder="Nom" 
+            placeholder={t('name')} 
             className="w-full border p-2 rounded" 
             required 
           />
@@ -202,7 +345,7 @@ export default function EcommercePage() {
             name="description" 
             value={newProduct.description} 
             onChange={handleInputChange} 
-            placeholder="Description" 
+            placeholder={t('description')} 
             className="w-full border p-2 rounded h-20 resize-vertical" 
             required 
           />
@@ -210,35 +353,35 @@ export default function EcommercePage() {
             name="priceCa" 
             value={newProduct.priceCa} 
             onChange={handleInputChange} 
-            placeholder="Prix CAD" 
+            placeholder={t('priceCad')} 
             className="w-full border p-2 rounded" 
           />
           <input 
             name="priceUs" 
             value={newProduct.priceUs} 
             onChange={handleInputChange} 
-            placeholder="Prix USD" 
+            placeholder={t('priceUsd')} 
             className="w-full border p-2 rounded" 
           />
           <input 
             name="amazonCa" 
             value={newProduct.amazonCa} 
             onChange={handleInputChange} 
-            placeholder="Lien Amazon.ca" 
+            placeholder={t('amazonCaLink')} 
             className="w-full border p-2 rounded" 
           />
           <input 
             name="amazonCom" 
             value={newProduct.amazonCom} 
             onChange={handleInputChange} 
-            placeholder="Lien Amazon.com" 
+            placeholder={t('amazonComLink')} 
             className="w-full border p-2 rounded" 
           />
           <input 
             name="tiktokUrl" 
             value={newProduct.tiktokUrl} 
             onChange={handleInputChange} 
-            placeholder="Lien TikTok" 
+            placeholder={t('tiktokLink')} 
             className="w-full border p-2 rounded" 
           />
           {Array.from({ length: 5 }).map((_, i) => (
@@ -247,32 +390,28 @@ export default function EcommercePage() {
               name="images"
               value={newProduct.images[i] || ''}
               onChange={(e) => handleInputChange(e, i)}
-              placeholder={`URL Image ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
+              placeholder={`${language === 'fr' ? 'URL Image' : 'Image URL'} ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
               className="w-full border p-2 rounded"
               type="url"
             />
           ))}
           <div>
-            <label className="font-semibold">Catégories :</label>
+            <label className="font-semibold">{t('categories')} :</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {availableCategories.map((cat) => (
-                <label key={cat} className="text-sm flex items-center">
+                <label key={cat} className="text-sm flex items-center bg-gray-50 p-2 rounded">
                   <input
                     type="checkbox"
                     checked={newProduct.categories.includes(cat)}
-                    onChange={(e) => {
-                      const updated = e.target.checked
-                        ? [...newProduct.categories, cat]
-                        : newProduct.categories.filter((c) => c !== cat);
-                      setNewProduct({ ...newProduct, categories: updated });
-                    }}
-                    className="mr-1"
-                  /> {cat}
+                    onChange={(e) => handleCategoryToggle(cat, e.target.checked)}
+                    className="mr-2"
+                  /> 
+                  <span>{cat}</span>
                 </label>
               ))}
             </div>
             <input
-              placeholder="Ajouter une catégorie"
+              placeholder={t('addCategory')}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -285,18 +424,25 @@ export default function EcommercePage() {
               }}
               className="border p-2 rounded w-full mt-2"
             />
+            {newProduct.categories.length > 0 && (
+              <div className="mt-2 p-2 bg-blue-50 rounded">
+                <small className="text-blue-700">
+                  {t('selectedCategories')}: {newProduct.categories.join(', ')}
+                </small>
+              </div>
+            )}
           </div>
           <div className="flex gap-4">
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              {editIndex !== null ? 'Modifier' : 'Ajouter'}
+              {editIndex !== null ? t('modify') : t('add')}
             </button>
             {editIndex !== null && (
               <>
                 <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
-                  Annuler
+                  {t('cancel')}
                 </button>
                 <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                  Supprimer
+                  {t('delete')}
                 </button>
               </>
             )}
@@ -314,17 +460,26 @@ export default function EcommercePage() {
           }
         }}
       >
-        ➕ Ajouter un produit affilié
+        {t('addProduct')}
       </button>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product, i) => (
           <div key={product.id || i} className="bg-white p-3 rounded shadow text-center relative">
-            <ProductCard product={product} />
+            <ProductCard product={product} language={language} />
             <h3 className="font-semibold mb-1 mt-2">{product.name}</h3>
             <p className="text-sm text-gray-500 mb-2">{product.description}</p>
+            {product.categories && product.categories.length > 0 && (
+              <div className="mb-2">
+                {product.categories.map((cat, idx) => (
+                  <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
             <p className="text-sm">
-              Prix : {product.priceCa && `CA$ ${product.priceCa}`} 
+              {t('price')} : {product.priceCa && `CA$ ${product.priceCa}`} 
               {product.priceUs && ` | US$ ${product.priceUs}`}
             </p>
             <div className="flex justify-center gap-2 mb-2 mt-1">
@@ -345,19 +500,12 @@ export default function EcommercePage() {
             </div>
             {product.tiktokUrl && (
               <Link href={product.tiktokUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline">
-                Voir sur TikTok
+                {t('viewOnTiktok')}
               </Link>
             )}
             {passwordEntered && (
               <button 
-                onClick={() => { 
-                  setEditIndex(i); 
-                  setShowForm(true); 
-                  setNewProduct({
-                    ...product,
-                    images: [...product.images, '', '', '', '', ''].slice(0, 5) // Assurer 5 slots pour l'édition
-                  }); 
-                }} 
+                onClick={() => handleEdit(i)}
                 className="absolute bottom-2 right-2 text-blue-500 bg-white rounded-full p-1 hover:bg-gray-100"
               >
                 <Pencil size={14} />
@@ -370,16 +518,18 @@ export default function EcommercePage() {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, language }: { product: Product; language: 'fr' | 'en' }) {
   const [current, setCurrent] = useState(0);
   const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
   const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
 
-  // Si aucune image valide, afficher un placeholder
+  const noImageText = language === 'fr' ? 'Aucune image' : 'No image';
+  const imageNotAvailableText = language === 'fr' ? 'Image non disponible' : 'Image not available';
+
   if (images.length === 0) {
     return (
       <div className="relative aspect-[4/5] w-full mb-2 bg-gray-200 flex items-center justify-center rounded">
-        <span className="text-gray-500">Aucune image</span>
+        <span className="text-gray-500">{noImageText}</span>
       </div>
     );
   }
@@ -393,7 +543,7 @@ function ProductCard({ product }: { product: Product }) {
           fill
           className="object-contain rounded"
           onError={() => {
-            console.log('Erreur de chargement image:', images[current]);
+            console.log(language === 'fr' ? 'Erreur de chargement image:' : 'Image loading error:', images[current]);
             setImageError({...imageError, [current]: true});
           }}
           unoptimized
@@ -402,7 +552,7 @@ function ProductCard({ product }: { product: Product }) {
         />
       ) : (
         <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
-          <span className="text-gray-500 text-xs">Image non disponible</span>
+          <span className="text-gray-500 text-xs">{imageNotAvailableText}</span>
           <div className="absolute bottom-1 left-1 right-1 text-xs text-gray-400 truncate">
             {images[current]}
           </div>
