@@ -247,8 +247,9 @@ export default function EcommercePage() {
               name="images"
               value={newProduct.images[i] || ''}
               onChange={(e) => handleInputChange(e, i)}
-              placeholder={`URL Image ${i + 1}`}
+              placeholder={`URL Image ${i + 1} (ex: https://m.media-amazon.com/images/I/81SB-U4DOlL._AC_SX522_.jpg)`}
               className="w-full border p-2 rounded"
+              type="url"
             />
           ))}
           <div>
@@ -397,6 +398,7 @@ function ProductCard({ product }: { product: Product }) {
           }}
           unoptimized
           priority={current === 0}
+          loader={({ src }) => src}
         />
       ) : (
         <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
