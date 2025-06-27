@@ -388,12 +388,19 @@ function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           fill
           className="object-contain rounded"
-          onError={() => setImageError({...imageError, [current]: true})}
-          unoptimized // Permet d'utiliser des URLs externes sans configuration
+          onError={() => {
+            console.log('Erreur de chargement image:', images[current]);
+            setImageError({...imageError, [current]: true});
+          }}
+          unoptimized
+          priority={current === 0}
         />
       ) : (
         <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
-          <span className="text-gray-500">Image non disponible</span>
+          <span className="text-gray-500 text-xs">Image non disponible</span>
+          <div className="absolute bottom-1 left-1 right-1 text-xs text-gray-400 truncate">
+            {images[current]}
+          </div>
         </div>
       )}
       
