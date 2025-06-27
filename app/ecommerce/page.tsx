@@ -61,10 +61,7 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: Array.isArray(p.imageurls) ? p.imageurls :
-                Array.isArray(p.images) ? p.images :
-                typeof p.imageurls === 'string' ? [p.imageurls] :
-                typeof p.images === 'string' ? [p.images] : [],
+        images: Array.isArray(p.imageurls) ? p.imageurls : typeof p.imageurls === 'string' ? [p.imageurls] : [],
         categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
