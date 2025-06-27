@@ -54,7 +54,12 @@ export default function EcommercePage() {
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
     if (!error && data) {
-      setProducts(data);
+      const cleaned = data.map((p) => ({
+        ...p,
+        categories: p.categories || [],
+        images: p.imageurls || p.images || [],
+      }));
+      setProducts(cleaned);
     }
   };
 
@@ -126,7 +131,7 @@ export default function EcommercePage() {
   };
 
   const filteredProducts = categoryFilter
-    ? products.filter((p) => p.categories.includes(categoryFilter))
+    ? products.filter((p) => (p.categories || []).includes(categoryFilter))
     : [...products];
 
   if (sortOrder) {
