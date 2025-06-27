@@ -61,8 +61,11 @@ export default function EcommercePage() {
         amazonCa: p.amazonca || '',
         amazonCom: p.amazoncom || '',
         tiktokUrl: p.tiktokurl || '',
-        images: Array.isArray(p.imageurls) ? p.imageurls.filter(Boolean) : 
-               typeof p.imageurls === 'string' && p.imageurls ? [p.imageurls] : [],
+        images: [ p.image1,
+                 p.image2,
+                 p.image3,
+                 p.image4,
+                 p.image5 ].filter(Boolean),
         categories: Array.isArray(p.categories) ? p.categories : [],
         priceCa: p.price_ca?.toString() || '',
         priceUs: p.price_us?.toString() || '',
@@ -73,7 +76,11 @@ export default function EcommercePage() {
 
   const saveProduct = async () => {
     // Filtrer les images vides
-    const filteredImages = newProduct.images.filter(img => img.trim() !== '');
+    image1: filteredImages[0] || null,
+image2: filteredImages[1] || null,
+image3: filteredImages[2] || null,
+image4: filteredImages[3] || null,
+image5: filteredImages[4] || null, = newProduct.images.filter(img => img.trim() !== '');
     
     const productToInsert = {
       name: newProduct.name,
