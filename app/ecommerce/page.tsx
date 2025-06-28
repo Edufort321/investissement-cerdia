@@ -344,25 +344,39 @@ export default function EcommercePage() {
   const cleanupCategories = async () => {
     if (!passwordEntered) return;
     
-    const confirmCleanup = confirm('Voulez-vous nettoyer toutes les catégories incorrectes comme "[Watch]", "[[Montre],Watch]", etc. ? Cette action est irréversible.');
+    const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ? Cela va :\n\n1. Supprimer les catégories malformées comme "[Watch]", "[[Montre],Watch]"\n2. Supprimer les catégories non-utilisées par aucun produit\n3. Normaliser toutes les catégories restantes\n\nCette action est irréversible.');
     if (!confirmCleanup) return;
 
     try {
+      // Récupérer tous les produits
       const { data: allProducts } = await supabase.from('products').select('*');
       
       if (allProducts) {
+        // Set pour collecter toutes les catégories utilisées
+        const usedCategories = new Set<string>();
+        
+        // Première passe : nettoyer et collecter les catégories utilisées
         for (const product of allProducts) {
           if (product.categories) {
+            // Nettoyer les catégories
             const cleanedCategories = Array.isArray(product.categories) 
               ? product.categories
                   .map(cat => cleanCategory(cat))
                   .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
                   .map(cat => normalizeCategory(cat))
-                  .filter((cat, index, arr) => arr.indexOf(cat) === index)
+                  .filter((cat, index, arr) => arr.indexOf(cat) === index) // Supprimer les doublons
               : [cleanCategory(product.categories)]
                   .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
                   .map(cat => normalizeCategory(cat));
 
+            // Ajouter les catégories nettoyées à la liste des catégories utilisées
+            cleanedCategories.forEach(cat => {
+              if (cat && cat.trim() !== '') {
+                usedCategories.add(cat);
+              }
+            });
+
+            // Mettre à jour le produit si les catégories ont changé
             if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
               await supabase
                 .from('products')
@@ -372,8 +386,14 @@ export default function EcommercePage() {
           }
         }
         
+        // Recharger les produits pour mettre à jour l'interface
         await fetchProducts();
-        alert('Nettoyage des catégories terminé avec succès !');
+        
+        // Afficher le résultat
+        const categoriesUsedCount = usedCategories.size;
+        const categoriesKept = Array.from(usedCategories).join(', ');
+        
+        alert(`Nettoyage terminé avec succès !\n\n✅ Catégories conservées (${categoriesUsedCount}) :\n${categoriesKept}\n\n🗑️ Toutes les catégories malformées et non-utilisées ont été supprimées.`);
       }
     } catch (error) {
       console.error('Erreur lors du nettoyage:', error);
@@ -698,7 +718,7 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
             <button 
               onClick={closeZoom}
-              className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm"
+              className="absolute top-4 right-4 w-10 h-10 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm font-bold"
             >
               ✕
             </button>
