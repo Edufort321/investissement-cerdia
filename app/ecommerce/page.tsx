@@ -302,15 +302,24 @@ export default function EcommercePage() {
   };
 
   const handleAddCategory = (category: string) => {
-    if (category && !availableCategories.includes(category)) {
-      setAvailableCategories([...availableCategories, category]);
+    const normalizedCategory = normalizeCategory(cleanCategory(category));
+    const translatedCategory = translateCategory(normalizedCategory, language);
+    
+    // Vérifier si cette catégorie (ou son équivalent) existe déjà
+    const categoryExists = availableCategories.some(cat => 
+      normalizeCategory(cleanCategory(cat)) === normalizedCategory
+    );
+    
+    if (translatedCategory && !categoryExists) {
+      setAvailableCategories([...availableCategories, translatedCategory]);
     }
   };
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
+    const normalizedCategory = normalizeCategory(cleanCategory(category));
     const updatedCategories = checked
-      ? [...newProduct.categories, category]
-      : newProduct.categories.filter((c) => c !== category);
+      ? [...newProduct.categories.filter(c => normalizeCategory(cleanCategory(c)) !== normalizedCategory), category]
+      : newProduct.categories.filter((c) => normalizeCategory(cleanCategory(c)) !== normalizedCategory);
     setNewProduct({ ...newProduct, categories: updatedCategories });
   };
 
@@ -366,14 +375,48 @@ export default function EcommercePage() {
     });
   };
 
-  const toggleFavorite = (productId: number) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(productId)) {
-      newFavorites.delete(productId);
-    } else {
-      newFavorites.add(productId);
+  const cleanupCategories = async () => {
+    if (!passwordEntered) return;
+    
+    const confirmCleanup = confirm('Voulez-vous nettoyer toutes les catégories incorrectes comme "[Watch]", "[[Montre],Watch]", etc. ? Cette action est irréversible.');
+    if (!confirmCleanup) return;
+
+    try {
+      // Récupérer tous les produits
+      const { data: allProducts } = await supabase.from('products').select('*');
+      
+      if (allProducts) {
+        for (const product of allProducts) {
+          if (product.categories) {
+            // Nettoyer les catégories
+            const cleanedCategories = Array.isArray(product.categories) 
+              ? product.categories
+                  .map(cat => cleanCategory(cat))
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat))
+                  .filter((cat, index, arr) => arr.indexOf(cat) === index) // Supprimer les doublons
+              : [cleanCategory(product.categories)]
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat));
+
+            // Mettre à jour le produit si les catégories ont changé
+            if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
+              await supabase
+                .from('products')
+                .update({ categories: cleanedCategories.length > 0 ? cleanedCategories : null })
+                .eq('id', product.id);
+            }
+          }
+        }
+        
+        // Recharger les produits
+        await fetchProducts();
+        alert('Nettoyage des catégories terminé avec succès !');
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage:', error);
+      alert('Erreur lors du nettoyage des catégories.');
     }
-    setFavorites(newFavorites);
   };
 
   return (
@@ -562,8 +605,8 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                 )}
                 {images.length > 1 && (
                   <>
-                    <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center z-10">‹</button>
-                    <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-40 text-white rounded-full w-6 h-6 flex items-center justify-center z-10">›</button>
+                    <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">‹</button>
+                    <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">›</button>
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                       {images.map((_, index) => (
                         <div key={index} className={`w-1.5 h-1.5 rounded-full ${index === current ? 'bg-white' : 'bg-white bg-opacity-50'}`} />
@@ -581,10 +624,7 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                     </button>
                   )}
                 </div>
-                {/* Indicateur de double-clic */}
-                <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded opacity-70">
-                  📷 Double-clic
-                </div>
+                {/* Indicateur de double-clic supprimé car fonction standard */
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
