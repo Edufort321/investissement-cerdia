@@ -164,23 +164,41 @@ export default function EcommercePage() {
   }, []);
 
   useEffect(() => {
-    const baseCategories = new Set(DEFAULT_CATEGORIES.fr);
+    // Générer automatiquement les catégories disponibles uniquement à partir des produits existants
+    const usedCategories = new Set(DEFAULT_CATEGORIES.fr);
+    
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
         product.categories.forEach(cat => {
           const cleanCat = cleanCategory(cat);
           const normalizedCat = normalizeCategory(cleanCat);
-          if (normalizedCat && !normalizedCat.includes('"')) {
-            baseCategories.add(normalizedCat);
+          if (normalizedCat && normalizedCat.trim() !== '' && !normalizedCat.includes('"') && !normalizedCat.includes('[') && !normalizedCat.includes(']')) {
+            usedCategories.add(normalizedCat);
           }
         });
       }
     });
-    baseCategories.delete('');
-    baseCategories.delete('undefined');
-    const categoriesInCurrentLang = Array.from(baseCategories)
+    
+    // Supprimer les entrées vides ou invalides
+    usedCategories.delete('');
+    usedCategories.delete('undefined');
+    usedCategories.delete('null');
+    
+    // Traduire vers la langue actuelle et ne garder que les catégories réellement utilisées
+    const categoriesInCurrentLang = Array.from(usedCategories)
+      .filter(cat => {
+        // Vérifier si cette catégorie est réellement utilisée par au moins un produit
+        return products.some(product => 
+          Array.isArray(product.categories) && 
+          product.categories.some(productCat => 
+            normalizeCategory(cleanCategory(productCat)) === cat
+          )
+        );
+      })
+      .map(cat => translateCategory(cat, language))
       .filter(cat => cat && cat.trim() !== '')
-      .map(cat => translateCategory(cat, language));
+      .sort(); // Trier alphabétiquement
+    
     setAvailableCategories(categoriesInCurrentLang);
   }, [products, language]);
 
@@ -317,10 +335,29 @@ export default function EcommercePage() {
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
     const normalizedCategory = normalizeCategory(cleanCategory(category));
-    const updatedCategories = checked
-      ? [...newProduct.categories.filter(c => normalizeCategory(cleanCategory(c)) !== normalizedCategory), category]
-      : newProduct.categories.filter((c) => normalizeCategory(cleanCategory(c)) !== normalizedCategory);
-    setNewProduct({ ...newProduct, categories: updatedCategories });
+    
+    if (checked) {
+      // Ajouter la catégorie si elle n'existe pas déjà (éviter les doublons)
+      const categoryExists = newProduct.categories.some(c => 
+        normalizeCategory(cleanCategory(c)) === normalizedCategory
+      );
+      
+      if (!categoryExists) {
+        setNewProduct({ 
+          ...newProduct, 
+          categories: [...newProduct.categories, category] 
+        });
+      }
+    } else {
+      // Supprimer toutes les variantes de cette catégorie
+      const updatedCategories = newProduct.categories.filter(c => 
+        normalizeCategory(cleanCategory(c)) !== normalizedCategory
+      );
+      setNewProduct({ 
+        ...newProduct, 
+        categories: updatedCategories 
+      });
+    }
   };
 
   const requestPasswordOnce = () => {
@@ -535,12 +572,27 @@ export default function EcommercePage() {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700">{t('categories')}:</label>
                 <div className="flex flex-wrap gap-2">
-                  {availableCategories.map((cat) => (
-                    <label key={cat} className="flex items-center bg-gray-50 p-2 rounded-lg text-sm">
-                      <input type="checkbox" checked={newProduct.categories.includes(cat)} onChange={(e) => handleCategoryToggle(cat, e.target.checked)} className="mr-2" /> 
-                      <span>{cat}</span>
-                    </label>
-                  ))}
+                  {availableCategories.map((cat) => {
+                    const isChecked = newProduct.categories.some(selectedCat => 
+                      normalizeCategory(cleanCategory(selectedCat)) === normalizeCategory(cleanCategory(cat))
+                    );
+                    
+                    return (
+                      <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                        isChecked 
+                          ? 'bg-blue-100 border-2 border-blue-500 text-blue-800' 
+                          : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                      }`}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={(e) => handleCategoryToggle(cat, e.target.checked)} 
+                          className="mr-2" 
+                        /> 
+                        <span className="font-medium">{cat}</span>
+                      </label>
+                    );
+                  })}
                 </div>
                 <input placeholder={t('addCategory')} onKeyDown={(e) => {
                     if (e.key === 'Enter') {
