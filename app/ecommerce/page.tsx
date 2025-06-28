@@ -341,6 +341,46 @@ export default function EcommercePage() {
     }
   };
 
+  const cleanupCategories = async () => {
+    if (!passwordEntered) return;
+    
+    const confirmCleanup = confirm('Voulez-vous nettoyer toutes les catégories incorrectes comme "[Watch]", "[[Montre],Watch]", etc. ? Cette action est irréversible.');
+    if (!confirmCleanup) return;
+
+    try {
+      const { data: allProducts } = await supabase.from('products').select('*');
+      
+      if (allProducts) {
+        for (const product of allProducts) {
+          if (product.categories) {
+            const cleanedCategories = Array.isArray(product.categories) 
+              ? product.categories
+                  .map(cat => cleanCategory(cat))
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat))
+                  .filter((cat, index, arr) => arr.indexOf(cat) === index)
+              : [cleanCategory(product.categories)]
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat));
+
+            if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
+              await supabase
+                .from('products')
+                .update({ categories: cleanedCategories.length > 0 ? cleanedCategories : null })
+                .eq('id', product.id);
+            }
+          }
+        }
+        
+        await fetchProducts();
+        alert('Nettoyage des catégories terminé avec succès !');
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage:', error);
+      alert('Erreur lors du nettoyage des catégories.');
+    }
+  };
+
   const filteredProducts = categoryFilter
     ? products.filter((p) => {
         if (!p.categories || p.categories.length === 0) return false;
@@ -375,48 +415,14 @@ export default function EcommercePage() {
     });
   };
 
-  const cleanupCategories = async () => {
-    if (!passwordEntered) return;
-    
-    const confirmCleanup = confirm('Voulez-vous nettoyer toutes les catégories incorrectes comme "[Watch]", "[[Montre],Watch]", etc. ? Cette action est irréversible.');
-    if (!confirmCleanup) return;
-
-    try {
-      // Récupérer tous les produits
-      const { data: allProducts } = await supabase.from('products').select('*');
-      
-      if (allProducts) {
-        for (const product of allProducts) {
-          if (product.categories) {
-            // Nettoyer les catégories
-            const cleanedCategories = Array.isArray(product.categories) 
-              ? product.categories
-                  .map(cat => cleanCategory(cat))
-                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
-                  .map(cat => normalizeCategory(cat))
-                  .filter((cat, index, arr) => arr.indexOf(cat) === index) // Supprimer les doublons
-              : [cleanCategory(product.categories)]
-                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
-                  .map(cat => normalizeCategory(cat));
-
-            // Mettre à jour le produit si les catégories ont changé
-            if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
-              await supabase
-                .from('products')
-                .update({ categories: cleanedCategories.length > 0 ? cleanedCategories : null })
-                .eq('id', product.id);
-            }
-          }
-        }
-        
-        // Recharger les produits
-        await fetchProducts();
-        alert('Nettoyage des catégories terminé avec succès !');
-      }
-    } catch (error) {
-      console.error('Erreur lors du nettoyage:', error);
-      alert('Erreur lors du nettoyage des catégories.');
+  const toggleFavorite = (productId: number) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(productId)) {
+      newFavorites.delete(productId);
+    } else {
+      newFavorites.add(productId);
     }
+    setFavorites(newFavorites);
   };
 
   return (
@@ -460,6 +466,15 @@ export default function EcommercePage() {
                 {cat}
               </button>
             ))}
+            {passwordEntered && (
+              <button 
+                onClick={cleanupCategories}
+                className="px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 bg-red-500 text-white hover:bg-red-600"
+                title="Nettoyer les catégories incorrectes"
+              >
+                🧹 Nettoyer
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -624,7 +639,6 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                     </button>
                   )}
                 </div>
-                {/* Indicateur de double-clic supprimé car fonction standard */
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
