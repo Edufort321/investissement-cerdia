@@ -113,6 +113,7 @@ export default function EcommercePage() {
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -159,48 +160,76 @@ export default function EcommercePage() {
     return numericPrice > 0;
   };
 
+  // Charger les catégories personnalisées depuis localStorage
+  const loadCustomCategories = () => {
+    try {
+      const saved = localStorage.getItem('customCategories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setCustomCategories(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des catégories personnalisées:', e);
+    }
+  };
+
+  // Sauvegarder les catégories personnalisées dans localStorage
+  const saveCustomCategories = (categories: string[]) => {
+    try {
+      localStorage.setItem('customCategories', JSON.stringify(categories));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des catégories personnalisées:', e);
+    }
+  };
+
   useEffect(() => {
+    loadCustomCategories();
     fetchProducts();
   }, []);
 
+  // Générer les catégories disponibles
   useEffect(() => {
-    // Générer automatiquement les catégories disponibles uniquement à partir des produits existants
-    const usedCategories = new Set(DEFAULT_CATEGORIES.fr);
+    // Catégories par défaut dans la langue actuelle
+    const defaultCats = DEFAULT_CATEGORIES[language];
     
+    // Catégories des produits existants
+    const productCategories = new Set<string>();
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
         product.categories.forEach(cat => {
           const cleanCat = cleanCategory(cat);
           const normalizedCat = normalizeCategory(cleanCat);
           if (normalizedCat && normalizedCat.trim() !== '' && !normalizedCat.includes('"') && !normalizedCat.includes('[') && !normalizedCat.includes(']')) {
-            usedCategories.add(normalizedCat);
+            const translatedCat = translateCategory(normalizedCat, language);
+            if (translatedCat) {
+              productCategories.add(translatedCat);
+            }
           }
         });
       }
     });
     
-    // Supprimer les entrées vides ou invalides
-    usedCategories.delete('');
-    usedCategories.delete('undefined');
-    usedCategories.delete('null');
+    // Catégories personnalisées traduites
+    const translatedCustomCategories = customCategories
+      .map(cat => translateCategory(normalizeCategory(cleanCategory(cat)), language))
+      .filter(cat => cat && cat.trim() !== '');
     
-    // Traduire vers la langue actuelle et ne garder que les catégories réellement utilisées
-    const categoriesInCurrentLang = Array.from(usedCategories)
-      .filter(cat => {
-        // Vérifier si cette catégorie est réellement utilisée par au moins un produit
-        return products.some(product => 
-          Array.isArray(product.categories) && 
-          product.categories.some(productCat => 
-            normalizeCategory(cleanCategory(productCat)) === cat
-          )
-        );
-      })
-      .map(cat => translateCategory(cat, language))
-      .filter(cat => cat && cat.trim() !== '')
-      .sort(); // Trier alphabétiquement
+    // Combiner toutes les catégories
+    const allCategories = new Set([
+      ...defaultCats,
+      ...Array.from(productCategories),
+      ...translatedCustomCategories
+    ]);
     
-    setAvailableCategories(categoriesInCurrentLang);
-  }, [products, language]);
+    // Nettoyer et trier
+    const cleanedCategories = Array.from(allCategories)
+      .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
+      .sort();
+    
+    setAvailableCategories(cleanedCategories);
+  }, [products, language, customCategories]);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
@@ -323,13 +352,24 @@ export default function EcommercePage() {
     const normalizedCategory = normalizeCategory(cleanCategory(category));
     const translatedCategory = translateCategory(normalizedCategory, language);
     
-    // Vérifier si cette catégorie (ou son équivalent) existe déjà
-    const categoryExists = availableCategories.some(cat => 
-      normalizeCategory(cleanCategory(cat)) === normalizedCategory
-    );
-    
-    if (translatedCategory && !categoryExists) {
-      setAvailableCategories([...availableCategories, translatedCategory]);
+    if (translatedCategory && translatedCategory.trim() !== '') {
+      // Vérifier si cette catégorie existe déjà dans availableCategories
+      const categoryExists = availableCategories.some(cat => 
+        normalizeCategory(cleanCategory(cat)) === normalizedCategory
+      );
+      
+      if (!categoryExists) {
+        // Ajouter immédiatement à availableCategories
+        setAvailableCategories(prev => [...prev, translatedCategory].sort());
+        
+        // Ajouter aux catégories personnalisées (version normalisée)
+        const updatedCustomCategories = [...customCategories];
+        if (!updatedCustomCategories.some(cat => normalizeCategory(cleanCategory(cat)) === normalizedCategory)) {
+          updatedCustomCategories.push(normalizedCategory);
+          setCustomCategories(updatedCustomCategories);
+          saveCustomCategories(updatedCustomCategories);
+        }
+      }
     }
   };
 
@@ -422,6 +462,14 @@ export default function EcommercePage() {
             }
           }
         }
+        
+        // Nettoyer aussi les catégories personnalisées
+        const cleanedCustomCategories = customCategories
+          .map(cat => normalizeCategory(cleanCategory(cat)))
+          .filter(cat => cat && cat.trim() !== '' && usedCategories.has(cat));
+        
+        setCustomCategories(cleanedCustomCategories);
+        saveCustomCategories(cleanedCustomCategories);
         
         // Recharger les produits pour mettre à jour l'interface
         await fetchProducts();
