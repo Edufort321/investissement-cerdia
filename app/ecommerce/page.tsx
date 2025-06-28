@@ -489,13 +489,21 @@ export default function EcommercePage() {
   const filteredProducts = categoryFilter
     ? products.filter((p) => {
         if (!p.categories || p.categories.length === 0) return false;
-        return p.categories.some(cat => {
+        
+        const matches = p.categories.some(cat => {
           const cleanCat = cleanCategory(cat);
-          const translatedCat = translateCategory(cleanCat, language);
-          const normalizedFilterCat = normalizeCategory(cleanCategory(categoryFilter));
           const normalizedProductCat = normalizeCategory(cleanCat);
-          return translatedCat === categoryFilter || normalizedProductCat === normalizedFilterCat;
+          const normalizedFilterCat = normalizeCategory(cleanCategory(categoryFilter));
+          
+          // Comparaisons multiples pour plus de robustesse
+          const directMatch = normalizedProductCat === normalizedFilterCat;
+          const translatedMatch = translateCategory(cleanCat, language) === categoryFilter;
+          const reverseTranslatedMatch = translateCategory(normalizedFilterCat, language) === translateCategory(normalizedProductCat, language);
+          
+          return directMatch || translatedMatch || reverseTranslatedMatch;
         });
+        
+        return matches;
       })
     : [...products];
 
