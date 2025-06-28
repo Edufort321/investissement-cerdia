@@ -713,7 +713,7 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                     setCurrent(newIndex);
                     setZoomImage(images[newIndex]);
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl font-bold"
                 >
                   ‹
                 </button>
@@ -724,7 +724,7 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                     setCurrent(newIndex);
                     setZoomImage(images[newIndex]);
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl font-bold"
                 >
                   ›
                 </button>
