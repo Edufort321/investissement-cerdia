@@ -269,9 +269,18 @@ export default function EcommercePage() {
 
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
+    
+    // Normaliser les catégories sélectionnées vers le français pour le stockage
     const normalizedCategories = newProduct.categories
-      .map(cat => normalizeCategory(cleanCategory(cat)))
-      .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'));
+      .map(cat => {
+        const cleanCat = cleanCategory(cat);
+        // Si c'est déjà en français, garder tel quel, sinon traduire vers le français
+        return normalizeCategory(cleanCat);
+      })
+      .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+      .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
+    
+    console.log('Catégories à sauvegarder:', normalizedCategories); // Debug
     
     const productToInsert: any = {
       name: newProduct.name,
@@ -389,25 +398,24 @@ export default function EcommercePage() {
   };
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
-    const normalizedCategory = normalizeCategory(cleanCategory(category));
+    console.log('Toggle category:', category, 'checked:', checked); // Debug
     
     if (checked) {
-      // Ajouter la catégorie si elle n'existe pas déjà (éviter les doublons)
-      const categoryExists = newProduct.categories.some(c => 
-        normalizeCategory(cleanCategory(c)) === normalizedCategory
-      );
+      // Ajouter la catégorie si elle n'existe pas déjà
+      const categoryExists = newProduct.categories.includes(category);
       
       if (!categoryExists) {
+        const updatedCategories = [...newProduct.categories, category];
+        console.log('Categories après ajout:', updatedCategories); // Debug
         setNewProduct({ 
           ...newProduct, 
-          categories: [...newProduct.categories, category] 
+          categories: updatedCategories
         });
       }
     } else {
-      // Supprimer toutes les variantes de cette catégorie
-      const updatedCategories = newProduct.categories.filter(c => 
-        normalizeCategory(cleanCategory(c)) !== normalizedCategory
-      );
+      // Supprimer la catégorie
+      const updatedCategories = newProduct.categories.filter(c => c !== category);
+      console.log('Categories après suppression:', updatedCategories); // Debug
       setNewProduct({ 
         ...newProduct, 
         categories: updatedCategories 
@@ -510,19 +518,26 @@ export default function EcommercePage() {
     const product = products[index];
     setEditIndex(index);
     setShowForm(true);
+    
+    // Récupérer les catégories du produit et les traduire selon la langue actuelle
     const translatedCategories = Array.isArray(product.categories) 
       ? product.categories
           .map(cat => cleanCategory(cat))
           .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
-          .map(cat => translateCategory(cat, language))
+          .map(cat => translateCategory(cat, language)) // Traduire vers la langue d'affichage
       : [];
+    
+    console.log('Categories du produit à éditer:', product.categories); // Debug
+    console.log('Categories traduites pour affichage:', translatedCategories); // Debug
+    
     const productImages = [...product.images];
     if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
       productImages.push('');
     }
+    
     setNewProduct({
       ...product,
-      categories: translatedCategories,
+      categories: translatedCategories, // Utiliser les catégories traduites
       images: productImages
     });
   };
@@ -628,9 +643,8 @@ export default function EcommercePage() {
                 <label className="text-sm font-medium text-gray-700">{t('categories')}:</label>
                 <div className="flex flex-wrap gap-2">
                   {availableCategories.map((cat) => {
-                    const isChecked = newProduct.categories.some(selectedCat => 
-                      normalizeCategory(cleanCategory(selectedCat)) === normalizeCategory(cleanCategory(cat))
-                    );
+                    // Vérification simple : la catégorie est-elle déjà sélectionnée ?
+                    const isChecked = newProduct.categories.includes(cat);
                     
                     return (
                       <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
