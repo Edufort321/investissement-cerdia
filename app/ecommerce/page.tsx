@@ -11,6 +11,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// ID de votre page Facebook pour Messenger
+const MESSENGER_PAGE_ID = '1RJqaaGPDF';
+
 interface Product {
   id?: number;
   name: string;
@@ -97,9 +100,9 @@ const translations = {
     yourEmail: 'Votre email', 
     productInterest: 'Produit qui vous intéresse',
     message: 'Votre message (optionnel)',
-    sendRequest: 'Envoyer la demande',
-    requestSent: 'Demande envoyée ! Vous recevrez une réponse sous peu.',
-    requestError: 'Erreur lors de l\'envoi. Réessayez plus tard.',
+    sendToMessenger: 'Ouvrir Messenger',
+    messengerDirect: 'Ou contactez-nous directement sur',
+    requestSent: 'Redirection vers Messenger...',
   },
   en: {
     title: 'CERDIA',
@@ -154,9 +157,9 @@ const translations = {
     yourEmail: 'Your email',
     productInterest: 'Product you\'re interested in',
     message: 'Your message (optional)',
-    sendRequest: 'Send request',
-    requestSent: 'Request sent! You will receive a response shortly.',
-    requestError: 'Error sending. Please try again later.',
+    sendToMessenger: 'Open Messenger',
+    messengerDirect: 'Or contact us directly on',
+    requestSent: 'Redirecting to Messenger...',
   }
 };
 
@@ -237,22 +240,6 @@ export default function EcommercePage() {
     }
   };
 
-  const sendSMSNotification = async (formData: any) => {
-    try {
-      console.log('📱 SMS envoyé à 514-603-4519:');
-      console.log(`Nouvelle demande Sitestripe:
-Nom: ${formData.name}
-Email: ${formData.email}
-Produit: ${formData.product}
-Message: ${formData.message || 'Aucun message'}`);
-      
-      return true;
-    } catch (error) {
-      console.error('Erreur envoi SMS:', error);
-      return false;
-    }
-  };
-
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -263,17 +250,30 @@ Message: ${formData.message || 'Aucun message'}`);
       email: formData.get('email') as string,
       product: formData.get('product') as string,
       message: formData.get('message') as string,
-      timestamp: new Date().toISOString()
     };
     
-    const success = await sendSMSNotification(contactData);
+    // Message pré-rempli pour Messenger selon la langue
+    const messengerMessage = language === 'fr' 
+      ? `Bonjour! Je suis ${contactData.name}
+📧 Email: ${contactData.email}
+🛍️ Produit qui m'intéresse: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+Je souhaiterais obtenir mes liens Sitestripe pour ce produit. Merci!`
+      : `Hello! I'm ${contactData.name}
+📧 Email: ${contactData.email}
+🛍️ Product I'm interested in: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+I would like to get my Sitestripe links for this product. Thank you!`;
     
-    if (success) {
-      alert(t('requestSent'));
-      form.reset();
-    } else {
-      alert(t('requestError'));
-    }
+    // Ouvrir Messenger avec le message pré-rempli
+    const messengerURL = `https://m.me/${MESSENGER_PAGE_ID}?text=${encodeURIComponent(messengerMessage)}`;
+    window.open(messengerURL, '_blank');
+    
+    // Message de confirmation
+    alert(t('requestSent'));
+    form.reset();
   };
 
   useEffect(() => {
@@ -806,13 +806,33 @@ Message: ${formData.message || 'Aucun message'}`);
                     rows={3}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
                   />
-                  <button 
-                    type="submit"
-                    className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {t('sendRequest')}
-                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      type="submit"
+                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      💬 {t('sendToMessenger')}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                      className="px-4 bg-gray-600 text-white font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                      title={t('messengerDirect')}
+                    >
+                      📱
+                    </button>
+                  </div>
                 </form>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600 mb-2">{t('messengerDirect')}</p>
+                  <button 
+                    onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                  >
+                    Messenger : Ric CERDIA
+                  </button>
+                </div>
               </div>
             </div>
           </div>
