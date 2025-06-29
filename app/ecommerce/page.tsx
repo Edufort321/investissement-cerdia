@@ -22,7 +22,7 @@ interface Product {
   categories: string[];
   priceCa?: string;
   priceUs?: string;
-  createdAt?: string; // NOUVEAU: Pour le tri par date
+  createdAt?: string;
 }
 
 const PASSWORD = '321MdlTamara!$';
@@ -163,9 +163,10 @@ const translations = {
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showBlog, setShowBlog] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [sortFilter, setSortFilter] = useState(''); // NOUVEAU: Filtre de tri
+  const [sortFilter, setSortFilter] = useState('');
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -214,22 +215,6 @@ export default function EcommercePage() {
     return numericPrice > 0;
   };
 
-  // Fonction helper pour vérifier si les catégories correspondent
-  const categoriesMatch = (productCategories: string[], filterCategory: string): boolean => {
-    if (!productCategories || productCategories.length === 0) return false;
-    
-    // Normaliser le filtre vers le français (format de stockage)
-    const normalizedFilter = normalizeCategory(cleanCategory(filterCategory));
-    
-    return productCategories.some(cat => {
-      const cleanCat = cleanCategory(cat);
-      const normalizedProductCat = normalizeCategory(cleanCat);
-      
-      return normalizedProductCat === normalizedFilter;
-    });
-  };
-
-  // Charger les catégories personnalisées depuis localStorage
   const loadCustomCategories = () => {
     try {
       const saved = localStorage.getItem('customCategories');
@@ -244,7 +229,6 @@ export default function EcommercePage() {
     }
   };
 
-  // Sauvegarder les catégories personnalisées dans localStorage
   const saveCustomCategories = (categories: string[]) => {
     try {
       localStorage.setItem('customCategories', JSON.stringify(categories));
@@ -253,24 +237,59 @@ export default function EcommercePage() {
     }
   };
 
+  const sendSMSNotification = async (formData: any) => {
+    try {
+      console.log('📱 SMS envoyé à 514-603-4519:');
+      console.log(`Nouvelle demande Sitestripe:
+Nom: ${formData.name}
+Email: ${formData.email}
+Produit: ${formData.product}
+Message: ${formData.message || 'Aucun message'}`);
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur envoi SMS:', error);
+      return false;
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const contactData = {
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      product: formData.get('product') as string,
+      message: formData.get('message') as string,
+      timestamp: new Date().toISOString()
+    };
+    
+    const success = await sendSMSNotification(contactData);
+    
+    if (success) {
+      alert(t('requestSent'));
+      form.reset();
+    } else {
+      alert(t('requestError'));
+    }
+  };
+
   useEffect(() => {
     loadCustomCategories();
     fetchProducts();
   }, []);
 
-  // Générer les catégories disponibles AVEC TRADUCTION CORRECTE
   useEffect(() => {
-    // Catégories par défaut dans la langue actuelle
     const defaultCats = DEFAULT_CATEGORIES[language];
     
-    // Catégories des produits existants - TOUJOURS TRADUITES
     const productCategories = new Set<string>();
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
         product.categories.forEach(cat => {
           const cleanCat = cleanCategory(cat);
           if (cleanCat && cleanCat.trim() !== '' && !cleanCat.includes('"') && !cleanCat.includes('[') && !cleanCat.includes(']')) {
-            // IMPORTANT: Traduire vers la langue d'affichage
             const translatedCat = translateCategory(cleanCat, language);
             if (translatedCat) {
               productCategories.add(translatedCat);
@@ -280,44 +299,34 @@ export default function EcommercePage() {
       }
     });
     
-    // Catégories personnalisées traduites vers la langue actuelle
     const translatedCustomCategories = customCategories
       .map(cat => translateCategory(cleanCategory(cat), language))
       .filter(cat => cat && cat.trim() !== '');
     
-    // Combiner toutes les catégories DANS LA LANGUE D'AFFICHAGE
     const allCategories = new Set([
       ...defaultCats,
       ...Array.from(productCategories),
       ...translatedCustomCategories
     ]);
     
-    // Nettoyer et trier
     const cleanedCategories = Array.from(allCategories)
       .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
       .sort();
     
-    console.log(`Catégories d'affichage (${language}):`, cleanedCategories);
     setAvailableCategories(cleanedCategories);
   }, [products, language, customCategories]);
 
   const fetchProducts = async () => {
-    console.log('=== RÉCUPÉRATION DES PRODUITS ===');
     const { data, error } = await supabase.from('products').select('*');
     if (!error && data) {
-      console.log('Données brutes de Supabase:', data);
-      
       const cleaned = data.map((p) => {
-        // CORRECTION : Gérer les crochets de Supabase
         let productCategories = [];
         if (p.categories) {
           if (Array.isArray(p.categories)) {
-            // Si c'est déjà un array
             productCategories = p.categories
               .map(cat => cleanCategory(cat))
               .filter(cat => cat && cat.trim() !== '');
           } else if (typeof p.categories === 'string') {
-            // Si c'est une string avec crochets : '["Montre"]' 
             try {
               const parsed = JSON.parse(p.categories);
               if (Array.isArray(parsed)) {
@@ -326,14 +335,11 @@ export default function EcommercePage() {
                   .filter(cat => cat && cat.trim() !== '');
               }
             } catch (e) {
-              // Si le parsing échoue, traiter comme une simple string
               productCategories = [cleanCategory(p.categories)]
                 .filter(cat => cat && cat.trim() !== '');
             }
           }
         }
-        
-        console.log(`Produit "${p.name}" - catégories DB:`, p.categories, '→ nettoyées:', productCategories);
         
         return {
           id: p.id,
@@ -346,44 +352,27 @@ export default function EcommercePage() {
           categories: productCategories,
           priceCa: p.price_ca?.toString() || '',
           priceUs: p.price_us?.toString() || '',
-          createdAt: p.created_at || new Date().toISOString(), // Pour le tri par date
+          createdAt: p.created_at || new Date().toISOString(),
         };
       });
       
-      console.log('Produits nettoyés:', cleaned);
       setProducts(cleaned);
-    } else if (error) {
-      console.error('Erreur lors de la récupération:', error);
     }
   };
 
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
-    console.log('=== DEBUG SAUVEGARDE ===');
-    console.log('Catégories du formulaire (langue interface):', newProduct.categories);
-    
-    // CORRECTION MAJEURE: Toujours sauvegarder en français normalisé
     const normalizedCategories = newProduct.categories
-      .map(cat => {
-        const cleanCat = cleanCategory(cat);
-        // FORCER la normalisation vers le français, peu importe la langue d'interface
-        const normalized = normalizeCategory(cleanCat);
-        console.log(`"${cat}" → nettoyé: "${cleanCat}" → normalisé FR: "${normalized}"`);
-        return normalized;
-      })
+      .map(cat => normalizeCategory(cleanCategory(cat)))
       .filter(cat => cat && cat.trim() !== '')
-      .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
-    
-    console.log('Catégories à sauvegarder (toujours en français):', normalizedCategories);
+      .filter((cat, index, arr) => arr.indexOf(cat) === index);
     
     const productToInsert: any = {
       name: newProduct.name,
       description: newProduct.description,
       categories: normalizedCategories.length > 0 ? normalizedCategories : null,
     };
-
-    console.log('Objet à insérer/mettre à jour:', productToInsert);
 
     if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
     if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
@@ -398,21 +387,17 @@ export default function EcommercePage() {
     if (editIndex !== null && products[editIndex].id) {
       const { error } = await supabase.from('products').update(productToInsert).eq('id', products[editIndex].id);
       if (!error) {
-        console.log('✅ Produit mis à jour avec succès');
         await fetchProducts();
         alert(t('productUpdated'));
       } else {
-        console.error('❌ Erreur lors de la mise à jour:', error);
         alert(t('updateError'));
       }
     } else {
       const { error } = await supabase.from('products').insert([productToInsert]);
       if (!error) {
-        console.log('✅ Produit ajouté avec succès');
         await fetchProducts();
         alert(t('productAdded'));
       } else {
-        console.error('❌ Erreur lors de l\'ajout:', error);
         alert(t('addError'));
       }
     }
@@ -424,9 +409,9 @@ export default function EcommercePage() {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (!error) {
       await fetchProducts();
-      console.log(t('productDeleted'));
+      alert(t('productDeleted'));
     } else {
-      console.error(t('deleteError'), error);
+      alert(t('deleteError'));
     }
     resetForm();
   };
@@ -475,26 +460,21 @@ export default function EcommercePage() {
 
   const handleAddCategory = (category: string) => {
     if (!passwordEntered) {
-      alert(t('adminPassword'));
+      alert(t('adminRequired'));
       return;
     }
     
-    // IMPORTANT: Toujours normaliser vers le français pour éviter les doublons
     const normalizedCategory = normalizeCategory(cleanCategory(category));
     
     if (normalizedCategory && normalizedCategory.trim() !== '') {
-      // Vérifier si cette catégorie existe déjà (version normalisée)
       const categoryExists = customCategories.some(cat => 
         normalizeCategory(cleanCategory(cat)) === normalizedCategory
       );
       
       if (!categoryExists) {
-        // Ajouter aux catégories personnalisées (toujours en français)
         const updatedCustomCategories = [...customCategories, normalizedCategory];
         setCustomCategories(updatedCustomCategories);
         saveCustomCategories(updatedCustomCategories);
-        
-        console.log(`Nouvelle catégorie ajoutée: "${normalizedCategory}"`);
       } else {
         alert(`La catégorie "${normalizedCategory}" existe déjà.`);
       }
@@ -502,27 +482,15 @@ export default function EcommercePage() {
   };
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
-    console.log('=== TOGGLE CATÉGORIE ===');
-    console.log('Catégorie cliquée:', category);
-    console.log('État checked:', checked);
-    console.log('Catégories actuelles avant modification:', newProduct.categories);
-    
     if (checked) {
-      // Ajouter la catégorie si elle n'existe pas déjà
       if (!newProduct.categories.includes(category)) {
-        const updatedCategories = [...newProduct.categories, category];
-        console.log('Nouvelles catégories après ajout:', updatedCategories);
         setNewProduct({ 
           ...newProduct, 
-          categories: updatedCategories
+          categories: [...newProduct.categories, category] 
         });
-      } else {
-        console.log('Catégorie déjà présente, pas d\'ajout');
       }
     } else {
-      // Supprimer la catégorie
       const updatedCategories = newProduct.categories.filter(c => c !== category);
-      console.log('Nouvelles catégories après suppression:', updatedCategories);
       setNewProduct({ 
         ...newProduct, 
         categories: updatedCategories 
@@ -551,39 +519,33 @@ export default function EcommercePage() {
   const cleanupCategories = async () => {
     if (!passwordEntered) return;
     
-    const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ? Cela va :\n\n1. Supprimer les catégories malformées comme "[Watch]", "[[Montre],Watch]"\n2. Supprimer les catégories non-utilisées par aucun produit\n3. Normaliser toutes les catégories restantes\n\nCette action est irréversible.');
+    const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ?');
     if (!confirmCleanup) return;
 
     try {
-      // Récupérer tous les produits
       const { data: allProducts } = await supabase.from('products').select('*');
       
       if (allProducts) {
-        // Set pour collecter toutes les catégories utilisées
         const usedCategories = new Set<string>();
         
-        // Première passe : nettoyer et collecter les catégories utilisées
         for (const product of allProducts) {
           if (product.categories) {
-            // Nettoyer les catégories
             const cleanedCategories = Array.isArray(product.categories) 
               ? product.categories
                   .map(cat => cleanCategory(cat))
                   .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
                   .map(cat => normalizeCategory(cat))
-                  .filter((cat, index, arr) => arr.indexOf(cat) === index) // Supprimer les doublons
+                  .filter((cat, index, arr) => arr.indexOf(cat) === index)
               : [cleanCategory(product.categories)]
                   .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
                   .map(cat => normalizeCategory(cat));
 
-            // Ajouter les catégories nettoyées à la liste des catégories utilisées
             cleanedCategories.forEach(cat => {
               if (cat && cat.trim() !== '') {
                 usedCategories.add(cat);
               }
             });
 
-            // Mettre à jour le produit si les catégories ont changé
             if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
               await supabase
                 .from('products')
@@ -593,7 +555,6 @@ export default function EcommercePage() {
           }
         }
         
-        // Nettoyer aussi les catégories personnalisées
         const cleanedCustomCategories = customCategories
           .map(cat => normalizeCategory(cleanCategory(cat)))
           .filter(cat => cat && cat.trim() !== '' && usedCategories.has(cat));
@@ -601,14 +562,9 @@ export default function EcommercePage() {
         setCustomCategories(cleanedCustomCategories);
         saveCustomCategories(cleanedCustomCategories);
         
-        // Recharger les produits pour mettre à jour l'interface
         await fetchProducts();
         
-        // Afficher le résultat
-        const categoriesUsedCount = usedCategories.size;
-        const categoriesKept = Array.from(usedCategories).join(', ');
-        
-        alert(`Nettoyage terminé avec succès !\n\n✅ Catégories conservées (${categoriesUsedCount}) :\n${categoriesKept}\n\n🗑️ Toutes les catégories malformées et non-utilisées ont été supprimées.`);
+        alert('Nettoyage terminé avec succès !');
       }
     } catch (error) {
       console.error('Erreur lors du nettoyage:', error);
@@ -616,7 +572,6 @@ export default function EcommercePage() {
     }
   };
 
-  // FONCTION DE TRI DES PRODUITS
   const sortProducts = (products: Product[]) => {
     if (!sortFilter) return products;
     
@@ -648,35 +603,21 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE CORRIGÉE POUR LA TRADUCTION
   let filteredAndSortedProducts = categoryFilter
     ? products.filter((product) => {
         if (!product.categories || product.categories.length === 0) {
           return false;
         }
         
-        console.log(`=== FILTRAGE "${product.name}" ===`);
-        console.log(`Filtre cliqué (${language}): "${categoryFilter}"`);
-        console.log(`Catégories du produit (français en base):`, product.categories);
-        
-        // Convertir le filtre affiché vers le français (format stockage)
         const filterInFrench = translateCategory(categoryFilter, 'fr');
-        console.log(`Filtre converti en français: "${filterInFrench}"`);
         
-        // Vérifier si le produit a cette catégorie (comparaison français-français)
-        const hasCategory = product.categories.some(productCat => {
+        return product.categories.some(productCat => {
           const cleanProductCat = cleanCategory(productCat);
-          const match = cleanProductCat === filterInFrench;
-          console.log(`  "${productCat}" === "${filterInFrench}" ? ${match}`);
-          return match;
+          return cleanProductCat === filterInFrench;
         });
-        
-        console.log(`Résultat: ${hasCategory ? '✅ INCLUS' : '❌ EXCLU'}`);
-        return hasCategory;
       })
     : [...products];
 
-  // Appliquer le tri
   filteredAndSortedProducts = sortProducts(filteredAndSortedProducts);
 
   const handleEdit = (index: number) => {
@@ -684,12 +625,11 @@ export default function EcommercePage() {
     setEditIndex(index);
     setShowForm(true);
     
-    // Récupérer les catégories du produit et les traduire selon la langue actuelle
     const translatedCategories = Array.isArray(product.categories) 
       ? product.categories
           .map(cat => cleanCategory(cat))
           .filter(cat => cat && cat.trim() !== '')
-          .map(cat => translateCategory(cat, language)) // Traduire vers la langue d'affichage
+          .map(cat => translateCategory(cat, language))
       : [];
     
     const productImages = [...product.images];
@@ -699,65 +639,9 @@ export default function EcommercePage() {
     
     setNewProduct({
       ...product,
-      categories: translatedCategories, // Utiliser les catégories traduites
+      categories: translatedCategories,
       images: productImages
     });
-  };
-
-  // FONCTION POUR ENVOYER SMS (SIMULATION - À REMPLACER PAR VOTRE SERVICE)
-  const sendSMSNotification = async (formData: any) => {
-    try {
-      // SIMULATION : Remplacez par votre service SMS (Twilio, etc.)
-      console.log('📱 SMS envoyé à 514-603-4519:');
-      console.log(`Nouvelle demande Sitestripe:
-Nom: ${formData.name}
-Email: ${formData.email}
-Produit: ${formData.product}
-Message: ${formData.message || 'Aucun message'}`);
-      
-      // ICI : Intégrer votre service SMS réel
-      // Exemple avec fetch vers votre API:
-      /*
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: '514-603-4519',
-          message: `Nouvelle demande Sitestripe: ${formData.name} - ${formData.product}`
-        })
-      });
-      */
-      
-      return true;
-    } catch (error) {
-      console.error('Erreur envoi SMS:', error);
-      return false;
-    }
-  };
-
-  // FONCTION POUR GÉRER LE FORMULAIRE DE CONTACT
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    const contactData = {
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      product: formData.get('product') as string,
-      message: formData.get('message') as string,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Envoyer SMS notification
-    const success = await sendSMSNotification(contactData);
-    
-    if (success) {
-      alert(t('requestSent'));
-      form.reset();
-    } else {
-      alert(t('requestError'));
-    }
   };
 
   const toggleFavorite = (productId: number) => {
@@ -792,7 +676,6 @@ Message: ${formData.message || 'Aucun message'}`);
             </div>
           </div>
           
-          {/* NOUVEAU: Navigation Blog/Produits */}
           <div className="flex gap-4 mb-3">
             <button 
               onClick={() => setShowBlog(false)} 
@@ -812,7 +695,6 @@ Message: ${formData.message || 'Aucun message'}`);
             </button>
           </div>
           
-          {/* Filtres - Seulement sur la page produits */}
           {!showBlog && (
             <>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
@@ -846,7 +728,6 @@ Message: ${formData.message || 'Aucun message'}`);
                 )}
               </div>
               
-              {/* Menu déroulant de tri */}
               <div className="mt-3 flex justify-end">
                 <select 
                   value={sortFilter} 
@@ -867,7 +748,6 @@ Message: ${formData.message || 'Aucun message'}`);
         </div>
       </header>
 
-      {/* NOUVEAU: Page Blog */}
       {showBlog && (
         <main className="px-4 py-8 max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-sm p-8">
@@ -939,112 +819,7 @@ Message: ${formData.message || 'Aucun message'}`);
         </main>
       )}
 
-      {/* Page produits existante */}
       {!showBlog && (
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold">{editIndex !== null ? t('modify') : t('add')}</h2>
-              <button onClick={resetForm} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">✕</button>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="p-4 space-y-4">
-              <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder={t('name')} className="w-full border p-3 rounded-lg" required />
-              <textarea name="description" value={newProduct.description} onChange={handleInputChange} placeholder={t('description')} className="w-full border p-3 rounded-lg h-20 resize-vertical" required />
-              <div className="grid grid-cols-2 gap-3">
-                <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-3 rounded-lg" type="number" step="0.01" min="0" />
-                <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-3 rounded-lg" type="number" step="0.01" min="0" />
-              </div>
-              <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Amazon.ca" className="w-full border p-3 rounded-lg" type="url" />
-              <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Amazon.com" className="w-full border p-3 rounded-lg" type="url" />
-              <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="TikTok" className="w-full border p-3 rounded-lg" type="url" />
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">{t('images')}:</label>
-                {newProduct.images.map((image, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input name="images" value={image} onChange={(e) => handleInputChange(e, i)} placeholder={`Image URL ${i + 1}`} className="flex-1 border p-3 rounded-lg text-sm" type="url" />
-                    {newProduct.images.length > 1 && (
-                      <button type="button" onClick={() => removeImageField(i)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600">
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button type="button" onClick={addImageField} className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
-                  <Plus size={16} />{t('addImage')}
-                </button>
-              </div>
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">{t('categories')}:</label>
-                <div className="flex flex-wrap gap-2">
-                  {availableCategories.map((cat) => {
-                    // Vérification simple : la catégorie est-elle déjà sélectionnée ?
-                    const isChecked = newProduct.categories.includes(cat);
-                    console.log(`Rendu catégorie "${cat}": checked=${isChecked}, catégories actuelles:`, newProduct.categories);
-                    
-                    return (
-                      <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                        isChecked 
-                          ? 'bg-blue-100 border-2 border-blue-500 text-blue-800' 
-                          : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                      }`}>
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked}
-                          onChange={(e) => {
-                            console.log(`Checkbox "${cat}" changée: ${e.target.checked}`);
-                            handleCategoryToggle(cat, e.target.checked);
-                          }} 
-                          className="mr-2" 
-                        /> 
-                        <span className="font-medium">{cat}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <input 
-                  placeholder={passwordEntered ? t('addCategory') : `🔒 ${t('addCategory')} (Admin)`} 
-                  disabled={!passwordEntered}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const val = (e.target as HTMLInputElement).value.trim();
-                      if (val) {
-                        if (passwordEntered) {
-                          handleAddCategory(val);
-                          (e.target as HTMLInputElement).value = '';
-                        } else {
-                          if (requestPasswordOnce()) {
-                            handleAddCategory(val);
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }
-                      }
-                    }
-                  }} 
-                  className={`w-full border p-3 rounded-lg ${
-                    !passwordEntered ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`} 
-                />
-                {newProduct.categories.length > 0 && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">{t('selectedCategories')}: {newProduct.categories.join(', ')}</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-3 pt-4 border-t">
-                <button type="button" onClick={resetForm} className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600">{t('cancel')}</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editIndex !== null ? t('modify') : t('save')}</button>
-                {editIndex !== null && (
-                  <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">🗑️</button>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
         <main className="px-2 py-4">
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
             {filteredAndSortedProducts.map((product, i) => (
@@ -1065,8 +840,13 @@ Message: ${formData.message || 'Aucun message'}`);
             ))}
           </div>
         </main>
+      )}
 
-        <button className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" onClick={() => handleAdminAction(() => setShowForm(true))}>
+      {!showBlog && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={() => handleAdminAction(() => setShowForm(true))}
+        >
           <Plus size={24} />
         </button>
       )}
@@ -1109,7 +889,6 @@ Message: ${formData.message || 'Aucun message'}`);
                 <div className="flex flex-wrap gap-2">
                   {availableCategories.map((cat) => {
                     const isChecked = newProduct.categories.includes(cat);
-                    console.log(`Rendu catégorie "${cat}": checked=${isChecked}, catégories actuelles:`, newProduct.categories);
                     
                     return (
                       <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
@@ -1120,10 +899,7 @@ Message: ${formData.message || 'Aucun message'}`);
                         <input 
                           type="checkbox" 
                           checked={isChecked}
-                          onChange={(e) => {
-                            console.log(`Checkbox "${cat}" changée: ${e.target.checked}`);
-                            handleCategoryToggle(cat, e.target.checked);
-                          }} 
+                          onChange={(e) => handleCategoryToggle(cat, e.target.checked)} 
                           className="mr-2" 
                         /> 
                         <span className="font-medium">{cat}</span>
@@ -1172,9 +948,6 @@ Message: ${formData.message || 'Aucun message'}`);
           </div>
         </div>
       )}
-    </div>
-  );
-}
     </div>
   );
 }
@@ -1251,8 +1024,6 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
             <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-2">{product.name}</h3>
             <p className="text-xs text-gray-600 line-clamp-3 mb-3">{product.description}</p>
             
-            {/* SUPPRESSION DE L'AFFICHAGE DES CATÉGORIES SUR LES CARTES */}
-            
             {(hasPriceValue(product.priceCa) || hasPriceValue(product.priceUs)) && (
               <div className="mb-3">
                 <p className="font-semibold text-sm text-gray-900">
@@ -1289,7 +1060,6 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
         </div>
       </div>
 
-      {/* Modal de zoom d'image avec carousel */}
       {showZoom && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onClick={closeZoom}>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
@@ -1300,7 +1070,6 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
               ✕
             </button>
             
-            {/* Navigation carousel dans le zoom */}
             {images.length > 1 && (
               <>
                 <button 
@@ -1326,7 +1095,6 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                   ›
                 </button>
                 
-                {/* Indicateurs de pagination dans le zoom */}
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                   {images.map((_, index) => (
                     <button
