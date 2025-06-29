@@ -97,7 +97,6 @@ const translations = {
     feature4: '📱 Service 7j/7',
     contactForm: 'Demander votre Sitestripe',
     yourName: 'Votre nom',
-    yourEmail: 'Votre email', 
     productInterest: 'Produit qui vous intéresse',
     message: 'Votre message (optionnel)',
     sendToMessenger: 'Ouvrir Messenger',
@@ -154,7 +153,6 @@ const translations = {
     feature4: '📱 7/7 service',
     contactForm: 'Request your Sitestripe',
     yourName: 'Your name',
-    yourEmail: 'Your email',
     productInterest: 'Product you\'re interested in',
     message: 'Your message (optional)',
     sendToMessenger: 'Open Messenger',
@@ -247,7 +245,6 @@ export default function EcommercePage() {
     
     const contactData = {
       name: formData.get('name') as string,
-      email: formData.get('email') as string,
       product: formData.get('product') as string,
       message: formData.get('message') as string,
     };
@@ -255,13 +252,11 @@ export default function EcommercePage() {
     // Message pré-rempli pour Messenger selon la langue
     const messengerMessage = language === 'fr' 
       ? `Bonjour! Je suis ${contactData.name}
-📧 Email: ${contactData.email}
 🛍️ Produit qui m'intéresse: ${contactData.product}
 ${contactData.message ? `💬 Message: ${contactData.message}` : ''}
 
 Je souhaiterais obtenir mes liens Sitestripe pour ce produit. Merci!`
       : `Hello! I'm ${contactData.name}
-📧 Email: ${contactData.email}
 🛍️ Product I'm interested in: ${contactData.product}
 ${contactData.message ? `💬 Message: ${contactData.message}` : ''}
 
@@ -783,13 +778,6 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     name="name"
                     type="text" 
                     placeholder={t('yourName')} 
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input 
-                    name="email"
-                    type="email" 
-                    placeholder={t('yourEmail')} 
                     required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
