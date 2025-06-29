@@ -22,6 +22,7 @@ interface Product {
   categories: string[];
   priceCa?: string;
   priceUs?: string;
+  createdAt?: string; // NOUVEAU: Pour le tri par date
 }
 
 const PASSWORD = '321MdlTamara!$';
@@ -73,6 +74,13 @@ const translations = {
     priceNote: 'Prix peuvent varier',
     indicativePrice: 'À partir de',
     save: 'Sauvegarder',
+    sortBy: 'Trier par',
+    priceLowHigh: 'Prix croissant',
+    priceHighLow: 'Prix décroissant',
+    newest: 'Plus récent',
+    oldest: 'Plus ancien',
+    nameAZ: 'Nom A-Z',
+    nameZA: 'Nom Z-A',
   },
   en: {
     title: 'CERDIA',
@@ -104,6 +112,13 @@ const translations = {
     priceNote: 'Prices may vary',
     indicativePrice: 'From',
     save: 'Save',
+    sortBy: 'Sort by',
+    priceLowHigh: 'Price low to high',
+    priceHighLow: 'Price high to low',
+    newest: 'Newest',
+    oldest: 'Oldest',
+    nameAZ: 'Name A-Z',
+    nameZA: 'Name Z-A',
   }
 };
 
@@ -112,6 +127,7 @@ export default function EcommercePage() {
   const [showForm, setShowForm] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortFilter, setSortFilter] = useState(''); // NOUVEAU: Filtre de tri
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -252,16 +268,31 @@ export default function EcommercePage() {
     if (!error && data) {
       console.log('Données brutes de Supabase:', data);
       
-      // DEBUG: Afficher toutes les catégories de tous les produits
-      console.log('=== ANALYSE DES CATÉGORIES ===');
-      data.forEach(p => {
-        console.log(`"${p.name}": categories =`, p.categories, typeof p.categories);
-      });
-      
       const cleaned = data.map((p) => {
-        const productCategories = Array.isArray(p.categories) 
-          ? p.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
-          : (p.categories ? [cleanCategory(p.categories)].filter(cat => cat && cat.trim() !== '' && !cat.includes('"')) : []);
+        // CORRECTION : Gérer les crochets de Supabase
+        let productCategories = [];
+        if (p.categories) {
+          if (Array.isArray(p.categories)) {
+            // Si c'est déjà un array
+            productCategories = p.categories
+              .map(cat => cleanCategory(cat))
+              .filter(cat => cat && cat.trim() !== '');
+          } else if (typeof p.categories === 'string') {
+            // Si c'est une string avec crochets : '["Montre"]' 
+            try {
+              const parsed = JSON.parse(p.categories);
+              if (Array.isArray(parsed)) {
+                productCategories = parsed
+                  .map(cat => cleanCategory(cat))
+                  .filter(cat => cat && cat.trim() !== '');
+              }
+            } catch (e) {
+              // Si le parsing échoue, traiter comme une simple string
+              productCategories = [cleanCategory(p.categories)]
+                .filter(cat => cat && cat.trim() !== '');
+            }
+          }
+        }
         
         console.log(`Produit "${p.name}" - catégories DB:`, p.categories, '→ nettoyées:', productCategories);
         
@@ -276,20 +307,11 @@ export default function EcommercePage() {
           categories: productCategories,
           priceCa: p.price_ca?.toString() || '',
           priceUs: p.price_us?.toString() || '',
+          createdAt: p.created_at || new Date().toISOString(), // Pour le tri par date
         };
       });
       
       console.log('Produits nettoyés:', cleaned);
-      
-      // DEBUG: Compter les produits par catégorie
-      const categoryCount = {};
-      cleaned.forEach(product => {
-        product.categories.forEach(cat => {
-          categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-        });
-      });
-      console.log('Comptage par catégorie:', categoryCount);
-      
       setProducts(cleaned);
     } else if (error) {
       console.error('Erreur lors de la récupération:', error);
@@ -552,37 +574,58 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE SIMPLIFIÉE ET CORRIGÉE
-  const filteredProducts = categoryFilter
+  // FONCTION DE TRI DES PRODUITS
+  const sortProducts = (products: Product[]) => {
+    if (!sortFilter) return products;
+    
+    const sorted = [...products];
+    
+    switch (sortFilter) {
+      case 'priceLowHigh':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.priceCa || a.priceUs || '0');
+          const priceB = parseFloat(b.priceCa || b.priceUs || '0');
+          return priceA - priceB;
+        });
+      case 'priceHighLow':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.priceCa || a.priceUs || '0');
+          const priceB = parseFloat(b.priceCa || b.priceUs || '0');
+          return priceB - priceA;
+        });
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      case 'nameAZ':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'nameZA':
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return sorted;
+    }
+  };
+
+  // LOGIQUE DE FILTRAGE ET TRI COMBINÉS
+  let filteredAndSortedProducts = categoryFilter
     ? products.filter((product) => {
         if (!product.categories || product.categories.length === 0) {
-          console.log(`Produit "${product.name}" ignoré - pas de catégories`);
           return false;
         }
         
-        console.log(`=== FILTRAGE POUR "${product.name}" ===`);
-        console.log(`Filtre sélectionné: "${categoryFilter}"`);
-        console.log(`Catégories du produit:`, product.categories);
-        
         // Convertir le filtre vers le français (format de stockage uniforme)
         const filterInFrench = translateCategory(categoryFilter, 'fr');
-        console.log(`Filtre traduit en français: "${filterInFrench}"`);
         
         // Vérifier si le produit a cette catégorie
-        const hasCategory = product.categories.some(productCat => {
+        return product.categories.some(productCat => {
           const cleanProductCat = cleanCategory(productCat);
-          const match = cleanProductCat === filterInFrench;
-          console.log(`  Catégorie "${productCat}" === "${filterInFrench}" ? ${match}`);
-          return match;
+          return cleanProductCat === filterInFrench;
         });
-        
-        console.log(`Produit "${product.name}" ${hasCategory ? '✅ INCLUS' : '❌ EXCLU'} du filtre`);
-        return hasCategory;
       })
-    : (() => {
-        console.log('Aucun filtre - affichage de tous les produits');
-        return [...products];
-      })();
+    : [...products];
+
+  // Appliquer le tri
+  filteredAndSortedProducts = sortProducts(filteredAndSortedProducts);
 
   const handleEdit = (index: number) => {
     const product = products[index];
@@ -669,6 +712,23 @@ export default function EcommercePage() {
                 🧹 Nettoyer
               </button>
             )}
+          </div>
+          
+          {/* NOUVEAU: Menu déroulant de tri */}
+          <div className="mt-3 flex justify-end">
+            <select 
+              value={sortFilter} 
+              onChange={(e) => setSortFilter(e.target.value)}
+              className="text-sm border border-gray-300 rounded px-3 py-1 bg-white min-w-[150px]"
+            >
+              <option value="">{t('sortBy')}</option>
+              <option value="priceLowHigh">{t('priceLowHigh')}</option>
+              <option value="priceHighLow">{t('priceHighLow')}</option>
+              <option value="newest">{t('newest')}</option>
+              <option value="oldest">{t('oldest')}</option>
+              <option value="nameAZ">{t('nameAZ')}</option>
+              <option value="nameZA">{t('nameZA')}</option>
+            </select>
           </div>
         </div>
       </header>
@@ -764,7 +824,7 @@ export default function EcommercePage() {
 
       <main className="px-2 py-4">
         <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
-          {filteredProducts.map((product, i) => (
+          {filteredAndSortedProducts.map((product, i) => (
             <ProductCard 
               key={product.id || i} 
               product={product} 
