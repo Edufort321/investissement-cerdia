@@ -421,17 +421,27 @@ export default function EcommercePage() {
   };
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
+    console.log('=== TOGGLE CATÉGORIE ===');
+    console.log('Catégorie cliquée:', category);
+    console.log('État checked:', checked);
+    console.log('Catégories actuelles avant modification:', newProduct.categories);
+    
     if (checked) {
       // Ajouter la catégorie si elle n'existe pas déjà
       if (!newProduct.categories.includes(category)) {
+        const updatedCategories = [...newProduct.categories, category];
+        console.log('Nouvelles catégories après ajout:', updatedCategories);
         setNewProduct({ 
           ...newProduct, 
-          categories: [...newProduct.categories, category] 
+          categories: updatedCategories
         });
+      } else {
+        console.log('Catégorie déjà présente, pas d\'ajout');
       }
     } else {
       // Supprimer la catégorie
       const updatedCategories = newProduct.categories.filter(c => c !== category);
+      console.log('Nouvelles catégories après suppression:', updatedCategories);
       setNewProduct({ 
         ...newProduct, 
         categories: updatedCategories 
@@ -682,6 +692,7 @@ export default function EcommercePage() {
                   {availableCategories.map((cat) => {
                     // Vérification simple : la catégorie est-elle déjà sélectionnée ?
                     const isChecked = newProduct.categories.includes(cat);
+                    console.log(`Rendu catégorie "${cat}": checked=${isChecked}, catégories actuelles:`, newProduct.categories);
                     
                     return (
                       <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
@@ -692,7 +703,10 @@ export default function EcommercePage() {
                         <input 
                           type="checkbox" 
                           checked={isChecked}
-                          onChange={(e) => handleCategoryToggle(cat, e.target.checked)} 
+                          onChange={(e) => {
+                            console.log(`Checkbox "${cat}" changée: ${e.target.checked}`);
+                            handleCategoryToggle(cat, e.target.checked);
+                          }} 
                           className="mr-2" 
                         /> 
                         <span className="font-medium">{cat}</span>
