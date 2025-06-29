@@ -160,6 +160,21 @@ export default function EcommercePage() {
     return numericPrice > 0;
   };
 
+  // Fonction helper pour vérifier si les catégories correspondent
+  const categoriesMatch = (productCategories: string[], filterCategory: string): boolean => {
+    if (!productCategories || productCategories.length === 0) return false;
+    
+    // Normaliser le filtre vers le français (format de stockage)
+    const normalizedFilter = normalizeCategory(cleanCategory(filterCategory));
+    
+    return productCategories.some(cat => {
+      const cleanCat = cleanCategory(cat);
+      const normalizedProductCat = normalizeCategory(cleanCat);
+      
+      return normalizedProductCat === normalizedFilter;
+    });
+  };
+
   // Charger les catégories personnalisées depuis localStorage
   const loadCustomCategories = () => {
     try {
@@ -486,25 +501,9 @@ export default function EcommercePage() {
     }
   };
 
+  // LOGIQUE DE FILTRAGE CORRIGÉE
   const filteredProducts = categoryFilter
-    ? products.filter((p) => {
-        if (!p.categories || p.categories.length === 0) return false;
-        
-        const matches = p.categories.some(cat => {
-          const cleanCat = cleanCategory(cat);
-          const normalizedProductCat = normalizeCategory(cleanCat);
-          const normalizedFilterCat = normalizeCategory(cleanCategory(categoryFilter));
-          
-          // Comparaisons multiples pour plus de robustesse
-          const directMatch = normalizedProductCat === normalizedFilterCat;
-          const translatedMatch = translateCategory(cleanCat, language) === categoryFilter;
-          const reverseTranslatedMatch = translateCategory(normalizedFilterCat, language) === translateCategory(normalizedProductCat, language);
-          
-          return directMatch || translatedMatch || reverseTranslatedMatch;
-        });
-        
-        return matches;
-      })
+    ? products.filter((p) => categoriesMatch(p.categories, categoryFilter))
     : [...products];
 
   const handleEdit = (index: number) => {
