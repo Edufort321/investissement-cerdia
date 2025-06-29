@@ -12,7 +12,7 @@ const supabase = createClient(
 );
 
 // ID de votre page Facebook pour Messenger
-const MESSENGER_PAGE_ID = '1RJqaaGPDF';
+const MESSENGER_PAGE_ID = 'riccerdia';
 
 interface Product {
   id?: number;
