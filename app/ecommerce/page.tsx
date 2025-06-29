@@ -247,40 +247,65 @@ export default function EcommercePage() {
   }, [products, language, customCategories]);
 
   const fetchProducts = async () => {
+    console.log('=== RÉCUPÉRATION DES PRODUITS ===');
     const { data, error } = await supabase.from('products').select('*');
     if (!error && data) {
-      const cleaned = data.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        amazonCa: p.amazonca || '',
-        amazonCom: p.amazoncom || '',
-        tiktokUrl: p.tiktokurl || '',
-        images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
-        categories: Array.isArray(p.categories) 
+      console.log('Données brutes de Supabase:', data);
+      
+      const cleaned = data.map((p) => {
+        const productCategories = Array.isArray(p.categories) 
           ? p.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
-          : (p.categories ? [cleanCategory(p.categories)].filter(cat => cat && cat.trim() !== '' && !cat.includes('"')) : []),
-        priceCa: p.price_ca?.toString() || '',
-        priceUs: p.price_us?.toString() || '',
-      }));
+          : (p.categories ? [cleanCategory(p.categories)].filter(cat => cat && cat.trim() !== '' && !cat.includes('"')) : []);
+        
+        console.log(`Produit "${p.name}" - catégories DB:`, p.categories, '→ nettoyées:', productCategories);
+        
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          amazonCa: p.amazonca || '',
+          amazonCom: p.amazoncom || '',
+          tiktokUrl: p.tiktokurl || '',
+          images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
+          categories: productCategories,
+          priceCa: p.price_ca?.toString() || '',
+          priceUs: p.price_us?.toString() || '',
+        };
+      });
+      
+      console.log('Produits nettoyés:', cleaned);
       setProducts(cleaned);
+    } else if (error) {
+      console.error('Erreur lors de la récupération:', error);
     }
   };
 
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
+    console.log('=== DEBUG SAUVEGARDE ===');
+    console.log('Catégories brutes du formulaire:', newProduct.categories);
+    
     // Normaliser les catégories sélectionnées vers le français pour le stockage
     const normalizedCategories = newProduct.categories
-      .map(cat => normalizeCategory(cleanCategory(cat)))
+      .map(cat => {
+        const cleanCat = cleanCategory(cat);
+        const normalized = normalizeCategory(cleanCat);
+        console.log(`Catégorie "${cat}" → nettoyée: "${cleanCat}" → normalisée: "${normalized}"`);
+        return normalized;
+      })
       .filter(cat => cat && cat.trim() !== '')
       .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
+    
+    console.log('Catégories normalisées pour la DB:', normalizedCategories);
     
     const productToInsert: any = {
       name: newProduct.name,
       description: newProduct.description,
       categories: normalizedCategories.length > 0 ? normalizedCategories : null,
     };
+
+    console.log('Objet à insérer/mettre à jour:', productToInsert);
 
     if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
     if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
@@ -295,18 +320,22 @@ export default function EcommercePage() {
     if (editIndex !== null && products[editIndex].id) {
       const { error } = await supabase.from('products').update(productToInsert).eq('id', products[editIndex].id);
       if (!error) {
+        console.log('✅ Produit mis à jour avec succès');
         await fetchProducts();
-        console.log(t('productUpdated'));
+        alert(t('productUpdated'));
       } else {
-        console.error(t('updateError'), error);
+        console.error('❌ Erreur lors de la mise à jour:', error);
+        alert(t('updateError'));
       }
     } else {
       const { error } = await supabase.from('products').insert([productToInsert]);
       if (!error) {
+        console.log('✅ Produit ajouté avec succès');
         await fetchProducts();
-        console.log(t('productAdded'));
+        alert(t('productAdded'));
       } else {
-        console.error(t('addError'), error);
+        console.error('❌ Erreur lors de l\'ajout:', error);
+        alert(t('addError'));
       }
     }
     resetForm();
@@ -496,22 +525,34 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE CORRIGÉE ET SIMPLIFIÉE
+  // LOGIQUE DE FILTRAGE AVEC DEBUG
   const filteredProducts = categoryFilter
     ? products.filter((product) => {
-        if (!product.categories || product.categories.length === 0) return false;
+        if (!product.categories || product.categories.length === 0) {
+          console.log(`Produit "${product.name}" ignoré - pas de catégories`);
+          return false;
+        }
         
         // Normaliser le filtre sélectionné vers le français (format de stockage)
         const normalizedFilter = normalizeCategory(cleanCategory(categoryFilter));
+        console.log(`Filtre "${categoryFilter}" normalisé: "${normalizedFilter}"`);
         
         // Vérifier si le produit contient cette catégorie
-        return product.categories.some(productCat => {
+        const hasCategory = product.categories.some(productCat => {
           const cleanProductCat = cleanCategory(productCat);
           const normalizedProductCat = normalizeCategory(cleanProductCat);
-          return normalizedProductCat === normalizedFilter;
+          const match = normalizedProductCat === normalizedFilter;
+          console.log(`  - Catégorie produit "${productCat}" → "${normalizedProductCat}" === "${normalizedFilter}" ? ${match}`);
+          return match;
         });
+        
+        console.log(`Produit "${product.name}" ${hasCategory ? '✅ INCLUS' : '❌ EXCLU'} du filtre`);
+        return hasCategory;
       })
-    : [...products];
+    : (() => {
+        console.log('Aucun filtre - affichage de tous les produits');
+        return [...products];
+      })();
 
   const handleEdit = (index: number) => {
     const product = products[index];
