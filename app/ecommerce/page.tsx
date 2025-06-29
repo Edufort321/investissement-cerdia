@@ -81,6 +81,7 @@ const translations = {
     oldest: 'Plus ancien',
     nameAZ: 'Nom A-Z',
     nameZA: 'Nom Z-A',
+    adminRequired: 'Mot de passe admin requis pour créer des catégories',
   },
   en: {
     title: 'CERDIA',
@@ -119,6 +120,7 @@ const translations = {
     oldest: 'Oldest',
     nameAZ: 'Name A-Z',
     nameZA: 'Name Z-A',
+    adminRequired: 'Admin password required to create categories',
   }
 };
 
@@ -324,14 +326,14 @@ export default function EcommercePage() {
     console.log('=== DEBUG SAUVEGARDE ===');
     console.log('Catégories du formulaire (langue interface):', newProduct.categories);
     
-    // IMPORTANT: Toujours normaliser vers le français pour la cohérence en base
+    // CORRECTION MAJEURE: Toujours sauvegarder en français normalisé
     const normalizedCategories = newProduct.categories
       .map(cat => {
         const cleanCat = cleanCategory(cat);
-        // Forcer la traduction vers le français
-        const frenchVersion = translateCategory(cleanCat, 'fr');
-        console.log(`"${cat}" → nettoyé: "${cleanCat}" → français: "${frenchVersion}"`);
-        return frenchVersion;
+        // FORCER la normalisation vers le français, peu importe la langue d'interface
+        const normalized = normalizeCategory(cleanCat);
+        console.log(`"${cat}" → nettoyé: "${cleanCat}" → normalisé FR: "${normalized}"`);
+        return normalized;
       })
       .filter(cat => cat && cat.trim() !== '')
       .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
@@ -435,26 +437,29 @@ export default function EcommercePage() {
   };
 
   const handleAddCategory = (category: string) => {
-    const normalizedCategory = normalizeCategory(cleanCategory(category));
-    const translatedCategory = translateCategory(normalizedCategory, language);
+    if (!passwordEntered) {
+      alert(t('adminPassword'));
+      return;
+    }
     
-    if (translatedCategory && translatedCategory.trim() !== '') {
-      // Vérifier si cette catégorie existe déjà dans availableCategories
-      const categoryExists = availableCategories.some(cat => 
+    // IMPORTANT: Toujours normaliser vers le français pour éviter les doublons
+    const normalizedCategory = normalizeCategory(cleanCategory(category));
+    
+    if (normalizedCategory && normalizedCategory.trim() !== '') {
+      // Vérifier si cette catégorie existe déjà (version normalisée)
+      const categoryExists = customCategories.some(cat => 
         normalizeCategory(cleanCategory(cat)) === normalizedCategory
       );
       
       if (!categoryExists) {
-        // Ajouter immédiatement à availableCategories
-        setAvailableCategories(prev => [...prev, translatedCategory].sort());
+        // Ajouter aux catégories personnalisées (toujours en français)
+        const updatedCustomCategories = [...customCategories, normalizedCategory];
+        setCustomCategories(updatedCustomCategories);
+        saveCustomCategories(updatedCustomCategories);
         
-        // Ajouter aux catégories personnalisées (version normalisée)
-        const updatedCustomCategories = [...customCategories];
-        if (!updatedCustomCategories.some(cat => normalizeCategory(cleanCategory(cat)) === normalizedCategory)) {
-          updatedCustomCategories.push(normalizedCategory);
-          setCustomCategories(updatedCustomCategories);
-          saveCustomCategories(updatedCustomCategories);
-        }
+        console.log(`Nouvelle catégorie ajoutée: "${normalizedCategory}"`);
+      } else {
+        alert(`La catégorie "${normalizedCategory}" existe déjà.`);
       }
     }
   };
@@ -606,21 +611,31 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE ET TRI COMBINÉS
+  // LOGIQUE DE FILTRAGE ET TRI COMBINÉS - VERSION CORRIGÉE
   let filteredAndSortedProducts = categoryFilter
     ? products.filter((product) => {
         if (!product.categories || product.categories.length === 0) {
           return false;
         }
         
-        // Convertir le filtre vers le français (format de stockage uniforme)
-        const filterInFrench = translateCategory(categoryFilter, 'fr');
+        console.log(`=== FILTRAGE "${product.name}" ===`);
+        console.log(`Filtre cliqué: "${categoryFilter}"`);
+        console.log(`Catégories du produit:`, product.categories);
         
-        // Vérifier si le produit a cette catégorie
-        return product.categories.some(productCat => {
-          const cleanProductCat = cleanCategory(productCat);
-          return cleanProductCat === filterInFrench;
+        // CORRECTION: Normaliser le filtre ET les catégories produit vers le français
+        const normalizedFilter = normalizeCategory(cleanCategory(categoryFilter));
+        console.log(`Filtre normalisé: "${normalizedFilter}"`);
+        
+        // Vérifier si le produit a cette catégorie (comparaison français-français)
+        const hasCategory = product.categories.some(productCat => {
+          const normalizedProductCat = normalizeCategory(cleanCategory(productCat));
+          const match = normalizedProductCat === normalizedFilter;
+          console.log(`  "${productCat}" → "${normalizedProductCat}" === "${normalizedFilter}" ? ${match}`);
+          return match;
         });
+        
+        console.log(`Résultat: ${hasCategory ? '✅ INCLUS' : '❌ EXCLU'}`);
+        return hasCategory;
       })
     : [...products];
 
@@ -794,16 +809,30 @@ export default function EcommercePage() {
                     );
                   })}
                 </div>
-                <input placeholder={t('addCategory')} onKeyDown={(e) => {
+                <input 
+                  placeholder={passwordEntered ? t('addCategory') : `🔒 ${t('addCategory')} (Admin)`} 
+                  disabled={!passwordEntered}
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       const val = (e.target as HTMLInputElement).value.trim();
                       if (val) {
-                        handleAddCategory(val);
-                        (e.target as HTMLInputElement).value = '';
+                        if (passwordEntered) {
+                          handleAddCategory(val);
+                          (e.target as HTMLInputElement).value = '';
+                        } else {
+                          if (requestPasswordOnce()) {
+                            handleAddCategory(val);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
                       }
                     }
-                  }} className="w-full border p-3 rounded-lg" />
+                  }} 
+                  className={`w-full border p-3 rounded-lg ${
+                    !passwordEntered ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`} 
+                />
                 {newProduct.categories.length > 0 && (
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-700">{t('selectedCategories')}: {newProduct.categories.join(', ')}</p>
