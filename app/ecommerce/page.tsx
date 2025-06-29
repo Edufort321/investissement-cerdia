@@ -300,20 +300,21 @@ export default function EcommercePage() {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
     console.log('=== DEBUG SAUVEGARDE ===');
-    console.log('Catégories brutes du formulaire:', newProduct.categories);
+    console.log('Catégories du formulaire (langue interface):', newProduct.categories);
     
-    // Normaliser les catégories sélectionnées vers le français pour le stockage
+    // IMPORTANT: Toujours normaliser vers le français pour la cohérence en base
     const normalizedCategories = newProduct.categories
       .map(cat => {
         const cleanCat = cleanCategory(cat);
-        const normalized = normalizeCategory(cleanCat);
-        console.log(`Catégorie "${cat}" → nettoyée: "${cleanCat}" → normalisée: "${normalized}"`);
-        return normalized;
+        // Forcer la traduction vers le français
+        const frenchVersion = translateCategory(cleanCat, 'fr');
+        console.log(`"${cat}" → nettoyé: "${cleanCat}" → français: "${frenchVersion}"`);
+        return frenchVersion;
       })
       .filter(cat => cat && cat.trim() !== '')
       .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
     
-    console.log('Catégories normalisées pour la DB:', normalizedCategories);
+    console.log('Catégories à sauvegarder (toujours en français):', normalizedCategories);
     
     const productToInsert: any = {
       name: newProduct.name,
@@ -551,7 +552,7 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE AVEC DEBUG CORRIGÉE
+  // LOGIQUE DE FILTRAGE SIMPLIFIÉE ET CORRIGÉE
   const filteredProducts = categoryFilter
     ? products.filter((product) => {
         if (!product.categories || product.categories.length === 0) {
@@ -563,30 +564,16 @@ export default function EcommercePage() {
         console.log(`Filtre sélectionné: "${categoryFilter}"`);
         console.log(`Catégories du produit:`, product.categories);
         
-        // Le filtre peut être en français ou anglais selon la langue d'interface
-        // Les catégories en base sont en français normalisé
-        // On doit donc vérifier les deux correspondances possibles
+        // Convertir le filtre vers le français (format de stockage uniforme)
+        const filterInFrench = translateCategory(categoryFilter, 'fr');
+        console.log(`Filtre traduit en français: "${filterInFrench}"`);
         
+        // Vérifier si le produit a cette catégorie
         const hasCategory = product.categories.some(productCat => {
           const cleanProductCat = cleanCategory(productCat);
-          
-          // Vérification directe (si même langue)
-          const directMatch = cleanProductCat === categoryFilter;
-          
-          // Vérification avec traduction du filtre vers français
-          const filterToFrench = translateCategory(categoryFilter, 'fr');
-          const translatedMatch = cleanProductCat === filterToFrench;
-          
-          // Vérification avec traduction de la catégorie vers la langue d'interface
-          const categoryToInterface = translateCategory(cleanProductCat, language);
-          const interfaceMatch = categoryToInterface === categoryFilter;
-          
-          console.log(`  Catégorie "${productCat}":`);
-          console.log(`    - Direct: "${cleanProductCat}" === "${categoryFilter}" ? ${directMatch}`);
-          console.log(`    - Filtre→FR: "${cleanProductCat}" === "${filterToFrench}" ? ${translatedMatch}`);
-          console.log(`    - Cat→Interface: "${categoryToInterface}" === "${categoryFilter}" ? ${interfaceMatch}`);
-          
-          return directMatch || translatedMatch || interfaceMatch;
+          const match = cleanProductCat === filterInFrench;
+          console.log(`  Catégorie "${productCat}" === "${filterInFrench}" ? ${match}`);
+          return match;
         });
         
         console.log(`Produit "${product.name}" ${hasCategory ? '✅ INCLUS' : '❌ EXCLU'} du filtre`);
