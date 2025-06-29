@@ -272,15 +272,9 @@ export default function EcommercePage() {
     
     // Normaliser les catégories sélectionnées vers le français pour le stockage
     const normalizedCategories = newProduct.categories
-      .map(cat => {
-        const cleanCat = cleanCategory(cat);
-        // Si c'est déjà en français, garder tel quel, sinon traduire vers le français
-        return normalizeCategory(cleanCat);
-      })
-      .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+      .map(cat => normalizeCategory(cleanCategory(cat)))
+      .filter(cat => cat && cat.trim() !== '')
       .filter((cat, index, arr) => arr.indexOf(cat) === index); // Supprimer les doublons
-    
-    console.log('Catégories à sauvegarder:', normalizedCategories); // Debug
     
     const productToInsert: any = {
       name: newProduct.name,
@@ -398,24 +392,17 @@ export default function EcommercePage() {
   };
 
   const handleCategoryToggle = (category: string, checked: boolean) => {
-    console.log('Toggle category:', category, 'checked:', checked); // Debug
-    
     if (checked) {
       // Ajouter la catégorie si elle n'existe pas déjà
-      const categoryExists = newProduct.categories.includes(category);
-      
-      if (!categoryExists) {
-        const updatedCategories = [...newProduct.categories, category];
-        console.log('Categories après ajout:', updatedCategories); // Debug
+      if (!newProduct.categories.includes(category)) {
         setNewProduct({ 
           ...newProduct, 
-          categories: updatedCategories
+          categories: [...newProduct.categories, category] 
         });
       }
     } else {
       // Supprimer la catégorie
       const updatedCategories = newProduct.categories.filter(c => c !== category);
-      console.log('Categories après suppression:', updatedCategories); // Debug
       setNewProduct({ 
         ...newProduct, 
         categories: updatedCategories 
@@ -509,9 +496,21 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE CORRIGÉE
+  // LOGIQUE DE FILTRAGE CORRIGÉE ET SIMPLIFIÉE
   const filteredProducts = categoryFilter
-    ? products.filter((p) => categoriesMatch(p.categories, categoryFilter))
+    ? products.filter((product) => {
+        if (!product.categories || product.categories.length === 0) return false;
+        
+        // Normaliser le filtre sélectionné vers le français (format de stockage)
+        const normalizedFilter = normalizeCategory(cleanCategory(categoryFilter));
+        
+        // Vérifier si le produit contient cette catégorie
+        return product.categories.some(productCat => {
+          const cleanProductCat = cleanCategory(productCat);
+          const normalizedProductCat = normalizeCategory(cleanProductCat);
+          return normalizedProductCat === normalizedFilter;
+        });
+      })
     : [...products];
 
   const handleEdit = (index: number) => {
@@ -523,12 +522,9 @@ export default function EcommercePage() {
     const translatedCategories = Array.isArray(product.categories) 
       ? product.categories
           .map(cat => cleanCategory(cat))
-          .filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
+          .filter(cat => cat && cat.trim() !== '')
           .map(cat => translateCategory(cat, language)) // Traduire vers la langue d'affichage
       : [];
-    
-    console.log('Categories du produit à éditer:', product.categories); // Debug
-    console.log('Categories traduites pour affichage:', translatedCategories); // Debug
     
     const productImages = [...product.images];
     if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
@@ -790,13 +786,9 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
           <div className="p-3">
             <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-2">{product.name}</h3>
             <p className="text-xs text-gray-600 line-clamp-3 mb-3">{product.description}</p>
-            {product.categories && product.categories.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {product.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"')).slice(0, 2).map((cat, idx) => (
-                  <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{translateCategory(cat)}</span>
-                ))}
-              </div>
-            )}
+            
+            {/* SUPPRESSION DE L'AFFICHAGE DES CATÉGORIES SUR LES CARTES */}
+            
             {(hasPriceValue(product.priceCa) || hasPriceValue(product.priceUs)) && (
               <div className="mb-3">
                 <p className="font-semibold text-sm text-gray-900">
