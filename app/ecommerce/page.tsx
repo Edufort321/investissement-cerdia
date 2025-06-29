@@ -82,6 +82,24 @@ const translations = {
     nameAZ: 'Nom A-Z',
     nameZA: 'Nom Z-A',
     adminRequired: 'Mot de passe admin requis pour créer des catégories',
+    blog: 'Blog',
+    products: 'Produits',
+    blogTitle: 'Demandez votre Sitestripe pour tous vos achats !',
+    blogSubtitle: 'Obtenez instantanément vos liens d\'affiliation personnalisés',
+    blogContent: 'Vous cherchez des produits de qualité avec les meilleurs prix ? Notre service Sitestripe vous permet d\'obtenir rapidement tous les liens d\'affiliation dont vous avez besoin !',
+    blogFeatures: 'Nos avantages',
+    feature1: '🚀 Réponse rapide via Messenger',
+    feature2: '💰 Accès aux meilleurs deals',
+    feature3: '🔗 Liens d\'affiliation personnalisés',
+    feature4: '📱 Service 7j/7',
+    contactForm: 'Demander votre Sitestripe',
+    yourName: 'Votre nom',
+    yourEmail: 'Votre email', 
+    productInterest: 'Produit qui vous intéresse',
+    message: 'Votre message (optionnel)',
+    sendRequest: 'Envoyer la demande',
+    requestSent: 'Demande envoyée ! Vous recevrez une réponse sous peu.',
+    requestError: 'Erreur lors de l\'envoi. Réessayez plus tard.',
   },
   en: {
     title: 'CERDIA',
@@ -121,6 +139,24 @@ const translations = {
     nameAZ: 'Name A-Z',
     nameZA: 'Name Z-A',
     adminRequired: 'Admin password required to create categories',
+    blog: 'Blog',
+    products: 'Products',
+    blogTitle: 'Request your Sitestripe for all your purchases!',
+    blogSubtitle: 'Get your personalized affiliate links instantly',
+    blogContent: 'Looking for quality products at the best prices? Our Sitestripe service allows you to quickly get all the affiliate links you need!',
+    blogFeatures: 'Our advantages',
+    feature1: '🚀 Fast response via Messenger',
+    feature2: '💰 Access to the best deals',
+    feature3: '🔗 Personalized affiliate links',
+    feature4: '📱 7/7 service',
+    contactForm: 'Request your Sitestripe',
+    yourName: 'Your name',
+    yourEmail: 'Your email',
+    productInterest: 'Product you\'re interested in',
+    message: 'Your message (optional)',
+    sendRequest: 'Send request',
+    requestSent: 'Request sent! You will receive a response shortly.',
+    requestError: 'Error sending. Please try again later.',
   }
 };
 
@@ -222,20 +258,20 @@ export default function EcommercePage() {
     fetchProducts();
   }, []);
 
-  // Générer les catégories disponibles
+  // Générer les catégories disponibles AVEC TRADUCTION CORRECTE
   useEffect(() => {
     // Catégories par défaut dans la langue actuelle
     const defaultCats = DEFAULT_CATEGORIES[language];
     
-    // Catégories des produits existants
+    // Catégories des produits existants - TOUJOURS TRADUITES
     const productCategories = new Set<string>();
     products.forEach(product => {
       if (Array.isArray(product.categories)) {
         product.categories.forEach(cat => {
           const cleanCat = cleanCategory(cat);
-          const normalizedCat = normalizeCategory(cleanCat);
-          if (normalizedCat && normalizedCat.trim() !== '' && !normalizedCat.includes('"') && !normalizedCat.includes('[') && !normalizedCat.includes(']')) {
-            const translatedCat = translateCategory(normalizedCat, language);
+          if (cleanCat && cleanCat.trim() !== '' && !cleanCat.includes('"') && !cleanCat.includes('[') && !cleanCat.includes(']')) {
+            // IMPORTANT: Traduire vers la langue d'affichage
+            const translatedCat = translateCategory(cleanCat, language);
             if (translatedCat) {
               productCategories.add(translatedCat);
             }
@@ -244,12 +280,12 @@ export default function EcommercePage() {
       }
     });
     
-    // Catégories personnalisées traduites
+    // Catégories personnalisées traduites vers la langue actuelle
     const translatedCustomCategories = customCategories
-      .map(cat => translateCategory(normalizeCategory(cleanCategory(cat)), language))
+      .map(cat => translateCategory(cleanCategory(cat), language))
       .filter(cat => cat && cat.trim() !== '');
     
-    // Combiner toutes les catégories
+    // Combiner toutes les catégories DANS LA LANGUE D'AFFICHAGE
     const allCategories = new Set([
       ...defaultCats,
       ...Array.from(productCategories),
@@ -261,6 +297,7 @@ export default function EcommercePage() {
       .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
       .sort();
     
+    console.log(`Catégories d'affichage (${language}):`, cleanedCategories);
     setAvailableCategories(cleanedCategories);
   }, [products, language, customCategories]);
 
@@ -611,7 +648,7 @@ export default function EcommercePage() {
     }
   };
 
-  // LOGIQUE DE FILTRAGE ET TRI COMBINÉS - VERSION CORRIGÉE
+  // LOGIQUE DE FILTRAGE CORRIGÉE POUR LA TRADUCTION
   let filteredAndSortedProducts = categoryFilter
     ? products.filter((product) => {
         if (!product.categories || product.categories.length === 0) {
@@ -619,18 +656,18 @@ export default function EcommercePage() {
         }
         
         console.log(`=== FILTRAGE "${product.name}" ===`);
-        console.log(`Filtre cliqué: "${categoryFilter}"`);
-        console.log(`Catégories du produit:`, product.categories);
+        console.log(`Filtre cliqué (${language}): "${categoryFilter}"`);
+        console.log(`Catégories du produit (français en base):`, product.categories);
         
-        // CORRECTION: Normaliser le filtre ET les catégories produit vers le français
-        const normalizedFilter = normalizeCategory(cleanCategory(categoryFilter));
-        console.log(`Filtre normalisé: "${normalizedFilter}"`);
+        // Convertir le filtre affiché vers le français (format stockage)
+        const filterInFrench = translateCategory(categoryFilter, 'fr');
+        console.log(`Filtre converti en français: "${filterInFrench}"`);
         
         // Vérifier si le produit a cette catégorie (comparaison français-français)
         const hasCategory = product.categories.some(productCat => {
-          const normalizedProductCat = normalizeCategory(cleanCategory(productCat));
-          const match = normalizedProductCat === normalizedFilter;
-          console.log(`  "${productCat}" → "${normalizedProductCat}" === "${normalizedFilter}" ? ${match}`);
+          const cleanProductCat = cleanCategory(productCat);
+          const match = cleanProductCat === filterInFrench;
+          console.log(`  "${productCat}" === "${filterInFrench}" ? ${match}`);
           return match;
         });
         
@@ -667,6 +704,62 @@ export default function EcommercePage() {
     });
   };
 
+  // FONCTION POUR ENVOYER SMS (SIMULATION - À REMPLACER PAR VOTRE SERVICE)
+  const sendSMSNotification = async (formData: any) => {
+    try {
+      // SIMULATION : Remplacez par votre service SMS (Twilio, etc.)
+      console.log('📱 SMS envoyé à 514-603-4519:');
+      console.log(`Nouvelle demande Sitestripe:
+Nom: ${formData.name}
+Email: ${formData.email}
+Produit: ${formData.product}
+Message: ${formData.message || 'Aucun message'}`);
+      
+      // ICI : Intégrer votre service SMS réel
+      // Exemple avec fetch vers votre API:
+      /*
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: '514-603-4519',
+          message: `Nouvelle demande Sitestripe: ${formData.name} - ${formData.product}`
+        })
+      });
+      */
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur envoi SMS:', error);
+      return false;
+    }
+  };
+
+  // FONCTION POUR GÉRER LE FORMULAIRE DE CONTACT
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const contactData = {
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      product: formData.get('product') as string,
+      message: formData.get('message') as string,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Envoyer SMS notification
+    const success = await sendSMSNotification(contactData);
+    
+    if (success) {
+      alert(t('requestSent'));
+      form.reset();
+    } else {
+      alert(t('requestError'));
+    }
+  };
+
   const toggleFavorite = (productId: number) => {
     const newFavorites = new Set(favorites);
     if (newFavorites.has(productId)) {
@@ -698,55 +791,156 @@ export default function EcommercePage() {
               </select>
             </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+          
+          {/* NOUVEAU: Navigation Blog/Produits */}
+          <div className="flex gap-4 mb-3">
             <button 
-              onClick={() => setCategoryFilter('')} 
-              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
-                categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+              onClick={() => setShowBlog(false)} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !showBlog ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {t('all')}
+              {t('products')}
             </button>
-            {availableCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
-                  categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-            {passwordEntered && (
-              <button 
-                onClick={cleanupCategories}
-                className="px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 bg-red-500 text-white hover:bg-red-600"
-                title="Nettoyer les catégories incorrectes"
-              >
-                🧹 Nettoyer
-              </button>
-            )}
+            <button 
+              onClick={() => setShowBlog(true)} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showBlog ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('blog')}
+            </button>
           </div>
           
-          {/* NOUVEAU: Menu déroulant de tri */}
-          <div className="mt-3 flex justify-end">
-            <select 
-              value={sortFilter} 
-              onChange={(e) => setSortFilter(e.target.value)}
-              className="text-sm border border-gray-300 rounded px-3 py-1 bg-white min-w-[150px]"
-            >
-              <option value="">{t('sortBy')}</option>
-              <option value="priceLowHigh">{t('priceLowHigh')}</option>
-              <option value="priceHighLow">{t('priceHighLow')}</option>
-              <option value="newest">{t('newest')}</option>
-              <option value="oldest">{t('oldest')}</option>
-              <option value="nameAZ">{t('nameAZ')}</option>
-              <option value="nameZA">{t('nameZA')}</option>
-            </select>
-          </div>
+          {/* Filtres - Seulement sur la page produits */}
+          {!showBlog && (
+            <>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                <button 
+                  onClick={() => setCategoryFilter('')} 
+                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                    categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {t('all')}
+                </button>
+                {availableCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                      categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+                {passwordEntered && (
+                  <button 
+                    onClick={cleanupCategories}
+                    className="px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 bg-red-500 text-white hover:bg-red-600"
+                    title="Nettoyer les catégories incorrectes"
+                  >
+                    🧹 Nettoyer
+                  </button>
+                )}
+              </div>
+              
+              {/* Menu déroulant de tri */}
+              <div className="mt-3 flex justify-end">
+                <select 
+                  value={sortFilter} 
+                  onChange={(e) => setSortFilter(e.target.value)}
+                  className="text-sm border border-gray-300 rounded px-3 py-1 bg-white min-w-[150px]"
+                >
+                  <option value="">{t('sortBy')}</option>
+                  <option value="priceLowHigh">{t('priceLowHigh')}</option>
+                  <option value="priceHighLow">{t('priceHighLow')}</option>
+                  <option value="newest">{t('newest')}</option>
+                  <option value="oldest">{t('oldest')}</option>
+                  <option value="nameAZ">{t('nameAZ')}</option>
+                  <option value="nameZA">{t('nameZA')}</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </header>
+
+      {/* NOUVEAU: Page Blog */}
+      {showBlog && (
+        <main className="px-4 py-8 max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('blogTitle')}</h1>
+              <p className="text-lg text-gray-600 mb-6">{t('blogSubtitle')}</p>
+              <p className="text-gray-700 leading-relaxed">{t('blogContent')}</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('blogFeatures')}</h2>
+                <ul className="space-y-3">
+                  <li className="flex items-center text-gray-700">
+                    <span className="mr-2">{t('feature1')}</span>
+                  </li>
+                  <li className="flex items-center text-gray-700">
+                    <span className="mr-2">{t('feature2')}</span>
+                  </li>
+                  <li className="flex items-center text-gray-700">
+                    <span className="mr-2">{t('feature3')}</span>
+                  </li>
+                  <li className="flex items-center text-gray-700">
+                    <span className="mr-2">{t('feature4')}</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('contactForm')}</h3>
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <input 
+                    name="name"
+                    type="text" 
+                    placeholder={t('yourName')} 
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input 
+                    name="email"
+                    type="email" 
+                    placeholder={t('yourEmail')} 
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input 
+                    name="product"
+                    type="text" 
+                    placeholder={t('productInterest')} 
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <textarea 
+                    name="message"
+                    placeholder={t('message')} 
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                  />
+                  <button 
+                    type="submit"
+                    className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('sendRequest')}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* Page produits existante */}
+      {!showBlog && (
 
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -851,30 +1045,136 @@ export default function EcommercePage() {
         </div>
       )}
 
-      <main className="px-2 py-4">
-        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
-          {filteredAndSortedProducts.map((product, i) => (
-            <ProductCard 
-              key={product.id || i} 
-              product={product} 
-              language={language}
-              isFavorite={favorites.has(product.id || 0)}
-              onToggleFavorite={() => toggleFavorite(product.id || 0)}
-              onEdit={() => handleAdminAction(() => handleEdit(i))}
-              showAdmin={passwordEntered}
-              hasValue={hasValue}
-              hasPriceValue={hasPriceValue}
-              cleanCategory={cleanCategory}
-              translateCategory={(cat: string) => translateCategory(cat, language)}
-              t={t}
-            />
-          ))}
-        </div>
-      </main>
+        <main className="px-2 py-4">
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+            {filteredAndSortedProducts.map((product, i) => (
+              <ProductCard 
+                key={product.id || i} 
+                product={product} 
+                language={language}
+                isFavorite={favorites.has(product.id || 0)}
+                onToggleFavorite={() => toggleFavorite(product.id || 0)}
+                onEdit={() => handleAdminAction(() => handleEdit(i))}
+                showAdmin={passwordEntered}
+                hasValue={hasValue}
+                hasPriceValue={hasPriceValue}
+                cleanCategory={cleanCategory}
+                translateCategory={(cat: string) => translateCategory(cat, language)}
+                t={t}
+              />
+            ))}
+          </div>
+        </main>
 
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" onClick={() => handleAdminAction(() => setShowForm(true))}>
-        <Plus size={24} />
-      </button>
+        <button className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" onClick={() => handleAdminAction(() => setShowForm(true))}>
+          <Plus size={24} />
+        </button>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold">{editIndex !== null ? t('modify') : t('add')}</h2>
+              <button onClick={resetForm} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">✕</button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="p-4 space-y-4">
+              <input name="name" value={newProduct.name} onChange={handleInputChange} placeholder={t('name')} className="w-full border p-3 rounded-lg" required />
+              <textarea name="description" value={newProduct.description} onChange={handleInputChange} placeholder={t('description')} className="w-full border p-3 rounded-lg h-20 resize-vertical" required />
+              <div className="grid grid-cols-2 gap-3">
+                <input name="priceCa" value={newProduct.priceCa} onChange={handleInputChange} placeholder="Prix CAD" className="w-full border p-3 rounded-lg" type="number" step="0.01" min="0" />
+                <input name="priceUs" value={newProduct.priceUs} onChange={handleInputChange} placeholder="Prix USD" className="w-full border p-3 rounded-lg" type="number" step="0.01" min="0" />
+              </div>
+              <input name="amazonCa" value={newProduct.amazonCa} onChange={handleInputChange} placeholder="Amazon.ca" className="w-full border p-3 rounded-lg" type="url" />
+              <input name="amazonCom" value={newProduct.amazonCom} onChange={handleInputChange} placeholder="Amazon.com" className="w-full border p-3 rounded-lg" type="url" />
+              <input name="tiktokUrl" value={newProduct.tiktokUrl} onChange={handleInputChange} placeholder="TikTok" className="w-full border p-3 rounded-lg" type="url" />
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">{t('images')}:</label>
+                {newProduct.images.map((image, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input name="images" value={image} onChange={(e) => handleInputChange(e, i)} placeholder={`Image URL ${i + 1}`} className="flex-1 border p-3 rounded-lg text-sm" type="url" />
+                    {newProduct.images.length > 1 && (
+                      <button type="button" onClick={() => removeImageField(i)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={addImageField} className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
+                  <Plus size={16} />{t('addImage')}
+                </button>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">{t('categories')}:</label>
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((cat) => {
+                    const isChecked = newProduct.categories.includes(cat);
+                    console.log(`Rendu catégorie "${cat}": checked=${isChecked}, catégories actuelles:`, newProduct.categories);
+                    
+                    return (
+                      <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                        isChecked 
+                          ? 'bg-blue-100 border-2 border-blue-500 text-blue-800' 
+                          : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                      }`}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={(e) => {
+                            console.log(`Checkbox "${cat}" changée: ${e.target.checked}`);
+                            handleCategoryToggle(cat, e.target.checked);
+                          }} 
+                          className="mr-2" 
+                        /> 
+                        <span className="font-medium">{cat}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <input 
+                  placeholder={passwordEntered ? t('addCategory') : `🔒 ${t('addCategory')} (Admin)`} 
+                  disabled={!passwordEntered}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val) {
+                        if (passwordEntered) {
+                          handleAddCategory(val);
+                          (e.target as HTMLInputElement).value = '';
+                        } else {
+                          if (requestPasswordOnce()) {
+                            handleAddCategory(val);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
+                      }
+                    }
+                  }} 
+                  className={`w-full border p-3 rounded-lg ${
+                    !passwordEntered ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`} 
+                />
+                {newProduct.categories.length > 0 && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">{t('selectedCategories')}: {newProduct.categories.join(', ')}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 pt-4 border-t">
+                <button type="button" onClick={resetForm} className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600">{t('cancel')}</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editIndex !== null ? t('modify') : t('save')}</button>
+                {editIndex !== null && (
+                  <button type="button" onClick={() => deleteProduct(products[editIndex].id)} className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">🗑️</button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
     </div>
   );
 }
