@@ -252,6 +252,12 @@ export default function EcommercePage() {
     if (!error && data) {
       console.log('Données brutes de Supabase:', data);
       
+      // DEBUG: Afficher toutes les catégories de tous les produits
+      console.log('=== ANALYSE DES CATÉGORIES ===');
+      data.forEach(p => {
+        console.log(`"${p.name}": categories =`, p.categories, typeof p.categories);
+      });
+      
       const cleaned = data.map((p) => {
         const productCategories = Array.isArray(p.categories) 
           ? p.categories.map(cat => cleanCategory(cat)).filter(cat => cat && cat.trim() !== '' && !cat.includes('"'))
@@ -274,6 +280,16 @@ export default function EcommercePage() {
       });
       
       console.log('Produits nettoyés:', cleaned);
+      
+      // DEBUG: Compter les produits par catégorie
+      const categoryCount = {};
+      cleaned.forEach(product => {
+        product.categories.forEach(cat => {
+          categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+        });
+      });
+      console.log('Comptage par catégorie:', categoryCount);
+      
       setProducts(cleaned);
     } else if (error) {
       console.error('Erreur lors de la récupération:', error);
