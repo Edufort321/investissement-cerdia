@@ -6,14 +6,17 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { Pencil, Globe, Plus, Trash2, Heart, Video, Mountain } from 'lucide-react';
 
+// Configuration Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ID de votre page Facebook pour Messenger
+// Configuration des constantes
 const MESSENGER_PAGE_ID = 'riccerdia';
+const PASSWORD = '321MdlTamara!$';
 
+// Types et interfaces
 interface Product {
   id?: number;
   name: string;
@@ -39,7 +42,7 @@ interface Advertisement {
   createdAt?: string;
 }
 
-const PASSWORD = '321MdlTamara!$';
+// Données par défaut et mappings
 const DEFAULT_CATEGORIES = {
   fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
   en: ['Watch', 'Sunglasses', 'Backpack', 'Travel item']
@@ -55,7 +58,7 @@ const CATEGORY_MAPPING = {
   'Backpack': 'Sac à dos',
   'Travel item': 'Article de voyage'
 };
-
+// Traductions complètes
 const translations = {
   fr: {
     title: 'Collection CERDIA',
@@ -148,7 +151,6 @@ const translations = {
     dragDropHint: '🎯 Glissez un produit de la collection ici',
     productDropped: 'Produit ajouté !',
     requestSitestripe: '+20 points pour votre demande Sitestripe !',
-    // Nouvelles traductions pour les publicités
     adTitle: 'Titre de la publicité',
     adUrl: 'URL de destination',
     adImage: 'Image de la publicité',
@@ -249,7 +251,6 @@ const translations = {
     dragDropHint: '🎯 Drag a product from the collection here',
     productDropped: 'Product added!',
     requestSitestripe: '+20 points for your Sitestripe request!',
-    // Nouvelles traductions pour les publicités
     adTitle: 'Advertisement title',
     adUrl: 'Destination URL',
     adImage: 'Advertisement image',
@@ -260,6 +261,8 @@ const translations = {
     manageAds: 'Manage advertisements'
   }
 };
+
+// Composant Google AdSense
 function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
   slot: string;
   format?: string;
@@ -276,7 +279,7 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
     } catch (err) {
       console.error('AdSense error:', err);
     }
-  }, []); // <- Cette ligne était manquante !
+  }, []);
 
   return (
     <div style={style}>
@@ -291,37 +294,54 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
     </div>
   );
 }
-
+// Composant principal EcommercePage
 export default function EcommercePage() {
+  // États pour les données
   const [products, setProducts] = useState<Product[]>([]);
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  
+  // États pour l'interface utilisateur
   const [showForm, setShowForm] = useState(false);
   const [showAdForm, setShowAdForm] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showAds, setShowAds] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  
+  // États pour l'authentification et filtres
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortFilter, setSortFilter] = useState('');
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [darkMode, setDarkMode] = useState(false);
+  
+  // États pour les catégories
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  
+  // États pour l'édition
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editAdIndex, setEditAdIndex] = useState<number | null>(null);
-  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  
+  // États pour les fonctionnalités utilisateur
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
-  const [comments, setComments] = useState<any[]>([]);
   const [pageViews, setPageViews] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [userPoints, setUserPoints] = useState(0);
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
-  const [darkMode, setDarkMode] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
+  
+  // États pour le quiz et notifications
   const [quizStep, setQuizStep] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<any>({});
-  const [showNotification, setShowNotification] = useState(false);
   const [notificationText, setNotificationText] = useState('');
+  
+  // États pour le drag & drop
   const [draggedProduct, setDraggedProduct] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
+  
+  // États pour les nouveaux éléments
   const [newProduct, setNewProduct] = useState<Product>({
     name: '',
     description: '',
@@ -333,6 +353,7 @@ export default function EcommercePage() {
     priceCa: '',
     priceUs: '',
   });
+  
   const [newAd, setNewAd] = useState<Advertisement>({
     title: '',
     description: '',
@@ -342,8 +363,10 @@ export default function EcommercePage() {
     isActive: true,
   });
 
+  // Fonction de traduction
   const t = (key: keyof typeof translations.fr) => translations[language][key];
 
+  // Fonctions utilitaires pour les catégories
   const cleanCategory = (category: string): string => {
     return category.replace(/['"\\]/g, '').trim();
   };
@@ -363,6 +386,7 @@ export default function EcommercePage() {
     return frenchVersion || cleanCat;
   };
 
+  // Fonctions utilitaires pour les valeurs
   const hasValue = (value: string | undefined): boolean => {
     return value !== undefined && value.trim() !== '';
   };
@@ -372,6 +396,7 @@ export default function EcommercePage() {
     const numericPrice = parseFloat(price.replace(',', '.'));
     return numericPrice > 0;
   };
+ // Fonctions de chargement des données
   const loadCustomCategories = () => {
     try {
       const saved = localStorage.getItem('customCategories');
@@ -414,6 +439,26 @@ export default function EcommercePage() {
     }
   };
 
+  const loadUserData = () => {
+    try {
+      const savedPoints = localStorage.getItem('cerdiaPoints');
+      const savedBadges = localStorage.getItem('cerdiaBadges');
+      const savedDarkMode = localStorage.getItem('cerdiaDarkMode');
+      
+      if (savedPoints) setUserPoints(parseInt(savedPoints));
+      if (savedBadges) setUserBadges(JSON.parse(savedBadges));
+      if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
+      
+      if (!savedPoints) {
+        addPoints(10, t('welcomePoints'));
+        addBadge('firstVisitBadge');
+      }
+    } catch (e) {
+      console.error('Erreur chargement données utilisateur:', e);
+    }
+  };
+
+  // Fonctions de sauvegarde
   const saveComments = (newComments: any[]) => {
     try {
       localStorage.setItem('blogComments', JSON.stringify(newComments));
@@ -438,6 +483,7 @@ export default function EcommercePage() {
     }
   };
 
+  // Fonctions de simulation de trafic et activité
   const simulateTraffic = () => {
     const baseViews = 1247;
     const randomViews = Math.floor(Math.random() * 50);
@@ -468,25 +514,7 @@ export default function EcommercePage() {
     });
   };
 
-  const loadUserData = () => {
-    try {
-      const savedPoints = localStorage.getItem('cerdiaPoints');
-      const savedBadges = localStorage.getItem('cerdiaBadges');
-      const savedDarkMode = localStorage.getItem('cerdiaDarkMode');
-      
-      if (savedPoints) setUserPoints(parseInt(savedPoints));
-      if (savedBadges) setUserBadges(JSON.parse(savedBadges));
-      if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
-      
-      if (!savedPoints) {
-        addPoints(10, t('welcomePoints'));
-        addBadge('firstVisitBadge');
-      }
-    } catch (e) {
-      console.error('Erreur chargement données utilisateur:', e);
-    }
-  };
-
+  // Fonctions de points et badges
   const addPoints = (points: number, message: string) => {
     const newPoints = userPoints + points;
     setUserPoints(newPoints);
@@ -524,8 +552,7 @@ export default function EcommercePage() {
     setDarkMode(newDarkMode);
     localStorage.setItem('cerdiaDarkMode', JSON.stringify(newDarkMode));
   };
-
-  // Nouvelles fonctions pour la gestion des publicités
+  // Fonctions de gestion des publicités
   const handleAddAd = () => {
     if (requestPasswordOnce()) {
       setShowAdForm(true);
@@ -593,188 +620,8 @@ export default function EcommercePage() {
     if (activeAds.length === 0) return null;
     return activeAds[Math.floor(Math.random() * activeAds.length)];
   };
-  const quizQuestions = language === 'fr' ? [
-    {
-      question: "Quel est votre style ?",
-      options: ["Casual", "Élégant", "Sportif", "Tendance"]
-    },
-    {
-      question: "Votre budget préféré ?", 
-      options: ["< 50$", "50-100$", "100-200$", "> 200$"]
-    },
-    {
-      question: "Quelle occasion ?",
-      options: ["Quotidien", "Travail", "Soirée", "Sport"]
-    }
-  ] : [
-    {
-      question: "What's your style?",
-      options: ["Casual", "Elegant", "Sporty", "Trendy"]
-    },
-    {
-      question: "Your preferred budget?",
-      options: ["< $50", "$50-100", "$100-200", "> $200"]
-    },
-    {
-      question: "What occasion?", 
-      options: ["Daily", "Work", "Evening", "Sport"]
-    }
-  ];
 
-  const handleQuizAnswer = (answer: string) => {
-    const newAnswers = { ...quizAnswers, [quizStep]: answer };
-    setQuizAnswers(newAnswers);
-    
-    if (quizStep < quizQuestions.length - 1) {
-      setQuizStep(quizStep + 1);
-    } else {
-      setShowQuiz(false);
-      addPoints(25, language === 'fr' ? '+25 points pour le quiz de style !' : '+25 points for style quiz!');
-      addBadge('trendsetterBadge');
-      setQuizStep(0);
-      setQuizAnswers({});
-    }
-  };
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    const contactData = {
-      name: formData.get('name') as string,
-      product: formData.get('product') as string,
-      message: formData.get('message') as string,
-    };
-    
-    const messengerMessage = language === 'fr' 
-      ? `Bonjour! Je suis ${contactData.name}
-🛍️ Produit qui m'intéresse: ${contactData.product}
-${contactData.message ? `💬 Message: ${contactData.message}` : ''}
-
-Je souhaiterais obtenir mes liens Sitestripe pour ce produit. Merci!`
-      : `Hello! I'm ${contactData.name}
-🛍️ Product I'm interested in: ${contactData.product}
-${contactData.message ? `💬 Message: ${contactData.message}` : ''}
-
-I would like to get my Sitestripe links for this product. Thank you!`;
-    
-    const messengerURL = `https://m.me/${MESSENGER_PAGE_ID}?text=${encodeURIComponent(messengerMessage)}`;
-    window.open(messengerURL, '_blank');
-    
-    addPoints(20, language === 'fr' ? '+20 points pour votre demande Sitestripe !' : '+20 points for your Sitestripe request!');
-    
-    alert(t('requestSent'));
-    form.reset();
-  };
-
-  const handleCommentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    const newComment = {
-      id: Date.now(),
-      name: formData.get('commentName') as string,
-      comment: formData.get('commentText') as string,
-      timestamp: new Date().toISOString(),
-      language: language
-    };
-    
-    const updatedComments = [newComment, ...comments];
-    setComments(updatedComments);
-    saveComments(updatedComments);
-    
-    alert(t('commentPosted'));
-    form.reset();
-  };
-
-  const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return language === 'fr' 
-      ? date.toLocaleDateString('fr-FR', { 
-          day: '2-digit', 
-          month: '2-digit', 
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      : date.toLocaleDateString('en-US', { 
-          month: 'short',
-          day: '2-digit', 
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-  };
-  useEffect(() => {
-    loadCustomCategories();
-    loadComments();
-    loadAdvertisements();
-    loadUserData();
-    simulateTraffic();
-    fetchProducts();
-    
-    const trafficInterval = setInterval(simulateTraffic, 30000);
-    
-    const notificationInterval = setInterval(() => {
-      const alerts = language === 'fr' ? [
-        t('dealAlert'),
-        t('stockAlert'), 
-        t('trendingAlert')
-      ] : [
-        t('dealAlert'),
-        t('stockAlert'),
-        t('trendingAlert')
-      ];
-      
-      if (Math.random() > 0.7) {
-        const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
-        showNotificationToast(randomAlert);
-      }
-    }, 45000);
-    
-    return () => {
-      clearInterval(trafficInterval);
-      clearInterval(notificationInterval);
-    };
-  }, [language]);
-
-  useEffect(() => {
-    const defaultCats = DEFAULT_CATEGORIES[language];
-    
-    const productCategories = new Set<string>();
-    products.forEach(product => {
-      if (Array.isArray(product.categories)) {
-        product.categories.forEach(cat => {
-          const cleanCat = cleanCategory(cat);
-          if (cleanCat && cleanCat.trim() !== '' && !cleanCat.includes('"') && !cleanCat.includes('[') && !cleanCat.includes(']')) {
-            const translatedCat = translateCategory(cleanCat, language);
-            if (translatedCat) {
-              productCategories.add(translatedCat);
-            }
-          }
-        });
-      }
-    });
-    
-    const translatedCustomCategories = customCategories
-      .map(cat => translateCategory(cleanCategory(cat), language))
-      .filter(cat => cat && cat.trim() !== '');
-    
-    const allCategories = new Set([
-      ...defaultCats,
-      ...Array.from(productCategories),
-      ...translatedCustomCategories
-    ]);
-    
-    const cleanedCategories = Array.from(allCategories)
-      .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
-      .sort();
-    
-    setAvailableCategories(cleanedCategories);
-  }, [products, language, customCategories]);
-
+  // Fonctions de gestion des produits
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
     if (!error && data) {
@@ -818,6 +665,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       setProducts(cleaned);
     }
   };
+
   const saveProduct = async () => {
     const filteredImages = newProduct.images.filter(img => img.trim() !== '');
     
@@ -895,7 +743,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       priceUs: '',
     });
   };
-
+  // Fonctions de gestion des formulaires
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index?: number) => {
     const { name, value } = e.target;
     if (name === 'images' && index !== undefined) {
@@ -979,7 +827,9 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       action();
     }
   };
- const cleanupCategories = async () => {
+
+  // Fonction de nettoyage des catégories
+  const cleanupCategories = async () => {
     if (!passwordEntered) return;
     
     const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ?');
@@ -1035,6 +885,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     }
   };
 
+  // Fonctions de tri et filtrage
   const sortProducts = (products: Product[]) => {
     if (!sortFilter) return products;
     
@@ -1065,23 +916,6 @@ I would like to get my Sitestripe links for this product. Thank you!`;
         return sorted;
     }
   };
-
-  let filteredAndSortedProducts = categoryFilter
-    ? products.filter((product) => {
-        if (!product.categories || product.categories.length === 0) {
-          return false;
-        }
-        
-        const filterInFrench = translateCategory(categoryFilter, 'fr');
-        
-        return product.categories.some(productCat => {
-          const cleanProductCat = cleanCategory(productCat);
-          return cleanProductCat === filterInFrench;
-        });
-      })
-    : [...products];
-
-  filteredAndSortedProducts = sortProducts(filteredAndSortedProducts);
 
   const handleEdit = (index: number) => {
     const product = products[index];
@@ -1117,6 +951,214 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     }
     setFavorites(newFavorites);
   };
+  // Configuration du quiz de style
+  const quizQuestions = language === 'fr' ? [
+    {
+      question: "Quel est votre style ?",
+      options: ["Casual", "Élégant", "Sportif", "Tendance"]
+    },
+    {
+      question: "Votre budget préféré ?", 
+      options: ["< 50$", "50-100$", "100-200$", "> 200$"]
+    },
+    {
+      question: "Quelle occasion ?",
+      options: ["Quotidien", "Travail", "Soirée", "Sport"]
+    }
+  ] : [
+    {
+      question: "What's your style?",
+      options: ["Casual", "Elegant", "Sporty", "Trendy"]
+    },
+    {
+      question: "Your preferred budget?",
+      options: ["< $50", "$50-100", "$100-200", "> $200"]
+    },
+    {
+      question: "What occasion?", 
+      options: ["Daily", "Work", "Evening", "Sport"]
+    }
+  ];
+
+  // Gestion du quiz
+  const handleQuizAnswer = (answer: string) => {
+    const newAnswers = { ...quizAnswers, [quizStep]: answer };
+    setQuizAnswers(newAnswers);
+    
+    if (quizStep < quizQuestions.length - 1) {
+      setQuizStep(quizStep + 1);
+    } else {
+      setShowQuiz(false);
+      addPoints(25, language === 'fr' ? '+25 points pour le quiz de style !' : '+25 points for style quiz!');
+      addBadge('trendsetterBadge');
+      setQuizStep(0);
+      setQuizAnswers({});
+    }
+  };
+
+  // Gestion du formulaire de contact
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const contactData = {
+      name: formData.get('name') as string,
+      product: formData.get('product') as string,
+      message: formData.get('message') as string,
+    };
+    
+    const messengerMessage = language === 'fr' 
+      ? `Bonjour! Je suis ${contactData.name}
+🛍️ Produit qui m'intéresse: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+Je souhaiterais obtenir mes liens Sitestripe pour ce produit. Merci!`
+      : `Hello! I'm ${contactData.name}
+🛍️ Product I'm interested in: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+I would like to get my Sitestripe links for this product. Thank you!`;
+    
+    const messengerURL = `https://m.me/${MESSENGER_PAGE_ID}?text=${encodeURIComponent(messengerMessage)}`;
+    window.open(messengerURL, '_blank');
+    
+    addPoints(20, language === 'fr' ? '+20 points pour votre demande Sitestripe !' : '+20 points for your Sitestripe request!');
+    
+    alert(t('requestSent'));
+    form.reset();
+  };
+
+  // Gestion des commentaires
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const newComment = {
+      id: Date.now(),
+      name: formData.get('commentName') as string,
+      comment: formData.get('commentText') as string,
+      timestamp: new Date().toISOString(),
+      language: language
+    };
+    
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
+    saveComments(updatedComments);
+    
+    alert(t('commentPosted'));
+    form.reset();
+  };
+
+  // Fonction de formatage des dates
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return language === 'fr' 
+      ? date.toLocaleDateString('fr-FR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : date.toLocaleDateString('en-US', { 
+          month: 'short',
+          day: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+  };
+
+  // useEffect pour l'initialisation
+  useEffect(() => {
+    loadCustomCategories();
+    loadComments();
+    loadAdvertisements();
+    loadUserData();
+    simulateTraffic();
+    fetchProducts();
+    
+    const trafficInterval = setInterval(simulateTraffic, 30000);
+    
+    const notificationInterval = setInterval(() => {
+      const alerts = language === 'fr' ? [
+        t('dealAlert'),
+        t('stockAlert'), 
+        t('trendingAlert')
+      ] : [
+        t('dealAlert'),
+        t('stockAlert'),
+        t('trendingAlert')
+      ];
+      
+      if (Math.random() > 0.7) {
+        const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+        showNotificationToast(randomAlert);
+      }
+    }, 45000);
+    
+    return () => {
+      clearInterval(trafficInterval);
+      clearInterval(notificationInterval);
+    };
+  }, [language]);
+
+  // useEffect pour la gestion des catégories
+  useEffect(() => {
+    const defaultCats = DEFAULT_CATEGORIES[language];
+    
+    const productCategories = new Set<string>();
+    products.forEach(product => {
+      if (Array.isArray(product.categories)) {
+        product.categories.forEach(cat => {
+          const cleanCat = cleanCategory(cat);
+          if (cleanCat && cleanCat.trim() !== '' && !cleanCat.includes('"') && !cleanCat.includes('[') && !cleanCat.includes(']')) {
+            const translatedCat = translateCategory(cleanCat, language);
+            if (translatedCat) {
+              productCategories.add(translatedCat);
+            }
+          }
+        });
+      }
+    });
+    
+    const translatedCustomCategories = customCategories
+      .map(cat => translateCategory(cleanCategory(cat), language))
+      .filter(cat => cat && cat.trim() !== '');
+    
+    const allCategories = new Set([
+      ...defaultCats,
+      ...Array.from(productCategories),
+      ...translatedCustomCategories
+    ]);
+    
+    const cleanedCategories = Array.from(allCategories)
+      .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
+      .sort();
+    
+    setAvailableCategories(cleanedCategories);
+  }, [products, language, customCategories]);
+
+  // Filtrage et tri des produits
+  let filteredAndSortedProducts = categoryFilter
+    ? products.filter((product) => {
+        if (!product.categories || product.categories.length === 0) {
+          return false;
+        }
+        
+        const filterInFrench = translateCategory(categoryFilter, 'fr');
+        
+        return product.categories.some(productCat => {
+          const cleanProductCat = cleanCategory(productCat);
+          return cleanProductCat === filterInFrench;
+        });
+      })
+    : [...products];
+
+  filteredAndSortedProducts = sortProducts(filteredAndSortedProducts);
+  // Début du retour JSX
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Notifications Toast */}
@@ -1160,6 +1202,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
         </div>
       )}
 
+      {/* Header */}
       <header className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} shadow-sm sticky top-0 z-40 transition-colors duration-300`}>
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
@@ -1217,6 +1260,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </div>
           </div>
           
+          {/* Navigation */}
           <div className="flex gap-4 mb-3">
             <button 
               onClick={() => {setShowBlog(false); setShowAds(false);}} 
@@ -1268,6 +1312,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </button>
           </div>
           
+          {/* Filtres pour les produits */}
           {!showBlog && !showAds && (
             <>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
@@ -1322,6 +1367,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           )}
         </div>
       </header>
+      {/* Page Blog */}
       {showBlog && (
         <main className="px-4 py-8 max-w-4xl mx-auto">
           <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
@@ -1519,6 +1565,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </main>
       )}
+      {/* Page Gestion des Publicités */}
       {showAds && passwordEntered && (
         <main className="px-4 py-8 max-w-6xl mx-auto">
           <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
@@ -1648,8 +1695,10 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </main>
       )}
+      {/* Page Produits Principale */}
       {!showBlog && !showAds && (
         <main className="px-2 py-4">
+          {/* Statistiques mobiles */}
           <div className="md:hidden mb-4 flex justify-center gap-4 text-sm">
             <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
               <span>⭐</span>
@@ -1661,21 +1710,23 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </div>
           </div>
 
-<div className="mb-6 max-w-4xl mx-auto">
-  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
-    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
-    </div>
-    <div className="p-4">
-      <GoogleAdSense 
-        slot="VOTRE_SLOT_ID_BANNER" 
-        format="horizontal"
-        style={{ minHeight: '100px' }}
-      />
-    </div>
-  </div>
-</div>
+          {/* Publicité AdSense en haut */}
+          <div className="mb-6 max-w-4xl mx-auto">
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
+              <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+              </div>
+              <div className="p-4">
+                <GoogleAdSense 
+                  slot="VOTRE_SLOT_ID_BANNER" 
+                  format="horizontal"
+                  style={{ minHeight: '100px' }}
+                />
+              </div>
+            </div>
+          </div>
 
+          {/* Barre latérale gauche - Activité récente */}
           {recentActivity.length > 0 && (
             <div className="hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 w-64 z-30">
               <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm mb-4`}>
@@ -1691,6 +1742,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                 </div>
               </div>
 
+              {/* Publicité dans la barre latérale */}
               <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm`}>
                 <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   📢 Publicité
@@ -1709,6 +1761,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </div>
           )}
 
+          {/* Grille de produits en colonnes */}
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
             {filteredAndSortedProducts.map((product, i) => {
               const shouldShowAd = (i + 1) % 6 === 0;
@@ -1732,39 +1785,46 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     onShare={() => addPoints(15, t('sharePoints'))}
                   />
                   
-{shouldShowAd && (
-  <div className="break-inside-avoid mb-2">
-    <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
-      <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-        <span className="text-xs opacity-60">Publicité</span>
-      </div>
-      <div className="p-2">
-        <GoogleAdSense 
-          slot="VOTRE_SLOT_ID_SQUARE"
-          format="rectangle"
-          style={{ minHeight: '200px' }}
-        />
-      </div>
-    </div>
-  </div>
-)}
+                  {/* Publicité AdSense intégrée dans la grille */}
+                  {shouldShowAd && (
+                    <div className="break-inside-avoid mb-2">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <span className="text-xs opacity-60">Publicité</span>
+                        </div>
+                        <div className="p-2">
+                          <GoogleAdSense 
+                            slot="VOTRE_SLOT_ID_SQUARE"
+                            format="rectangle"
+                            style={{ minHeight: '200px' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-<div className="mt-8 max-w-4xl mx-auto">
-  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
-    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
-    </div>
-    <div className="p-4">
-      <GoogleAdSense 
-        slot="VOTRE_SLOT_ID_FOOTER"
-        format="horizontal"
-        style={{ minHeight: '120px' }}
-      />
-    </div>
-  </div>
-</div>
+          {/* Publicité AdSense en bas */}
+          <div className="mt-8 max-w-4xl mx-auto">
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
+              <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+              </div>
+              <div className="p-4">
+                <GoogleAdSense 
+                  slot="VOTRE_SLOT_ID_FOOTER"
+                  format="horizontal"
+                  style={{ minHeight: '120px' }}
+                />
+              </div>
+            </div>
+          </div>
         </main>
       )}
+      {/* Modal Formulaire Produit */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
@@ -1978,6 +2038,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
+      {/* Modal Formulaire Publicité */}
       {showAdForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
@@ -2134,6 +2195,8 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
+
+      {/* Boutons flottants */}
       {!showBlog && !showAds && (
         <button 
           className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
@@ -2155,6 +2218,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     </div>
   );
 }
+// Composant ProductCard
 function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite, onEdit, showAdmin, hasValue, hasPriceValue, cleanCategory, translateCategory, t, onShare }: any) {
   const [current, setCurrent] = useState(0);
   const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
@@ -2352,7 +2416,7 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
           </div>
         </div>
       </div>
-
+      {/* Modal Zoom d'Image */}
       {showZoom && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onClick={closeZoom}>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
