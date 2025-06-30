@@ -260,6 +260,40 @@ const translations = {
     manageAds: 'Manage advertisements'
   }
 };
+// Composant GoogleAdSense - À insérer à la ligne 263
+function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
+  slot: string;
+  format?: string;
+  responsive?: boolean;
+  style?: React.CSSProperties;
+}) {
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      if (window.adsbygoogle && window.adsbygoogle.push) {
+        // @ts-ignore
+        window.adsbygoogle.push({});
+      }
+    } catch (err) {
+      console.error('AdSense error:', err);
+    }
+  }, []);
+
+  return (
+    <div style={style}>
+      <ins
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client="ca-pub-7698570045125787"
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive={responsive ? "true" : "false"}
+      />
+    </div>
+  );
+}
+
+export default function EcommercePage() {
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
@@ -1629,18 +1663,20 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </div>
           </div>
 
-          <div className="mb-6 max-w-4xl mx-auto">
-            <div className={`${darkMode ? 'bg-gradient-to-r from-purple-800 to-blue-800' : 'bg-gradient-to-r from-purple-600 to-blue-600'} rounded-xl p-6 text-white text-center shadow-lg`}>
-              <h3 className="text-lg font-bold mb-2">🎯 Espace Publicitaire Premium</h3>
-              <p className="text-sm opacity-90 mb-3">Votre marque ici • Contactez Ric CERDIA pour réserver cet espace</p>
-              <button 
-                onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
-                className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                💼 Réserver cet espace
-              </button>
-            </div>
-          </div>
+<div className="mb-6 max-w-4xl mx-auto">
+  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
+    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+    </div>
+    <div className="p-4">
+      <GoogleAdSense 
+        slot="VOTRE_SLOT_ID_BANNER" 
+        format="horizontal"
+        style={{ minHeight: '100px' }}
+      />
+    </div>
+  </div>
+</div>
 
           {recentActivity.length > 0 && (
             <div className="hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 w-64 z-30">
@@ -1698,72 +1734,37 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     onShare={() => addPoints(15, t('sharePoints'))}
                   />
                   
-                  {shouldShowAd && randomAd && (
-                    <div className="break-inside-avoid mb-2">
-                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
-                        <div className={`${
-                          randomAd.type === 'video'
-                            ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
-                            : darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'
-                        } p-4 text-white text-center`}>
-                          {randomAd.imageUrl && (
-                            <img 
-                              src={randomAd.imageUrl} 
-                              alt={randomAd.title}
-                              className="w-full h-20 object-cover rounded mb-2"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <h4 className="font-bold text-sm mb-2">
-                            {randomAd.type === 'video' ? '📹' : '🖼️'} {randomAd.title}
-                          </h4>
-                          <p className="text-xs opacity-90 mb-3">{randomAd.description}</p>
-                          <button 
-                            onClick={() => {
-                              window.open(randomAd.url, '_blank');
-                              addPoints(10, language === 'fr' ? '+10 points pour la pub cliquée !' : '+10 points for ad click!');
-                            }}
-                            className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
-                          >
-                            {randomAd.type === 'video' ? '▶️ Voir la vidéo' : '💬 Découvrir'}
-                          </button>
-                        </div>
-                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                          <span className="text-xs opacity-60">Publicité • CERDIA</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+{shouldShowAd && (
+  <div className="break-inside-avoid mb-2">
+    <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+      <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+        <span className="text-xs opacity-60">Publicité</span>
+      </div>
+      <div className="p-2">
+        <GoogleAdSense 
+          slot="VOTRE_SLOT_ID_SQUARE"
+          format="rectangle"
+          style={{ minHeight: '200px' }}
+        />
+      </div>
+    </div>
+  </div>
+)}
 
-          <div className="mt-8 max-w-4xl mx-auto">
-            <div className={`${darkMode ? 'bg-gradient-to-r from-indigo-800 to-purple-800' : 'bg-gradient-to-r from-indigo-600 to-purple-600'} rounded-xl p-6 text-white text-center shadow-lg`}>
-              <h3 className="text-lg font-bold mb-2">📈 Maximisez votre ROI</h3>
-              <p className="text-sm opacity-90 mb-3">Espace publicitaire stratégique • Haute visibilité garantie</p>
-              <div className="flex justify-center gap-4">
-                <button 
-                  onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
-                  className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                >
-                  💰 Tarifs pub
-                </button>
-                <button 
-                  onClick={() => {
-                    window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank');
-                    addPoints(15, language === 'fr' ? '+15 points bonus pub !' : '+15 bonus ad points!');
-                  }}
-                  className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-                >
-                  🎯 Réserver
-                </button>
-              </div>
-            </div>
-          </div>
+<div className="mt-8 max-w-4xl mx-auto">
+  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
+    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+    </div>
+    <div className="p-4">
+      <GoogleAdSense 
+        slot="VOTRE_SLOT_ID_FOOTER"
+        format="horizontal"
+        style={{ minHeight: '120px' }}
+      />
+    </div>
+  </div>
+</div>
         </main>
       )}
       {showForm && (
