@@ -260,7 +260,6 @@ const translations = {
     manageAds: 'Manage advertisements'
   }
 };
-// Composant GoogleAdSense - À insérer à la ligne 263
 function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
   slot: string;
   format?: string;
@@ -277,7 +276,7 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
     } catch (err) {
       console.error('AdSense error:', err);
     }
-    });
+  }, []); // <- Cette ligne était manquante !
 
   return (
     <div style={style}>
