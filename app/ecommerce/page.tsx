@@ -1,4 +1,5 @@
-'use client';
+function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite, onEdit, showAdmin, hasValue, hasPriceValue, cleanCategory, translateCategory, t, onShare }: any) {
+  const [current, setCurrent] = useState'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -111,6 +112,27 @@ const translations = {
     pageViews: 'Vues de la page',
     onlineNow: 'En ligne maintenant',
     totalVisitors: 'Visiteurs total',
+    points: 'Points',
+    badges: 'Badges',
+    earnPoints: 'Gagnez des points !',
+    discoverStyle: 'Découvrir mon style',
+    styleQuiz: 'Quiz de Style',
+    darkMode: 'Mode sombre',
+    recentActivity: 'Activité récente',
+    welcomePoints: '+10 points de bienvenue !',
+    favoritePoints: '+5 points pour ce favori !',
+    sharePoints: '+15 points pour le partage !',
+    firstVisitBadge: '🎉 Première visite',
+    explorerBadge: '🔍 Explorateur',
+    trendsetterBadge: '✨ Trendsetter',
+    loyalBadge: '💎 Fidèle',
+    notification: 'Notification',
+    dealAlert: '🔥 Deal Alert: 50% sur les montres Apple !',
+    stockAlert: '⚡ Stock limité: Plus que 3 unités !',
+    dragProduct: 'Glissez un produit ici ou tapez le nom',
+    dragDropHint: '🎯 Glissez un produit de la collection ici',
+    productDropped: 'Produit ajouté !',
+    requestSitestripe: '+20 points pour votre demande Sitestripe !',
   },
   en: {
     title: 'Collection CERDIA',
@@ -176,6 +198,27 @@ const translations = {
     pageViews: 'Page views',
     onlineNow: 'Online now',
     totalVisitors: 'Total visitors',
+    points: 'Points',
+    badges: 'Badges',
+    earnPoints: 'Earn points!',
+    discoverStyle: 'Discover my style',
+    styleQuiz: 'Style Quiz',
+    darkMode: 'Dark mode',
+    recentActivity: 'Recent activity',
+    welcomePoints: '+10 welcome points!',
+    favoritePoints: '+5 points for this favorite!',
+    sharePoints: '+15 points for sharing!',
+    firstVisitBadge: '🎉 First visit',
+    explorerBadge: '🔍 Explorer',
+    trendsetterBadge: '✨ Trendsetter',
+    loyalBadge: '💎 Loyal',
+    notification: 'Notification',
+    dealAlert: '🔥 Deal Alert: 50% off Apple watches!',
+    stockAlert: '⚡ Limited stock: Only 3 left!',
+    dragProduct: 'Drag a product here or type the name',
+    dragDropHint: '🎯 Drag a product from the collection here',
+    productDropped: 'Product added!',
+    requestSitestripe: '+20 points for your Sitestripe request!',
   }
 };
 
@@ -194,6 +237,17 @@ export default function EcommercePage() {
   const [comments, setComments] = useState<any[]>([]);
   const [pageViews, setPageViews] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState(0);
+  const [userPoints, setUserPoints] = useState(0);
+  const [userBadges, setUserBadges] = useState<string[]>([]);
+  const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<any>({});
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationText, setNotificationText] = useState('');
+  const [draggedProduct, setDraggedProduct] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const [newProduct, setNewProduct] = useState<Product>({
     name: '',
     description: '',
@@ -282,6 +336,130 @@ export default function EcommercePage() {
     const baseOnline = 3;
     const randomOnline = Math.floor(Math.random() * 8);
     setOnlineUsers(baseOnline + randomOnline);
+
+    // Activité récente simulée
+    const activities = language === 'fr' ? [
+      "Marie a obtenu un lien Sitestripe",
+      "Jean a ajouté un produit aux favoris", 
+      "Sophie a partagé un produit",
+      "Alex a découvert son style",
+      "Emma a gagné un badge"
+    ] : [
+      "Marie got a Sitestripe link",
+      "Jean added a product to favorites",
+      "Sophie shared a product", 
+      "Alex discovered their style",
+      "Emma earned a badge"
+    ];
+    
+    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    setRecentActivity(prev => {
+      const newActivity = [`${new Date().toLocaleTimeString()} - ${randomActivity}`, ...prev.slice(0, 4)];
+      return newActivity;
+    });
+  };
+
+  const loadUserData = () => {
+    try {
+      const savedPoints = localStorage.getItem('cerdiaPoints');
+      const savedBadges = localStorage.getItem('cerdiaBadges');
+      const savedDarkMode = localStorage.getItem('cerdiaDarkMode');
+      
+      if (savedPoints) setUserPoints(parseInt(savedPoints));
+      if (savedBadges) setUserBadges(JSON.parse(savedBadges));
+      if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
+      
+      // Points de bienvenue pour nouveau visiteur
+      if (!savedPoints) {
+        addPoints(10, t('welcomePoints'));
+        addBadge('firstVisitBadge');
+      }
+    } catch (e) {
+      console.error('Erreur chargement données utilisateur:', e);
+    }
+  };
+
+  const addPoints = (points: number, message: string) => {
+    const newPoints = userPoints + points;
+    setUserPoints(newPoints);
+    localStorage.setItem('cerdiaPoints', newPoints.toString());
+    showNotificationToast(message);
+    
+    // Badges automatiques basés sur les points
+    if (newPoints >= 50 && !userBadges.includes('explorerBadge')) {
+      addBadge('explorerBadge');
+    }
+    if (newPoints >= 100 && !userBadges.includes('trendsetterBadge')) {
+      addBadge('trendsetterBadge');
+    }
+    if (newPoints >= 200 && !userBadges.includes('loyalBadge')) {
+      addBadge('loyalBadge');
+    }
+  };
+
+  const addBadge = (badgeKey: string) => {
+    if (!userBadges.includes(badgeKey)) {
+      const newBadges = [...userBadges, badgeKey];
+      setUserBadges(newBadges);
+      localStorage.setItem('cerdiaBadges', JSON.stringify(newBadges));
+      showNotificationToast(`🏆 Nouveau badge: ${t(badgeKey)}`);
+    }
+  };
+
+  const showNotificationToast = (message: string) => {
+    setNotificationText(message);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  };
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('cerdiaDarkMode', JSON.stringify(newDarkMode));
+  };
+
+  const quizQuestions = language === 'fr' ? [
+    {
+      question: "Quel est votre style ?",
+      options: ["Casual", "Élégant", "Sportif", "Tendance"]
+    },
+    {
+      question: "Votre budget préféré ?", 
+      options: ["< 50$", "50-100$", "100-200$", "> 200$"]
+    },
+    {
+      question: "Quelle occasion ?",
+      options: ["Quotidien", "Travail", "Soirée", "Sport"]
+    }
+  ] : [
+    {
+      question: "What's your style?",
+      options: ["Casual", "Elegant", "Sporty", "Trendy"]
+    },
+    {
+      question: "Your preferred budget?",
+      options: ["< $50", "$50-100", "$100-200", "> $200"]
+    },
+    {
+      question: "What occasion?", 
+      options: ["Daily", "Work", "Evening", "Sport"]
+    }
+  ];
+
+  const handleQuizAnswer = (answer: string) => {
+    const newAnswers = { ...quizAnswers, [quizStep]: answer };
+    setQuizAnswers(newAnswers);
+    
+    if (quizStep < quizQuestions.length - 1) {
+      setQuizStep(quizStep + 1);
+    } else {
+      // Quiz terminé
+      setShowQuiz(false);
+      addPoints(25, language === 'fr' ? '+25 points pour le quiz de style !' : '+25 points for style quiz!');
+      addBadge('trendsetterBadge');
+      setQuizStep(0);
+      setQuizAnswers({});
+    }
   };
 
   const handleCommentSubmit = (e: React.FormEvent) => {
@@ -360,6 +538,9 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     const messengerURL = `https://m.me/${MESSENGER_PAGE_ID}?text=${encodeURIComponent(messengerMessage)}`;
     window.open(messengerURL, '_blank');
     
+    // Ajouter des points pour la demande
+    addPoints(20, language === 'fr' ? '+20 points pour votre demande Sitestripe !' : '+20 points for your Sitestripe request!');
+    
     // Message de confirmation
     alert(t('requestSent'));
     form.reset();
@@ -368,14 +549,36 @@ I would like to get my Sitestripe links for this product. Thank you!`;
   useEffect(() => {
     loadCustomCategories();
     loadComments();
+    loadUserData();
     simulateTraffic();
     fetchProducts();
     
     // Mettre à jour les stats de trafic toutes les 30 secondes
     const trafficInterval = setInterval(simulateTraffic, 30000);
     
-    return () => clearInterval(trafficInterval);
-  }, []);
+    // Notifications aléatoires
+    const notificationInterval = setInterval(() => {
+      const alerts = language === 'fr' ? [
+        t('dealAlert'),
+        t('stockAlert'), 
+        t('trendingAlert')
+      ] : [
+        t('dealAlert'),
+        t('stockAlert'),
+        t('trendingAlert')
+      ];
+      
+      if (Math.random() > 0.7) { // 30% de chance
+        const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+        showNotificationToast(randomAlert);
+      }
+    }, 45000);
+    
+    return () => {
+      clearInterval(trafficInterval);
+      clearInterval(notificationInterval);
+    };
+  }, [language]);
 
   useEffect(() => {
     const defaultCats = DEFAULT_CATEGORIES[language];
@@ -746,37 +949,103 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       newFavorites.delete(productId);
     } else {
       newFavorites.add(productId);
+      addPoints(5, t('favoritePoints'));
     }
     setFavorites(newFavorites);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Toast Notifications */}
+      {showNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 animate-pulse">
+          {notificationText}
+        </div>
+      )}
+
+      {/* Quiz Modal */}
+      {showQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl p-8 max-w-md w-full`}>
+            <h2 className="text-2xl font-bold mb-6 text-center">{t('styleQuiz')}</h2>
+            <div className="mb-6">
+              <div className="flex justify-center space-x-2 mb-4">
+                {quizQuestions.map((_, index) => (
+                  <div key={index} className={`w-3 h-3 rounded-full ${index <= quizStep ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                ))}
+              </div>
+              <h3 className="text-lg font-semibold mb-4">{quizQuestions[quizStep].question}</h3>
+              <div className="space-y-3">
+                {quizQuestions[quizStep].options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleQuizAnswer(option)}
+                    className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 transition-colors"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowQuiz(false)}
+              className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            >
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <header className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} shadow-sm sticky top-0 z-40 transition-colors duration-300`}>
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
-              <p className="text-xs text-gray-600">{t('subtitle')}</p>
+              <h1 className="text-xl font-bold">{t('title')}</h1>
+              <p className="text-xs opacity-70">{t('subtitle')}</p>
             </div>
             <div className="flex items-center gap-4">
+              {/* User Stats */}
+              <div className="hidden md:flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+                  <span>⭐</span>
+                  <span>{userPoints} {t('points')}</span>
+                </div>
+                {userBadges.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {userBadges.slice(0, 3).map((badge, index) => (
+                      <span key={index} className="text-lg" title={t(badge)}>
+                        {t(badge).split(' ')[0]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Indicateur de trafic */}
               <div className="hidden sm:flex items-center gap-3 text-xs">
                 <div className="flex items-center gap-1 text-green-600">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span>{onlineUsers} {t('onlineNow')}</span>
                 </div>
-                <div className="text-gray-600">
+                <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
                   👁️ {pageViews.toLocaleString()} {t('pageViews')}
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <Globe size={16} className="text-gray-600" />
+                <button 
+                  onClick={toggleDarkMode}
+                  className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  title={t('darkMode')}
+                >
+                  {darkMode ? '🌙' : '☀️'}
+                </button>
+                <Globe size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
                 <select 
                   value={language} 
                   onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
-                  className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                  className={`text-sm border rounded px-2 py-1 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 >
                   <option value="fr">🇫🇷</option>
                   <option value="en">🇺🇸</option>
@@ -789,7 +1058,11 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             <button 
               onClick={() => setShowBlog(false)} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !showBlog ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                !showBlog 
+                  ? 'bg-blue-600 text-white' 
+                  : darkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
               {t('products')}
@@ -797,10 +1070,24 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             <button 
               onClick={() => setShowBlog(true)} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                showBlog ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                showBlog 
+                  ? 'bg-blue-600 text-white' 
+                  : darkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
               {t('blog')}
+            </button>
+            <button 
+              onClick={() => setShowQuiz(true)} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-purple-700 text-white hover:bg-purple-600' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              ✨ {t('discoverStyle')}
             </button>
           </div>
           
@@ -906,13 +1193,48 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <input 
-                    name="product"
-                    type="text" 
-                    placeholder={t('productInterest')} 
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div 
+                    className={`relative w-full border-2 border-dashed rounded-lg px-4 py-6 transition-all duration-300 ${
+                      isDragOver 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-300'
+                    }`}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const productName = e.dataTransfer.getData('text/plain');
+                      setDraggedProduct(productName);
+                      const productInput = document.querySelector('input[name="product"]') as HTMLInputElement;
+                      if (productInput) {
+                        productInput.value = productName;
+                      }
+                      setIsDragOver(false);
+                      showNotificationToast(t('productDropped'));
+                      addPoints(5, language === 'fr' ? '+5 points pour le drag & drop !' : '+5 points for drag & drop!');
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={() => {
+                      setIsDragOver(false);
+                    }}
+                  >
+                    <input 
+                      name="product"
+                      type="text" 
+                      placeholder={t('dragProduct')} 
+                      required
+                      className="w-full bg-transparent border-none outline-none text-center font-medium"
+                    />
+                    {isDragOver && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-blue-50 bg-opacity-90 rounded-lg">
+                        <span className="text-blue-600 font-semibold">{t('dragDropHint')}</span>
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 text-center mt-2">
+                      💡 {language === 'fr' ? 'Glissez un produit ou tapez le nom' : 'Drag a product or type the name'}
+                    </div>
+                  </div>
                   <textarea 
                     name="message"
                     placeholder={t('message')} 
@@ -1014,23 +1336,141 @@ I would like to get my Sitestripe links for this product. Thank you!`;
 
       {!showBlog && (
         <main className="px-2 py-4">
+          {/* Mobile Stats */}
+          <div className="md:hidden mb-4 flex justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+              <span>⭐</span>
+              <span>{userPoints} {t('points')}</span>
+            </div>
+            <div className="flex items-center gap-1 text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>{onlineUsers} {t('onlineNow')}</span>
+            </div>
+          </div>
+
+          {/* Bannière publicitaire top */}
+          <div className="mb-6 max-w-4xl mx-auto">
+            <div className={`${darkMode ? 'bg-gradient-to-r from-purple-800 to-blue-800' : 'bg-gradient-to-r from-purple-600 to-blue-600'} rounded-xl p-6 text-white text-center shadow-lg`}>
+              <h3 className="text-lg font-bold mb-2">🎯 Espace Publicitaire Premium</h3>
+              <p className="text-sm opacity-90 mb-3">Votre marque ici • Contactez Ric CERDIA pour réserver cet espace</p>
+              <button 
+                onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                💼 Réserver cet espace
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Activity Sidebar */}
+          {recentActivity.length > 0 && (
+            <div className="hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 w-64 z-30">
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm mb-4`}>
+                <h3 className={`font-semibold mb-3 text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  🔥 {t('recentActivity')}
+                </h3>
+                <div className="space-y-2">
+                  {recentActivity.slice(0, 3).map((activity, index) => (
+                    <div key={index} className={`text-xs p-2 rounded ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'}`}>
+                      {activity}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pub sidebar */}
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm`}>
+                <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  📢 Publicité
+                </h4>
+                <div className={`${darkMode ? 'bg-gradient-to-b from-green-800 to-emerald-800' : 'bg-gradient-to-b from-green-500 to-emerald-500'} rounded p-3 text-white text-center`}>
+                  <p className="text-xs font-semibold mb-1">💎 VIP Deals</p>
+                  <p className="text-xs opacity-90 mb-2">Accès exclusif aux meilleures offres</p>
+                  <button 
+                    onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                    className="bg-white text-green-600 px-2 py-1 rounded text-xs font-semibold hover:bg-gray-100 transition-colors"
+                  >
+                    En savoir +
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
-            {filteredAndSortedProducts.map((product, i) => (
-              <ProductCard 
-                key={product.id || i} 
-                product={product} 
-                language={language}
-                isFavorite={favorites.has(product.id || 0)}
-                onToggleFavorite={() => toggleFavorite(product.id || 0)}
-                onEdit={() => handleAdminAction(() => handleEdit(i))}
-                showAdmin={passwordEntered}
-                hasValue={hasValue}
-                hasPriceValue={hasPriceValue}
-                cleanCategory={cleanCategory}
-                translateCategory={(cat: string) => translateCategory(cat, language)}
-                t={t}
-              />
-            ))}
+            {filteredAndSortedProducts.map((product, i) => {
+              // Insérer une pub tous les 6 produits
+              const shouldShowAd = (i + 1) % 6 === 0;
+              
+              return (
+                <div key={product.id || i}>
+                  <ProductCard 
+                    product={product} 
+                    language={language}
+                    darkMode={darkMode}
+                    isFavorite={favorites.has(product.id || 0)}
+                    onToggleFavorite={() => toggleFavorite(product.id || 0)}
+                    onEdit={() => handleAdminAction(() => handleEdit(i))}
+                    showAdmin={passwordEntered}
+                    hasValue={hasValue}
+                    hasPriceValue={hasPriceValue}
+                    cleanCategory={cleanCategory}
+                    translateCategory={(cat: string) => translateCategory(cat, language)}
+                    t={t}
+                    onShare={() => addPoints(15, t('sharePoints'))}
+                  />
+                  
+                  {/* Pub intégrée tous les 6 produits */}
+                  {shouldShowAd && (
+                    <div className="break-inside-avoid mb-2">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                        <div className={`${darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'} p-4 text-white text-center`}>
+                          <h4 className="font-bold text-sm mb-2">🚀 Boostez vos ventes</h4>
+                          <p className="text-xs opacity-90 mb-3">Obtenez plus de liens Sitestripe avec nos services premium</p>
+                          <button 
+                            onClick={() => {
+                              window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank');
+                              addPoints(10, language === 'fr' ? '+10 points pour la pub cliquée !' : '+10 points for ad click!');
+                            }}
+                            className="bg-white text-orange-600 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                          >
+                            💬 Découvrir
+                          </button>
+                        </div>
+                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <span className="text-xs opacity-60">Sponsorisé • CERDIA</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bannière publicitaire bottom */}
+          <div className="mt-8 max-w-4xl mx-auto">
+            <div className={`${darkMode ? 'bg-gradient-to-r from-indigo-800 to-purple-800' : 'bg-gradient-to-r from-indigo-600 to-purple-600'} rounded-xl p-6 text-white text-center shadow-lg`}>
+              <h3 className="text-lg font-bold mb-2">📈 Maximisez votre ROI</h3>
+              <p className="text-sm opacity-90 mb-3">Espace publicitaire stratégique • Haute visibilité garantie</p>
+              <div className="flex justify-center gap-4">
+                <button 
+                  onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                  className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  💰 Tarifs pub
+                </button>
+                <button 
+                  onClick={() => {
+                    window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank');
+                    addPoints(15, language === 'fr' ? '+15 points bonus pub !' : '+15 bonus ad points!');
+                  }}
+                  className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
+                >
+                  🎯 Réserver
+                </button>
+              </div>
+            </div>
           </div>
         </main>
       )}
@@ -1188,7 +1628,7 @@ function ProductCard({ product, language, isFavorite, onToggleFavorite, onEdit, 
                 {images.length > 1 && (
                   <>
                     <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">‹</button>
-                    <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">›</button>
+                    <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">›</button>:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">›</button>
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                       {images.map((_, index) => (
                         <div key={index} className={`w-1.5 h-1.5 rounded-full ${index === current ? 'bg-white' : 'bg-white bg-opacity-50'}`} />
