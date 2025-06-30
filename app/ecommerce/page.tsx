@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { Pencil, Globe, Plus, Trash2, Heart } from 'lucide-react';
+import { Pencil, Globe, Plus, Trash2, Heart, Video, Mountain } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,8 +28,18 @@ interface Product {
   createdAt?: string;
 }
 
-const PASSWORD = '321MdlTamara!$';
+interface Advertisement {
+  id?: number;
+  title: string;
+  description: string;
+  url: string;
+  imageUrl?: string;
+  type: 'video' | 'image';
+  isActive: boolean;
+  createdAt?: string;
+}
 
+const PASSWORD = '321MdlTamara!$';
 const DEFAULT_CATEGORIES = {
   fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
   en: ['Watch', 'Sunglasses', 'Backpack', 'Travel item']
@@ -45,12 +55,14 @@ const CATEGORY_MAPPING = {
   'Backpack': 'Sac à dos',
   'Travel item': 'Article de voyage'
 };
+
 const translations = {
   fr: {
     title: 'Collection CERDIA',
     subtitle: 'Produits Sitestripe',
     all: 'Tous',
-    addProduct: '➕ Ajouter',
+    addProduct: '➕ Ajouter Produit',
+    addAd: '📺 Ajouter Publicité',
     name: 'Nom',
     description: 'Description',
     modify: 'Modifier',
@@ -65,6 +77,9 @@ const translations = {
     productUpdated: 'Produit mis à jour avec succès',
     productAdded: 'Produit ajouté avec succès',
     productDeleted: 'Produit supprimé avec succès',
+    adUpdated: 'Publicité mise à jour avec succès',
+    adAdded: 'Publicité ajoutée avec succès',
+    adDeleted: 'Publicité supprimée avec succès',
     updateError: 'Erreur lors de la mise à jour',
     addError: 'Erreur lors de l\'ajout',
     deleteError: 'Erreur lors de la suppression',
@@ -86,6 +101,7 @@ const translations = {
     adminRequired: 'Mot de passe admin requis pour créer des catégories',
     blog: 'Blog',
     products: 'Produits',
+    ads: 'Publicités',
     blogTitle: 'Demandez votre Sitestripe pour tous vos achats !',
     blogSubtitle: 'Obtenez instantanément vos liens d\'affiliation personnalisés',
     blogContent: 'Vous cherchez des produits de qualité avec les meilleurs prix ? Notre service Sitestripe vous permet d\'obtenir rapidement tous les liens d\'affiliation dont vous avez besoin !',
@@ -132,12 +148,22 @@ const translations = {
     dragDropHint: '🎯 Glissez un produit de la collection ici',
     productDropped: 'Produit ajouté !',
     requestSitestripe: '+20 points pour votre demande Sitestripe !',
+    // Nouvelles traductions pour les publicités
+    adTitle: 'Titre de la publicité',
+    adUrl: 'URL de destination',
+    adImage: 'Image de la publicité',
+    adType: 'Type de publicité',
+    videoAd: 'Publicité Vidéo',
+    imageAd: 'Publicité Image',
+    isActive: 'Actif',
+    manageAds: 'Gérer les publicités'
   },
   en: {
     title: 'Collection CERDIA',
     subtitle: 'Sitestripe Products',
     all: 'All',
-    addProduct: '➕ Add',
+    addProduct: '➕ Add Product',
+    addAd: '📺 Add Advertisement',
     name: 'Name',
     description: 'Description',
     modify: 'Modify',
@@ -152,6 +178,9 @@ const translations = {
     productUpdated: 'Product updated successfully',
     productAdded: 'Product added successfully',
     productDeleted: 'Product deleted successfully',
+    adUpdated: 'Advertisement updated successfully',
+    adAdded: 'Advertisement added successfully',
+    adDeleted: 'Advertisement deleted successfully',
     updateError: 'Error during update',
     addError: 'Error during addition',
     deleteError: 'Error during deletion',
@@ -173,6 +202,7 @@ const translations = {
     adminRequired: 'Admin password required to create categories',
     blog: 'Blog',
     products: 'Products',
+    ads: 'Advertisements',
     blogTitle: 'Request your Sitestripe for all your purchases!',
     blogSubtitle: 'Get your personalized affiliate links instantly',
     blogContent: 'Looking for quality products at the best prices? Our Sitestripe service allows you to quickly get all the affiliate links you need!',
@@ -219,18 +249,31 @@ const translations = {
     dragDropHint: '🎯 Drag a product from the collection here',
     productDropped: 'Product added!',
     requestSitestripe: '+20 points for your Sitestripe request!',
+    // Nouvelles traductions pour les publicités
+    adTitle: 'Advertisement title',
+    adUrl: 'Destination URL',
+    adImage: 'Advertisement image',
+    adType: 'Advertisement type',
+    videoAd: 'Video Advertisement',
+    imageAd: 'Image Advertisement',
+    isActive: 'Active',
+    manageAds: 'Manage advertisements'
   }
 };
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showAdForm, setShowAdForm] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
+  const [showAds, setShowAds] = useState(false);
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortFilter, setSortFilter] = useState('');
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editAdIndex, setEditAdIndex] = useState<number | null>(null);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [comments, setComments] = useState<any[]>([]);
@@ -257,6 +300,14 @@ export default function EcommercePage() {
     categories: [],
     priceCa: '',
     priceUs: '',
+  });
+  const [newAd, setNewAd] = useState<Advertisement>({
+    title: '',
+    description: '',
+    url: '',
+    imageUrl: '',
+    type: 'image',
+    isActive: true,
   });
 
   const t = (key: keyof typeof translations.fr) => translations[language][key];
@@ -317,6 +368,20 @@ export default function EcommercePage() {
     }
   };
 
+  const loadAdvertisements = () => {
+    try {
+      const saved = localStorage.getItem('advertisements');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setAdvertisements(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des publicités:', e);
+    }
+  };
+
   const saveComments = (newComments: any[]) => {
     try {
       localStorage.setItem('blogComments', JSON.stringify(newComments));
@@ -330,6 +395,14 @@ export default function EcommercePage() {
       localStorage.setItem('customCategories', JSON.stringify(categories));
     } catch (e) {
       console.error('Erreur lors de la sauvegarde des catégories personnalisées:', e);
+    }
+  };
+
+  const saveAdvertisements = (ads: Advertisement[]) => {
+    try {
+      localStorage.setItem('advertisements', JSON.stringify(ads));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des publicités:', e);
     }
   };
 
@@ -418,6 +491,75 @@ export default function EcommercePage() {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem('cerdiaDarkMode', JSON.stringify(newDarkMode));
+  };
+
+  // Nouvelles fonctions pour la gestion des publicités
+  const handleAddAd = () => {
+    if (requestPasswordOnce()) {
+      setShowAdForm(true);
+    }
+  };
+
+  const saveAdvertisement = () => {
+    if (editAdIndex !== null) {
+      const updatedAds = [...advertisements];
+      updatedAds[editAdIndex] = { ...newAd, id: Date.now() };
+      setAdvertisements(updatedAds);
+      saveAdvertisements(updatedAds);
+      alert(t('adUpdated'));
+    } else {
+      const newAdvertisement = { ...newAd, id: Date.now(), createdAt: new Date().toISOString() };
+      const updatedAds = [...advertisements, newAdvertisement];
+      setAdvertisements(updatedAds);
+      saveAdvertisements(updatedAds);
+      alert(t('adAdded'));
+    }
+    resetAdForm();
+  };
+
+  const deleteAdvertisement = (id: number) => {
+    if (!passwordEntered) return;
+    const updatedAds = advertisements.filter(ad => ad.id !== id);
+    setAdvertisements(updatedAds);
+    saveAdvertisements(updatedAds);
+    alert(t('adDeleted'));
+    resetAdForm();
+  };
+
+  const resetAdForm = () => {
+    setEditAdIndex(null);
+    setShowAdForm(false);
+    setNewAd({
+      title: '',
+      description: '',
+      url: '',
+      imageUrl: '',
+      type: 'image',
+      isActive: true,
+    });
+  };
+
+  const handleAdInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setNewAd({ ...newAd, [name]: checked });
+    } else {
+      setNewAd({ ...newAd, [name]: value });
+    }
+  };
+
+  const handleEditAd = (index: number) => {
+    const ad = advertisements[index];
+    setEditAdIndex(index);
+    setShowAdForm(true);
+    setNewAd(ad);
+  };
+
+  const getRandomActiveAd = (): Advertisement | null => {
+    const activeAds = advertisements.filter(ad => ad.isActive);
+    if (activeAds.length === 0) return null;
+    return activeAds[Math.floor(Math.random() * activeAds.length)];
   };
   const quizQuestions = language === 'fr' ? [
     {
@@ -536,6 +678,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
   useEffect(() => {
     loadCustomCategories();
     loadComments();
+    loadAdvertisements();
     loadUserData();
     simulateTraffic();
     fetchProducts();
@@ -698,6 +841,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     }
     resetForm();
   };
+
   const handleAddProduct = () => {
     if (requestPasswordOnce()) {
       setShowForm(true);
@@ -707,7 +851,6 @@ I would like to get my Sitestripe links for this product. Thank you!`;
   const resetForm = () => {
     setEditIndex(null);
     setShowForm(false);
-    
     setNewProduct({
       name: '',
       description: '',
@@ -804,7 +947,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       action();
     }
   };
-  const cleanupCategories = async () => {
+ const cleanupCategories = async () => {
     if (!passwordEntered) return;
     
     const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ?');
@@ -1024,7 +1167,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               <div className="flex items-center gap-2">
                 <button 
                   onClick={toggleDarkMode}
-                className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
                   title={t('darkMode')}
                 >
                   {darkMode ? '🌙' : '☀️'}
@@ -1044,9 +1187,9 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           
           <div className="flex gap-4 mb-3">
             <button 
-              onClick={() => setShowBlog(false)} 
+              onClick={() => {setShowBlog(false); setShowAds(false);}} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !showBlog 
+                !showBlog && !showAds
                   ? 'bg-blue-600 text-white' 
                   : darkMode 
                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
@@ -1056,7 +1199,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               {t('products')}
             </button>
             <button 
-              onClick={() => setShowBlog(true)} 
+              onClick={() => {setShowBlog(true); setShowAds(false);}} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 showBlog 
                   ? 'bg-blue-600 text-white' 
@@ -1067,6 +1210,20 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             >
               {t('blog')}
             </button>
+            {passwordEntered && (
+              <button 
+                onClick={() => {setShowBlog(false); setShowAds(true);}} 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showAds 
+                    ? 'bg-red-600 text-white' 
+                    : darkMode 
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                📺 {t('ads')}
+              </button>
+            )}
             <button 
               onClick={() => setShowQuiz(true)} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -1079,7 +1236,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </button>
           </div>
           
-          {!showBlog && (
+          {!showBlog && !showAds && (
             <>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                 <button 
@@ -1330,7 +1487,136 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </main>
       )}
-      {!showBlog && (
+      {showAds && passwordEntered && (
+        <main className="px-4 py-8 max-w-6xl mx-auto">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                📺 {t('manageAds')}
+              </h1>
+              <button 
+                onClick={handleAddAd}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Plus size={20} />
+                {t('addAd')}
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {advertisements.map((ad, index) => (
+                <div key={ad.id} className={`border rounded-xl p-6 ${
+                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                } ${ad.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      {ad.type === 'video' ? (
+                        <Video size={20} className="text-red-500" />
+                      ) : (
+                        <Mountain size={20} className="text-blue-500" />
+                      )}
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        ad.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {ad.isActive ? t('isActive') : 'Inactif'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleEditAd(index)}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={() => deleteAdvertisement(ad.id!)}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {ad.imageUrl && (
+                    <div className="mb-4">
+                      <img 
+                        src={ad.imageUrl} 
+                        alt={ad.title}
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <h3 className={`font-semibold text-lg mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {ad.title}
+                  </h3>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {ad.description}
+                  </p>
+                  <p className={`text-xs break-all ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    🔗 {ad.url}
+                  </p>
+                  <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    📅 {ad.createdAt ? formatDate(ad.createdAt) : 'Date inconnue'}
+                  </p>
+                </div>
+              ))}
+
+              {advertisements.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="text-6xl mb-4">📺</div>
+                  <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Aucune publicité
+                  </h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Ajoutez votre première publicité pour commencer
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Aperçu de comment les publicités apparaissent */}
+            {advertisements.filter(ad => ad.isActive).length > 0 && (
+              <div className="mt-12 border-t pt-8">
+                <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  👀 Aperçu des publicités actives
+                </h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {advertisements.filter(ad => ad.isActive).slice(0, 4).map((ad) => (
+                    <div key={ad.id} className={`border rounded-2xl overflow-hidden shadow-sm ${
+                      darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                    }`}>
+                      <div className={`${
+                        ad.type === 'video' 
+                          ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                          : darkMode ? 'bg-gradient-to-br from-blue-800 to-purple-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+                      } p-4 text-white text-center`}>
+                        <h4 className="font-bold text-sm mb-2">{ad.title}</h4>
+                        <p className="text-xs opacity-90 mb-3">{ad.description}</p>
+                        <button 
+                          onClick={() => window.open(ad.url, '_blank')}
+                          className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                        >
+                          {ad.type === 'video' ? '▶️ Voir' : '🖼️ Découvrir'}
+                        </button>
+                      </div>
+                      <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                        <span className="text-xs opacity-60">Publicité • CERDIA</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      )}
+      {!showBlog && !showAds && (
         <main className="px-2 py-4">
           <div className="md:hidden mb-4 flex justify-center gap-4 text-sm">
             <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
@@ -1392,6 +1678,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
             {filteredAndSortedProducts.map((product, i) => {
               const shouldShowAd = (i + 1) % 6 === 0;
+              const randomAd = shouldShowAd ? getRandomActiveAd() : null;
               
               return (
                 <div key={product.id || i}>
@@ -1411,24 +1698,40 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     onShare={() => addPoints(15, t('sharePoints'))}
                   />
                   
-                  {shouldShowAd && (
+                  {shouldShowAd && randomAd && (
                     <div className="break-inside-avoid mb-2">
                       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
-                        <div className={`${darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'} p-4 text-white text-center`}>
-                          <h4 className="font-bold text-sm mb-2">🚀 Boostez vos ventes</h4>
-                          <p className="text-xs opacity-90 mb-3">Obtenez plus de liens Sitestripe avec nos services premium</p>
+                        <div className={`${
+                          randomAd.type === 'video'
+                            ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                            : darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'
+                        } p-4 text-white text-center`}>
+                          {randomAd.imageUrl && (
+                            <img 
+                              src={randomAd.imageUrl} 
+                              alt={randomAd.title}
+                              className="w-full h-20 object-cover rounded mb-2"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <h4 className="font-bold text-sm mb-2">
+                            {randomAd.type === 'video' ? '📹' : '🖼️'} {randomAd.title}
+                          </h4>
+                          <p className="text-xs opacity-90 mb-3">{randomAd.description}</p>
                           <button 
                             onClick={() => {
-                              window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank');
+                              window.open(randomAd.url, '_blank');
                               addPoints(10, language === 'fr' ? '+10 points pour la pub cliquée !' : '+10 points for ad click!');
                             }}
-                            className="bg-white text-orange-600 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                            className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
                           >
-                            💬 Découvrir
+                            {randomAd.type === 'video' ? '▶️ Voir la vidéo' : '💬 Découvrir'}
                           </button>
                         </div>
                         <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                          <span className="text-xs opacity-60">Sponsorisé • CERDIA</span>
+                          <span className="text-xs opacity-60">Publicité • CERDIA</span>
                         </div>
                       </div>
                     </div>
@@ -1463,14 +1766,14 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </main>
       )}
-{showForm && (
+      {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
             <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
               darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
               <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {editIndex !== null ? t('modify') : t('add')}
+                {editIndex !== null ? t('modify') : t('add')} - Produit
               </h2>
               <button 
                 onClick={resetForm} 
@@ -1676,6 +1979,180 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
+      {showAdForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {editAdIndex !== null ? t('modify') : t('add')} - Publicité
+              </h2>
+              <button 
+                onClick={resetAdForm} 
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveAdvertisement(); }} className="p-4 space-y-4">
+              <input 
+                name="title" 
+                value={newAd.title} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adTitle')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <textarea 
+                name="description" 
+                value={newAd.description} 
+                onChange={handleAdInputChange} 
+                placeholder={t('description')} 
+                className={`w-full border p-3 rounded-lg h-20 resize-vertical ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <input 
+                name="url" 
+                value={newAd.url} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adUrl')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+                required 
+              />
+              <input 
+                name="imageUrl" 
+                value={newAd.imageUrl} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adImage')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+              />
+              <div className="space-y-3">
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adType')}:
+                </label>
+                <select 
+                  name="type" 
+                  value={newAd.type} 
+                  onChange={handleAdInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="image">🖼️ {t('imageAd')}</option>
+                  <option value="video">📹 {t('videoAd')}</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-3">
+                <input 
+                  type="checkbox" 
+                  name="isActive" 
+                  checked={newAd.isActive} 
+                  onChange={handleAdInputChange}
+                  className="w-4 h-4" 
+                />
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('isActive')}
+                </label>
+              </div>
+              
+              {/* Aperçu de la publicité */}
+              {newAd.title && newAd.description && (
+                <div className="border-t pt-4">
+                  <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 block`}>
+                    👀 Aperçu:
+                  </label>
+                  <div className={`border rounded-2xl overflow-hidden shadow-sm ${
+                    darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  }`}>
+                    <div className={`${
+                      newAd.type === 'video' 
+                        ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                        : darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'
+                    } p-4 text-white text-center`}>
+                      {newAd.imageUrl && (
+                        <img 
+                          src={newAd.imageUrl} 
+                          alt={newAd.title}
+                          className="w-full h-16 object-cover rounded mb-2"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <h4 className="font-bold text-sm mb-2">
+                        {newAd.type === 'video' ? '📹' : '🖼️'} {newAd.title}
+                      </h4>
+                      <p className="text-xs opacity-90 mb-3">{newAd.description}</p>
+                      <div className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold inline-block">
+                        {newAd.type === 'video' ? '▶️ Voir la vidéo' : '💬 Découvrir'}
+                      </div>
+                    </div>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • CERDIA</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetAdForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  {editAdIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editAdIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteAdvertisement(advertisements[editAdIndex].id!)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {!showBlog && !showAds && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddProduct}
+        >
+          <Plus size={24} />
+        </button>
+      )}
+
+      {showAds && passwordEntered && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddAd}
+        >
+          <Video size={24} />
+        </button>
+      )}
+
     </div>
   );
 }
@@ -1756,8 +2233,18 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
                 )}
                 {images.length > 1 && (
                   <>
-                    <button onClick={() => setCurrent((current - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">‹</button>
-                    <button onClick={() => setCurrent((current + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold">›</button>
+                    <button 
+                      onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold"
+                    >
+                      ‹
+                    </button>
+                    <button 
+                      onClick={() => setCurrent((current + 1) % images.length)} 
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold"
+                    >
+                      ›
+                    </button>
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                       {images.map((_, index) => (
                         <div key={index} className={`w-1.5 h-1.5 rounded-full ${index === current ? 'bg-white' : 'bg-white bg-opacity-50'}`} />
@@ -1766,14 +2253,25 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
                   </>
                 )}
                 <div className="absolute top-2 right-2 flex gap-1 z-10">
-                  <button onClick={onToggleFavorite} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isFavorite ? 'bg-red-500 text-white scale-110' : 'bg-white bg-opacity-80 text-gray-600'}`}>
+                  <button 
+                    onClick={onToggleFavorite} 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      isFavorite ? 'bg-red-500 text-white scale-110' : 'bg-white bg-opacity-80 text-gray-600'
+                    }`}
+                  >
                     <Heart size={16} fill={isFavorite ? 'white' : 'none'} />
                   </button>
-                  <button onClick={handleShare} className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={handleShare} 
+                    className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  >
                     📤
                   </button>
                   {showAdmin && (
-                    <button onClick={onEdit} className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                    <button 
+                      onClick={onEdit} 
+                      className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center"
+                    >
                       <Pencil size={14} />
                     </button>
                   )}
@@ -1803,9 +2301,14 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
               </div>
             )}
           </div>
-<div className="p-3">
-            <h3 className={`font-semibold text-sm line-clamp-2 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{product.name}</h3>
-            <p className={`text-xs line-clamp-3 mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{product.description}</p>
+
+          <div className="p-3">
+            <h3 className={`font-semibold text-sm line-clamp-2 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {product.name}
+            </h3>
+            <p className={`text-xs line-clamp-3 mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {product.description}
+            </p>
             
             {(hasPriceValue(product.priceCa) || hasPriceValue(product.priceUs)) && (
               <div className="mb-3">
@@ -1815,7 +2318,9 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
                   {hasPriceValue(product.priceCa) && hasPriceValue(product.priceUs) && ' |'}
                   {hasPriceValue(product.priceUs) && ` ${product.priceUs} USD`}
                 </p>
-                <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('priceNote')}</p>
+                <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {t('priceNote')}
+                </p>
               </div>
             )}
             <div className="space-y-2">
@@ -1823,19 +2328,25 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
                 <div className="flex gap-2">
                   {hasValue(product.amazonCa) && (
                     <Link href={product.amazonCa} target="_blank" rel="noopener noreferrer" className="flex-1">
-                      <button className="w-full bg-orange-500 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-orange-600 transition-colors">🛒 Amazon.ca</button>
+                      <button className="w-full bg-orange-500 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-orange-600 transition-colors">
+                        🛒 Amazon.ca
+                      </button>
                     </Link>
                   )}
                   {hasValue(product.amazonCom) && (
                     <Link href={product.amazonCom} target="_blank" rel="noopener noreferrer" className="flex-1">
-                      <button className="w-full bg-gray-900 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">🛒 Amazon.com</button>
+                      <button className="w-full bg-gray-900 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
+                        🛒 Amazon.com
+                      </button>
                     </Link>
                   )}
                 </div>
               )}
               {hasValue(product.tiktokUrl) && (
                 <Link href={product.tiktokUrl} target="_blank" rel="noopener noreferrer">
-                  <button className="w-full bg-black text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">🎵 {t('viewOnTiktok')}</button>
+                  <button className="w-full bg-black text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
+                    🎵 {t('viewOnTiktok')}
+                  </button>
                 </Link>
               )}
             </div>
@@ -1919,17 +2430,5 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
         </div>
       )}
     </>
-  );
-}
-{!showBlog && (
-        <button 
-          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
-          onClick={handleAddProduct}
-        >
-          <Plus size={24} />
-        </button>
-      )}
-
-    </div>
   );
 }
