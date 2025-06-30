@@ -294,7 +294,6 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
 }
 
 export default function EcommercePage() {
-export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [showForm, setShowForm] = useState(false);
