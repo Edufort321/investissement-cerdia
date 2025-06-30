@@ -698,10 +698,16 @@ I would like to get my Sitestripe links for this product. Thank you!`;
     }
     resetForm();
   };
+  const handleAddProduct = () => {
+    if (requestPasswordOnce()) {
+      setShowForm(true);
+    }
+  };
 
   const resetForm = () => {
     setEditIndex(null);
     setShowForm(false);
+    
     setNewProduct({
       name: '',
       description: '',
@@ -1018,7 +1024,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               <div className="flex items-center gap-2">
                 <button 
                   onClick={toggleDarkMode}
-                  className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
                   title={t('darkMode')}
                 >
                   {darkMode ? '🌙' : '☀️'}
@@ -1913,5 +1919,17 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
         </div>
       )}
     </>
+  );
+}
+{!showBlog && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddProduct}
+        >
+          <Plus size={24} />
+        </button>
+      )}
+
+    </div>
   );
 }
