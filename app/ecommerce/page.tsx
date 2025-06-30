@@ -292,7 +292,6 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
     </div>
   );
 }
-  }, []);
 
 export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
