@@ -48,7 +48,7 @@ const CATEGORY_MAPPING = {
 
 const translations = {
   fr: {
-    title: 'CERDIA',
+    title: 'Collection CERDIA',
     subtitle: 'Produits Sitestripe',
     all: 'Tous',
     addProduct: '➕ Ajouter',
@@ -102,9 +102,18 @@ const translations = {
     sendToMessenger: 'Ouvrir Messenger',
     messengerDirect: 'Ou contactez-nous directement sur',
     requestSent: 'Redirection vers Messenger...',
+    comments: 'Commentaires',
+    addComment: 'Ajouter un commentaire',
+    yourComment: 'Votre commentaire...',
+    postComment: 'Publier',
+    commentPosted: 'Commentaire publié avec succès !',
+    noComments: 'Aucun commentaire pour le moment. Soyez le premier à commenter !',
+    pageViews: 'Vues de la page',
+    onlineNow: 'En ligne maintenant',
+    totalVisitors: 'Visiteurs total',
   },
   en: {
-    title: 'CERDIA',
+    title: 'Collection CERDIA',
     subtitle: 'Sitestripe Products',
     all: 'All',
     addProduct: '➕ Add',
@@ -158,6 +167,15 @@ const translations = {
     sendToMessenger: 'Open Messenger',
     messengerDirect: 'Or contact us directly on',
     requestSent: 'Redirecting to Messenger...',
+    comments: 'Comments',
+    addComment: 'Add a comment',
+    yourComment: 'Your comment...',
+    postComment: 'Post',
+    commentPosted: 'Comment posted successfully!',
+    noComments: 'No comments yet. Be the first to comment!',
+    pageViews: 'Page views',
+    onlineNow: 'Online now',
+    totalVisitors: 'Total visitors',
   }
 };
 
@@ -173,6 +191,9 @@ export default function EcommercePage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [comments, setComments] = useState<any[]>([]);
+  const [pageViews, setPageViews] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState(0);
   const [newProduct, setNewProduct] = useState<Product>({
     name: '',
     description: '',
@@ -230,6 +251,79 @@ export default function EcommercePage() {
     }
   };
 
+  const loadComments = () => {
+    try {
+      const saved = localStorage.getItem('blogComments');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setComments(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des commentaires:', e);
+    }
+  };
+
+  const saveComments = (newComments: any[]) => {
+    try {
+      localStorage.setItem('blogComments', JSON.stringify(newComments));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des commentaires:', e);
+    }
+  };
+
+  const simulateTraffic = () => {
+    // Simuler le trafic avec des valeurs réalistes
+    const baseViews = 1247;
+    const randomViews = Math.floor(Math.random() * 50);
+    setPageViews(baseViews + randomViews);
+    
+    const baseOnline = 3;
+    const randomOnline = Math.floor(Math.random() * 8);
+    setOnlineUsers(baseOnline + randomOnline);
+  };
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const newComment = {
+      id: Date.now(),
+      name: formData.get('commentName') as string,
+      comment: formData.get('commentText') as string,
+      timestamp: new Date().toISOString(),
+      language: language
+    };
+    
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
+    saveComments(updatedComments);
+    
+    alert(t('commentPosted'));
+    form.reset();
+  };
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return language === 'fr' 
+      ? date.toLocaleDateString('fr-FR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : date.toLocaleDateString('en-US', { 
+          month: 'short',
+          day: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+  };
+
   const saveCustomCategories = (categories: string[]) => {
     try {
       localStorage.setItem('customCategories', JSON.stringify(categories));
@@ -273,7 +367,14 @@ I would like to get my Sitestripe links for this product. Thank you!`;
 
   useEffect(() => {
     loadCustomCategories();
+    loadComments();
+    simulateTraffic();
     fetchProducts();
+    
+    // Mettre à jour les stats de trafic toutes les 30 secondes
+    const trafficInterval = setInterval(simulateTraffic, 30000);
+    
+    return () => clearInterval(trafficInterval);
   }, []);
 
   useEffect(() => {
@@ -658,16 +759,29 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
               <p className="text-xs text-gray-600">{t('subtitle')}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Globe size={16} className="text-gray-600" />
-              <select 
-                value={language} 
-                onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
-                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-              >
-                <option value="fr">🇫🇷</option>
-                <option value="en">🇺🇸</option>
-              </select>
+            <div className="flex items-center gap-4">
+              {/* Indicateur de trafic */}
+              <div className="hidden sm:flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>{onlineUsers} {t('onlineNow')}</span>
+                </div>
+                <div className="text-gray-600">
+                  👁️ {pageViews.toLocaleString()} {t('pageViews')}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Globe size={16} className="text-gray-600" />
+                <select 
+                  value={language} 
+                  onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
+                  className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                >
+                  <option value="fr">🇫🇷</option>
+                  <option value="en">🇺🇸</option>
+                </select>
+              </div>
             </div>
           </div>
           
@@ -746,6 +860,17 @@ I would like to get my Sitestripe links for this product. Thank you!`;
       {showBlog && (
         <main className="px-4 py-8 max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-sm p-8">
+            {/* Indicateur de trafic mobile */}
+            <div className="sm:hidden mb-6 flex justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2 text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>{onlineUsers} {t('onlineNow')}</span>
+              </div>
+              <div className="text-gray-600">
+                👁️ {pageViews.toLocaleString()} {t('pageViews')}
+              </div>
+            </div>
+
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('blogTitle')}</h1>
               <p className="text-lg text-gray-600 mb-6">{t('blogSubtitle')}</p>
@@ -821,6 +946,66 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     Messenger : Ric CERDIA
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Section Commentaires */}
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('comments')}</h2>
+              
+              {/* Formulaire d'ajout de commentaire */}
+              <div className="bg-gray-50 rounded-xl p-6 mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('addComment')}</h3>
+                <form onSubmit={handleCommentSubmit} className="space-y-4">
+                  <input 
+                    name="commentName"
+                    type="text" 
+                    placeholder={t('yourName')} 
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <textarea 
+                    name="commentText"
+                    placeholder={t('yourComment')} 
+                    rows={4}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                  />
+                  <button 
+                    type="submit"
+                    className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('postComment')}
+                  </button>
+                </form>
+              </div>
+
+              {/* Liste des commentaires */}
+              <div className="space-y-6">
+                {comments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>{t('noComments')}</p>
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold text-lg">
+                              {comment.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{comment.name}</h4>
+                            <p className="text-sm text-gray-500">{formatDate(comment.timestamp)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed">{comment.comment}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
