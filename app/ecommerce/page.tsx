@@ -660,7 +660,7 @@ export default function EcommercePage() {
     setShowAdSenseForm(true);
     setNewAdSense(config);
   };
- // Fonctions de simulation de trafic et activité
+  // Fonctions de simulation de trafic et activité
   const simulateTraffic = () => {
     const baseViews = 1247;
     const randomViews = Math.floor(Math.random() * 50);
@@ -1853,7 +1853,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </main>
       )}
-      {/* Page Gestion des Publicités */}
+    {/* Page Gestion des Publicités */}
       {showAds && passwordEntered && (
         <main className="px-4 py-8 max-w-6xl mx-auto">
           <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
@@ -2076,8 +2076,8 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             {filteredAndSortedProducts.map((product, i) => {
               const shouldShowCustomAd = (i + 1) % 6 === 0;
               const randomAd = shouldShowCustomAd ? getRandomActiveAd() : null;
-              const shouldShowAdSenseAd = shouldShowAdSenseAd(i);
-              const adSenseConfig = shouldShowAdSenseAd ? getAdSenseConfigByPosition('middle') : null;
+              const shouldShowAdSense = shouldShowAdSenseAd(i);
+              const adSenseConfig = shouldShowAdSense ? getAdSenseConfigByPosition('middle') : null;
               
               return (
                 <div key={product.id || i}>
@@ -2713,7 +2713,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
-      {/* Boutons flottants */}
+     {/* Boutons flottants */}
       {!showBlog && !showAds && !showAdSenseManagement && (
         <button 
           className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
