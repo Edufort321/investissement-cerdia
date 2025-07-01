@@ -42,6 +42,17 @@ interface Advertisement {
   createdAt?: string;
 }
 
+// Nouvelle interface pour les publicités AdSense
+interface AdSenseConfig {
+  id?: number;
+  clientId: string;
+  slotId: string;
+  format: 'auto' | 'horizontal' | 'rectangle' | 'vertical';
+  isActive: boolean;
+  position: 'top' | 'middle' | 'bottom' | 'sidebar';
+  frequency: number;
+  createdAt?: string;
+}
 // Données par défaut et mappings
 const DEFAULT_CATEGORIES = {
   fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
@@ -58,6 +69,7 @@ const CATEGORY_MAPPING = {
   'Backpack': 'Sac à dos',
   'Travel item': 'Article de voyage'
 };
+
 // Traductions complètes
 const translations = {
   fr: {
@@ -66,6 +78,23 @@ const translations = {
     all: 'Tous',
     addProduct: '➕ Ajouter Produit',
     addAd: '📺 Ajouter Publicité',
+    addAdSense: '💰 Configurer AdSense',
+    manageAdSense: 'Gérer AdSense',
+    adsenseClientId: 'ID Client AdSense (ca-pub-...)',
+    adsenseSlotId: 'ID Slot AdSense',
+    adsenseFormat: 'Format de publicité',
+    adsensePosition: 'Position',
+    adsenseFrequency: 'Fréquence (tous les X produits)',
+    formatAuto: 'Automatique',
+    formatHorizontal: 'Horizontal (bannière)',
+    formatRectangle: 'Rectangle',
+    formatVertical: 'Vertical',
+    positionTop: 'Haut de page',
+    positionMiddle: 'Milieu (entre produits)',
+    positionBottom: 'Bas de page',
+    positionSidebar: 'Barre latérale',
+    adsenseConfigured: 'Configuration AdSense sauvegardée',
+    adsenseDeleted: 'Configuration AdSense supprimée',
     name: 'Nom',
     description: 'Description',
     modify: 'Modifier',
@@ -166,6 +195,23 @@ const translations = {
     all: 'All',
     addProduct: '➕ Add Product',
     addAd: '📺 Add Advertisement',
+    addAdSense: '💰 Configure AdSense',
+    manageAdSense: 'Manage AdSense',
+    adsenseClientId: 'AdSense Client ID (ca-pub-...)',
+    adsenseSlotId: 'AdSense Slot ID',
+    adsenseFormat: 'Ad format',
+    adsensePosition: 'Position',
+    adsenseFrequency: 'Frequency (every X products)',
+    formatAuto: 'Automatic',
+    formatHorizontal: 'Horizontal (banner)',
+    formatRectangle: 'Rectangle',
+    formatVertical: 'Vertical',
+    positionTop: 'Top of page',
+    positionMiddle: 'Middle (between products)',
+    positionBottom: 'Bottom of page',
+    positionSidebar: 'Sidebar',
+    adsenseConfigured: 'AdSense configuration saved',
+    adsenseDeleted: 'AdSense configuration deleted',
     name: 'Name',
     description: 'Description',
     modify: 'Modify',
@@ -261,13 +307,21 @@ const translations = {
     manageAds: 'Manage advertisements'
   }
 };
-
 // Composant Google AdSense
-function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
-  slot: string;
+function GoogleAdSense({ 
+  clientId, 
+  slotId, 
+  format = "auto", 
+  responsive = true, 
+  style,
+  className = ""
+}: {
+  clientId: string;
+  slotId: string;
   format?: string;
   responsive?: boolean;
   style?: React.CSSProperties;
+  className?: string;
 }) {
   useEffect(() => {
     try {
@@ -281,13 +335,23 @@ function GoogleAdSense({ slot, format = "auto", responsive = true, style }: {
     }
   }, []);
 
+  if (!clientId || !slotId) {
+    return (
+      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-500 ${className}`} style={style}>
+        <p className="text-sm">Configuration AdSense manquante</p>
+        <p className="text-xs">Client ID: {clientId || 'Non défini'}</p>
+        <p className="text-xs">Slot ID: {slotId || 'Non défini'}</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={style}>
+    <div className={className} style={style}>
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}
-        data-ad-client="ca-pub-7698570045125787"
-        data-ad-slot={slot}
+        data-ad-client={clientId}
+        data-ad-slot={slotId}
         data-ad-format={format}
         data-full-width-responsive={responsive ? "true" : "false"}
       />
@@ -300,12 +364,15 @@ export default function EcommercePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [comments, setComments] = useState<any[]>([]);
+  const [adsenseConfigs, setAdsenseConfigs] = useState<AdSenseConfig[]>([]);
   
   // États pour l'interface utilisateur
   const [showForm, setShowForm] = useState(false);
   const [showAdForm, setShowAdForm] = useState(false);
+  const [showAdSenseForm, setShowAdSenseForm] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showAds, setShowAds] = useState(false);
+  const [showAdSenseManagement, setShowAdSenseManagement] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   
@@ -323,6 +390,7 @@ export default function EcommercePage() {
   // États pour l'édition
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editAdIndex, setEditAdIndex] = useState<number | null>(null);
+  const [editAdSenseIndex, setEditAdSenseIndex] = useState<number | null>(null);
   
   // États pour les fonctionnalités utilisateur
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -363,9 +431,17 @@ export default function EcommercePage() {
     isActive: true,
   });
 
+  const [newAdSense, setNewAdSense] = useState<AdSenseConfig>({
+    clientId: '',
+    slotId: '',
+    format: 'auto',
+    position: 'middle',
+    frequency: 7,
+    isActive: true,
+  });
+
   // Fonction de traduction
   const t = (key: keyof typeof translations.fr) => translations[language][key];
-
   // Fonctions utilitaires pour les catégories
   const cleanCategory = (category: string): string => {
     return category.replace(/['"\\]/g, '').trim();
@@ -396,7 +472,24 @@ export default function EcommercePage() {
     const numericPrice = parseFloat(price.replace(',', '.'));
     return numericPrice > 0;
   };
- // Fonctions de chargement des données
+
+  // Fonctions pour obtenir une config AdSense par position
+  const getAdSenseConfigByPosition = (position: 'top' | 'middle' | 'bottom' | 'sidebar'): AdSenseConfig | null => {
+    const activeConfigs = adsenseConfigs.filter(config => config.isActive && config.position === position);
+    if (activeConfigs.length === 0) return null;
+    return activeConfigs[Math.floor(Math.random() * activeConfigs.length)];
+  };
+
+  // Fonction pour déterminer si on doit afficher une pub AdSense
+  const shouldShowAdSenseAd = (index: number): boolean => {
+    const middleConfigs = adsenseConfigs.filter(config => config.isActive && config.position === 'middle');
+    if (middleConfigs.length === 0) return false;
+    
+    // Utilise une fréquence aléatoire entre 5 et 10 pour plus de variété
+    const randomFrequency = Math.floor(Math.random() * 6) + 5; // 5 à 10
+    return (index + 1) % randomFrequency === 0;
+  };
+  // Fonctions de chargement des données
   const loadCustomCategories = () => {
     try {
       const saved = localStorage.getItem('customCategories');
@@ -439,6 +532,20 @@ export default function EcommercePage() {
     }
   };
 
+  const loadAdSenseConfigs = () => {
+    try {
+      const saved = localStorage.getItem('adsenseConfigs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setAdsenseConfigs(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des configurations AdSense:', e);
+    }
+  };
+
   const loadUserData = () => {
     try {
       const savedPoints = localStorage.getItem('cerdiaPoints');
@@ -457,7 +564,6 @@ export default function EcommercePage() {
       console.error('Erreur chargement données utilisateur:', e);
     }
   };
-
   // Fonctions de sauvegarde
   const saveComments = (newComments: any[]) => {
     try {
@@ -483,7 +589,78 @@ export default function EcommercePage() {
     }
   };
 
-  // Fonctions de simulation de trafic et activité
+  const saveAdSenseConfigs = (configs: AdSenseConfig[]) => {
+    try {
+      localStorage.setItem('adsenseConfigs', JSON.stringify(configs));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des configurations AdSense:', e);
+    }
+  };
+  // Fonctions de gestion AdSense
+  const handleAddAdSense = () => {
+    if (requestPasswordOnce()) {
+      setShowAdSenseForm(true);
+    }
+  };
+
+  const saveAdSenseConfig = () => {
+    if (editAdSenseIndex !== null) {
+      const updatedConfigs = [...adsenseConfigs];
+      updatedConfigs[editAdSenseIndex] = { ...newAdSense, id: Date.now() };
+      setAdsenseConfigs(updatedConfigs);
+      saveAdSenseConfigs(updatedConfigs);
+      alert(t('adsenseConfigured'));
+    } else {
+      const newConfig = { ...newAdSense, id: Date.now(), createdAt: new Date().toISOString() };
+      const updatedConfigs = [...adsenseConfigs, newConfig];
+      setAdsenseConfigs(updatedConfigs);
+      saveAdSenseConfigs(updatedConfigs);
+      alert(t('adsenseConfigured'));
+    }
+    resetAdSenseForm();
+  };
+
+  const deleteAdSenseConfig = (id: number) => {
+    if (!passwordEntered) return;
+    const updatedConfigs = adsenseConfigs.filter(config => config.id !== id);
+    setAdsenseConfigs(updatedConfigs);
+    saveAdSenseConfigs(updatedConfigs);
+    alert(t('adsenseDeleted'));
+    resetAdSenseForm();
+  };
+
+  const resetAdSenseForm = () => {
+    setEditAdSenseIndex(null);
+    setShowAdSenseForm(false);
+    setNewAdSense({
+      clientId: '',
+      slotId: '',
+      format: 'auto',
+      position: 'middle',
+      frequency: 7,
+      isActive: true,
+    });
+  };
+
+  const handleAdSenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setNewAdSense({ ...newAdSense, [name]: checked });
+    } else if (name === 'frequency') {
+      setNewAdSense({ ...newAdSense, [name]: parseInt(value) || 5 });
+    } else {
+      setNewAdSense({ ...newAdSense, [name]: value });
+    }
+  };
+
+  const handleEditAdSense = (index: number) => {
+    const config = adsenseConfigs[index];
+    setEditAdSenseIndex(index);
+    setShowAdSenseForm(true);
+    setNewAdSense(config);
+  };
+ // Fonctions de simulation de trafic et activité
   const simulateTraffic = () => {
     const baseViews = 1247;
     const randomViews = Math.floor(Math.random() * 50);
@@ -620,7 +797,6 @@ export default function EcommercePage() {
     if (activeAds.length === 0) return null;
     return activeAds[Math.floor(Math.random() * activeAds.length)];
   };
-
   // Fonctions de gestion des produits
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
@@ -709,7 +885,6 @@ export default function EcommercePage() {
     }
     resetForm();
   };
-
   const deleteProduct = async (id: number | undefined) => {
     if (!passwordEntered || !id) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -743,6 +918,7 @@ export default function EcommercePage() {
       priceUs: '',
     });
   };
+
   // Fonctions de gestion des formulaires
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index?: number) => {
     const { name, value } = e.target;
@@ -827,7 +1003,6 @@ export default function EcommercePage() {
       action();
     }
   };
-
   // Fonction de nettoyage des catégories
   const cleanupCategories = async () => {
     if (!passwordEntered) return;
@@ -1070,12 +1245,12 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           minute: '2-digit'
         });
   };
-
   // useEffect pour l'initialisation
   useEffect(() => {
     loadCustomCategories();
     loadComments();
     loadAdvertisements();
+    loadAdSenseConfigs();
     loadUserData();
     simulateTraffic();
     fetchProducts();
@@ -1201,7 +1376,6 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
-
       {/* Header */}
       <header className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} shadow-sm sticky top-0 z-40 transition-colors duration-300`}>
         <div className="px-4 py-3">
@@ -1263,9 +1437,9 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           {/* Navigation */}
           <div className="flex gap-4 mb-3">
             <button 
-              onClick={() => {setShowBlog(false); setShowAds(false);}} 
+              onClick={() => {setShowBlog(false); setShowAds(false); setShowAdSenseManagement(false);}} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !showBlog && !showAds
+                !showBlog && !showAds && !showAdSenseManagement
                   ? 'bg-blue-600 text-white' 
                   : darkMode 
                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
@@ -1275,7 +1449,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               {t('products')}
             </button>
             <button 
-              onClick={() => {setShowBlog(true); setShowAds(false);}} 
+              onClick={() => {setShowBlog(true); setShowAds(false); setShowAdSenseManagement(false);}} 
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 showBlog 
                   ? 'bg-blue-600 text-white' 
@@ -1288,7 +1462,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             </button>
             {passwordEntered && (
               <button 
-                onClick={() => {setShowBlog(false); setShowAds(true);}} 
+                onClick={() => {setShowBlog(false); setShowAds(true); setShowAdSenseManagement(false);}} 
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   showAds 
                     ? 'bg-red-600 text-white' 
@@ -1298,6 +1472,20 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                 }`}
               >
                 📺 {t('ads')}
+              </button>
+            )}
+            {passwordEntered && (
+              <button 
+                onClick={() => {setShowBlog(false); setShowAds(false); setShowAdSenseManagement(true);}} 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showAdSenseManagement 
+                    ? 'bg-green-600 text-white' 
+                    : darkMode 
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                💰 AdSense
               </button>
             )}
             <button 
@@ -1311,9 +1499,8 @@ I would like to get my Sitestripe links for this product. Thank you!`;
               ✨ {t('discoverStyle')}
             </button>
           </div>
-          
           {/* Filtres pour les produits */}
-          {!showBlog && !showAds && (
+          {!showBlog && !showAds && !showAdSenseManagement && (
             <>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                 <button 
@@ -1367,6 +1554,107 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           )}
         </div>
       </header>
+
+      {/* Page Gestion AdSense */}
+      {showAdSenseManagement && passwordEntered && (
+        <main className="px-4 py-8 max-w-6xl mx-auto">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                💰 {t('manageAdSense')}
+              </h1>
+              <button 
+                onClick={handleAddAdSense}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <Plus size={20} />
+                {t('addAdSense')}
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {adsenseConfigs.map((config, index) => (
+                <div key={config.id} className={`border rounded-xl p-6 ${
+                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                } ${config.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💰</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        config.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {config.isActive ? t('isActive') : 'Inactif'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleEditAdSense(index)}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={() => deleteAdSenseConfig(config.id!)}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Client ID:</strong> {config.clientId}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Slot ID:</strong> {config.slotId}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Format:</strong> {t(`format${config.format.charAt(0).toUpperCase() + config.format.slice(1)}` as keyof typeof translations.fr)}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Position:</strong> {t(`position${config.position.charAt(0).toUpperCase() + config.position.slice(1)}` as keyof typeof translations.fr)}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Fréquence:</strong> Tous les {config.frequency} produits
+                    </p>
+                  </div>
+
+                  {/* Aperçu de la publicité AdSense */}
+                  <div className="mt-4 border-t pt-4">
+                    <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Aperçu:</p>
+                    <GoogleAdSense 
+                      clientId={config.clientId}
+                      slotId={config.slotId}
+                      format={config.format}
+                      className={`border rounded ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                      style={{ minHeight: '60px', fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    📅 {config.createdAt ? formatDate(config.createdAt) : 'Date inconnue'}
+                  </p>
+                </div>
+              ))}
+
+              {adsenseConfigs.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="text-6xl mb-4">💰</div>
+                  <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Aucune configuration AdSense
+                  </h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Configurez votre première publicité AdSense
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
       {/* Page Blog */}
       {showBlog && (
         <main className="px-4 py-8 max-w-4xl mx-auto">
@@ -1696,7 +1984,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
         </main>
       )}
       {/* Page Produits Principale */}
-      {!showBlog && !showAds && (
+      {!showBlog && !showAds && !showAdSenseManagement && (
         <main className="px-2 py-4">
           {/* Statistiques mobiles */}
           <div className="md:hidden mb-4 flex justify-center gap-4 text-sm">
@@ -1707,22 +1995,6 @@ I would like to get my Sitestripe links for this product. Thank you!`;
             <div className="flex items-center gap-1 text-green-600">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>{onlineUsers} {t('onlineNow')}</span>
-            </div>
-          </div>
-
-          {/* Publicité AdSense en haut */}
-          <div className="mb-6 max-w-4xl mx-auto">
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
-              <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <span className="text-xs opacity-60">Publicité • Google AdSense</span>
-              </div>
-              <div className="p-4">
-                <GoogleAdSense 
-                  slot="VOTRE_SLOT_ID_BANNER" 
-                  format="horizontal"
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
             </div>
           </div>
 
@@ -1742,30 +2014,70 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                 </div>
               </div>
 
-              {/* Publicité dans la barre latérale */}
-              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm`}>
-                <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  📢 Publicité
-                </h4>
-                <div className={`${darkMode ? 'bg-gradient-to-b from-green-800 to-emerald-800' : 'bg-gradient-to-b from-green-500 to-emerald-500'} rounded p-3 text-white text-center`}>
-                  <p className="text-xs font-semibold mb-1">💎 VIP Deals</p>
-                  <p className="text-xs opacity-90 mb-2">Accès exclusif aux meilleures offres</p>
-                  <button 
-                    onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
-                    className="bg-white text-green-600 px-2 py-1 rounded text-xs font-semibold hover:bg-gray-100 transition-colors"
-                  >
-                    En savoir +
-                  </button>
-                </div>
-              </div>
+              {/* Publicité AdSense dans la barre latérale */}
+              {(() => {
+                const sidebarAdConfig = getAdSenseConfigByPosition('sidebar');
+                return sidebarAdConfig ? (
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm mb-4`}>
+                    <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      📢 Publicité
+                    </h4>
+                    <GoogleAdSense 
+                      clientId={sidebarAdConfig.clientId}
+                      slotId={sidebarAdConfig.slotId}
+                      format={sidebarAdConfig.format}
+                      style={{ minHeight: '250px' }}
+                    />
+                  </div>
+                ) : (
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm`}>
+                    <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      📢 Publicité
+                    </h4>
+                    <div className={`${darkMode ? 'bg-gradient-to-b from-green-800 to-emerald-800' : 'bg-gradient-to-b from-green-500 to-emerald-500'} rounded p-3 text-white text-center`}>
+                      <p className="text-xs font-semibold mb-1">💎 VIP Deals</p>
+                      <p className="text-xs opacity-90 mb-2">Accès exclusif aux meilleures offres</p>
+                      <button 
+                        onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                        className="bg-white text-green-600 px-2 py-1 rounded text-xs font-semibold hover:bg-gray-100 transition-colors"
+                      >
+                        En savoir +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
-
-          {/* Grille de produits en colonnes */}
+          {/* Grille de produits en colonnes avec AdSense intégré */}
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+            {/* Publicité AdSense en haut */}
+            {(() => {
+              const topAdConfig = getAdSenseConfigByPosition('top');
+              return topAdConfig ? (
+                <div className="break-inside-avoid mb-2">
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+                    </div>
+                    <div className="p-2">
+                      <GoogleAdSense 
+                        clientId={topAdConfig.clientId}
+                        slotId={topAdConfig.slotId}
+                        format={topAdConfig.format}
+                        style={{ minHeight: '120px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
             {filteredAndSortedProducts.map((product, i) => {
-              const shouldShowAd = (i + 1) % 6 === 0;
-              const randomAd = shouldShowAd ? getRandomActiveAd() : null;
+              const shouldShowCustomAd = (i + 1) % 6 === 0;
+              const randomAd = shouldShowCustomAd ? getRandomActiveAd() : null;
+              const shouldShowAdSenseAd = shouldShowAdSenseAd(i);
+              const adSenseConfig = shouldShowAdSenseAd ? getAdSenseConfigByPosition('middle') : null;
               
               return (
                 <div key={product.id || i}>
@@ -1785,19 +2097,45 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                     onShare={() => addPoints(15, t('sharePoints'))}
                   />
                   
-                  {/* Publicité AdSense intégrée dans la grille */}
-                  {shouldShowAd && (
+                  {/* Publicité AdSense intégrée aléatoirement */}
+                  {adSenseConfig && (
                     <div className="break-inside-avoid mb-2">
                       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
                         <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                          <span className="text-xs opacity-60">Publicité</span>
+                          <span className="text-xs opacity-60">Publicité • Google AdSense</span>
                         </div>
                         <div className="p-2">
                           <GoogleAdSense 
-                            slot="VOTRE_SLOT_ID_SQUARE"
-                            format="rectangle"
+                            clientId={adSenseConfig.clientId}
+                            slotId={adSenseConfig.slotId}
+                            format={adSenseConfig.format}
                             style={{ minHeight: '200px' }}
                           />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Publicité personnalisée existante */}
+                  {shouldShowCustomAd && randomAd && (
+                    <div className="break-inside-avoid mb-2">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                        <div className={`${
+                          randomAd.type === 'video' 
+                            ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                            : darkMode ? 'bg-gradient-to-br from-blue-800 to-purple-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+                        } p-4 text-white text-center`}>
+                          <h4 className="font-bold text-sm mb-2">{randomAd.title}</h4>
+                          <p className="text-xs opacity-90 mb-3">{randomAd.description}</p>
+                          <button 
+                            onClick={() => window.open(randomAd.url, '_blank')}
+                            className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                          >
+                            {randomAd.type === 'video' ? '▶️ Voir' : '🖼️ Découvrir'}
+                          </button>
+                        </div>
+                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <span className="text-xs opacity-60">Publicité • CERDIA</span>
                         </div>
                       </div>
                     </div>
@@ -1805,22 +2143,28 @@ I would like to get my Sitestripe links for this product. Thank you!`;
                 </div>
               );
             })}
-          </div>
 
-          {/* Publicité AdSense en bas */}
-          <div className="mt-8 max-w-4xl mx-auto">
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
-              <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <span className="text-xs opacity-60">Publicité • Google AdSense</span>
-              </div>
-              <div className="p-4">
-                <GoogleAdSense 
-                  slot="VOTRE_SLOT_ID_FOOTER"
-                  format="horizontal"
-                  style={{ minHeight: '120px' }}
-                />
-              </div>
-            </div>
+            {/* Publicité AdSense en bas */}
+            {(() => {
+              const bottomAdConfig = getAdSenseConfigByPosition('bottom');
+              return bottomAdConfig ? (
+                <div className="break-inside-avoid mb-2">
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+                    </div>
+                    <div className="p-2">
+                      <GoogleAdSense 
+                        clientId={bottomAdConfig.clientId}
+                        slotId={bottomAdConfig.slotId}
+                        format={bottomAdConfig.format}
+                        style={{ minHeight: '120px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
         </main>
       )}
@@ -2195,9 +2539,182 @@ I would like to get my Sitestripe links for this product. Thank you!`;
           </div>
         </div>
       )}
+      {/* Modal Formulaire AdSense */}
+      {showAdSenseForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {editAdSenseIndex !== null ? t('modify') : t('add')} - AdSense
+              </h2>
+              <button 
+                onClick={resetAdSenseForm} 
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveAdSenseConfig(); }} className="p-4 space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseClientId')}
+                </label>
+                <input 
+                  name="clientId" 
+                  value={newAdSense.clientId} 
+                  onChange={handleAdSenseInputChange} 
+                  placeholder="ca-pub-1234567890123456" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  required 
+                />
+              </div>
 
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseSlotId')}
+                </label>
+                <input 
+                  name="slotId" 
+                  value={newAdSense.slotId} 
+                  onChange={handleAdSenseInputChange} 
+                  placeholder="1234567890" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  required 
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseFormat')}
+                </label>
+                <select 
+                  name="format" 
+                  value={newAdSense.format} 
+                  onChange={handleAdSenseInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="auto">{t('formatAuto')}</option>
+                  <option value="horizontal">{t('formatHorizontal')}</option>
+                  <option value="rectangle">{t('formatRectangle')}</option>
+                  <option value="vertical">{t('formatVertical')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsensePosition')}
+                </label>
+                <select 
+                  name="position" 
+                  value={newAdSense.position} 
+                  onChange={handleAdSenseInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="top">{t('positionTop')}</option>
+                  <option value="middle">{t('positionMiddle')}</option>
+                  <option value="bottom">{t('positionBottom')}</option>
+                  <option value="sidebar">{t('positionSidebar')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseFrequency')}
+                </label>
+                <input 
+                  name="frequency" 
+                  value={newAdSense.frequency} 
+                  onChange={handleAdSenseInputChange} 
+                  type="number"
+                  min="3"
+                  max="20"
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                />
+                <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Une publicité apparaîtra tous les {newAdSense.frequency} produits (recommandé: 5-10)
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <input 
+                  type="checkbox" 
+                  name="isActive" 
+                  checked={newAdSense.isActive} 
+                  onChange={handleAdSenseInputChange}
+                  className="w-4 h-4" 
+                />
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('isActive')}
+                </label>
+              </div>
+              
+              {/* Aperçu de la configuration AdSense */}
+              {newAdSense.clientId && newAdSense.slotId && (
+                <div className="border-t pt-4">
+                  <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 block`}>
+                    👀 Aperçu:
+                  </label>
+                  <div className={`border rounded-lg p-4 ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                    <GoogleAdSense 
+                      clientId={newAdSense.clientId}
+                      slotId={newAdSense.slotId}
+                      format={newAdSense.format}
+                      style={{ minHeight: '80px' }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-center">
+                    <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      Position: {t(`position${newAdSense.position.charAt(0).toUpperCase() + newAdSense.position.slice(1)}` as keyof typeof translations.fr)} • 
+                      Format: {t(`format${newAdSense.format.charAt(0).toUpperCase() + newAdSense.format.slice(1)}` as keyof typeof translations.fr)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetAdSenseForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  {editAdSenseIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editAdSenseIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteAdSenseConfig(adsenseConfigs[editAdSenseIndex].id!)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Boutons flottants */}
-      {!showBlog && !showAds && (
+      {!showBlog && !showAds && !showAdSenseManagement && (
         <button 
           className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
           onClick={handleAddProduct}
@@ -2215,9 +2732,19 @@ I would like to get my Sitestripe links for this product. Thank you!`;
         </button>
       )}
 
+      {showAdSenseManagement && passwordEntered && (
+        <button 
+          className="fixed bottom-20 right-6 w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddAdSense}
+        >
+          💰
+        </button>
+      )}
+
     </div>
   );
 }
+
 // Composant ProductCard
 function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite, onEdit, showAdmin, hasValue, hasPriceValue, cleanCategory, translateCategory, t, onShare }: any) {
   const [current, setCurrent] = useState(0);
@@ -2259,7 +2786,6 @@ function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite
   const handleDragEnd = () => {
     setIsDragging(false);
   };
-
   return (
     <>
       <div 
