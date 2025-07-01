@@ -310,7 +310,7 @@ export default function CerdiaPlatformSection1() {
     </div>
   );
 }
-    'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 
@@ -700,7 +700,7 @@ export default function CerdiaPlatformSection2() {
       </div>
     </GlobalProvider>
   );
-}
+}   
     'use client';
 
 import { useState, useCallback } from 'react';
@@ -1190,6 +1190,43 @@ export const UserService = {
   }
 };
 
+// Service Notifications
+export const NotificationService = {
+  async getPersonalizedNotifications(userId: string, limit = 20): Promise<Array<{
+    id: string;
+    type: 'info' | 'success' | 'warning' | 'error' | 'ai_insight' | 'recommendation';
+    title: string;
+    message: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    category: string;
+    actionable: boolean;
+    actions?: Array<{
+      label: string;
+      action: string;
+      data?: any;
+    }>;
+    aiGenerated: boolean;
+    timestamp: string;
+    read: boolean;
+    expires?: string;
+  }>> {
+    return apiClient.get(`${API_CONFIG.endpoints.notifications}/${userId}?limit=${limit}`);
+  },
+
+  async markAsRead(notificationId: string): Promise<void> {
+    return apiClient.post(`${API_CONFIG.endpoints.notifications}/${notificationId}/read`, {});
+  },
+
+  async createSmartNotification(notification: {
+    userId: string;
+    type: string;
+    content: any;
+    aiPersonalized?: boolean;
+  }): Promise<void> {
+    return apiClient.post(API_CONFIG.endpoints.notifications, notification);
+  }
+};
+
 // ==========================================
 // HOOK DE GESTION DES SERVICES
 // ==========================================
@@ -1210,6 +1247,7 @@ export const useServices = () => {
       setApiMetrics(healthCheck.metrics || apiMetrics);
     } catch (error) {
       console.error('Health check failed:', error);
+      setServiceHealth({ api: 'down' });
     }
   }, [apiMetrics]);
 
@@ -1227,6 +1265,7 @@ export const useServices = () => {
     AIService,
     AnalyticsService,
     UserService,
+    NotificationService,
     
     // Santé et métriques
     serviceHealth,
@@ -1276,6 +1315,7 @@ export default function CerdiaPlatformSection3() {
             <li>• Service IA complet (chat, génération, analyse, optimisation)</li>
             <li>• Service Analytics en temps réel avec insights IA</li>
             <li>• Service Utilisateur gamifié avec personnalisation</li>
+            <li>• Service Notifications intelligent et personnalisé</li>
             <li>• Hook useServices pour gestion centralisée</li>
             <li>• Monitoring de santé et métriques des services</li>
           </ul>
@@ -1301,7 +1341,7 @@ export default function CerdiaPlatformSection3() {
     </div>
   );
 }
-'use client';
+    'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
@@ -3208,7 +3248,7 @@ export default function CerdiaPlatformSection5() {
     </div>
   );
 }
-'use client';
+        'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -4079,4 +4119,4 @@ export default function CerdiaPlatformSection6() {
       </div>
     </div>
   );
-}        
+}
