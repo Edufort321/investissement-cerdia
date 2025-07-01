@@ -310,7 +310,7 @@ export default function CerdiaPlatformSection1() {
     </div>
   );
 }
-'use client';
+ 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 
@@ -492,7 +492,7 @@ const translations = {
 };
 
 // ==========================================
-// HOOK UTILITAIRES
+// HOOK UTILITAIRES CORRIGÉS
 // ==========================================
 
 const useLocalStorage = <T>(key: string, initialValue: T) => {
@@ -527,17 +527,17 @@ const generateId = (): string => {
 };
 
 // ==========================================
-// PROVIDER GLOBAL
+// PROVIDER GLOBAL CORRIGÉ
 // ==========================================
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Configuration de base
   const [language, setLanguage] = useLocalStorage<'fr' | 'en'>('cerdia_language', 'fr');
   const [darkMode, setDarkMode] = useLocalStorage<boolean>('cerdia_dark_mode', false);
-  const [currency, setCurrency] = useLocalStorage<'CAD' | 'USD'>('cerdia_currency', 'CAD');
+  const [currency] = useLocalStorage<'CAD' | 'USD'>('cerdia_currency', 'CAD');
   
-  // Utilisateur
-  const [user, setUser] = useLocalStorage('cerdia_user', {
+  // Utilisateur avec valeur par défaut sécurisée
+  const defaultUser = useMemo(() => ({
     id: generateId(),
     isAuthenticated: false,
     isAdmin: false,
@@ -553,19 +553,23 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       pointsBalance: 0,
       tier: 'bronze' as const
     }
-  });
+  }), []);
+
+  const [user, setUser] = useLocalStorage('cerdia_user', defaultUser);
   
-  // Configuration IA
-  const [aiConfig, setAIConfig] = useLocalStorage('cerdia_ai_config', {
+  // Configuration IA avec valeur par défaut
+  const defaultAIConfig = useMemo(() => ({
     model: 'GPT4' as keyof typeof AI_MODELS,
     temperature: 0.7,
     maxTokens: 2000,
     enabled: true,
     personalizedRecommendations: true,
     autoOptimization: true
-  });
+  }), []);
+
+  const [aiConfig, setAIConfig] = useLocalStorage('cerdia_ai_config', defaultAIConfig);
   
-  // Actions
+  // Actions avec useCallback pour éviter les re-renders
   const updateUser = useCallback((updates: Partial<typeof user>) => {
     setUser(prev => ({ ...prev, ...updates }));
   }, [setUser]);
@@ -574,7 +578,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAIConfig(prev => ({ ...prev, ...config }));
   }, [setAIConfig]);
   
-  // Valeur du contexte
+  // Valeur du contexte mémorisée
   const contextValue: GlobalContextType = useMemo(() => ({
     language,
     darkMode,
@@ -598,7 +602,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 };
 
 // ==========================================
-// HOOK PRINCIPAL D'ÉTAT
+// HOOK PRINCIPAL D'ÉTAT CORRIGÉ
 // ==========================================
 
 export const useAppState = () => {
@@ -620,9 +624,9 @@ export const useAppState = () => {
   const [sortFilter, setSortFilter] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   
-  // États de sélection
+  // États de sélection avec Set corrigé
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [favorites, setFavorites] = useLocalStorage<Set<number>>('cerdia_favorites', new Set());
+  const [favorites, setFavorites] = useLocalStorage<number[]>('cerdia_favorites', []);
   const [cart, setCart] = useLocalStorage<any[]>('cerdia_cart', []);
   
   // Fonctions utilitaires
@@ -638,6 +642,22 @@ export const useAppState = () => {
   const t = useCallback((key: keyof typeof translations.fr): string => {
     return translations[context.language][key] || key;
   }, [context.language]);
+  
+  // Helper pour les favoris
+  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
+  
+  const toggleFavorite = useCallback((productId: number) => {
+    setFavorites(prev => {
+      const newFavorites = [...prev];
+      const index = newFavorites.indexOf(productId);
+      if (index > -1) {
+        newFavorites.splice(index, 1);
+      } else {
+        newFavorites.push(productId);
+      }
+      return newFavorites;
+    });
+  }, [setFavorites]);
   
   return {
     // Contexte global
@@ -661,7 +681,8 @@ export const useAppState = () => {
     
     // Selection States
     selectedProduct, setSelectedProduct,
-    favorites, setFavorites,
+    favorites: favoritesSet,
+    toggleFavorite,
     cart, setCart,
     
     // Utility Functions
@@ -691,6 +712,7 @@ export default function CerdiaPlatformSection2() {
               <li>• États UI, recherche, navigation, sélection</li>
               <li>• Gestion des erreurs et chargement optimisée</li>
               <li>• Hook de traduction avec fonction t()</li>
+              <li>• LocalStorage sécurisé avec gestion d'erreurs</li>
             </ul>
           </div>
           <p className="text-gray-600">
@@ -700,8 +722,8 @@ export default function CerdiaPlatformSection2() {
       </div>
     </GlobalProvider>
   );
-}   
-    'use client';
+}
+ 'use client';
 
 import { useState, useCallback } from 'react';
 
@@ -2243,7 +2265,7 @@ export default function CerdiaPlatformSection4() {
     </div>
   );
 }
-    'use client';
+   'use client';
 
 import React, { useState, useCallback } from 'react';
 import { 
@@ -3248,7 +3270,7 @@ export default function CerdiaPlatformSection5() {
     </div>
   );
 }
-        'use client';
+     'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -4119,4 +4141,4 @@ export default function CerdiaPlatformSection6() {
       </div>
     </div>
   );
-}
+}   
