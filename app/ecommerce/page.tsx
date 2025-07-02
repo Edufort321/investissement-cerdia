@@ -1023,7 +1023,8 @@ function ConfigurationPanel() {
 // COMPOSANT PRINCIPAL - SECTION 3
 // ==========================================
 function CerdiaSection3Demo() {
-  const { darkMode, clearAPICache, getAPIStats } = useServices();
+  const { darkMode } = useAppState();
+  const { clearAPICache, getAPIStats } = useServices();
   const [cacheStats, setCacheStats] = useState({ size: 0, keys: [] });
 
   const updateCacheStats = () => {
