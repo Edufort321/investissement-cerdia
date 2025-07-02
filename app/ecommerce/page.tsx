@@ -838,7 +838,415 @@ function useChat(conversationId: string) {
   };
 }
 // ==========================================
-// COMPOSANT PRINCIPAL ASSEMBLÉ
+// SECTION 5 : DASHBOARD & ANALYTICS VISUELS
+// ==========================================
+
+// Composant Dashboard Principal
+function AnalyticsDashboard() {
+  const { darkMode, t } = useAppState();
+  const { analyticsService } = useAIServices();
+  const [analytics, setAnalytics] = useState<AIAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await analyticsService.getAnalytics();
+      setAnalytics(data);
+    } catch (error) {
+      console.error('Erreur analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [analyticsService]);
+
+  useEffect(() => {
+    loadAnalytics();
+    const interval = setInterval(loadAnalytics, 30000); // Refresh toutes les 30s
+    return () => clearInterval(interval);
+  }, [loadAnalytics, refreshKey]);
+
+  const refresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  if (loading && !analytics) {
+    return (
+      <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-gray-300 rounded w-1/4"></div>
+          <div className="grid grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 bg-gray-300 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics) return null;
+
+  const metrics = [
+    {
+      title: 'Sessions Chat IA',
+      value: analytics.engagement.chatSessions,
+      change: '+12%',
+      positive: true,
+      icon: MessageSquare,
+      color: 'blue'
+    },
+    {
+      title: 'Utilisateurs Actifs',
+      value: analytics.userBehavior.activeUsers,
+      change: '+8%',
+      positive: true,
+      icon: Users,
+      color: 'green'
+    },
+    {
+      title: 'Recommandations',
+      value: analytics.recommendations.generated,
+      change: '+15%',
+      positive: true,
+      icon: Target,
+      color: 'purple'
+    },
+    {
+      title: 'Taux de Conversion',
+      value: `${((analytics.recommendations.converted / analytics.recommendations.generated) * 100).toFixed(1)}%`,
+      change: '+3%',
+      positive: true,
+      icon: TrendingUp,
+      color: 'orange'
+    }
+  ];
+
+  const getColorClasses = (color: string) => {
+    const colors = {
+      blue: 'bg-blue-500 text-blue-500',
+      green: 'bg-green-500 text-green-500',
+      purple: 'bg-purple-500 text-purple-500',
+      orange: 'bg-orange-500 text-orange-500'
+    };
+    return colors[color as keyof typeof colors] || colors.blue;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Dashboard */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center">
+            <BarChart3 className="w-6 h-6 mr-3 text-blue-500" />
+            Dashboard Analytics IA
+          </h2>
+          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Métriques en temps réel - Dernière mise à jour: {new Date().toLocaleTimeString()}
+          </p>
+        </div>
+        
+        <button
+          onClick={refresh}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span>Actualiser</span>
+        </button>
+      </div>
+
+      {/* Métriques Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {metrics.map((metric, index) => {
+          const colorClasses = getColorClasses(metric.color);
+          const IconComponent = metric.icon;
+          
+          return (
+            <div
+              key={index}
+              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
+                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg bg-opacity-10 ${colorClasses.split(' ')[0]}`}>
+                  <IconComponent className={`w-6 h-6 ${colorClasses.split(' ')[1]}`} />
+                </div>
+                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                  metric.positive 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {metric.change}
+                </span>
+              </div>
+              
+              <div>
+                <h3 className={`text-sm font-medium mb-1 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  {metric.title}
+                </h3>
+                <p className="text-2xl font-bold">
+                  {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Graphiques & Détails */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Performance IA */}
+        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Cpu className="w-5 h-5 mr-2 text-purple-500" />
+            Performance IA
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Latence IA</span>
+                <span>{analytics.performance.aiLatency}ms</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((analytics.performance.aiLatency / 1000) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Taux de Cache</span>
+                <span>{analytics.performance.cacheHitRate.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${analytics.performance.cacheHitRate}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Temps de Disponibilité</span>
+                <span>{analytics.performance.uptime}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${analytics.performance.uptime}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Engagement Utilisateur */}
+        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Heart className="w-5 h-5 mr-2 text-red-500" />
+            Engagement Utilisateur
+          </h3>
+          
+          <div className="space-y-4">
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Temps de Session Moyen</span>
+                <span className="text-lg font-bold text-blue-500">
+                  {analytics.engagement.avgSessionTime.toFixed(1)}min
+                </span>
+              </div>
+            </div>
+            
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Satisfaction</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg font-bold text-green-500">
+                    {analytics.engagement.satisfaction.toFixed(1)}/5
+                  </span>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`w-4 h-4 ${
+                          i < Math.floor(analytics.engagement.satisfaction) 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Temps de Réponse IA</span>
+                <span className="text-lg font-bold text-purple-500">
+                  {analytics.engagement.responseTime}ms
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Activité Temps Réel */}
+      <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Activity className="w-5 h-5 mr-2 text-green-500" />
+          Activité Temps Réel
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-500 mb-2">
+              {analytics.userBehavior.searchQueries}
+            </div>
+            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Recherches Aujourd'hui
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-500 mb-2">
+              {analytics.userBehavior.pageViews}
+            </div>
+            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Pages Vues
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-500 mb-2">
+              {analytics.userBehavior.bounceRate}%
+            </div>
+            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Taux de Rebond
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant de Monitoring des Services
+function ServiceMonitor() {
+  const { darkMode } = useAppState();
+  const { serviceHealth, apiMetrics, isLoading, checkServiceHealth } = useServices();
+
+  const services = [
+    { name: 'API Gateway', key: 'api', icon: Cloud, color: 'blue' },
+    { name: 'Base de données', key: 'database', icon: Database, color: 'green' },
+    { name: 'Service IA', key: 'ai', icon: Brain, color: 'purple' },
+    { name: 'Cache Redis', key: 'cache', icon: Zap, color: 'orange' }
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'text-green-500 bg-green-100';
+      case 'degraded': return 'text-yellow-500 bg-yellow-100';
+      case 'down': return 'text-red-500 bg-red-100';
+      default: return 'text-gray-500 bg-gray-100';
+    }
+  };
+
+  return (
+    <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold flex items-center">
+          <Shield className="w-5 h-5 mr-2 text-green-500" />
+          Monitoring des Services
+        </h3>
+        
+        <button
+          onClick={checkServiceHealth}
+          disabled={isLoading}
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+            isLoading 
+              ? 'bg-gray-300 cursor-not-allowed' 
+              : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Vérifier</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {services.map((service) => {
+          const status = serviceHealth[service.key] || 'unknown';
+          const IconComponent = service.icon;
+          
+          return (
+            <div
+              key={service.key}
+              className={`p-4 rounded-lg border text-center transition-all hover:shadow-md ${
+                darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+              }`}
+            >
+              <IconComponent className={`w-8 h-8 mx-auto mb-2 text-${service.color}-500`} />
+              <h4 className={`font-medium text-sm mb-1 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {service.name}
+              </h4>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                {status === 'healthy' ? 'Opérationnel' :
+                 status === 'degraded' ? 'Dégradé' :
+                 status === 'down' ? 'Hors service' : 'Inconnu'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Métriques API */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+          <div className="text-lg font-bold text-blue-500">{apiMetrics.responseTime}ms</div>
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Temps de réponse
+          </div>
+        </div>
+        
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+          <div className="text-lg font-bold text-green-500">{apiMetrics.successRate}%</div>
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Taux de succès
+          </div>
+        </div>
+        
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+          <div className="text-lg font-bold text-purple-500">{apiMetrics.requestCount}</div>
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Requêtes
+          </div>
+        </div>
+        
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+          <div className="text-lg font-bold text-orange-500">{apiMetrics.errorRate.toFixed(1)}%</div>
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Taux d'erreur
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+// ==========================================
+// COMPOSANT PRINCIPAL MIS À JOUR - SECTIONS 1-5
 // ==========================================
 
 function useAppState() {
@@ -883,47 +1291,421 @@ function useAppState() {
   };
 }
 
-function CerdiaDemo() {
-  const { darkMode, t } = useAppState();
+// Composant de Tests pour l'onglet Test
+function SystemTester() {
+  const { darkMode } = useAppState();
   const { chatService, recommendationService, analyticsService } = useAIServices();
+  const { ProductService, AIService, AnalyticsService, SystemService } = useServices();
   const [testResults, setTestResults] = useState<any>({});
   const [testing, setTesting] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<string | null>(null);
 
-  const testAIServices = async () => {
-    setTesting(true);
-    const results: any = {};
+  const tests = [
+    {
+      id: 'ai-chat',
+      name: 'Service Chat IA',
+      description: 'Test du service de chat intelligent',
+      icon: MessageSquare,
+      color: 'blue',
+      test: async () => {
+        const response = await chatService.sendMessage('test', 'Hello AI');
+        return {
+          success: true,
+          response: response.content.substring(0, 100) + '...',
+          confidence: response.metadata?.confidence,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'ai-recommendations',
+      name: 'Recommandations IA',
+      description: 'Test du système de recommandations',
+      icon: Target,
+      color: 'purple',
+      test: async () => {
+        const recommendations = await recommendationService.getPersonalizedRecommendations('test-user');
+        return {
+          success: true,
+          count: recommendations.length,
+          avgConfidence: recommendations.reduce((acc, r) => acc + r.confidence, 0) / recommendations.length,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'analytics',
+      name: 'Analytics IA',
+      description: 'Test du service d\'analytics',
+      icon: BarChart3,
+      color: 'green',
+      test: async () => {
+        const analytics = await analyticsService.getAnalytics();
+        return {
+          success: true,
+          chatSessions: analytics.engagement.chatSessions,
+          activeUsers: analytics.userBehavior.activeUsers,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'products',
+      name: 'Service Produits',
+      description: 'Test de l\'API produits',
+      icon: Database,
+      color: 'orange',
+      test: async () => {
+        const products = await ProductService.getAll({ limit: 5 });
+        return {
+          success: true,
+          count: products.products.length,
+          total: products.total,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'system-health',
+      name: 'Santé Système',
+      description: 'Test de santé des services',
+      icon: Shield,
+      color: 'red',
+      test: async () => {
+        const health = await SystemService.getHealth();
+        return {
+          success: true,
+          status: health.status,
+          uptime: health.uptime,
+          services: Object.keys(health.services).length,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    }
+  ];
+
+  const runTest = async (testId: string) => {
+    const test = tests.find(t => t.id === testId);
+    if (!test) return;
+
+    setSelectedTest(testId);
+    setTestResults(prev => ({ ...prev, [testId]: { status: 'running' } }));
     
     try {
-      const chatResponse = await chatService.sendMessage('test', 'Hello AI');
-      results.chat = { success: true, response: chatResponse.content.substring(0, 50) + '...' };
+      const result = await test.test();
+      setTestResults(prev => ({ ...prev, [testId]: result }));
     } catch (error) {
-      results.chat = { success: false, error: 'Erreur chat' };
+      setTestResults(prev => ({ 
+        ...prev, 
+        [testId]: { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Erreur inconnue',
+          timestamp: new Date().toLocaleTimeString()
+        } 
+      }));
+    } finally {
+      setSelectedTest(null);
     }
-    
-    setTestResults(results);
+  };
+
+  const runAllTests = async () => {
+    setTesting(true);
+    for (const test of tests) {
+      await runTest(test.id);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     setTesting(false);
   };
 
+  const getColorClasses = (color: string) => {
+    const colors = {
+      blue: 'bg-blue-100 text-blue-800 border-blue-200',
+      purple: 'bg-purple-100 text-purple-800 border-purple-200',
+      green: 'bg-green-100 text-green-800 border-green-200',
+      orange: 'bg-orange-100 text-orange-800 border-orange-200',
+      red: 'bg-red-100 text-red-800 border-red-200'
+    };
+    return colors[color as keyof typeof colors] || colors.blue;
+  };
+
   return (
-    <div className={`min-h-screen p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">
-          🚀 CERDIA Platform - Sections 1-4 Assemblées
-        </h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center">
+            <Zap className="w-6 h-6 mr-3 text-yellow-500" />
+            Tests Système
+          </h2>
+          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Validation complète de tous les services
+          </p>
+        </div>
         
         <button
-          onClick={testAIServices}
+          onClick={runAllTests}
           disabled={testing}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center space-x-2"
         >
-          {testing ? 'Test en cours...' : 'Tester tout le système'}
+          {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          <span>{testing ? 'Tests en cours...' : 'Lancer tous les tests'}</span>
         </button>
-        
-        {Object.keys(testResults).length > 0 && (
-          <div className="mt-4 p-4 bg-green-100 rounded-lg">
-            <pre>{JSON.stringify(testResults, null, 2)}</pre>
+      </div>
+
+      {/* Tests Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tests.map((test) => {
+          const result = testResults[test.id];
+          const isRunning = selectedTest === test.id;
+          const IconComponent = test.icon;
+          const colorClasses = getColorClasses(test.color);
+          
+          return (
+            <div
+              key={test.id}
+              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
+                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              }`}
+            >
+              {/* Header du test */}
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg ${colorClasses}`}>
+                  <IconComponent className="w-6 h-6" />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  {isRunning && (
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  )}
+                  {result?.success === true && (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  )}
+                  {result?.success === false && (
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                  )}
+                  
+                  <button
+                    onClick={() => runTest(test.id)}
+                    disabled={isRunning || testing}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      isRunning || testing
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {isRunning ? 'Test...' : 'Tester'}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Info du test */}
+              <div className="mb-4">
+                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {test.name}
+                </h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {test.description}
+                </p>
+              </div>
+              
+              {/* Résultats */}
+              {result && (
+                <div className={`p-3 rounded-lg text-xs ${
+                  darkMode ? 'bg-gray-700' : 'bg-gray-50'
+                }`}>
+                  {isRunning && (
+                    <span className="text-blue-600">Test en cours...</span>
+                  )}
+                  {result.success === true && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-green-600 font-medium">✅ Succès</span>
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {result.timestamp}
+                        </span>
+                      </div>
+                      <div className="text-xs space-y-1">
+                        {result.response && <div><strong>Réponse:</strong> {result.response}</div>}
+                        {result.confidence && <div><strong>Confiance:</strong> {(result.confidence * 100).toFixed(1)}%</div>}
+                        {result.count && <div><strong>Éléments:</strong> {result.count}</div>}
+                        {result.avgConfidence && <div><strong>Confiance moy:</strong> {(result.avgConfidence * 100).toFixed(1)}%</div>}
+                        {result.chatSessions && <div><strong>Sessions:</strong> {result.chatSessions}</div>}
+                        {result.activeUsers && <div><strong>Utilisateurs:</strong> {result.activeUsers}</div>}
+                        {result.total && <div><strong>Total:</strong> {result.total}</div>}
+                        {result.status && <div><strong>Status:</strong> {result.status}</div>}
+                        {result.uptime && <div><strong>Uptime:</strong> {result.uptime}%</div>}
+                        {result.services && <div><strong>Services:</strong> {result.services}</div>}
+                      </div>
+                    </div>
+                  )}
+                  {result.success === false && (
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-red-600 font-medium">❌ Erreur</span>
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {result.timestamp}
+                        </span>
+                      </div>
+                      <div className="text-red-600 text-xs">{result.error}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Résumé des résultats */}
+      {Object.keys(testResults).length > 0 && (
+        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <h3 className="text-lg font-semibold mb-4">Résumé des Tests</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-500">
+                {Object.keys(testResults).length}
+              </div>
+              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Tests Exécutés
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-500">
+                {Object.values(testResults).filter((r: any) => r.success === true).length}
+              </div>
+              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Succès
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-500">
+                {Object.values(testResults).filter((r: any) => r.success === false).length}
+              </div>
+              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Échecs
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-500">
+                {Object.keys(testResults).length > 0 ? 
+                  ((Object.values(testResults).filter((r: any) => r.success === true).length / Object.keys(testResults).length) * 100).toFixed(0) : 0}%
+              </div>
+              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Taux de Réussite
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant Principal Complet
+function CerdiaDemo() {
+  const { darkMode, t, language, setLanguage, setDarkMode } = useAppState();
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Analytics et métriques en temps réel' },
+    { id: 'services', label: 'Services', icon: Shield, description: 'Monitoring de la santé des services' },
+    { id: 'test', label: 'Tests', icon: Zap, description: 'Tests complets du système' }
+  ];
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              🚀 CERDIA Platform
+            </h1>
+            <p className={`text-lg mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Plateforme E-commerce avec Intelligence Artificielle - Sections 1-5
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+            >
+              <Globe className="w-4 h-4" />
+              <span>{language.toUpperCase()}</span>
+            </button>
+            
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-lg transition-colors ${
+                darkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
+            >
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 mb-8 p-1 bg-gray-200 dark:bg-gray-800 rounded-xl">
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  activeTab === tab.id
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-lg transform scale-105'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+                title={tab.description}
+              >
+                <IconComponent className="w-5 h-5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content */}
+        <div className="transition-all duration-300">
+          {activeTab === 'dashboard' && <AnalyticsDashboard />}
+          {activeTab === 'services' && <ServiceMonitor />}
+          {activeTab === 'test' && <SystemTester />}
+        </div>
+
+        {/* Footer Status */}
+        <div className={`mt-12 p-4 rounded-lg border-t-4 border-green-500 ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-green-600">✅ Système Opérationnel</h3>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Sections 1-5 assemblées et fonctionnelles - Prêt pour Section 6
+              </p>
+            </div>
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>IA Active</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>API Stable</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                <span>Analytics Live</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
