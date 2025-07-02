@@ -838,6 +838,51 @@ function useChat(conversationId: string) {
   };
 }
 // ==========================================
+// HOOK PRINCIPAL useAppState (DOIT ÊTRE AVANT SECTION 5)
+// ==========================================
+
+function useAppState() {
+  const context = useGlobalContext();
+  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [favorites, setFavorites] = useLocalStorage<number[]>('cerdia_favorites', []);
+  const [cart, setCart] = useLocalStorage<any[]>('cerdia_cart', []);
+  
+  const t = useCallback((key: string): string => {
+    return translations[context.language][key] || key;
+  }, [context.language]);
+  
+  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
+  
+  const toggleFavorite = useCallback((productId: number) => {
+    setFavorites(prev => {
+      const newFavorites = [...prev];
+      const index = newFavorites.indexOf(productId);
+      if (index > -1) {
+        newFavorites.splice(index, 1);
+      } else {
+        newFavorites.push(productId);
+      }
+      return newFavorites;
+    });
+  }, [setFavorites]);
+  
+  return {
+    ...context,
+    products, setProducts,
+    loading, errors,
+    selectedProduct, setSelectedProduct,
+    favorites: favoritesSet,
+    toggleFavorite,
+    cart, setCart,
+    t
+  };
+}
+// ==========================================
 // SECTION 5 : DASHBOARD & ANALYTICS VISUELS
 // ==========================================
 
