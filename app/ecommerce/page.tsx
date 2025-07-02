@@ -7,11 +7,8 @@ import {
   CheckCircle, TrendingUp, Users, Target
 } from 'lucide-react';
 
-// Metadata pour Next.js
-export const metadata = {
-  title: 'CERDIA Platform - E-commerce Intelligent',
-  description: 'Plateforme e-commerce avec IA intégrée',
-};
+// Note: metadata ne peut pas être exporté avec 'use client'
+// Utilisez next/head si nécessaire pour les métadonnées dynamiques
 
 // ==========================================
 // INTERFACES PRINCIPALES
