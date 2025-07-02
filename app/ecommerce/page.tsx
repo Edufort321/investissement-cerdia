@@ -262,7 +262,7 @@ const apiClient = new APIClient();
 // ==========================================
 // SERVICES MÉTIER
 // ==========================================
-export const ProductService = {
+const ProductService = {
   async getAll(params = {}): Promise<{ products: Product[]; total: number }> {
     return apiClient.get(`${API_CONFIG.endpoints.products}?${new URLSearchParams(params)}`);
   },
@@ -281,7 +281,7 @@ export const ProductService = {
   }
 };
 
-export const AIService = {
+const AIService = {
   async chat(message: string, context = {}): Promise<{
     response: string;
     suggestions: string[];
@@ -299,7 +299,7 @@ export const AIService = {
   }
 };
 
-export const AnalyticsService = {
+const AnalyticsService = {
   async getRealTimeMetrics(): Promise<{
     activeUsers: number;
     conversionRate: number;
@@ -314,7 +314,7 @@ export const AnalyticsService = {
   }
 };
 
-export const SystemService = {
+const SystemService = {
   async getHealth(): Promise<{
     status: string;
     services: Record<string, string>;
