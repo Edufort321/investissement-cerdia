@@ -276,7 +276,7 @@ const ProductService = {
   },
 
   async getRecommendations(userId: string): Promise<SmartRecommendation[]> {
-    const data = await apiClient.post(`${API_CONFIG.endpoints.products}/recommendations`, { userId });
+    const data: any = await apiClient.post(`${API_CONFIG.endpoints.products}/recommendations`, { userId });
     return data.recommendations || [];
   }
 };
