@@ -1291,6 +1291,192 @@ function ServiceMonitor() {
   );
 }
 // ==========================================
+// COMPOSANT SYSTEM TESTER (MANQUANT)
+// ==========================================
+
+function SystemTester() {
+  const { darkMode } = useAppState();
+  const { chatService, recommendationService, analyticsService } = useAIServices();
+  const { ProductService, AIService, AnalyticsService, SystemService } = useServices();
+  const [testResults, setTestResults] = useState<any>({});
+  const [testing, setTesting] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<string | null>(null);
+
+  const tests = [
+    {
+      id: 'ai-chat',
+      name: 'Service Chat IA',
+      description: 'Test du service de chat intelligent',
+      icon: MessageSquare,
+      color: 'blue',
+      test: async () => {
+        const response = await chatService.sendMessage('test', 'Hello AI');
+        return {
+          success: true,
+          response: response.content.substring(0, 100) + '...',
+          confidence: response.metadata?.confidence,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'ai-recommendations',
+      name: 'Recommandations IA',
+      description: 'Test du système de recommandations',
+      icon: Target,
+      color: 'purple',
+      test: async () => {
+        const recommendations = await recommendationService.getPersonalizedRecommendations('test-user');
+        return {
+          success: true,
+          count: recommendations.length,
+          avgConfidence: recommendations.reduce((acc, r) => acc + r.confidence, 0) / recommendations.length,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    },
+    {
+      id: 'analytics',
+      name: 'Analytics IA',
+      description: 'Test du service d\'analytics',
+      icon: BarChart3,
+      color: 'green',
+      test: async () => {
+        const analytics = await analyticsService.getAnalytics();
+        return {
+          success: true,
+          chatSessions: analytics.engagement.chatSessions,
+          activeUsers: analytics.userBehavior.activeUsers,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    }
+  ];
+
+  const runTest = async (testId: string) => {
+    const test = tests.find(t => t.id === testId);
+    if (!test) return;
+
+    setSelectedTest(testId);
+    setTestResults(prev => ({ ...prev, [testId]: { status: 'running' } }));
+    
+    try {
+      const result = await test.test();
+      setTestResults(prev => ({ ...prev, [testId]: result }));
+    } catch (error) {
+      setTestResults(prev => ({ 
+        ...prev, 
+        [testId]: { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Erreur inconnue',
+          timestamp: new Date().toLocaleTimeString()
+        } 
+      }));
+    } finally {
+      setSelectedTest(null);
+    }
+  };
+
+  const runAllTests = async () => {
+    setTesting(true);
+    for (const test of tests) {
+      await runTest(test.id);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center">
+            <Zap className="w-6 h-6 mr-3 text-yellow-500" />
+            Tests Système
+          </h2>
+          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Validation complète de tous les services
+          </p>
+        </div>
+        
+        <button
+          onClick={runAllTests}
+          disabled={testing}
+          className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center space-x-2"
+        >
+          {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          <span>{testing ? 'Tests en cours...' : 'Lancer tous les tests'}</span>
+        </button>
+      </div>
+
+      {/* Tests Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tests.map((test) => {
+          const result = testResults[test.id];
+          const isRunning = selectedTest === test.id;
+          const IconComponent = test.icon;
+          
+          return (
+            <div
+              key={test.id}
+              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
+                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <IconComponent className="w-8 h-8 text-blue-500" />
+                
+                <div className="flex items-center space-x-2">
+                  {isRunning && <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />}
+                  {result?.success === true && <CheckCircle className="w-4 h-4 text-green-500" />}
+                  {result?.success === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                  
+                  <button
+                    onClick={() => runTest(test.id)}
+                    disabled={isRunning || testing}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      isRunning || testing
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {isRunning ? 'Test...' : 'Tester'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {test.name}
+                </h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {test.description}
+                </p>
+              </div>
+              
+              {result && (
+                <div className={`p-3 rounded-lg text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  {result.success === true && (
+                    <div className="text-green-600">
+                      ✅ Succès ({result.timestamp})
+                    </div>
+                  )}
+                  {result.success === false && (
+                    <div className="text-red-600">
+                      ❌ Erreur: {result.error}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+// ==========================================
 // SECTION 6 : CHATBOT IA INTERACTIF & RECOMMANDATIONS
 // ==========================================
 
