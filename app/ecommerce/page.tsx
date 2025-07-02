@@ -1246,186 +1246,373 @@ function ServiceMonitor() {
   );
 }
 // ==========================================
-// COMPOSANT PRINCIPAL MIS À JOUR - SECTIONS 1-5
+// SECTION 6 : CHATBOT IA INTERACTIF & RECOMMANDATIONS
 // ==========================================
 
-function useAppState() {
-  const context = useGlobalContext();
+// Composant Message de Chat
+function ChatMessage({ message, onActionClick }: { 
+  message: ChatMessage; 
+  onActionClick?: (action: ChatAction) => void;
+}) {
+  const { darkMode } = useAppState();
+  const isUser = message.sender === 'user';
   
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [favorites, setFavorites] = useLocalStorage<number[]>('cerdia_favorites', []);
-  const [cart, setCart] = useLocalStorage<any[]>('cerdia_cart', []);
-  
-  const t = useCallback((key: string): string => {
-    return translations[context.language][key] || key;
-  }, [context.language]);
-  
-  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
-  
-  const toggleFavorite = useCallback((productId: number) => {
-    setFavorites(prev => {
-      const newFavorites = [...prev];
-      const index = newFavorites.indexOf(productId);
-      if (index > -1) {
-        newFavorites.splice(index, 1);
-      } else {
-        newFavorites.push(productId);
-      }
-      return newFavorites;
-    });
-  }, [setFavorites]);
-  
-  return {
-    ...context,
-    products, setProducts,
-    loading, errors,
-    selectedProduct, setSelectedProduct,
-    favorites: favoritesSet,
-    toggleFavorite,
-    cart, setCart,
-    t
-  };
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isUser ? 'order-2' : 'order-1'}`}>
+        {/* Avatar */}
+        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            isUser 
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+          }`}>
+            {isUser ? (
+              <span className="text-sm font-bold">U</span>
+            ) : (
+              <Bot className="w-4 h-4" />
+            )}
+          </div>
+        </div>
+        
+        {/* Bulle de message */}
+        <div className={`p-3 rounded-2xl shadow-sm ${
+          isUser
+            ? 'bg-blue-500 text-white rounded-br-sm'
+            : darkMode 
+              ? 'bg-gray-700 text-white rounded-bl-sm'
+              : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+        }`}>
+          <p className="text-sm leading-relaxed">{message.content}</p>
+          
+          {/* Métadonnées IA */}
+          {!isUser && message.metadata && (
+            <div className={`mt-2 pt-2 border-t ${
+              darkMode ? 'border-gray-600' : 'border-gray-200'
+            }`}>
+              {message.metadata.confidence && (
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-xs opacity-75">Confiance:</span>
+                  <div className="flex-1 bg-gray-300 rounded-full h-1">
+                    <div 
+                      className="bg-green-500 h-1 rounded-full transition-all"
+                      style={{ width: `${message.metadata.confidence * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs opacity-75">
+                    {(message.metadata.confidence * 100).toFixed(0)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Actions suggérées */}
+        {!isUser && message.metadata?.actions && message.metadata.actions.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {message.metadata.actions.map((action) => (
+              <button
+                key={action.id}
+                onClick={() => onActionClick?.(action)}
+                className={`w-full text-left p-2 rounded-lg text-xs border transition-colors ${
+                  darkMode
+                    ? 'border-gray-600 bg-gray-800 hover:bg-gray-700 text-gray-300'
+                    : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <ChevronRight className="w-3 h-3" />
+                  <span>{action.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {/* Timestamp */}
+        <div className={`text-xs mt-1 ${isUser ? 'text-right' : 'text-left'} opacity-50`}>
+          {message.timestamp.toLocaleTimeString()}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-// Composant de Tests pour l'onglet Test
-function SystemTester() {
-  const { darkMode } = useAppState();
-  const { chatService, recommendationService, analyticsService } = useAIServices();
-  const { ProductService, AIService, AnalyticsService, SystemService } = useServices();
-  const [testResults, setTestResults] = useState<any>({});
-  const [testing, setTesting] = useState(false);
-  const [selectedTest, setSelectedTest] = useState<string | null>(null);
+// Composant Chatbot Complet
+function InteractiveChatbot() {
+  const { darkMode, t } = useAppState();
+  const [isOpen, setIsOpen] = useState(false);
+  const [conversationId] = useState(() => `conv_${Date.now()}`);
+  const { messages, loading, sendMessage, clearChat, suggestions } = useChat(conversationId);
+  const [inputValue, setInputValue] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const tests = [
-    {
-      id: 'ai-chat',
-      name: 'Service Chat IA',
-      description: 'Test du service de chat intelligent',
-      icon: MessageSquare,
-      color: 'blue',
-      test: async () => {
-        const response = await chatService.sendMessage('test', 'Hello AI');
-        return {
-          success: true,
-          response: response.content.substring(0, 100) + '...',
-          confidence: response.metadata?.confidence,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'ai-recommendations',
-      name: 'Recommandations IA',
-      description: 'Test du système de recommandations',
-      icon: Target,
-      color: 'purple',
-      test: async () => {
-        const recommendations = await recommendationService.getPersonalizedRecommendations('test-user');
-        return {
-          success: true,
-          count: recommendations.length,
-          avgConfidence: recommendations.reduce((acc, r) => acc + r.confidence, 0) / recommendations.length,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'analytics',
-      name: 'Analytics IA',
-      description: 'Test du service d\'analytics',
-      icon: BarChart3,
-      color: 'green',
-      test: async () => {
-        const analytics = await analyticsService.getAnalytics();
-        return {
-          success: true,
-          chatSessions: analytics.engagement.chatSessions,
-          activeUsers: analytics.userBehavior.activeUsers,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'products',
-      name: 'Service Produits',
-      description: 'Test de l\'API produits',
-      icon: Database,
-      color: 'orange',
-      test: async () => {
-        const products = await ProductService.getAll({ limit: 5 });
-        return {
-          success: true,
-          count: products.products.length,
-          total: products.total,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'system-health',
-      name: 'Santé Système',
-      description: 'Test de santé des services',
-      icon: Shield,
-      color: 'red',
-      test: async () => {
-        const health = await SystemService.getHealth();
-        return {
-          success: true,
-          status: health.status,
-          uptime: health.uptime,
-          services: Object.keys(health.services).length,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
+  // Auto-scroll vers le bas
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Focus sur l'input quand le chat s'ouvre
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
     }
+  }, [isOpen]);
+
+  const handleSend = async () => {
+    if (inputValue.trim() && !loading) {
+      await sendMessage(inputValue.trim());
+      setInputValue('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    inputRef.current?.focus();
+  };
+
+  const handleActionClick = (action: ChatAction) => {
+    setInputValue(action.label);
+    // Auto-send l'action
+    sendMessage(action.label);
+  };
+
+  return (
+    <>
+      {/* Bouton flottant */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+            isOpen 
+              ? 'bg-red-500 hover:bg-red-600 transform rotate-45' 
+              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-xl transform hover:scale-110'
+          }`}
+        >
+          {isOpen ? (
+            <span className="text-white text-xl font-bold transform -rotate-45">×</span>
+          ) : (
+            <MessageSquare className="w-6 h-6 text-white" />
+          )}
+        </button>
+        
+        {/* Badge de notifications */}
+        {!isOpen && messages.length > 0 && (
+          <div className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+            {messages.filter(m => m.sender === 'ai').length}
+          </div>
+        )}
+      </div>
+
+      {/* Fenêtre de chat */}
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 w-80 h-96 z-40">
+          <div className={`h-full rounded-2xl shadow-2xl border overflow-hidden ${
+            darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
+          }`}>
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">CERDIA AI</h3>
+                    <p className="text-xs opacity-90">Assistant Intelligent</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={clearChat}
+                    className="p-1 hover:bg-white hover:bg-opacity-20 rounded"
+                    title="Effacer la conversation"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="En ligne" />
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 p-4 overflow-y-auto h-64">
+              {messages.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bot className={`w-12 h-12 mx-auto mb-3 ${
+                    darkMode ? 'text-gray-600' : 'text-gray-400'
+                  }`} />
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Bonjour ! Je suis votre assistant IA.
+                    Comment puis-je vous aider aujourd'hui ?
+                  </p>
+                  
+                  {/* Suggestions initiales */}
+                  <div className="mt-4 space-y-2">
+                    {suggestions.slice(0, 2).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className={`w-full p-2 rounded-lg text-xs border transition-colors ${
+                          darkMode
+                            ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {messages.map((message) => (
+                    <ChatMessage 
+                      key={message.id} 
+                      message={message} 
+                      onActionClick={handleActionClick}
+                    />
+                  ))}
+                  {loading && (
+                    <div className="flex justify-start mb-4">
+                      <div className={`p-3 rounded-2xl rounded-bl-sm ${
+                        darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                      }`}>
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className={`p-4 border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+              <div className="flex space-x-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Tapez votre message..."
+                  disabled={loading}
+                  className={`flex-1 p-2 rounded-lg border text-sm transition-colors ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!inputValue.trim() || loading}
+                  className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+              
+              {/* Suggestions rapides */}
+              {messages.length > 0 && suggestions.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {suggestions.slice(0, 3).map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className={`px-2 py-1 rounded text-xs border transition-colors ${
+                        darkMode
+                          ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
+                          : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {suggestion.length > 20 ? suggestion.slice(0, 20) + '...' : suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Composant Recommandations IA
+function AIRecommendationsPanel() {
+  const { darkMode, t } = useAppState();
+  const { recommendationService } = useAIServices();
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'personal' | 'trending' | 'similar'>('all');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadRecommendations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const recs = await recommendationService.getPersonalizedRecommendations('user123');
+      setRecommendations(recs);
+    } catch (error) {
+      console.error('Erreur recommandations:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [recommendationService]);
+
+  const refreshRecommendations = async () => {
+    setRefreshing(true);
+    await recommendationService.refreshRecommendations();
+    await loadRecommendations();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
+
+  const filteredRecommendations = recommendations.filter(rec => 
+    activeFilter === 'all' || rec.type === activeFilter
+  );
+
+  const filters = [
+    { key: 'all', label: 'Toutes', count: recommendations.length },
+    { key: 'personal', label: 'Personnalisées', count: recommendations.filter(r => r.type === 'personal').length },
+    { key: 'trending', label: 'Tendances', count: recommendations.filter(r => r.type === 'trending').length },
+    { key: 'similar', label: 'Similaires', count: recommendations.filter(r => r.type === 'similar').length }
   ];
 
-  const runTest = async (testId: string) => {
-    const test = tests.find(t => t.id === testId);
-    if (!test) return;
-
-    setSelectedTest(testId);
-    setTestResults(prev => ({ ...prev, [testId]: { status: 'running' } }));
-    
-    try {
-      const result = await test.test();
-      setTestResults(prev => ({ ...prev, [testId]: result }));
-    } catch (error) {
-      setTestResults(prev => ({ 
-        ...prev, 
-        [testId]: { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Erreur inconnue',
-          timestamp: new Date().toLocaleTimeString()
-        } 
-      }));
-    } finally {
-      setSelectedTest(null);
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'personal': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'trending': return 'bg-green-100 text-green-800 border-green-200';
+      case 'similar': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const runAllTests = async () => {
-    setTesting(true);
-    for (const test of tests) {
-      await runTest(test.id);
-      await new Promise(resolve => setTimeout(resolve, 500));
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'personal': return <Users className="w-3 h-3" />;
+      case 'trending': return <TrendingUp className="w-3 h-3" />;
+      case 'similar': return <Target className="w-3 h-3" />;
+      default: return <Sparkles className="w-3 h-3" />;
     }
-    setTesting(false);
-  };
-
-  const getColorClasses = (color: string) => {
-    const colors = {
-      blue: 'bg-blue-100 text-blue-800 border-blue-200',
-      purple: 'bg-purple-100 text-purple-800 border-purple-200',
-      green: 'bg-green-100 text-green-800 border-green-200',
-      orange: 'bg-orange-100 text-orange-800 border-orange-200',
-      red: 'bg-red-100 text-red-800 border-red-200'
-    };
-    return colors[color as keyof typeof colors] || colors.blue;
   };
 
   return (
@@ -1434,180 +1621,188 @@ function SystemTester() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center">
-            <Zap className="w-6 h-6 mr-3 text-yellow-500" />
-            Tests Système
+            <Sparkles className="w-6 h-6 mr-3 text-purple-500" />
+            Recommandations IA
           </h2>
           <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Validation complète de tous les services
+            Suggestions personnalisées basées sur votre profil et vos préférences
           </p>
         </div>
         
         <button
-          onClick={runAllTests}
-          disabled={testing}
-          className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center space-x-2"
+          onClick={refreshRecommendations}
+          disabled={refreshing}
+          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 transition-colors flex items-center space-x-2"
         >
-          {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          <span>{testing ? 'Tests en cours...' : 'Lancer tous les tests'}</span>
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <span>{refreshing ? 'Actualisation...' : 'Actualiser'}</span>
         </button>
       </div>
 
-      {/* Tests Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tests.map((test) => {
-          const result = testResults[test.id];
-          const isRunning = selectedTest === test.id;
-          const IconComponent = test.icon;
-          const colorClasses = getColorClasses(test.color);
-          
-          return (
+      {/* Filtres */}
+      <div className="flex flex-wrap gap-2">
+        {filters.map((filter) => (
+          <button
+            key={filter.key}
+            onClick={() => setActiveFilter(filter.key as any)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+              activeFilter === filter.key
+                ? 'bg-purple-500 text-white'
+                : darkMode
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            <span>{filter.label}</span>
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              activeFilter === filter.key
+                ? 'bg-purple-600'
+                : 'bg-gray-300 text-gray-600'
+            }`}>
+              {filter.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Recommandations */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={`p-4 rounded-xl animate-pulse ${
+              darkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
+              <div className="h-48 bg-gray-300 rounded-lg mb-4"></div>
+              <div className="h-4 bg-gray-300 rounded mb-2"></div>
+              <div className="h-3 bg-gray-300 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecommendations.map((rec) => (
             <div
-              key={test.id}
-              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
+              key={rec.id}
+              className={`p-4 rounded-xl border transition-all hover:shadow-lg group ${
                 darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
               }`}
             >
-              {/* Header du test */}
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${colorClasses}`}>
-                  <IconComponent className="w-6 h-6" />
+              {/* Image */}
+              <div className="relative mb-4">
+                <img
+                  src={rec.image}
+                  alt={rec.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                
+                {/* Badge de type */}
+                <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 ${getTypeColor(rec.type)}`}>
+                  {getTypeIcon(rec.type)}
+                  <span className="capitalize">{rec.type}</span>
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  {isRunning && (
-                    <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-                  )}
-                  {result?.success === true && (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  )}
-                  {result?.success === false && (
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                  )}
-                  
-                  <button
-                    onClick={() => runTest(test.id)}
-                    disabled={isRunning || testing}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      isRunning || testing
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-blue-500 text-white hover:bg-blue-600'
-                    }`}
-                  >
-                    {isRunning ? 'Test...' : 'Tester'}
+                {/* Score de confiance */}
+                <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded-full text-xs">
+                  {(rec.confidence * 100).toFixed(0)}%
+                </div>
+              </div>
+              
+              {/* Contenu */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className={`font-semibold line-clamp-2 group-hover:text-purple-600 transition-colors ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {rec.title}
+                  </h3>
+                  <p className={`text-sm mt-1 line-clamp-2 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {rec.description}
+                  </p>
+                </div>
+                
+                {/* Prix et rating */}
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-bold text-purple-600">
+                    {rec.price.toLocaleString('fr-CA', {
+                      style: 'currency',
+                      currency: 'CAD'
+                    })}
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="text-sm font-medium">{rec.rating.toFixed(1)}</span>
+                  </div>
+                </div>
+                
+                {/* Raison */}
+                <div className={`p-2 rounded-lg text-xs ${
+                  darkMode ? 'bg-gray-700' : 'bg-gray-50'
+                }`}>
+                  <span className="font-medium">Pourquoi cette recommandation : </span>
+                  {rec.reason}
+                </div>
+                
+                {/* Tags */}
+                {rec.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {rec.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="flex space-x-2 pt-2">
+                  <button className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium">
+                    Voir Détails
+                  </button>
+                  <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Heart className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-              
-              {/* Info du test */}
-              <div className="mb-4">
-                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {test.name}
-                </h3>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {test.description}
-                </p>
-              </div>
-              
-              {/* Résultats */}
-              {result && (
-                <div className={`p-3 rounded-lg text-xs ${
-                  darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  {isRunning && (
-                    <span className="text-blue-600">Test en cours...</span>
-                  )}
-                  {result.success === true && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-green-600 font-medium">✅ Succès</span>
-                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {result.timestamp}
-                        </span>
-                      </div>
-                      <div className="text-xs space-y-1">
-                        {result.response && <div><strong>Réponse:</strong> {result.response}</div>}
-                        {result.confidence && <div><strong>Confiance:</strong> {(result.confidence * 100).toFixed(1)}%</div>}
-                        {result.count && <div><strong>Éléments:</strong> {result.count}</div>}
-                        {result.avgConfidence && <div><strong>Confiance moy:</strong> {(result.avgConfidence * 100).toFixed(1)}%</div>}
-                        {result.chatSessions && <div><strong>Sessions:</strong> {result.chatSessions}</div>}
-                        {result.activeUsers && <div><strong>Utilisateurs:</strong> {result.activeUsers}</div>}
-                        {result.total && <div><strong>Total:</strong> {result.total}</div>}
-                        {result.status && <div><strong>Status:</strong> {result.status}</div>}
-                        {result.uptime && <div><strong>Uptime:</strong> {result.uptime}%</div>}
-                        {result.services && <div><strong>Services:</strong> {result.services}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {result.success === false && (
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-red-600 font-medium">❌ Erreur</span>
-                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {result.timestamp}
-                        </span>
-                      </div>
-                      <div className="text-red-600 text-xs">{result.error}</div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Résumé des résultats */}
-      {Object.keys(testResults).length > 0 && (
-        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-semibold mb-4">Résumé des Tests</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-500">
-                {Object.keys(testResults).length}
-              </div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Tests Exécutés
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-500">
-                {Object.values(testResults).filter((r: any) => r.success === true).length}
-              </div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Succès
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-500">
-                {Object.values(testResults).filter((r: any) => r.success === false).length}
-              </div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Échecs
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-500">
-                {Object.keys(testResults).length > 0 ? 
-                  ((Object.values(testResults).filter((r: any) => r.success === true).length / Object.keys(testResults).length) * 100).toFixed(0) : 0}%
-              </div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Taux de Réussite
-              </div>
-            </div>
-          </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Message si aucune recommandation */}
+      {!loading && filteredRecommendations.length === 0 && (
+        <div className={`text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>Aucune recommandation trouvée pour ce filtre.</p>
+          <button
+            onClick={() => setActiveFilter('all')}
+            className="mt-2 text-purple-600 hover:text-purple-800 font-medium"
+          >
+            Voir toutes les recommandations
+          </button>
         </div>
       )}
     </div>
   );
 }
+// ==========================================
+// COMPOSANT PRINCIPAL V6 - SECTIONS 1-6
+// ==========================================
 
-// Composant Principal Complet
 function CerdiaDemo() {
   const { darkMode, t, language, setLanguage, setDarkMode } = useAppState();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Analytics et métriques en temps réel' },
+    { id: 'chatbot', label: 'Chat IA', icon: MessageSquare, description: 'Assistant intelligent interactif' },
+    { id: 'recommendations', label: 'Recommandations', icon: Sparkles, description: 'Suggestions IA personnalisées' },
     { id: 'services', label: 'Services', icon: Shield, description: 'Monitoring de la santé des services' },
     { id: 'test', label: 'Tests', icon: Zap, description: 'Tests complets du système' }
   ];
@@ -1624,7 +1819,7 @@ function CerdiaDemo() {
               🚀 CERDIA Platform
             </h1>
             <p className={`text-lg mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Plateforme E-commerce avec Intelligence Artificielle - Sections 1-5
+              Plateforme E-commerce avec Intelligence Artificielle - Sections 1-6
             </p>
           </div>
           
@@ -1651,22 +1846,22 @@ function CerdiaDemo() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-8 p-1 bg-gray-200 dark:bg-gray-800 rounded-xl">
+        <div className="flex flex-wrap gap-1 mb-8 p-1 bg-gray-200 dark:bg-gray-800 rounded-xl">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
                   activeTab === tab.id
                     ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-lg transform scale-105'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
                 title={tab.description}
               >
-                <IconComponent className="w-5 h-5" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <IconComponent className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm">{tab.label}</span>
               </button>
             );
           })}
@@ -1675,6 +1870,42 @@ function CerdiaDemo() {
         {/* Content */}
         <div className="transition-all duration-300">
           {activeTab === 'dashboard' && <AnalyticsDashboard />}
+          {activeTab === 'chatbot' && (
+            <div className="space-y-6">
+              <div className={`p-8 rounded-xl text-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-blue-500" />
+                <h2 className="text-2xl font-bold mb-2">Assistant IA Interactif</h2>
+                <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Votre assistant personnel est disponible via le bouton flottant en bas à droite.
+                  Cliquez dessus pour commencer une conversation !
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <Bot className="w-8 h-8 mx-auto mb-2 text-purple-500" />
+                    <h3 className="font-semibold mb-1">IA Conversationnelle</h3>
+                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      Réponses contextuelles et suggestions intelligentes
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+                    <h3 className="font-semibold mb-1">Actions Rapides</h3>
+                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      Boutons d'action automatiques dans les réponses
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <Brain className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                    <h3 className="font-semibold mb-1">Mémoire Contextuelle</h3>
+                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      L'IA se souvient de votre conversation
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'recommendations' && <AIRecommendationsPanel />}
           {activeTab === 'services' && <ServiceMonitor />}
           {activeTab === 'test' && <SystemTester />}
         </div>
@@ -1687,7 +1918,7 @@ function CerdiaDemo() {
             <div>
               <h3 className="font-semibold text-green-600">✅ Système Opérationnel</h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Sections 1-5 assemblées et fonctionnelles - Prêt pour Section 6
+                Sections 1-6 assemblées et fonctionnelles - Chat IA et Recommandations actifs
               </p>
             </div>
             <div className="flex items-center space-x-4 text-sm">
@@ -1697,16 +1928,19 @@ function CerdiaDemo() {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span>API Stable</span>
+                <span>Chat Live</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <span>Analytics Live</span>
+                <span>Recommandations IA</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Chatbot flottant */}
+      <InteractiveChatbot />
     </div>
   );
 }
