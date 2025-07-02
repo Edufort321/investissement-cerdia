@@ -1,15 +1,19 @@
-// app/ecommerce/page.tsx - Section 3
+// app/ecommerce/page.tsx - Sections 1-4 Assemblées
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext, useMemo } from 'react';
 import { 
-  Settings, Globe, Brain, Zap, Users, Target, Sun, Moon, CheckCircle,
-  Cloud, Database, Shield, Activity, AlertTriangle, Cpu, HardDrive
+  Settings, Globe, Brain, Zap, Users, Target, Sun, Moon, 
+  CheckCircle, Cloud, Database, Shield, Activity, AlertTriangle, 
+  Cpu, HardDrive, Network, BarChart3, TrendingUp, Eye, Heart,
+  Send, Bot, MessageSquare, RefreshCw, Filter, Sparkles,
+  ChevronRight, Star, Clock, ThumbsUp, ThumbsDown
 } from 'lucide-react';
+// ==========================================
+// SECTION 1 : TYPES, INTERFACES & UTILITAIRES
+// ==========================================
 
-// ==========================================
-// INTERFACES (Section 1 + 2)
-// ==========================================
+// Types de base
 interface Product {
   id?: number;
   name: string;
@@ -56,9 +60,78 @@ interface UserGameification {
   tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 }
 
+// Utilitaires de base
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+function debounce<T extends (...args: any[]) => void>(func: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(null, args), delay);
+  }) as T;
+}
+
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        setStoredValue(JSON.parse(item));
+      }
+    } catch (error) {
+      console.error('Erreur localStorage:', error);
+    }
+  }, [key]);
+
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error('Erreur sauvegarde:', error);
+    }
+  }, [key, storedValue]);
+
+  return [storedValue, setValue] as const;
+}
+
+// Fonctions utilitaires
+const utils = {
+  formatPrice: (price: number, currency = 'CAD') => {
+    return new Intl.NumberFormat('fr-CA', {
+      style: 'currency',
+      currency
+    }).format(price);
+  },
+  
+  formatDate: (date: Date) => {
+    return new Intl.DateTimeFormat('fr-CA').format(date);
+  },
+  
+  truncateText: (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+  },
+  
+  calculateDiscount: (originalPrice: number, discountPrice: number) => {
+    return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
+  },
+  
+  randomDelay: (min = 500, max = 2000) => {
+    return new Promise(resolve => 
+      setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min)
+    );
+  }
+};
 // ==========================================
-// CONFIGURATION (Section 2)
+// SECTION 2 : CONFIGURATION & ÉTAT GLOBAL
 // ==========================================
+
+// Configuration IA
 const AI_MODELS = {
   GPT4: {
     name: 'GPT-4 Turbo',
@@ -80,6 +153,7 @@ const AI_MODELS = {
   }
 };
 
+// Traductions
 const translations = {
   fr: {
     title: 'Collection CERDIA',
@@ -101,7 +175,13 @@ const translations = {
     cache: 'Cache',
     database: 'Base de données',
     monitoring: 'Surveillance',
-    optimize: 'Optimiser'
+    optimize: 'Optimiser',
+    'ai.title': 'Intelligence Artificielle',
+    'ai.chat': 'Chat IA',
+    'ai.recommendations': 'Recommandations',
+    'ai.analytics': 'Analytics IA',
+    'ai.config': 'Configuration IA',
+    'test.ai.services': 'Tester les Services IA'
   },
   en: {
     title: 'CERDIA Collection',
@@ -123,13 +203,154 @@ const translations = {
     cache: 'Cache',
     database: 'Database',
     monitoring: 'Monitoring',
-    optimize: 'Optimize'
+    optimize: 'Optimize',
+    'ai.title': 'Artificial Intelligence',
+    'ai.chat': 'AI Chat',
+    'ai.recommendations': 'Recommendations',
+    'ai.analytics': 'AI Analytics',
+    'ai.config': 'AI Configuration',
+    'test.ai.services': 'Test AI Services'
   }
 };
 
+// Interface d'état global
+interface GlobalContextType {
+  language: 'fr' | 'en';
+  darkMode: boolean;
+  currency: 'CAD' | 'USD';
+  user: {
+    id: string;
+    isAuthenticated: boolean;
+    isAdmin: boolean;
+    preferences: any;
+    gamification: UserGameification;
+  };
+  aiConfig: {
+    model: keyof typeof AI_MODELS;
+    temperature: number;
+    maxTokens: number;
+    enabled: boolean;
+    personalizedRecommendations: boolean;
+    autoOptimization: boolean;
+    chatEnabled: boolean;
+    recommendationsEnabled: boolean;
+    analyticsEnabled: boolean;
+    autoRefresh: boolean;
+  };
+  ui: {
+    headerVisible: boolean;
+    sidebarOpen: boolean;
+    chatbotOpen: boolean;
+    notificationsEnabled: boolean;
+  };
+  setLanguage: (lang: 'fr' | 'en') => void;
+  setDarkMode: (dark: boolean) => void;
+  updateUser: (updates: Partial<GlobalContextType['user']>) => void;
+  updateAIConfig: (config: Partial<GlobalContextType['aiConfig']>) => void;
+  updateUI: (ui: Partial<GlobalContextType['ui']>) => void;
+}
+
+// Contexte global
+const GlobalContext = createContext<GlobalContextType | null>(null);
+
+// Provider global
+function GlobalProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguage] = useLocalStorage<'fr' | 'en'>('cerdia_language', 'fr');
+  const [darkMode, setDarkMode] = useLocalStorage<boolean>('cerdia_dark_mode', false);
+  const [currency] = useLocalStorage<'CAD' | 'USD'>('cerdia_currency', 'CAD');
+  
+  const defaultUser = useMemo(() => ({
+    id: generateId(),
+    isAuthenticated: false,
+    isAdmin: false,
+    preferences: {},
+    gamification: {
+      level: 1,
+      experience: 0,
+      badges: [],
+      streak: { current: 0, longest: 0, lastActivity: '' },
+      referrals: 0,
+      totalSpent: 0,
+      pointsBalance: 0,
+      tier: 'bronze' as const
+    }
+  }), []);
+
+  const [user, setUser] = useLocalStorage('cerdia_user', defaultUser);
+  
+  const defaultAIConfig = useMemo(() => ({
+    model: 'GPT4' as keyof typeof AI_MODELS,
+    temperature: 0.7,
+    maxTokens: 2000,
+    enabled: true,
+    personalizedRecommendations: true,
+    autoOptimization: true,
+    chatEnabled: true,
+    recommendationsEnabled: true,
+    analyticsEnabled: true,
+    autoRefresh: true
+  }), []);
+
+  const [aiConfig, setAIConfig] = useLocalStorage('cerdia_ai_config', defaultAIConfig);
+  
+  const defaultUI = useMemo(() => ({
+    headerVisible: true,
+    sidebarOpen: false,
+    chatbotOpen: false,
+    notificationsEnabled: true
+  }), []);
+
+  const [ui, setUI] = useLocalStorage('cerdia_ui', defaultUI);
+  
+  const updateUser = useCallback((updates: Partial<typeof user>) => {
+    setUser(prev => ({ ...prev, ...updates }));
+  }, [setUser]);
+  
+  const updateAIConfig = useCallback((config: Partial<typeof aiConfig>) => {
+    setAIConfig(prev => ({ ...prev, ...config }));
+  }, [setAIConfig]);
+
+  const updateUI = useCallback((uiUpdates: Partial<typeof ui>) => {
+    setUI(prev => ({ ...prev, ...uiUpdates }));
+  }, [setUI]);
+  
+  const contextValue: GlobalContextType = useMemo(() => ({
+    language,
+    darkMode,
+    currency,
+    user,
+    aiConfig,
+    ui,
+    setLanguage,
+    setDarkMode,
+    updateUser,
+    updateAIConfig,
+    updateUI
+  }), [
+    language, darkMode, currency, user, aiConfig, ui,
+    setLanguage, setDarkMode, updateUser, updateAIConfig, updateUI
+  ]);
+  
+  return (
+    <GlobalContext.Provider value={contextValue}>
+      {children}
+    </GlobalContext.Provider>
+  );
+}
+
+// Hook pour utiliser le contexte global
+function useGlobalContext(): GlobalContextType {
+  const context = useContext(GlobalContext);
+  if (!context) {
+    throw new Error('useGlobalContext must be used within GlobalProvider');
+  }
+  return context;
+}
 // ==========================================
-// NOUVELLE SECTION 3 : API CONFIGURATION
+// SECTION 3 : SERVICES & API
 // ==========================================
+
+// Configuration API
 const API_CONFIG = {
   baseURL: 'https://api.cerdia.com',
   timeout: 30000,
@@ -142,18 +363,12 @@ const API_CONFIG = {
   }
 };
 
-// ==========================================
-// CLIENT API INTELLIGENT
-// ==========================================
+// Client API intelligent
 class APIClient {
   private cache: Map<string, { data: any; timestamp: number }>;
 
   constructor() {
     this.cache = new Map();
-  }
-
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
   async get<T>(url: string): Promise<T> {
@@ -259,9 +474,7 @@ class APIClient {
 
 const apiClient = new APIClient();
 
-// ==========================================
-// SERVICES MÉTIER
-// ==========================================
+// Services métier
 const ProductService = {
   async getAll(params = {}): Promise<{ products: Product[]; total: number }> {
     return apiClient.get(`${API_CONFIG.endpoints.products}?${new URLSearchParams(params)}`);
@@ -324,80 +537,7 @@ const SystemService = {
   }
 };
 
-// ==========================================
-// CONTEXTE GLOBAL (Section 2)
-// ==========================================
-interface GlobalContextType {
-  language: 'fr' | 'en';
-  darkMode: boolean;
-  currency: 'CAD' | 'USD';
-  user: {
-    id: string;
-    isAuthenticated: boolean;
-    isAdmin: boolean;
-    preferences: any;
-    gamification: UserGameification;
-  };
-  aiConfig: {
-    model: keyof typeof AI_MODELS;
-    temperature: number;
-    maxTokens: number;
-    enabled: boolean;
-    personalizedRecommendations: boolean;
-    autoOptimization: boolean;
-  };
-  ui: {
-    headerVisible: boolean;
-    sidebarOpen: boolean;
-    chatbotOpen: boolean;
-    notificationsEnabled: boolean;
-  };
-  setLanguage: (lang: 'fr' | 'en') => void;
-  setDarkMode: (dark: boolean) => void;
-  updateUser: (updates: Partial<GlobalContextType['user']>) => void;
-  updateAIConfig: (config: Partial<GlobalContextType['aiConfig']>) => void;
-  updateUI: (ui: Partial<GlobalContextType['ui']>) => void;
-}
-
-const GlobalContext = createContext<GlobalContextType | null>(null);
-
-// ==========================================
-// HOOKS (Section 1 + 2)
-// ==========================================
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      if (item) {
-        setStoredValue(JSON.parse(item));
-      }
-    } catch (error) {
-      console.error('Erreur localStorage:', error);
-    }
-  }, [key]);
-
-  const setValue = useCallback((value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error('Erreur sauvegarde:', error);
-    }
-  }, [key, storedValue]);
-
-  return [storedValue, setValue] as const;
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-// ==========================================
-// NOUVEAU HOOK SECTION 3 : SERVICES
-// ==========================================
+// Hook pour les services
 const useServices = () => {
   const [serviceHealth, setServiceHealth] = useState<Record<string, string>>({});
   const [apiMetrics, setApiMetrics] = useState({
@@ -449,97 +589,257 @@ const useServices = () => {
     apiClient
   };
 };
+// ==========================================
+// SECTION 4 : TYPES & SERVICES IA
+// ==========================================
 
-// ==========================================
-// PROVIDER GLOBAL (Section 2)
-// ==========================================
-function GlobalProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useLocalStorage<'fr' | 'en'>('cerdia_language', 'fr');
-  const [darkMode, setDarkMode] = useLocalStorage<boolean>('cerdia_dark_mode', false);
-  const [currency] = useLocalStorage<'CAD' | 'USD'>('cerdia_currency', 'CAD');
+// Types IA spécialisés
+interface ChatMessage {
+  id: string;
+  content: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  type: 'text' | 'suggestion' | 'action';
+  metadata?: {
+    confidence?: number;
+    source?: string;
+    actions?: ChatAction[];
+  };
+}
+
+interface ChatAction {
+  id: string;
+  label: string;
+  type: 'search' | 'recommend' | 'filter' | 'navigate';
+  data?: any;
+}
+
+interface AIRecommendation {
+  id: string;
+  productId: number;
+  title: string;
+  description: string;
+  confidence: number;
+  type: 'personal' | 'trending' | 'similar';
+  reason: string;
+  price: number;
+  image: string;
+  rating: number;
+  tags: string[];
+}
+
+interface AIAnalytics {
+  engagement: {
+    chatSessions: number;
+    avgSessionTime: number;
+    satisfaction: number;
+    responseTime: number;
+  };
+  recommendations: {
+    generated: number;
+    clicked: number;
+    converted: number;
+    accuracy: number;
+  };
+  userBehavior: {
+    activeUsers: number;
+    searchQueries: number;
+    pageViews: number;
+    bounceRate: number;
+  };
+  performance: {
+    aiLatency: number;
+    cacheHitRate: number;
+    errorRate: number;
+    uptime: number;
+  };
+}
+
+// Services IA spécialisés
+class AIChatService {
+  private conversations = new Map<string, ChatMessage[]>();
   
-  const defaultUser = useMemo(() => ({
-    id: generateId(),
-    isAuthenticated: false,
-    isAdmin: false,
-    preferences: {},
-    gamification: {
-      level: 1,
-      experience: 0,
-      badges: [],
-      streak: { current: 0, longest: 0, lastActivity: '' },
-      referrals: 0,
-      totalSpent: 0,
-      pointsBalance: 0,
-      tier: 'bronze' as const
+  async sendMessage(conversationId: string, message: string): Promise<ChatMessage> {
+    // Simulation de traitement IA
+    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
+    
+    const suggestions = [
+      "Rechercher des produits similaires",
+      "Voir les recommandations personnalisées", 
+      "Filtrer par prix",
+      "Comparer avec d'autres marques"
+    ];
+    
+    const responses = [
+      `Je comprends que vous cherchez "${message}". Voici mes suggestions basées sur votre profil.`,
+      `Excellent choix ! Basé sur vos préférences, je recommande ces options.`,
+      `Laissez-moi analyser vos besoins et vous proposer les meilleures options.`,
+      `D'après votre historique, ces produits pourraient vous intéresser.`
+    ];
+    
+    const aiMessage: ChatMessage = {
+      id: Date.now().toString(),
+      content: responses[Math.floor(Math.random() * responses.length)],
+      sender: 'ai',
+      timestamp: new Date(),
+      type: 'text',
+      metadata: {
+        confidence: 0.8 + Math.random() * 0.2,
+        source: 'ai-engine-v2',
+        actions: suggestions.slice(0, 2).map((label, i) => ({
+          id: `action_${i}`,
+          label,
+          type: ['search', 'recommend'][i] as 'search' | 'recommend',
+          data: { query: message }
+        }))
+      }
+    };
+    
+    if (!this.conversations.has(conversationId)) {
+      this.conversations.set(conversationId, []);
     }
-  }), []);
-
-  const [user, setUser] = useLocalStorage('cerdia_user', defaultUser);
-  
-  const defaultAIConfig = useMemo(() => ({
-    model: 'GPT4' as keyof typeof AI_MODELS,
-    temperature: 0.7,
-    maxTokens: 2000,
-    enabled: true,
-    personalizedRecommendations: true,
-    autoOptimization: true
-  }), []);
-
-  const [aiConfig, setAIConfig] = useLocalStorage('cerdia_ai_config', defaultAIConfig);
-  
-  const defaultUI = useMemo(() => ({
-    headerVisible: true,
-    sidebarOpen: false,
-    chatbotOpen: false,
-    notificationsEnabled: true
-  }), []);
-
-  const [ui, setUI] = useLocalStorage('cerdia_ui', defaultUI);
-  
-  const updateUser = useCallback((updates: Partial<typeof user>) => {
-    setUser(prev => ({ ...prev, ...updates }));
-  }, [setUser]);
-  
-  const updateAIConfig = useCallback((config: Partial<typeof aiConfig>) => {
-    setAIConfig(prev => ({ ...prev, ...config }));
-  }, [setAIConfig]);
-
-  const updateUI = useCallback((uiUpdates: Partial<typeof ui>) => {
-    setUI(prev => ({ ...prev, ...uiUpdates }));
-  }, [setUI]);
-  
-  const contextValue: GlobalContextType = useMemo(() => ({
-    language,
-    darkMode,
-    currency,
-    user,
-    aiConfig,
-    ui,
-    setLanguage,
-    setDarkMode,
-    updateUser,
-    updateAIConfig,
-    updateUI
-  }), [
-    language, darkMode, currency, user, aiConfig, ui,
-    setLanguage, setDarkMode, updateUser, updateAIConfig, updateUI
-  ]);
-  
-  return (
-    <GlobalContext.Provider value={contextValue}>
-      {children}
-    </GlobalContext.Provider>
-  );
-}
-
-function useGlobalContext(): GlobalContextType {
-  const context = useContext(GlobalContext);
-  if (!context) {
-    throw new Error('useGlobalContext must be used within GlobalProvider');
+    
+    this.conversations.get(conversationId)!.push(aiMessage);
+    return aiMessage;
   }
-  return context;
+  
+  getSuggestions(): string[] {
+    return [
+      "Trouvez-moi des produits éco-responsables",
+      "Quelles sont les tendances actuelles ?",
+      "Recommandez-moi selon mon budget",
+      "Comparez ces deux produits"
+    ];
+  }
 }
+
+class AIRecommendationService {
+  async getPersonalizedRecommendations(userId: string): Promise<AIRecommendation[]> {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    const types: Array<'personal' | 'trending' | 'similar'> = ['personal', 'trending', 'similar'];
+    const reasons = [
+      "Basé sur vos achats précédents",
+      "Produit tendance dans votre catégorie",
+      "Similaire à vos favoris",
+      "Recommandé par des utilisateurs similaires"
+    ];
+    
+    return Array.from({ length: 8 }, (_, i) => ({
+      id: `rec_${i}`,
+      productId: 100 + i,
+      title: `Produit Recommandé ${i + 1}`,
+      description: `Description personnalisée du produit ${i + 1}`,
+      confidence: 0.7 + Math.random() * 0.3,
+      type: types[i % 3],
+      reason: reasons[i % 4],
+      price: 29.99 + Math.random() * 200,
+      image: `/api/placeholder/300/200?text=Produit${i + 1}`,
+      rating: 3.5 + Math.random() * 1.5,
+      tags: ['premium', 'bestseller', 'eco-friendly'][Math.floor(Math.random() * 3)] ? ['premium'] : ['bestseller']
+    }));
+  }
+  
+  async refreshRecommendations(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+class AIAnalyticsService {
+  private analytics: AIAnalytics = {
+    engagement: {
+      chatSessions: 247,
+      avgSessionTime: 4.2,
+      satisfaction: 4.6,
+      responseTime: 850
+    },
+    recommendations: {
+      generated: 1543,
+      clicked: 421,
+      converted: 89,
+      accuracy: 84.2
+    },
+    userBehavior: {
+      activeUsers: 156,
+      searchQueries: 892,
+      pageViews: 2341,
+      bounceRate: 23.5
+    },
+    performance: {
+      aiLatency: 420,
+      cacheHitRate: 94.7,
+      errorRate: 0.3,
+      uptime: 99.9
+    }
+  };
+  
+  async getAnalytics(): Promise<AIAnalytics> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Simulation de données en temps réel
+    this.analytics.engagement.chatSessions += Math.floor(Math.random() * 3);
+    this.analytics.userBehavior.activeUsers += Math.floor(Math.random() * 5) - 2;
+    this.analytics.recommendations.generated += Math.floor(Math.random() * 10);
+    
+    return { ...this.analytics };
+  }
+}
+
+// Hooks IA
+function useAIServices() {
+  const chatService = useMemo(() => new AIChatService(), []);
+  const recommendationService = useMemo(() => new AIRecommendationService(), []);
+  const analyticsService = useMemo(() => new AIAnalyticsService(), []);
+  
+  return {
+    chatService,
+    recommendationService,
+    analyticsService
+  };
+}
+
+function useChat(conversationId: string) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { chatService } = useAIServices();
+  
+  const sendMessage = useCallback(async (content: string) => {
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      content,
+      sender: 'user',
+      timestamp: new Date(),
+      type: 'text'
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+    
+    try {
+      const aiResponse = await chatService.sendMessage(conversationId, content);
+      setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Erreur chat:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [chatService, conversationId]);
+  
+  const clearChat = useCallback(() => {
+    setMessages([]);
+  }, []);
+  
+  return {
+    messages,
+    loading,
+    sendMessage,
+    clearChat,
+    suggestions: chatService.getSuggestions()
+  };
+}
+// ==========================================
+// COMPOSANT PRINCIPAL ASSEMBLÉ
+// ==========================================
 
 function useAppState() {
   const context = useGlobalContext();
@@ -548,19 +848,11 @@ function useAppState() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const [showForm, setShowForm] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [showAIRecommendations, setShowAIRecommendations] = useState(true);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [sortFilter, setSortFilter] = useState('relevance');
-  
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [favorites, setFavorites] = useLocalStorage<number[]>('cerdia_favorites', []);
   const [cart, setCart] = useLocalStorage<any[]>('cerdia_cart', []);
   
-  const t = useCallback((key: keyof typeof translations.fr): string => {
+  const t = useCallback((key: string): string => {
     return translations[context.language][key] || key;
   }, [context.language]);
   
@@ -582,14 +874,7 @@ function useAppState() {
   return {
     ...context,
     products, setProducts,
-    loading,
-    errors,
-    showForm, setShowForm,
-    showAIChat, setShowAIChat,
-    showAIRecommendations, setShowAIRecommendations,
-    searchTerm, setSearchTerm,
-    categoryFilter, setCategoryFilter,
-    sortFilter, setSortFilter,
+    loading, errors,
     selectedProduct, setSelectedProduct,
     favorites: favoritesSet,
     toggleFavorite,
@@ -598,420 +883,45 @@ function useAppState() {
   };
 }
 
-// ==========================================
-// NOUVEAU COMPOSANT SECTION 3 : HEALTH MONITOR
-// ==========================================
-const HealthMonitor = ({ darkMode }: { darkMode: boolean }) => {
-  const { serviceHealth, apiMetrics, isLoading, checkServiceHealth } = useServices();
+function CerdiaDemo() {
+  const { darkMode, t } = useAppState();
+  const { chatService, recommendationService, analyticsService } = useAIServices();
+  const [testResults, setTestResults] = useState<any>({});
+  const [testing, setTesting] = useState(false);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'degraded': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'down': return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      default: return <Activity className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const services = [
-    { name: 'API Gateway', key: 'api', icon: Cloud },
-    { name: 'Base de données', key: 'database', icon: Database },
-    { name: 'Service IA', key: 'ai', icon: Brain },
-    { name: 'Cache Redis', key: 'cache', icon: Zap }
-  ];
-
-  return (
-    <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-lg font-bold flex items-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          <Shield className="w-5 h-5 mr-2 text-green-500" />
-          État des Services
-        </h3>
-        <button
-          onClick={checkServiceHealth}
-          disabled={isLoading}
-          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-            isLoading 
-              ? 'bg-gray-300 cursor-not-allowed' 
-              : 'bg-blue-500 text-white hover:bg-blue-600'
-          }`}
-        >
-          {isLoading ? 'Vérification...' : 'Actualiser'}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {services.map((service) => {
-          const status = serviceHealth[service.key] || 'unknown';
-          return (
-            <div
-              key={service.key}
-              className={`p-3 rounded border ${
-                darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center space-x-2">
-                  <service.icon className="w-4 h-4 text-blue-500" />
-                  <span className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {service.name}
-                  </span>
-                </div>
-                {getStatusIcon(status)}
-              </div>
-              <div className={`text-xs capitalize ${
-                status === 'healthy' ? 'text-green-600' :
-                status === 'degraded' ? 'text-yellow-600' :
-                status === 'down' ? 'text-red-600' : 'text-gray-500'
-              }`}>
-                {status === 'healthy' ? 'Opérationnel' :
-                 status === 'degraded' ? 'Dégradé' :
-                 status === 'down' ? 'Hors service' : 'Inconnu'}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Métriques API */}
-      <div className={`p-3 rounded border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-        <h4 className={`text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Métriques API
-        </h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Temps de réponse:</span>
-            <span className={`ml-2 font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {apiMetrics.responseTime}ms
-            </span>
-          </div>
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Taux de succès:</span>
-            <span className={`ml-2 font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {apiMetrics.successRate}%
-            </span>
-          </div>
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Requêtes:</span>
-            <span className={`ml-2 font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {apiMetrics.requestCount}
-            </span>
-          </div>
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Taux d'erreur:</span>
-            <span className={`ml-2 font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {apiMetrics.errorRate.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// NOUVEAU COMPOSANT SECTION 3 : SERVICE TESTER
-// ==========================================
-const ServiceTester = ({ darkMode }: { darkMode: boolean }) => {
-  const [testResults, setTestResults] = useState<Record<string, any>>({});
-  const [isRunning, setIsRunning] = useState(false);
-  const services = useServices();
-
-  const runTest = async (serviceName: string, testFunction: () => Promise<any>) => {
-    setIsRunning(true);
-    setTestResults(prev => ({ ...prev, [serviceName]: { status: 'running', data: null } }));
+  const testAIServices = async () => {
+    setTesting(true);
+    const results: any = {};
     
     try {
-      const result = await testFunction();
-      setTestResults(prev => ({ 
-        ...prev, 
-        [serviceName]: { status: 'success', data: result, timestamp: new Date().toLocaleTimeString() } 
-      }));
+      const chatResponse = await chatService.sendMessage('test', 'Hello AI');
+      results.chat = { success: true, response: chatResponse.content.substring(0, 50) + '...' };
     } catch (error) {
-      setTestResults(prev => ({ 
-        ...prev, 
-        [serviceName]: { 
-          status: 'error', 
-          error: error instanceof Error ? error.message : 'Erreur inconnue',
-          timestamp: new Date().toLocaleTimeString()
-        } 
-      }));
-    } finally {
-      setIsRunning(false);
+      results.chat = { success: false, error: 'Erreur chat' };
     }
-  };
-
-  const tests = [
-    {
-      name: 'ProductService',
-      label: 'Service Produits',
-      icon: Database,
-      test: () => services.ProductService.getAll({ limit: 5 })
-    },
-    {
-      name: 'AIService',
-      label: 'Service IA',
-      icon: Brain,
-      test: () => services.AIService.chat('Bonjour', {})
-    },
-    {
-      name: 'AnalyticsService',
-      label: 'Service Analytics',
-      icon: Activity,
-      test: () => services.AnalyticsService.getRealTimeMetrics()
-    },
-    {
-      name: 'SystemService',
-      label: 'Service Système',
-      icon: Settings,
-      test: () => services.SystemService.getHealth()
-    }
-  ];
-
-  const runAllTests = async () => {
-    for (const test of tests) {
-      await runTest(test.name, test.test);
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    
+    setTestResults(results);
+    setTesting(false);
   };
 
   return (
-    <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-lg font-bold flex items-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          <Zap className="w-5 h-5 mr-2 text-purple-500" />
-          Test des Services
-        </h3>
+    <div className={`min-h-screen p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          🚀 CERDIA Platform - Sections 1-4 Assemblées
+        </h1>
+        
         <button
-          onClick={runAllTests}
-          disabled={isRunning}
-          className={`px-4 py-2 rounded font-medium transition-colors ${
-            isRunning 
-              ? 'bg-gray-300 cursor-not-allowed' 
-              : 'bg-purple-500 text-white hover:bg-purple-600'
-          }`}
+          onClick={testAIServices}
+          disabled={testing}
+          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
         >
-          {isRunning ? 'Tests en cours...' : 'Lancer tous les tests'}
+          {testing ? 'Test en cours...' : 'Tester tout le système'}
         </button>
-      </div>
-
-      <div className="space-y-3">
-        {tests.map((test) => {
-          const result = testResults[test.name];
-          
-          return (
-            <div
-              key={test.name}
-              className={`p-3 rounded border ${
-                darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <test.icon className="w-4 h-4 text-blue-500" />
-                  <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {test.label}
-                  </span>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  {result?.status === 'running' && (
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  )}
-                  {result?.status === 'success' && (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  )}
-                  {result?.status === 'error' && (
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                  )}
-                  
-                  <button
-                    onClick={() => runTest(test.name, test.test)}
-                    disabled={isRunning}
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      isRunning 
-                        ? 'bg-gray-300 cursor-not-allowed' 
-                        : 'bg-blue-500 text-white hover:bg-blue-600'
-                    }`}
-                  >
-                    Test
-                  </button>
-                </div>
-              </div>
-
-              {result && (
-                <div className="text-xs">
-                  {result.status === 'running' && (
-                    <span className="text-blue-600">Test en cours...</span>
-                  )}
-                  {result.status === 'success' && (
-                    <div>
-                      <span className="text-green-600">✅ Succès ({result.timestamp})</span>
-                      <div className={`mt-1 p-2 rounded text-xs ${
-                        darkMode ? 'bg-gray-600' : 'bg-gray-100'
-                      }`}>
-                        <pre className="whitespace-pre-wrap">
-                          {JSON.stringify(result.data, null, 2).substring(0, 200)}...
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-                  {result.status === 'error' && (
-                    <div>
-                      <span className="text-red-600">❌ Erreur ({result.timestamp})</span>
-                      <div className={`mt-1 p-2 rounded text-xs ${
-                        darkMode ? 'bg-red-900/20' : 'bg-red-100'
-                      }`}>
-                        {result.error}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// COMPOSANT CONFIGURATION (Section 2)
-// ==========================================
-function ConfigurationPanel() {
-  const { language, darkMode, aiConfig, updateAIConfig, setLanguage, setDarkMode, t } = useAppState();
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  return (
-    <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-      <h3 className={`text-lg font-bold mb-4 flex items-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-        <Settings className="w-5 h-5 mr-2" />
-        {t('configuration')}
-      </h3>
-
-      <div className="space-y-4">
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('language')}
-          </label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
-            className={`w-full p-2 rounded border ${
-              darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-            }`}
-          >
-            <option value="fr">🇫🇷 Français</option>
-            <option value="en">🇬🇧 English</option>
-          </select>
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('theme')}
-          </label>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setDarkMode(false)}
-              className={`flex-1 p-2 rounded text-sm font-medium transition-all flex items-center justify-center space-x-2 ${
-                !darkMode 
-                  ? 'bg-blue-500 text-white' 
-                  : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <Sun className="w-4 h-4" />
-              <span>{t('lightMode')}</span>
-            </button>
-            <button
-              onClick={() => setDarkMode(true)}
-              className={`flex-1 p-2 rounded text-sm font-medium transition-all flex items-center justify-center space-x-2 ${
-                darkMode 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <Moon className="w-4 h-4" />
-              <span>{t('darkMode')}</span>
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('aiSettings')}
-          </label>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>IA Activée</span>
-              <button
-                onClick={() => updateAIConfig({ enabled: !aiConfig.enabled })}
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  aiConfig.enabled ? 'bg-green-500' : 'bg-gray-300'
-                }`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full transition-transform absolute top-0.5 ${
-                  aiConfig.enabled ? 'translate-x-6' : 'translate-x-0.5'
-                }`}></div>
-              </button>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Recommandations</span>
-              <button
-                onClick={() => updateAIConfig({ personalizedRecommendations: !aiConfig.personalizedRecommendations })}
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  aiConfig.personalizedRecommendations ? 'bg-green-500' : 'bg-gray-300'
-                }`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full transition-transform absolute top-0.5 ${
-                  aiConfig.personalizedRecommendations ? 'translate-x-6' : 'translate-x-0.5'
-                }`}></div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className={`w-full text-left text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'} hover:underline`}
-        >
-          {showAdvanced ? '▼' : '▶'} Configuration avancée
-        </button>
-
-        {showAdvanced && (
-          <div className="space-y-3 pt-2 border-t border-gray-200">
-            <div>
-              <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Modèle IA: {AI_MODELS[aiConfig.model].name}
-              </label>
-              <select
-                value={aiConfig.model}
-                onChange={(e) => updateAIConfig({ model: e.target.value as keyof typeof AI_MODELS })}
-                className={`w-full p-2 rounded border text-sm ${
-                  darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-                }`}
-              >
-                {Object.entries(AI_MODELS).map(([key, model]) => (
-                  <option key={key} value={key}>{model.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Température: {aiConfig.temperature}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={aiConfig.temperature}
-                onChange={(e) => updateAIConfig({ temperature: parseFloat(e.target.value) })}
-                className="w-full"
-              />
-            </div>
+        
+        {Object.keys(testResults).length > 0 && (
+          <div className="mt-4 p-4 bg-green-100 rounded-lg">
+            <pre>{JSON.stringify(testResults, null, 2)}</pre>
           </div>
         )}
       </div>
@@ -1019,157 +929,10 @@ function ConfigurationPanel() {
   );
 }
 
-// ==========================================
-// COMPOSANT PRINCIPAL - SECTION 3
-// ==========================================
-function CerdiaSection3Demo() {
-  const { darkMode } = useAppState();
-  const { clearAPICache, getAPIStats } = useServices();
-  const [cacheStats, setCacheStats] = useState({ size: 0, keys: [] });
-
-  const updateCacheStats = () => {
-    setCacheStats(getAPIStats());
-  };
-
-  useEffect(() => {
-    updateCacheStats();
-  }, []);
-
-  return (
-    <div className={`min-h-screen p-4 transition-colors ${
-      darkMode ? 'bg-gray-900' : 'bg-gray-50'
-    }`}>
-      <div className="max-w-6xl mx-auto">
-        
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-            🚀 CERDIA Platform - Section 3
-          </h1>
-          <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Services & API Management
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          
-          {/* Configuration */}
-          <div className="lg:col-span-1">
-            <ConfigurationPanel />
-          </div>
-
-          {/* Services Section 3 */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Health Monitor */}
-            <HealthMonitor darkMode={darkMode} />
-            
-            {/* Service Tester */}
-            <ServiceTester darkMode={darkMode} />
-          </div>
-        </div>
-
-        {/* API Cache Management */}
-        <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-bold flex items-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              <Database className="w-5 h-5 mr-2 text-green-500" />
-              Gestion du Cache API
-            </h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  updateCacheStats();
-                }}
-                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-              >
-                Actualiser
-              </button>
-              <button
-                onClick={() => {
-                  clearAPICache();
-                  updateCacheStats();
-                }}
-                className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-              >
-                Vider le cache
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className={`text-center p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="text-2xl font-bold text-blue-500">{cacheStats.size}</div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Entrées en cache</div>
-            </div>
-            <div className={`text-center p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="text-2xl font-bold text-green-500">95%</div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Taux de hit</div>
-            </div>
-            <div className={`text-center p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="text-2xl font-bold text-purple-500">250ms</div>
-              <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Temps moyen</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fonctionnalités complétées */}
-        <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-          <h3 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            ✅ Section 3 - Fonctionnalités Complétées
-          </h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold mb-2 text-purple-600">🔧 Services & API</h4>
-              <ul className="text-sm space-y-1">
-                <li>✅ Client API intelligent avec cache</li>
-                <li>✅ Service Produits avec recherche IA</li>
-                <li>✅ Service IA pour chat et génération</li>
-                <li>✅ Service Analytics temps réel</li>
-                <li>✅ Service Système avec monitoring</li>
-                <li>✅ Gestion d'erreurs et retry automatique</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2 text-blue-600">🛠️ Outils & Monitoring</h4>
-              <ul className="text-sm space-y-1">
-                <li>✅ Health check des services</li>
-                <li>✅ Test automatisé des APIs</li>
-                <li>✅ Cache intelligent avec TTL</li>
-                <li>✅ Métriques de performance</li>
-                <li>✅ Interface d'administration</li>
-                <li>✅ Hooks React optimisés</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="text-center mt-6 bg-green-100 border border-green-300 rounded-lg p-6">
-          <div className="text-4xl mb-3">🎉</div>
-          <h3 className="text-2xl font-bold text-green-800 mb-2">
-            Section 3 Complétée !
-          </h3>
-          <p className="text-green-600 mb-4">
-            Services, API management et monitoring prêts pour la Section 4
-          </p>
-          <div className="flex justify-center">
-            <div className="bg-green-500 text-white px-6 py-2 rounded-lg font-medium">
-              ✅ Prêt pour Section 4
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// COMPOSANT PRINCIPAL AVEC PROVIDER
-// ==========================================
-export default function EcommercePage() {
+export default function Page() {
   return (
     <GlobalProvider>
-      <CerdiaSection3Demo />
+      <CerdiaDemo />
     </GlobalProvider>
   );
 }
