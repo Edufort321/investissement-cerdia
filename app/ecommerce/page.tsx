@@ -1,2185 +1,3023 @@
-// app/ecommerce/page.tsx - Sections 1-4 Assemblées
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, useMemo, useRef } from 'react';
-import { 
-  Settings, Globe, Brain, Zap, Users, Target, Sun, Moon, 
-  CheckCircle, Cloud, Database, Shield, Activity, AlertTriangle, 
-  Cpu, HardDrive, Network, BarChart3, TrendingUp, Eye, Heart,
-  Send, Bot, MessageSquare, RefreshCw, Filter, Sparkles,
-  ChevronRight, Star, Clock, ThumbsUp, ThumbsDown
-} from 'lucide-react';
-// ==========================================
-// SECTION 1 : TYPES, INTERFACES & UTILITAIRES
-// ==========================================
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+import { Pencil, Globe, Plus, Trash2, Heart, Video, Mountain } from 'lucide-react';
 
-// Types de base
+// Configuration Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// Configuration des constantes
+const MESSENGER_PAGE_ID = 'riccerdia';
+const PASSWORD = '321MdlTamara!$';
+
+// Types et interfaces
 interface Product {
   id?: number;
   name: string;
   description: string;
+  amazonCa?: string;
+  amazonCom?: string;
+  tiktokUrl?: string;
   images: string[];
   categories: string[];
   priceCa?: string;
-  rating?: number;
-  reviewCount?: number;
-  aiScore?: number;
-  isNew?: boolean;
-  isPopular?: boolean;
+  priceUs?: string;
+  createdAt?: string;
 }
 
-interface SmartRecommendation {
-  id: number;
-  productId: number;
-  product: Product;
-  score: number;
-  reason: string;
-  type: 'trending' | 'personalized' | 'similar';
-  confidence: number;
-  explanation: string;
+interface Advertisement {
+  id?: number;
+  title: string;
+  description: string;
+  url: string;
+  imageUrl?: string;
+  type: 'video' | 'image';
+  isActive: boolean;
+  createdAt?: string;
 }
 
-interface UserGameification {
-  level: number;
-  experience: number;
-  badges: Array<{
-    id: string;
-    name: string;
-    description: string;
-    unlockedAt: string;
-    rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  }>;
-  streak: {
-    current: number;
-    longest: number;
-    lastActivity: string;
-  };
-  referrals: number;
-  totalSpent: number;
-  pointsBalance: number;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+// Nouvelle interface pour les publicités AdSense
+interface AdSenseConfig {
+  id?: number;
+  clientId: string;
+  slotId: string;
+  format: 'auto' | 'horizontal' | 'rectangle' | 'vertical';
+  isActive: boolean;
+  position: 'top' | 'middle' | 'bottom' | 'sidebar';
+  frequency: number;
+  createdAt?: string;
 }
-
-// Utilitaires de base
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-function debounce<T extends (...args: any[]) => void>(func: T, delay: number): T {
-  let timeoutId: NodeJS.Timeout;
-  return ((...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func.apply(null, args), delay);
-  }) as T;
-}
-
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      if (item) {
-        setStoredValue(JSON.parse(item));
-      }
-    } catch (error) {
-      console.error('Erreur localStorage:', error);
-    }
-  }, [key]);
-
-  const setValue = useCallback((value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error('Erreur sauvegarde:', error);
-    }
-  }, [key, storedValue]);
-
-  return [storedValue, setValue] as const;
-}
-
-// Fonctions utilitaires
-const utils = {
-  formatPrice: (price: number, currency = 'CAD') => {
-    return new Intl.NumberFormat('fr-CA', {
-      style: 'currency',
-      currency
-    }).format(price);
-  },
-  
-  formatDate: (date: Date) => {
-    return new Intl.DateTimeFormat('fr-CA').format(date);
-  },
-  
-  truncateText: (text: string, maxLength: number) => {
-    return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
-  },
-  
-  calculateDiscount: (originalPrice: number, discountPrice: number) => {
-    return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
-  },
-  
-  randomDelay: (min = 500, max = 2000) => {
-    return new Promise(resolve => 
-      setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min)
-    );
-  }
-};
-// ==========================================
-// SECTION 2 : CONFIGURATION & ÉTAT GLOBAL
-// ==========================================
-
-// Configuration IA
-const AI_MODELS = {
-  GPT4: {
-    name: 'GPT-4 Turbo',
-    maxTokens: 8000,
-    costPer1k: 0.03,
-    strength: ['creativity', 'reasoning', 'conversation']
-  },
-  CLAUDE: {
-    name: 'Claude-3 Sonnet',
-    maxTokens: 4000,
-    costPer1k: 0.02,
-    strength: ['analysis', 'writing', 'safety']
-  },
-  GEMINI: {
-    name: 'Gemini Pro',
-    maxTokens: 6000,
-    costPer1k: 0.025,
-    strength: ['multimodal', 'code', 'reasoning']
-  }
+// Données par défaut et mappings
+const DEFAULT_CATEGORIES = {
+  fr: ['Montre', 'Lunette de soleil', 'Sac à dos', 'Article de voyage'],
+  en: ['Watch', 'Sunglasses', 'Backpack', 'Travel item']
 };
 
-// Traductions
+const CATEGORY_MAPPING = {
+  'Montre': 'Watch',
+  'Lunette de soleil': 'Sunglasses', 
+  'Sac à dos': 'Backpack',
+  'Article de voyage': 'Travel item',
+  'Watch': 'Montre',
+  'Sunglasses': 'Lunette de soleil',
+  'Backpack': 'Sac à dos',
+  'Travel item': 'Article de voyage'
+};
+
+// Traductions complètes
 const translations = {
   fr: {
     title: 'Collection CERDIA',
-    subtitle: 'Produits Intelligents Propulsés par IA',
-    loading: 'Chargement...',
-    error: 'Erreur',
-    success: 'Succès',
+    subtitle: 'Produits Sitestripe',
+    all: 'Tous',
+    addProduct: '➕ Ajouter Produit',
+    addAd: '📺 Ajouter Publicité',
+    addAdSense: '💰 Configurer AdSense',
+    manageAdSense: 'Gérer AdSense',
+    adsenseClientId: 'ID Client AdSense (ca-pub-...)',
+    adsenseSlotId: 'ID Slot AdSense',
+    adsenseFormat: 'Format de publicité',
+    adsensePosition: 'Position',
+    adsenseFrequency: 'Fréquence (tous les X produits)',
+    formatAuto: 'Automatique',
+    formatHorizontal: 'Horizontal (bannière)',
+    formatRectangle: 'Rectangle',
+    formatVertical: 'Vertical',
+    positionTop: 'Haut de page',
+    positionMiddle: 'Milieu (entre produits)',
+    positionBottom: 'Bas de page',
+    positionSidebar: 'Barre latérale',
+    adsenseConfigured: 'Configuration AdSense sauvegardée',
+    adsenseDeleted: 'Configuration AdSense supprimée',
+    name: 'Nom',
+    description: 'Description',
+    modify: 'Modifier',
+    add: 'Ajouter',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    noImage: 'Aucune image',
+    imageNotAvailable: 'Image non disponible',
+    viewOnTiktok: 'TikTok',
+    adminPassword: 'Mot de passe admin :',
+    incorrectPassword: 'Mot de passe incorrect.',
+    productUpdated: 'Produit mis à jour avec succès',
+    productAdded: 'Produit ajouté avec succès',
+    productDeleted: 'Produit supprimé avec succès',
+    adUpdated: 'Publicité mise à jour avec succès',
+    adAdded: 'Publicité ajoutée avec succès',
+    adDeleted: 'Publicité supprimée avec succès',
+    updateError: 'Erreur lors de la mise à jour',
+    addError: 'Erreur lors de l\'ajout',
+    deleteError: 'Erreur lors de la suppression',
+    addImage: 'Ajouter une image',
+    images: 'Images',
+    categories: 'Catégories',
+    addCategory: 'Ajouter une catégorie',
+    selectedCategories: 'Catégories sélectionnées',
+    priceNote: 'Prix peuvent varier',
+    indicativePrice: 'À partir de',
+    save: 'Sauvegarder',
+    sortBy: 'Trier par',
+    priceLowHigh: 'Prix croissant',
+    priceHighLow: 'Prix décroissant',
+    newest: 'Plus récent',
+    oldest: 'Plus ancien',
+    nameAZ: 'Nom A-Z',
+    nameZA: 'Nom Z-A',
+    adminRequired: 'Mot de passe admin requis pour créer des catégories',
+    blog: 'Blog',
     products: 'Produits',
-    search: 'Rechercher',
-    configuration: 'Configuration',
-    language: 'Langue',
-    theme: 'Thème',
+    ads: 'Publicités',
+    blogTitle: 'Demandez votre Sitestripe pour tous vos achats !',
+    blogSubtitle: 'Obtenez instantanément vos liens d\'affiliation personnalisés',
+    blogContent: 'Vous cherchez des produits de qualité avec les meilleurs prix ? Notre service Sitestripe vous permet d\'obtenir rapidement tous les liens d\'affiliation dont vous avez besoin !',
+    blogFeatures: 'Nos avantages',
+    feature1: '🚀 Réponse rapide via Messenger',
+    feature2: '💰 Accès aux meilleurs deals',
+    feature3: '🔗 Liens d\'affiliation personnalisés',
+    feature4: '📱 Service 7j/7',
+    contactForm: 'Demander votre Sitestripe',
+    yourName: 'Votre nom',
+    productInterest: 'Produit qui vous intéresse',
+    message: 'Votre message (optionnel)',
+    sendToMessenger: 'Ouvrir Messenger',
+    messengerDirect: 'Ou contactez-nous directement sur',
+    requestSent: 'Redirection vers Messenger...',
+    comments: 'Commentaires',
+    addComment: 'Ajouter un commentaire',
+    yourComment: 'Votre commentaire...',
+    postComment: 'Publier',
+    commentPosted: 'Commentaire publié avec succès !',
+    noComments: 'Aucun commentaire pour le moment. Soyez le premier à commenter !',
+    pageViews: 'Vues de la page',
+    onlineNow: 'En ligne maintenant',
+    totalVisitors: 'Visiteurs total',
+    points: 'Points',
+    badges: 'Badges',
+    earnPoints: 'Gagnez des points !',
+    discoverStyle: 'Découvrir mon style',
+    styleQuiz: 'Quiz de Style',
     darkMode: 'Mode sombre',
-    lightMode: 'Mode clair',
-    aiSettings: 'Paramètres IA',
-    services: 'Services',
-    apiHealth: 'Santé API',
-    performance: 'Performance',
-    cache: 'Cache',
-    database: 'Base de données',
-    monitoring: 'Surveillance',
-    optimize: 'Optimiser',
-    'ai.title': 'Intelligence Artificielle',
-    'ai.chat': 'Chat IA',
-    'ai.recommendations': 'Recommandations',
-    'ai.analytics': 'Analytics IA',
-    'ai.config': 'Configuration IA',
-    'test.ai.services': 'Tester les Services IA'
+    recentActivity: 'Activité récente',
+    welcomePoints: '+10 points de bienvenue !',
+    favoritePoints: '+5 points pour ce favori !',
+    sharePoints: '+15 points pour le partage !',
+    firstVisitBadge: '🎉 Première visite',
+    explorerBadge: '🔍 Explorateur',
+    trendsetterBadge: '✨ Trendsetter',
+    loyalBadge: '💎 Fidèle',
+    notification: 'Notification',
+    dealAlert: '🔥 Deal Alert: 50% sur les montres Apple !',
+    stockAlert: '⚡ Stock limité: Plus que 3 unités !',
+    trendingAlert: '📈 Tendance: Ce produit explose !',
+    dragProduct: 'Glissez un produit ici ou tapez le nom',
+    dragDropHint: '🎯 Glissez un produit de la collection ici',
+    productDropped: 'Produit ajouté !',
+    requestSitestripe: '+20 points pour votre demande Sitestripe !',
+    adTitle: 'Titre de la publicité',
+    adUrl: 'URL de destination',
+    adImage: 'Image de la publicité',
+    adType: 'Type de publicité',
+    videoAd: 'Publicité Vidéo',
+    imageAd: 'Publicité Image',
+    isActive: 'Actif',
+    manageAds: 'Gérer les publicités'
   },
   en: {
-    title: 'CERDIA Collection',
-    subtitle: 'AI-Powered Smart Products',
-    loading: 'Loading...',
-    error: 'Error',
-    success: 'Success',
+    title: 'Collection CERDIA',
+    subtitle: 'Sitestripe Products',
+    all: 'All',
+    addProduct: '➕ Add Product',
+    addAd: '📺 Add Advertisement',
+    addAdSense: '💰 Configure AdSense',
+    manageAdSense: 'Manage AdSense',
+    adsenseClientId: 'AdSense Client ID (ca-pub-...)',
+    adsenseSlotId: 'AdSense Slot ID',
+    adsenseFormat: 'Ad format',
+    adsensePosition: 'Position',
+    adsenseFrequency: 'Frequency (every X products)',
+    formatAuto: 'Automatic',
+    formatHorizontal: 'Horizontal (banner)',
+    formatRectangle: 'Rectangle',
+    formatVertical: 'Vertical',
+    positionTop: 'Top of page',
+    positionMiddle: 'Middle (between products)',
+    positionBottom: 'Bottom of page',
+    positionSidebar: 'Sidebar',
+    adsenseConfigured: 'AdSense configuration saved',
+    adsenseDeleted: 'AdSense configuration deleted',
+    name: 'Name',
+    description: 'Description',
+    modify: 'Modify',
+    add: 'Add',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    noImage: 'No image',
+    imageNotAvailable: 'Image not available',
+    viewOnTiktok: 'TikTok',
+    adminPassword: 'Admin password:',
+    incorrectPassword: 'Incorrect password.',
+    productUpdated: 'Product updated successfully',
+    productAdded: 'Product added successfully',
+    productDeleted: 'Product deleted successfully',
+    adUpdated: 'Advertisement updated successfully',
+    adAdded: 'Advertisement added successfully',
+    adDeleted: 'Advertisement deleted successfully',
+    updateError: 'Error during update',
+    addError: 'Error during addition',
+    deleteError: 'Error during deletion',
+    addImage: 'Add image',
+    images: 'Images',
+    categories: 'Categories',
+    addCategory: 'Add category',
+    selectedCategories: 'Selected categories',
+    priceNote: 'Prices may vary',
+    indicativePrice: 'From',
+    save: 'Save',
+    sortBy: 'Sort by',
+    priceLowHigh: 'Price low to high',
+    priceHighLow: 'Price high to low',
+    newest: 'Newest',
+    oldest: 'Oldest',
+    nameAZ: 'Name A-Z',
+    nameZA: 'Name Z-A',
+    adminRequired: 'Admin password required to create categories',
+    blog: 'Blog',
     products: 'Products',
-    search: 'Search',
-    configuration: 'Configuration',
-    language: 'Language',
-    theme: 'Theme',
+    ads: 'Advertisements',
+    blogTitle: 'Request your Sitestripe for all your purchases!',
+    blogSubtitle: 'Get your personalized affiliate links instantly',
+    blogContent: 'Looking for quality products at the best prices? Our Sitestripe service allows you to quickly get all the affiliate links you need!',
+    blogFeatures: 'Our advantages',
+    feature1: '🚀 Fast response via Messenger',
+    feature2: '💰 Access to the best deals',
+    feature3: '🔗 Personalized affiliate links',
+    feature4: '📱 7/7 service',
+    contactForm: 'Request your Sitestripe',
+    yourName: 'Your name',
+    productInterest: 'Product you\'re interested in',
+    message: 'Your message (optional)',
+    sendToMessenger: 'Open Messenger',
+    messengerDirect: 'Or contact us directly on',
+    requestSent: 'Redirecting to Messenger...',
+    comments: 'Comments',
+    addComment: 'Add a comment',
+    yourComment: 'Your comment...',
+    postComment: 'Post',
+    commentPosted: 'Comment posted successfully!',
+    noComments: 'No comments yet. Be the first to comment!',
+    pageViews: 'Page views',
+    onlineNow: 'Online now',
+    totalVisitors: 'Total visitors',
+    points: 'Points',
+    badges: 'Badges',
+    earnPoints: 'Earn points!',
+    discoverStyle: 'Discover my style',
+    styleQuiz: 'Style Quiz',
     darkMode: 'Dark mode',
-    lightMode: 'Light mode',
-    aiSettings: 'AI Settings',
-    services: 'Services',
-    apiHealth: 'API Health',
-    performance: 'Performance',
-    cache: 'Cache',
-    database: 'Database',
-    monitoring: 'Monitoring',
-    optimize: 'Optimize',
-    'ai.title': 'Artificial Intelligence',
-    'ai.chat': 'AI Chat',
-    'ai.recommendations': 'Recommendations',
-    'ai.analytics': 'AI Analytics',
-    'ai.config': 'AI Configuration',
-    'test.ai.services': 'Test AI Services'
+    recentActivity: 'Recent activity',
+    welcomePoints: '+10 welcome points!',
+    favoritePoints: '+5 points for this favorite!',
+    sharePoints: '+15 points for sharing!',
+    firstVisitBadge: '🎉 First visit',
+    explorerBadge: '🔍 Explorer',
+    trendsetterBadge: '✨ Trendsetter',
+    loyalBadge: '💎 Loyal',
+    notification: 'Notification',
+    dealAlert: '🔥 Deal Alert: 50% off Apple watches!',
+    stockAlert: '⚡ Limited stock: Only 3 left!',
+    trendingAlert: '📈 Trending: This product is hot!',
+    dragProduct: 'Drag a product here or type the name',
+    dragDropHint: '🎯 Drag a product from the collection here',
+    productDropped: 'Product added!',
+    requestSitestripe: '+20 points for your Sitestripe request!',
+    adTitle: 'Advertisement title',
+    adUrl: 'Destination URL',
+    adImage: 'Advertisement image',
+    adType: 'Advertisement type',
+    videoAd: 'Video Advertisement',
+    imageAd: 'Image Advertisement',
+    isActive: 'Active',
+    manageAds: 'Manage advertisements'
   }
 };
-
-// Interface d'état global
-interface GlobalContextType {
-  language: 'fr' | 'en';
-  darkMode: boolean;
-  currency: 'CAD' | 'USD';
-  user: {
-    id: string;
-    isAuthenticated: boolean;
-    isAdmin: boolean;
-    preferences: any;
-    gamification: UserGameification;
-  };
-  aiConfig: {
-    model: keyof typeof AI_MODELS;
-    temperature: number;
-    maxTokens: number;
-    enabled: boolean;
-    personalizedRecommendations: boolean;
-    autoOptimization: boolean;
-    chatEnabled: boolean;
-    recommendationsEnabled: boolean;
-    analyticsEnabled: boolean;
-    autoRefresh: boolean;
-  };
-  ui: {
-    headerVisible: boolean;
-    sidebarOpen: boolean;
-    chatbotOpen: boolean;
-    notificationsEnabled: boolean;
-  };
-  setLanguage: (lang: 'fr' | 'en') => void;
-  setDarkMode: (dark: boolean) => void;
-  updateUser: (updates: Partial<GlobalContextType['user']>) => void;
-  updateAIConfig: (config: Partial<GlobalContextType['aiConfig']>) => void;
-  updateUI: (ui: Partial<GlobalContextType['ui']>) => void;
-}
-
-// Contexte global
-const GlobalContext = createContext<GlobalContextType | null>(null);
-
-// Provider global
-function GlobalProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useLocalStorage<'fr' | 'en'>('cerdia_language', 'fr');
-  const [darkMode, setDarkMode] = useLocalStorage<boolean>('cerdia_dark_mode', false);
-  const [currency] = useLocalStorage<'CAD' | 'USD'>('cerdia_currency', 'CAD');
-  
-  const defaultUser = useMemo(() => ({
-    id: generateId(),
-    isAuthenticated: false,
-    isAdmin: false,
-    preferences: {},
-    gamification: {
-      level: 1,
-      experience: 0,
-      badges: [],
-      streak: { current: 0, longest: 0, lastActivity: '' },
-      referrals: 0,
-      totalSpent: 0,
-      pointsBalance: 0,
-      tier: 'bronze' as const
-    }
-  }), []);
-
-  const [user, setUser] = useLocalStorage('cerdia_user', defaultUser);
-  
-  const defaultAIConfig = useMemo(() => ({
-    model: 'GPT4' as keyof typeof AI_MODELS,
-    temperature: 0.7,
-    maxTokens: 2000,
-    enabled: true,
-    personalizedRecommendations: true,
-    autoOptimization: true,
-    chatEnabled: true,
-    recommendationsEnabled: true,
-    analyticsEnabled: true,
-    autoRefresh: true
-  }), []);
-
-  const [aiConfig, setAIConfig] = useLocalStorage('cerdia_ai_config', defaultAIConfig);
-  
-  const defaultUI = useMemo(() => ({
-    headerVisible: true,
-    sidebarOpen: false,
-    chatbotOpen: false,
-    notificationsEnabled: true
-  }), []);
-
-  const [ui, setUI] = useLocalStorage('cerdia_ui', defaultUI);
-  
-  const updateUser = useCallback((updates: Partial<typeof user>) => {
-    setUser(prev => ({ ...prev, ...updates }));
-  }, [setUser]);
-  
-  const updateAIConfig = useCallback((config: Partial<typeof aiConfig>) => {
-    setAIConfig(prev => ({ ...prev, ...config }));
-  }, [setAIConfig]);
-
-  const updateUI = useCallback((uiUpdates: Partial<typeof ui>) => {
-    setUI(prev => ({ ...prev, ...uiUpdates }));
-  }, [setUI]);
-  
-  const contextValue: GlobalContextType = useMemo(() => ({
-    language,
-    darkMode,
-    currency,
-    user,
-    aiConfig,
-    ui,
-    setLanguage,
-    setDarkMode,
-    updateUser,
-    updateAIConfig,
-    updateUI
-  }), [
-    language, darkMode, currency, user, aiConfig, ui,
-    setLanguage, setDarkMode, updateUser, updateAIConfig, updateUI
-  ]);
-  
-  return (
-    <GlobalContext.Provider value={contextValue}>
-      {children}
-    </GlobalContext.Provider>
-  );
-}
-
-// Hook pour utiliser le contexte global
-function useGlobalContext(): GlobalContextType {
-  const context = useContext(GlobalContext);
-  if (!context) {
-    throw new Error('useGlobalContext must be used within GlobalProvider');
-  }
-  return context;
-}
-// ==========================================
-// SECTION 3 : SERVICES & API
-// ==========================================
-
-// Configuration API
-const API_CONFIG = {
-  baseURL: 'https://api.cerdia.com',
-  timeout: 30000,
-  retryAttempts: 3,
-  endpoints: {
-    products: '/api/v2/products',
-    aiChat: '/api/v2/ai/chat',
-    analytics: '/api/v2/analytics',
-    health: '/api/v2/health'
-  }
-};
-
-// Client API intelligent
-class APIClient {
-  private cache: Map<string, { data: any; timestamp: number }>;
-
-  constructor() {
-    this.cache = new Map();
-  }
-
-  async get<T>(url: string): Promise<T> {
-    const cacheKey = `GET-${url}`;
-    const cached = this.cache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < 300000) {
-      return cached.data;
-    }
-
-    // Simulation d'API
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-    
-    const mockData = this.getMockData(url);
-    this.cache.set(cacheKey, { data: mockData, timestamp: Date.now() });
-    return mockData;
-  }
-
-  async post<T>(url: string, data?: any): Promise<T> {
-    await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 700));
-    return this.getMockData(url);
-  }
-
-  private getMockData(url: string): any {
-    if (url.includes('products')) {
-      return {
-        products: [
-          {
-            id: 1,
-            name: "Montre Connectée CERDIA Pro",
-            description: "Montre intelligente avec IA",
-            images: ["/api/placeholder/300/300"],
-            categories: ["Montres", "Tech"],
-            priceCa: "399",
-            rating: 4.8,
-            reviewCount: 142,
-            aiScore: 95
-          },
-          {
-            id: 2,
-            name: "Écouteurs IA CERDIA Sound",
-            description: "Audio adaptatif avec IA",
-            images: ["/api/placeholder/300/300"],
-            categories: ["Audio", "Tech"],
-            priceCa: "249",
-            rating: 4.6,
-            reviewCount: 89,
-            aiScore: 88
-          }
-        ],
-        total: 2,
-        pages: 1
-      };
-    }
-
-    if (url.includes('ai/chat')) {
-      return {
-        response: "Je suis CERDIA AI, comment puis-je vous aider ?",
-        suggestions: ["Voir les produits tendance", "Recommandations personnalisées"],
-        confidence: 0.95
-      };
-    }
-
-    if (url.includes('analytics')) {
-      return {
-        activeUsers: Math.floor(Math.random() * 100) + 50,
-        conversionRate: Math.floor(Math.random() * 10) + 85,
-        aiScore: Math.floor(Math.random() * 20) + 80,
-        performance: {
-          loadTime: Math.floor(Math.random() * 500) + 200,
-          errorRate: Math.random() * 2
-        }
-      };
-    }
-
-    if (url.includes('health')) {
-      return {
-        status: 'healthy',
-        services: {
-          api: 'healthy',
-          database: 'healthy',
-          ai: 'healthy',
-          cache: 'healthy'
-        },
-        uptime: 99.9
-      };
-    }
-
-    return { success: true, data: null };
-  }
-
-  clearCache(): void {
-    this.cache.clear();
-  }
-
-  getCacheStats() {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    };
-  }
-}
-
-const apiClient = new APIClient();
-
-// Services métier
-const ProductService = {
-  async getAll(params = {}): Promise<{ products: Product[]; total: number }> {
-    return apiClient.get(`${API_CONFIG.endpoints.products}?${new URLSearchParams(params)}`);
-  },
-
-  async getById(id: number): Promise<Product> {
-    return apiClient.get(`${API_CONFIG.endpoints.products}/${id}`);
-  },
-
-  async search(query: string): Promise<{ products: Product[]; suggestions: string[] }> {
-    return apiClient.post(`${API_CONFIG.endpoints.products}/search`, { query });
-  },
-
-  async getRecommendations(userId: string): Promise<SmartRecommendation[]> {
-    const data: any = await apiClient.post(`${API_CONFIG.endpoints.products}/recommendations`, { userId });
-    return data.recommendations || [];
-  }
-};
-
-const AIService = {
-  async chat(message: string, context = {}): Promise<{
-    response: string;
-    suggestions: string[];
-    confidence: number;
-  }> {
-    return apiClient.post(API_CONFIG.endpoints.aiChat, { message, context });
-  },
-
-  async generateContent(type: string, context: any): Promise<{ content: string; alternatives: string[] }> {
-    return apiClient.post('/api/v2/ai/generate', { type, context });
-  },
-
-  async analyze(data: any): Promise<{ insights: any; recommendations: string[] }> {
-    return apiClient.post('/api/v2/ai/analyze', { data });
-  }
-};
-
-const AnalyticsService = {
-  async getRealTimeMetrics(): Promise<{
-    activeUsers: number;
-    conversionRate: number;
-    aiScore: number;
-    performance: any;
-  }> {
-    return apiClient.get(API_CONFIG.endpoints.analytics);
-  },
-
-  async getInsights(timeframe: string): Promise<{ insights: any; trends: any }> {
-    return apiClient.get(`${API_CONFIG.endpoints.analytics}/insights?timeframe=${timeframe}`);
-  }
-};
-
-const SystemService = {
-  async getHealth(): Promise<{
-    status: string;
-    services: Record<string, string>;
-    uptime: number;
-  }> {
-    return apiClient.get(API_CONFIG.endpoints.health);
-  }
-};
-
-// Hook pour les services
-const useServices = () => {
-  const [serviceHealth, setServiceHealth] = useState<Record<string, string>>({});
-  const [apiMetrics, setApiMetrics] = useState({
-    responseTime: 0,
-    successRate: 100,
-    requestCount: 0,
-    errorRate: 0
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const checkServiceHealth = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const healthCheck = await SystemService.getHealth();
-      setServiceHealth(healthCheck.services || {});
-      setApiMetrics(prev => ({
-        ...prev,
-        responseTime: Math.floor(Math.random() * 500) + 200,
-        successRate: Math.floor(Math.random() * 5) + 95,
-        requestCount: prev.requestCount + 1
-      }));
-    } catch (error) {
-      console.error('Health check failed:', error);
-      setServiceHealth({ api: 'down' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const clearAPICache = useCallback(() => {
-    apiClient.clearCache();
-  }, []);
-
-  const getAPIStats = useCallback(() => {
-    return apiClient.getCacheStats();
-  }, []);
-
-  return {
-    ProductService,
-    AIService,
-    AnalyticsService,
-    SystemService,
-    serviceHealth,
-    apiMetrics,
-    isLoading,
-    checkServiceHealth,
-    clearAPICache,
-    getAPIStats,
-    apiClient
-  };
-};
-// ==========================================
-// SECTION 4 : TYPES & SERVICES IA
-// ==========================================
-
-// Types IA spécialisés
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  type: 'text' | 'suggestion' | 'action';
-  metadata?: {
-    confidence?: number;
-    source?: string;
-    actions?: ChatAction[];
-  };
-}
-
-interface ChatAction {
-  id: string;
-  label: string;
-  type: 'search' | 'recommend' | 'filter' | 'navigate';
-  data?: any;
-}
-
-interface AIRecommendation {
-  id: string;
-  productId: number;
-  title: string;
-  description: string;
-  confidence: number;
-  type: 'personal' | 'trending' | 'similar';
-  reason: string;
-  price: number;
-  image: string;
-  rating: number;
-  tags: string[];
-}
-
-interface AIAnalytics {
-  engagement: {
-    chatSessions: number;
-    avgSessionTime: number;
-    satisfaction: number;
-    responseTime: number;
-  };
-  recommendations: {
-    generated: number;
-    clicked: number;
-    converted: number;
-    accuracy: number;
-  };
-  userBehavior: {
-    activeUsers: number;
-    searchQueries: number;
-    pageViews: number;
-    bounceRate: number;
-  };
-  performance: {
-    aiLatency: number;
-    cacheHitRate: number;
-    errorRate: number;
-    uptime: number;
-  };
-}
-
-// Services IA spécialisés
-class AIChatService {
-  private conversations = new Map<string, ChatMessage[]>();
-  
-  async sendMessage(conversationId: string, message: string): Promise<ChatMessage> {
-    // Simulation de traitement IA
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
-    
-    const suggestions = [
-      "Rechercher des produits similaires",
-      "Voir les recommandations personnalisées", 
-      "Filtrer par prix",
-      "Comparer avec d'autres marques"
-    ];
-    
-    const responses = [
-      `Je comprends que vous cherchez "${message}". Voici mes suggestions basées sur votre profil.`,
-      `Excellent choix ! Basé sur vos préférences, je recommande ces options.`,
-      `Laissez-moi analyser vos besoins et vous proposer les meilleures options.`,
-      `D'après votre historique, ces produits pourraient vous intéresser.`
-    ];
-    
-    const aiMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: responses[Math.floor(Math.random() * responses.length)],
-      sender: 'ai',
-      timestamp: new Date(),
-      type: 'text',
-      metadata: {
-        confidence: 0.8 + Math.random() * 0.2,
-        source: 'ai-engine-v2',
-        actions: suggestions.slice(0, 2).map((label, i) => ({
-          id: `action_${i}`,
-          label,
-          type: ['search', 'recommend'][i] as 'search' | 'recommend',
-          data: { query: message }
-        }))
-      }
-    };
-    
-    if (!this.conversations.has(conversationId)) {
-      this.conversations.set(conversationId, []);
-    }
-    
-    this.conversations.get(conversationId)!.push(aiMessage);
-    return aiMessage;
-  }
-  
-  getSuggestions(): string[] {
-    return [
-      "Trouvez-moi des produits éco-responsables",
-      "Quelles sont les tendances actuelles ?",
-      "Recommandez-moi selon mon budget",
-      "Comparez ces deux produits"
-    ];
-  }
-}
-
-class AIRecommendationService {
-  async getPersonalizedRecommendations(userId: string): Promise<AIRecommendation[]> {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const types: Array<'personal' | 'trending' | 'similar'> = ['personal', 'trending', 'similar'];
-    const reasons = [
-      "Basé sur vos achats précédents",
-      "Produit tendance dans votre catégorie",
-      "Similaire à vos favoris",
-      "Recommandé par des utilisateurs similaires"
-    ];
-    
-    return Array.from({ length: 8 }, (_, i) => ({
-      id: `rec_${i}`,
-      productId: 100 + i,
-      title: `Produit Recommandé ${i + 1}`,
-      description: `Description personnalisée du produit ${i + 1}`,
-      confidence: 0.7 + Math.random() * 0.3,
-      type: types[i % 3],
-      reason: reasons[i % 4],
-      price: 29.99 + Math.random() * 200,
-      image: `/api/placeholder/300/200?text=Produit${i + 1}`,
-      rating: 3.5 + Math.random() * 1.5,
-      tags: ['premium', 'bestseller', 'eco-friendly'][Math.floor(Math.random() * 3)] ? ['premium'] : ['bestseller']
-    }));
-  }
-  
-  async refreshRecommendations(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-}
-
-class AIAnalyticsService {
-  private analytics: AIAnalytics = {
-    engagement: {
-      chatSessions: 247,
-      avgSessionTime: 4.2,
-      satisfaction: 4.6,
-      responseTime: 850
-    },
-    recommendations: {
-      generated: 1543,
-      clicked: 421,
-      converted: 89,
-      accuracy: 84.2
-    },
-    userBehavior: {
-      activeUsers: 156,
-      searchQueries: 892,
-      pageViews: 2341,
-      bounceRate: 23.5
-    },
-    performance: {
-      aiLatency: 420,
-      cacheHitRate: 94.7,
-      errorRate: 0.3,
-      uptime: 99.9
-    }
-  };
-  
-  async getAnalytics(): Promise<AIAnalytics> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Simulation de données en temps réel
-    this.analytics.engagement.chatSessions += Math.floor(Math.random() * 3);
-    this.analytics.userBehavior.activeUsers += Math.floor(Math.random() * 5) - 2;
-    this.analytics.recommendations.generated += Math.floor(Math.random() * 10);
-    
-    return { ...this.analytics };
-  }
-}
-
-// Hooks IA
-function useAIServices() {
-  const chatService = useMemo(() => new AIChatService(), []);
-  const recommendationService = useMemo(() => new AIRecommendationService(), []);
-  const analyticsService = useMemo(() => new AIAnalyticsService(), []);
-  
-  return {
-    chatService,
-    recommendationService,
-    analyticsService
-  };
-}
-
-function useChat(conversationId: string) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { chatService } = useAIServices();
-  
-  const sendMessage = useCallback(async (content: string) => {
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content,
-      sender: 'user',
-      timestamp: new Date(),
-      type: 'text'
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setLoading(true);
-    
-    try {
-      const aiResponse = await chatService.sendMessage(conversationId, content);
-      setMessages(prev => [...prev, aiResponse]);
-    } catch (error) {
-      console.error('Erreur chat:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [chatService, conversationId]);
-  
-  const clearChat = useCallback(() => {
-    setMessages([]);
-  }, []);
-  
-  return {
-    messages,
-    loading,
-    sendMessage,
-    clearChat,
-    suggestions: chatService.getSuggestions()
-  };
-}
-// ==========================================
-// HOOK PRINCIPAL useAppState (DOIT ÊTRE AVANT SECTION 5)
-// ==========================================
-
-function useAppState() {
-  const context = useGlobalContext();
-  
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [favorites, setFavorites] = useLocalStorage<number[]>('cerdia_favorites', []);
-  const [cart, setCart] = useLocalStorage<any[]>('cerdia_cart', []);
-  
-  const t = useCallback((key: string): string => {
-    return translations[context.language][key] || key;
-  }, [context.language]);
-  
-  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
-  
-  const toggleFavorite = useCallback((productId: number) => {
-    setFavorites(prev => {
-      const newFavorites = [...prev];
-      const index = newFavorites.indexOf(productId);
-      if (index > -1) {
-        newFavorites.splice(index, 1);
-      } else {
-        newFavorites.push(productId);
-      }
-      return newFavorites;
-    });
-  }, [setFavorites]);
-  
-  return {
-    ...context,
-    products, setProducts,
-    loading, errors,
-    selectedProduct, setSelectedProduct,
-    favorites: favoritesSet,
-    toggleFavorite,
-    cart, setCart,
-    t
-  };
-}
-// ==========================================
-// SECTION 5 : DASHBOARD & ANALYTICS VISUELS
-// ==========================================
-
-// Composant Dashboard Principal
-function AnalyticsDashboard() {
-  const { darkMode, t } = useAppState();
-  const { analyticsService } = useAIServices();
-  const [analytics, setAnalytics] = useState<AIAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const loadAnalytics = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await analyticsService.getAnalytics();
-      setAnalytics(data);
-    } catch (error) {
-      console.error('Erreur analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [analyticsService]);
-
+// Composant Google AdSense
+function GoogleAdSense({ 
+  clientId, 
+  slotId, 
+  format = "auto", 
+  responsive = true, 
+  style,
+  className = ""
+}: {
+  clientId: string;
+  slotId: string;
+  format?: string;
+  responsive?: boolean;
+  style?: React.CSSProperties;
+  className?: string;
+}) {
   useEffect(() => {
-    loadAnalytics();
-    const interval = setInterval(loadAnalytics, 30000); // Refresh toutes les 30s
-    return () => clearInterval(interval);
-  }, [loadAnalytics, refreshKey]);
+    try {
+      // @ts-ignore
+      if (window.adsbygoogle && window.adsbygoogle.push) {
+        // @ts-ignore
+        window.adsbygoogle.push({});
+      }
+    } catch (err) {
+      console.error('AdSense error:', err);
+    }
+  }, []);
 
-  const refresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-
-  if (loading && !analytics) {
+  if (!clientId || !slotId) {
     return (
-      <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-300 rounded w-1/4"></div>
-          <div className="grid grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 bg-gray-300 rounded"></div>
-            ))}
-          </div>
-        </div>
+      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-500 ${className}`} style={style}>
+        <p className="text-sm">Configuration AdSense manquante</p>
+        <p className="text-xs">Client ID: {clientId || 'Non défini'}</p>
+        <p className="text-xs">Slot ID: {slotId || 'Non défini'}</p>
       </div>
     );
   }
 
-  if (!analytics) return null;
+  return (
+    <div className={className} style={style}>
+      <ins
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client={clientId}
+        data-ad-slot={slotId}
+        data-ad-format={format}
+        data-full-width-responsive={responsive ? "true" : "false"}
+      />
+    </div>
+  );
+}
+// Composant principal EcommercePage
+export default function EcommercePage() {
+  // États pour les données
+  const [products, setProducts] = useState<Product[]>([]);
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [adsenseConfigs, setAdsenseConfigs] = useState<AdSenseConfig[]>([]);
+  
+  // États pour l'interface utilisateur
+  const [showForm, setShowForm] = useState(false);
+  const [showAdForm, setShowAdForm] = useState(false);
+  const [showAdSenseForm, setShowAdSenseForm] = useState(false);
+  const [showBlog, setShowBlog] = useState(false);
+  const [showAds, setShowAds] = useState(false);
+  const [showAdSenseManagement, setShowAdSenseManagement] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  
+  // États pour l'authentification et filtres
+  const [passwordEntered, setPasswordEntered] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortFilter, setSortFilter] = useState('');
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [darkMode, setDarkMode] = useState(false);
+  
+  // États pour les catégories
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  
+  // États pour l'édition
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editAdIndex, setEditAdIndex] = useState<number | null>(null);
+  const [editAdSenseIndex, setEditAdSenseIndex] = useState<number | null>(null);
+  
+  // États pour les fonctionnalités utilisateur
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [pageViews, setPageViews] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [userPoints, setUserPoints] = useState(0);
+  const [userBadges, setUserBadges] = useState<string[]>([]);
+  const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  
+  // États pour le quiz et notifications
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<any>({});
+  const [notificationText, setNotificationText] = useState('');
+  
+  // États pour le drag & drop
+  const [draggedProduct, setDraggedProduct] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
+  
+  // États pour les nouveaux éléments
+  const [newProduct, setNewProduct] = useState<Product>({
+    name: '',
+    description: '',
+    amazonCa: '',
+    amazonCom: '',
+    tiktokUrl: '',
+    images: [''],
+    categories: [],
+    priceCa: '',
+    priceUs: '',
+  });
+  
+  const [newAd, setNewAd] = useState<Advertisement>({
+    title: '',
+    description: '',
+    url: '',
+    imageUrl: '',
+    type: 'image',
+    isActive: true,
+  });
 
-  const metrics = [
+  const [newAdSense, setNewAdSense] = useState<AdSenseConfig>({
+    clientId: '',
+    slotId: '',
+    format: 'auto',
+    position: 'middle',
+    frequency: 7,
+    isActive: true,
+  });
+
+  // Fonction de traduction
+  const t = (key: keyof typeof translations.fr) => translations[language][key];
+  // Fonctions utilitaires pour les catégories
+  const cleanCategory = (category: string): string => {
+    return category.replace(/['"\\]/g, '').trim();
+  };
+
+  const translateCategory = (category: string, targetLang: 'fr' | 'en'): string => {
+    const cleanCat = cleanCategory(category);
+    const mapping = CATEGORY_MAPPING[cleanCat as keyof typeof CATEGORY_MAPPING];
+    if (mapping) {
+      return targetLang === 'en' ? mapping : cleanCat;
+    }
+    return cleanCat;
+  };
+
+  const normalizeCategory = (category: string): string => {
+    const cleanCat = cleanCategory(category);
+    const frenchVersion = Object.entries(CATEGORY_MAPPING).find(([fr, en]) => en === cleanCat)?.[0];
+    return frenchVersion || cleanCat;
+  };
+
+  // Fonctions utilitaires pour les valeurs
+  const hasValue = (value: string | undefined): boolean => {
+    return value !== undefined && value.trim() !== '';
+  };
+
+  const hasPriceValue = (price: string | undefined): boolean => {
+    if (!price || price.trim() === '') return false;
+    const numericPrice = parseFloat(price.replace(',', '.'));
+    return numericPrice > 0;
+  };
+
+  // Fonctions pour obtenir une config AdSense par position
+  const getAdSenseConfigByPosition = (position: 'top' | 'middle' | 'bottom' | 'sidebar'): AdSenseConfig | null => {
+    const activeConfigs = adsenseConfigs.filter(config => config.isActive && config.position === position);
+    if (activeConfigs.length === 0) return null;
+    return activeConfigs[Math.floor(Math.random() * activeConfigs.length)];
+  };
+
+  // Fonction pour déterminer si on doit afficher une pub AdSense
+  const shouldShowAdSenseAd = (index: number): boolean => {
+    const middleConfigs = adsenseConfigs.filter(config => config.isActive && config.position === 'middle');
+    if (middleConfigs.length === 0) return false;
+    
+    // Utilise une fréquence aléatoire entre 5 et 10 pour plus de variété
+    const randomFrequency = Math.floor(Math.random() * 6) + 5; // 5 à 10
+    return (index + 1) % randomFrequency === 0;
+  };
+  // Fonctions de chargement des données
+  const loadCustomCategories = () => {
+    try {
+      const saved = localStorage.getItem('customCategories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setCustomCategories(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des catégories personnalisées:', e);
+    }
+  };
+
+  const loadComments = () => {
+    try {
+      const saved = localStorage.getItem('blogComments');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setComments(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des commentaires:', e);
+    }
+  };
+
+  const loadAdvertisements = () => {
+    try {
+      const saved = localStorage.getItem('advertisements');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setAdvertisements(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des publicités:', e);
+    }
+  };
+
+  const loadAdSenseConfigs = () => {
+    try {
+      const saved = localStorage.getItem('adsenseConfigs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setAdsenseConfigs(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement des configurations AdSense:', e);
+    }
+  };
+
+  const loadUserData = () => {
+    try {
+      const savedPoints = localStorage.getItem('cerdiaPoints');
+      const savedBadges = localStorage.getItem('cerdiaBadges');
+      const savedDarkMode = localStorage.getItem('cerdiaDarkMode');
+      
+      if (savedPoints) setUserPoints(parseInt(savedPoints));
+      if (savedBadges) setUserBadges(JSON.parse(savedBadges));
+      if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
+      
+      if (!savedPoints) {
+        addPoints(10, t('welcomePoints'));
+        addBadge('firstVisitBadge');
+      }
+    } catch (e) {
+      console.error('Erreur chargement données utilisateur:', e);
+    }
+  };
+  // Fonctions de sauvegarde
+  const saveComments = (newComments: any[]) => {
+    try {
+      localStorage.setItem('blogComments', JSON.stringify(newComments));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des commentaires:', e);
+    }
+  };
+
+  const saveCustomCategories = (categories: string[]) => {
+    try {
+      localStorage.setItem('customCategories', JSON.stringify(categories));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des catégories personnalisées:', e);
+    }
+  };
+
+  const saveAdvertisements = (ads: Advertisement[]) => {
+    try {
+      localStorage.setItem('advertisements', JSON.stringify(ads));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des publicités:', e);
+    }
+  };
+
+  const saveAdSenseConfigs = (configs: AdSenseConfig[]) => {
+    try {
+      localStorage.setItem('adsenseConfigs', JSON.stringify(configs));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des configurations AdSense:', e);
+    }
+  };
+  // Fonctions de gestion AdSense
+  const handleAddAdSense = () => {
+    if (requestPasswordOnce()) {
+      setShowAdSenseForm(true);
+    }
+  };
+
+  const saveAdSenseConfig = () => {
+    if (editAdSenseIndex !== null) {
+      const updatedConfigs = [...adsenseConfigs];
+      updatedConfigs[editAdSenseIndex] = { ...newAdSense, id: Date.now() };
+      setAdsenseConfigs(updatedConfigs);
+      saveAdSenseConfigs(updatedConfigs);
+      alert(t('adsenseConfigured'));
+    } else {
+      const newConfig = { ...newAdSense, id: Date.now(), createdAt: new Date().toISOString() };
+      const updatedConfigs = [...adsenseConfigs, newConfig];
+      setAdsenseConfigs(updatedConfigs);
+      saveAdSenseConfigs(updatedConfigs);
+      alert(t('adsenseConfigured'));
+    }
+    resetAdSenseForm();
+  };
+
+  const deleteAdSenseConfig = (id: number) => {
+    if (!passwordEntered) return;
+    const updatedConfigs = adsenseConfigs.filter(config => config.id !== id);
+    setAdsenseConfigs(updatedConfigs);
+    saveAdSenseConfigs(updatedConfigs);
+    alert(t('adsenseDeleted'));
+    resetAdSenseForm();
+  };
+
+  const resetAdSenseForm = () => {
+    setEditAdSenseIndex(null);
+    setShowAdSenseForm(false);
+    setNewAdSense({
+      clientId: '',
+      slotId: '',
+      format: 'auto',
+      position: 'middle',
+      frequency: 7,
+      isActive: true,
+    });
+  };
+
+  const handleAdSenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setNewAdSense({ ...newAdSense, [name]: checked });
+    } else if (name === 'frequency') {
+      setNewAdSense({ ...newAdSense, [name]: parseInt(value) || 5 });
+    } else {
+      setNewAdSense({ ...newAdSense, [name]: value });
+    }
+  };
+
+  const handleEditAdSense = (index: number) => {
+    const config = adsenseConfigs[index];
+    setEditAdSenseIndex(index);
+    setShowAdSenseForm(true);
+    setNewAdSense(config);
+  };
+  // Fonctions de simulation de trafic et activité
+  const simulateTraffic = () => {
+    const baseViews = 1247;
+    const randomViews = Math.floor(Math.random() * 50);
+    setPageViews(baseViews + randomViews);
+    
+    const baseOnline = 3;
+    const randomOnline = Math.floor(Math.random() * 8);
+    setOnlineUsers(baseOnline + randomOnline);
+
+    const activities = language === 'fr' ? [
+      "Marie a obtenu un lien Sitestripe",
+      "Jean a ajouté un produit aux favoris", 
+      "Sophie a partagé un produit",
+      "Alex a découvert son style",
+      "Emma a gagné un badge"
+    ] : [
+      "Marie got a Sitestripe link",
+      "Jean added a product to favorites",
+      "Sophie shared a product", 
+      "Alex discovered their style",
+      "Emma earned a badge"
+    ];
+    
+    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    setRecentActivity(prev => {
+      const newActivity = [`${new Date().toLocaleTimeString()} - ${randomActivity}`, ...prev.slice(0, 4)];
+      return newActivity;
+    });
+  };
+
+  // Fonctions de points et badges
+  const addPoints = (points: number, message: string) => {
+    const newPoints = userPoints + points;
+    setUserPoints(newPoints);
+    localStorage.setItem('cerdiaPoints', newPoints.toString());
+    showNotificationToast(message);
+    
+    if (newPoints >= 50 && !userBadges.includes('explorerBadge')) {
+      addBadge('explorerBadge');
+    }
+    if (newPoints >= 100 && !userBadges.includes('trendsetterBadge')) {
+      addBadge('trendsetterBadge');
+    }
+    if (newPoints >= 200 && !userBadges.includes('loyalBadge')) {
+      addBadge('loyalBadge');
+    }
+  };
+
+  const addBadge = (badgeKey: string) => {
+    if (!userBadges.includes(badgeKey)) {
+      const newBadges = [...userBadges, badgeKey];
+      setUserBadges(newBadges);
+      localStorage.setItem('cerdiaBadges', JSON.stringify(newBadges));
+      showNotificationToast(`🏆 Nouveau badge: ${t(badgeKey as keyof typeof translations.fr)}`);
+    }
+  };
+
+  const showNotificationToast = (message: string) => {
+    setNotificationText(message);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  };
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('cerdiaDarkMode', JSON.stringify(newDarkMode));
+  };
+  // Fonctions de gestion des publicités
+  const handleAddAd = () => {
+    if (requestPasswordOnce()) {
+      setShowAdForm(true);
+    }
+  };
+
+  const saveAdvertisement = () => {
+    if (editAdIndex !== null) {
+      const updatedAds = [...advertisements];
+      updatedAds[editAdIndex] = { ...newAd, id: Date.now() };
+      setAdvertisements(updatedAds);
+      saveAdvertisements(updatedAds);
+      alert(t('adUpdated'));
+    } else {
+      const newAdvertisement = { ...newAd, id: Date.now(), createdAt: new Date().toISOString() };
+      const updatedAds = [...advertisements, newAdvertisement];
+      setAdvertisements(updatedAds);
+      saveAdvertisements(updatedAds);
+      alert(t('adAdded'));
+    }
+    resetAdForm();
+  };
+
+  const deleteAdvertisement = (id: number) => {
+    if (!passwordEntered) return;
+    const updatedAds = advertisements.filter(ad => ad.id !== id);
+    setAdvertisements(updatedAds);
+    saveAdvertisements(updatedAds);
+    alert(t('adDeleted'));
+    resetAdForm();
+  };
+
+  const resetAdForm = () => {
+    setEditAdIndex(null);
+    setShowAdForm(false);
+    setNewAd({
+      title: '',
+      description: '',
+      url: '',
+      imageUrl: '',
+      type: 'image',
+      isActive: true,
+    });
+  };
+
+  const handleAdInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setNewAd({ ...newAd, [name]: checked });
+    } else {
+      setNewAd({ ...newAd, [name]: value });
+    }
+  };
+
+  const handleEditAd = (index: number) => {
+    const ad = advertisements[index];
+    setEditAdIndex(index);
+    setShowAdForm(true);
+    setNewAd(ad);
+  };
+
+  const getRandomActiveAd = (): Advertisement | null => {
+    const activeAds = advertisements.filter(ad => ad.isActive);
+    if (activeAds.length === 0) return null;
+    return activeAds[Math.floor(Math.random() * activeAds.length)];
+  };
+  // Fonctions de gestion des produits
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from('products').select('*');
+    if (!error && data) {
+      const cleaned = data.map((p) => {
+        let productCategories = [];
+        if (p.categories) {
+          if (Array.isArray(p.categories)) {
+            productCategories = p.categories
+              .map(cat => cleanCategory(cat))
+              .filter(cat => cat && cat.trim() !== '');
+          } else if (typeof p.categories === 'string') {
+            try {
+              const parsed = JSON.parse(p.categories);
+              if (Array.isArray(parsed)) {
+                productCategories = parsed
+                  .map(cat => cleanCategory(cat))
+                  .filter(cat => cat && cat.trim() !== '');
+              }
+            } catch (e) {
+              productCategories = [cleanCategory(p.categories)]
+                .filter(cat => cat && cat.trim() !== '');
+            }
+          }
+        }
+        
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          amazonCa: p.amazonca || '',
+          amazonCom: p.amazoncom || '',
+          tiktokUrl: p.tiktokurl || '',
+          images: [p.image1, p.image2, p.image3, p.image4, p.image5].filter(Boolean),
+          categories: productCategories,
+          priceCa: p.price_ca?.toString() || '',
+          priceUs: p.price_us?.toString() || '',
+          createdAt: p.created_at || new Date().toISOString(),
+        };
+      });
+      
+      setProducts(cleaned);
+    }
+  };
+
+  const saveProduct = async () => {
+    const filteredImages = newProduct.images.filter(img => img.trim() !== '');
+    
+    const normalizedCategories = newProduct.categories
+      .map(cat => normalizeCategory(cleanCategory(cat)))
+      .filter(cat => cat && cat.trim() !== '')
+      .filter((cat, index, arr) => arr.indexOf(cat) === index);
+    
+    const productToInsert: any = {
+      name: newProduct.name,
+      description: newProduct.description,
+      categories: normalizedCategories.length > 0 ? normalizedCategories : null,
+    };
+
+    if (newProduct.amazonCa?.trim()) productToInsert.amazonca = newProduct.amazonCa;
+    if (newProduct.amazonCom?.trim()) productToInsert.amazoncom = newProduct.amazonCom;
+    if (newProduct.tiktokUrl?.trim()) productToInsert.tiktokurl = newProduct.tiktokUrl;
+    if (hasPriceValue(newProduct.priceCa)) productToInsert.price_ca = parseFloat(newProduct.priceCa!.replace(',', '.'));
+    if (hasPriceValue(newProduct.priceUs)) productToInsert.price_us = parseFloat(newProduct.priceUs!.replace(',', '.'));
+
+    for (let i = 0; i < Math.min(filteredImages.length, 5); i++) {
+      productToInsert[`image${i + 1}`] = filteredImages[i];
+    }
+
+    if (editIndex !== null && products[editIndex].id) {
+      const { error } = await supabase.from('products').update(productToInsert).eq('id', products[editIndex].id);
+      if (!error) {
+        await fetchProducts();
+        alert(t('productUpdated'));
+      } else {
+        alert(t('updateError'));
+      }
+    } else {
+      const { error } = await supabase.from('products').insert([productToInsert]);
+      if (!error) {
+        await fetchProducts();
+        alert(t('productAdded'));
+      } else {
+        alert(t('addError'));
+      }
+    }
+    resetForm();
+  };
+  const deleteProduct = async (id: number | undefined) => {
+    if (!passwordEntered || !id) return;
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      await fetchProducts();
+      alert(t('productDeleted'));
+    } else {
+      alert(t('deleteError'));
+    }
+    resetForm();
+  };
+
+  const handleAddProduct = () => {
+    if (requestPasswordOnce()) {
+      setShowForm(true);
+    }
+  };
+
+  const resetForm = () => {
+    setEditIndex(null);
+    setShowForm(false);
+    setNewProduct({
+      name: '',
+      description: '',
+      amazonCa: '',
+      amazonCom: '',
+      tiktokUrl: '',
+      images: [''],
+      categories: [],
+      priceCa: '',
+      priceUs: '',
+    });
+  };
+
+  // Fonctions de gestion des formulaires
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index?: number) => {
+    const { name, value } = e.target;
+    if (name === 'images' && index !== undefined) {
+      const updatedImages = [...newProduct.images];
+      while (updatedImages.length <= index) {
+        updatedImages.push('');
+      }
+      updatedImages[index] = value;
+      setNewProduct({ ...newProduct, images: updatedImages });
+    } else {
+      setNewProduct({ ...newProduct, [name]: value });
+    }
+  };
+
+  const addImageField = () => {
+    setNewProduct({ ...newProduct, images: [...newProduct.images, ''] });
+  };
+
+  const removeImageField = (index: number) => {
+    const updatedImages = newProduct.images.filter((_, i) => i !== index);
+    if (updatedImages.length === 0) {
+      updatedImages.push('');
+    }
+    setNewProduct({ ...newProduct, images: updatedImages });
+  };
+
+  const handleAddCategory = (category: string) => {
+    if (!passwordEntered) {
+      alert(t('adminRequired'));
+      return;
+    }
+    
+    const normalizedCategory = normalizeCategory(cleanCategory(category));
+    
+    if (normalizedCategory && normalizedCategory.trim() !== '') {
+      const categoryExists = customCategories.some(cat => 
+        normalizeCategory(cleanCategory(cat)) === normalizedCategory
+      );
+      
+      if (!categoryExists) {
+        const updatedCustomCategories = [...customCategories, normalizedCategory];
+        setCustomCategories(updatedCustomCategories);
+        saveCustomCategories(updatedCustomCategories);
+      } else {
+        alert(`La catégorie "${normalizedCategory}" existe déjà.`);
+      }
+    }
+  };
+
+  const handleCategoryToggle = (category: string, checked: boolean) => {
+    if (checked) {
+      if (!newProduct.categories.includes(category)) {
+        setNewProduct({ 
+          ...newProduct, 
+          categories: [...newProduct.categories, category] 
+        });
+      }
+    } else {
+      const updatedCategories = newProduct.categories.filter(c => c !== category);
+      setNewProduct({ 
+        ...newProduct, 
+        categories: updatedCategories 
+      });
+    }
+  };
+
+  const requestPasswordOnce = () => {
+    if (passwordEntered) return true;
+    const tryPwd = prompt(t('adminPassword'));
+    if (tryPwd === PASSWORD) {
+      setPasswordEntered(true);
+      return true;
+    } else {
+      alert(t('incorrectPassword'));
+      return false;
+    }
+  };
+
+  const handleAdminAction = (action: () => void) => {
+    if (requestPasswordOnce()) {
+      action();
+    }
+  };
+  // Fonction de nettoyage des catégories
+  const cleanupCategories = async () => {
+    if (!passwordEntered) return;
+    
+    const confirmCleanup = confirm('Voulez-vous nettoyer les catégories ?');
+    if (!confirmCleanup) return;
+
+    try {
+      const { data: allProducts } = await supabase.from('products').select('*');
+      
+      if (allProducts) {
+        const usedCategories = new Set<string>();
+        
+        for (const product of allProducts) {
+          if (product.categories) {
+            const cleanedCategories = Array.isArray(product.categories) 
+              ? product.categories
+                  .map(cat => cleanCategory(cat))
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat))
+                  .filter((cat, index, arr) => arr.indexOf(cat) === index)
+              : [cleanCategory(product.categories)]
+                  .filter(cat => cat && cat.trim() !== '' && !cat.includes('[') && !cat.includes(']'))
+                  .map(cat => normalizeCategory(cat));
+
+            cleanedCategories.forEach(cat => {
+              if (cat && cat.trim() !== '') {
+                usedCategories.add(cat);
+              }
+            });
+
+            if (JSON.stringify(cleanedCategories) !== JSON.stringify(product.categories)) {
+              await supabase
+                .from('products')
+                .update({ categories: cleanedCategories.length > 0 ? cleanedCategories : null })
+                .eq('id', product.id);
+            }
+          }
+        }
+        
+        const cleanedCustomCategories = customCategories
+          .map(cat => normalizeCategory(cleanCategory(cat)))
+          .filter(cat => cat && cat.trim() !== '' && usedCategories.has(cat));
+        
+        setCustomCategories(cleanedCustomCategories);
+        saveCustomCategories(cleanedCustomCategories);
+        
+        await fetchProducts();
+        
+        alert('Nettoyage terminé avec succès !');
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage:', error);
+      alert('Erreur lors du nettoyage des catégories.');
+    }
+  };
+
+  // Fonctions de tri et filtrage
+  const sortProducts = (products: Product[]) => {
+    if (!sortFilter) return products;
+    
+    const sorted = [...products];
+    
+    switch (sortFilter) {
+      case 'priceLowHigh':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.priceCa || a.priceUs || '0');
+          const priceB = parseFloat(b.priceCa || b.priceUs || '0');
+          return priceA - priceB;
+        });
+      case 'priceHighLow':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.priceCa || a.priceUs || '0');
+          const priceB = parseFloat(b.priceCa || b.priceUs || '0');
+          return priceB - priceA;
+        });
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      case 'nameAZ':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'nameZA':
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return sorted;
+    }
+  };
+
+  const handleEdit = (index: number) => {
+    const product = products[index];
+    setEditIndex(index);
+    setShowForm(true);
+    
+    const translatedCategories = Array.isArray(product.categories) 
+      ? product.categories
+          .map(cat => cleanCategory(cat))
+          .filter(cat => cat && cat.trim() !== '')
+          .map(cat => translateCategory(cat, language))
+      : [];
+    
+    const productImages = [...product.images];
+    if (productImages.length === 0 || productImages[productImages.length - 1] !== '') {
+      productImages.push('');
+    }
+    
+    setNewProduct({
+      ...product,
+      categories: translatedCategories,
+      images: productImages
+    });
+  };
+
+  const toggleFavorite = (productId: number) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(productId)) {
+      newFavorites.delete(productId);
+    } else {
+      newFavorites.add(productId);
+      addPoints(5, t('favoritePoints'));
+    }
+    setFavorites(newFavorites);
+  };
+  // Configuration du quiz de style
+  const quizQuestions = language === 'fr' ? [
     {
-      title: 'Sessions Chat IA',
-      value: analytics.engagement.chatSessions,
-      change: '+12%',
-      positive: true,
-      icon: MessageSquare,
-      color: 'blue'
+      question: "Quel est votre style ?",
+      options: ["Casual", "Élégant", "Sportif", "Tendance"]
     },
     {
-      title: 'Utilisateurs Actifs',
-      value: analytics.userBehavior.activeUsers,
-      change: '+8%',
-      positive: true,
-      icon: Users,
-      color: 'green'
+      question: "Votre budget préféré ?", 
+      options: ["< 50$", "50-100$", "100-200$", "> 200$"]
     },
     {
-      title: 'Recommandations',
-      value: analytics.recommendations.generated,
-      change: '+15%',
-      positive: true,
-      icon: Target,
-      color: 'purple'
+      question: "Quelle occasion ?",
+      options: ["Quotidien", "Travail", "Soirée", "Sport"]
+    }
+  ] : [
+    {
+      question: "What's your style?",
+      options: ["Casual", "Elegant", "Sporty", "Trendy"]
     },
     {
-      title: 'Taux de Conversion',
-      value: `${((analytics.recommendations.converted / analytics.recommendations.generated) * 100).toFixed(1)}%`,
-      change: '+3%',
-      positive: true,
-      icon: TrendingUp,
-      color: 'orange'
+      question: "Your preferred budget?",
+      options: ["< $50", "$50-100", "$100-200", "> $200"]
+    },
+    {
+      question: "What occasion?", 
+      options: ["Daily", "Work", "Evening", "Sport"]
     }
   ];
 
-  const getColorClasses = (color: string) => {
-    const colors = {
-      blue: 'bg-blue-500 text-blue-500',
-      green: 'bg-green-500 text-green-500',
-      purple: 'bg-purple-500 text-purple-500',
-      orange: 'bg-orange-500 text-orange-500'
-    };
-    return colors[color as keyof typeof colors] || colors.blue;
+  // Gestion du quiz
+  const handleQuizAnswer = (answer: string) => {
+    const newAnswers = { ...quizAnswers, [quizStep]: answer };
+    setQuizAnswers(newAnswers);
+    
+    if (quizStep < quizQuestions.length - 1) {
+      setQuizStep(quizStep + 1);
+    } else {
+      setShowQuiz(false);
+      addPoints(25, language === 'fr' ? '+25 points pour le quiz de style !' : '+25 points for style quiz!');
+      addBadge('trendsetterBadge');
+      setQuizStep(0);
+      setQuizAnswers({});
+    }
   };
 
+  // Gestion du formulaire de contact
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const contactData = {
+      name: formData.get('name') as string,
+      product: formData.get('product') as string,
+      message: formData.get('message') as string,
+    };
+    
+    const messengerMessage = language === 'fr' 
+      ? `Bonjour! Je suis ${contactData.name}
+🛍️ Produit qui m'intéresse: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+Je souhaiterais obtenir mes liens Sitestripe pour ce produit. Merci!`
+      : `Hello! I'm ${contactData.name}
+🛍️ Product I'm interested in: ${contactData.product}
+${contactData.message ? `💬 Message: ${contactData.message}` : ''}
+
+I would like to get my Sitestripe links for this product. Thank you!`;
+    
+    const messengerURL = `https://m.me/${MESSENGER_PAGE_ID}?text=${encodeURIComponent(messengerMessage)}`;
+    window.open(messengerURL, '_blank');
+    
+    addPoints(20, language === 'fr' ? '+20 points pour votre demande Sitestripe !' : '+20 points for your Sitestripe request!');
+    
+    alert(t('requestSent'));
+    form.reset();
+  };
+
+  // Gestion des commentaires
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const newComment = {
+      id: Date.now(),
+      name: formData.get('commentName') as string,
+      comment: formData.get('commentText') as string,
+      timestamp: new Date().toISOString(),
+      language: language
+    };
+    
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
+    saveComments(updatedComments);
+    
+    alert(t('commentPosted'));
+    form.reset();
+  };
+
+  // Fonction de formatage des dates
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return language === 'fr' 
+      ? date.toLocaleDateString('fr-FR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : date.toLocaleDateString('en-US', { 
+          month: 'short',
+          day: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+  };
+  // useEffect pour l'initialisation
+  useEffect(() => {
+    loadCustomCategories();
+    loadComments();
+    loadAdvertisements();
+    loadAdSenseConfigs();
+    loadUserData();
+    simulateTraffic();
+    fetchProducts();
+    
+    const trafficInterval = setInterval(simulateTraffic, 30000);
+    
+    const notificationInterval = setInterval(() => {
+      const alerts = language === 'fr' ? [
+        t('dealAlert'),
+        t('stockAlert'), 
+        t('trendingAlert')
+      ] : [
+        t('dealAlert'),
+        t('stockAlert'),
+        t('trendingAlert')
+      ];
+      
+      if (Math.random() > 0.7) {
+        const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+        showNotificationToast(randomAlert);
+      }
+    }, 45000);
+    
+    return () => {
+      clearInterval(trafficInterval);
+      clearInterval(notificationInterval);
+    };
+  }, [language]);
+
+  // useEffect pour la gestion des catégories
+  useEffect(() => {
+    const defaultCats = DEFAULT_CATEGORIES[language];
+    
+    const productCategories = new Set<string>();
+    products.forEach(product => {
+      if (Array.isArray(product.categories)) {
+        product.categories.forEach(cat => {
+          const cleanCat = cleanCategory(cat);
+          if (cleanCat && cleanCat.trim() !== '' && !cleanCat.includes('"') && !cleanCat.includes('[') && !cleanCat.includes(']')) {
+            const translatedCat = translateCategory(cleanCat, language);
+            if (translatedCat) {
+              productCategories.add(translatedCat);
+            }
+          }
+        });
+      }
+    });
+    
+    const translatedCustomCategories = customCategories
+      .map(cat => translateCategory(cleanCategory(cat), language))
+      .filter(cat => cat && cat.trim() !== '');
+    
+    const allCategories = new Set([
+      ...defaultCats,
+      ...Array.from(productCategories),
+      ...translatedCustomCategories
+    ]);
+    
+    const cleanedCategories = Array.from(allCategories)
+      .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined' && cat !== 'null')
+      .sort();
+    
+    setAvailableCategories(cleanedCategories);
+  }, [products, language, customCategories]);
+
+  // Filtrage et tri des produits
+  let filteredAndSortedProducts = categoryFilter
+    ? products.filter((product) => {
+        if (!product.categories || product.categories.length === 0) {
+          return false;
+        }
+        
+        const filterInFrench = translateCategory(categoryFilter, 'fr');
+        
+        return product.categories.some(productCat => {
+          const cleanProductCat = cleanCategory(productCat);
+          return cleanProductCat === filterInFrench;
+        });
+      })
+    : [...products];
+
+  filteredAndSortedProducts = sortProducts(filteredAndSortedProducts);
+  // Début du retour JSX
   return (
-    <div className="space-y-6">
-      {/* Header Dashboard */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center">
-            <BarChart3 className="w-6 h-6 mr-3 text-blue-500" />
-            Dashboard Analytics IA
-          </h2>
-          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Métriques en temps réel - Dernière mise à jour: {new Date().toLocaleTimeString()}
-          </p>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Notifications Toast */}
+      {showNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 animate-pulse">
+          {notificationText}
         </div>
-        
-        <button
-          onClick={refresh}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Actualiser</span>
-        </button>
-      </div>
+      )}
 
-      {/* Métriques Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((metric, index) => {
-          const colorClasses = getColorClasses(metric.color);
-          const IconComponent = metric.icon;
-          
-          return (
-            <div
-              key={index}
-              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
-                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}
+      {/* Modal Quiz */}
+      {showQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl p-8 max-w-md w-full`}>
+            <h2 className="text-2xl font-bold mb-6 text-center">{t('styleQuiz')}</h2>
+            <div className="mb-6">
+              <div className="flex justify-center space-x-2 mb-4">
+                {quizQuestions.map((_, index) => (
+                  <div key={index} className={`w-3 h-3 rounded-full ${index <= quizStep ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                ))}
+              </div>
+              <h3 className="text-lg font-semibold mb-4">{quizQuestions[quizStep].question}</h3>
+              <div className="space-y-3">
+                {quizQuestions[quizStep].options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleQuizAnswer(option)}
+                    className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 transition-colors"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowQuiz(false)}
+              className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-opacity-10 ${colorClasses.split(' ')[0]}`}>
-                  <IconComponent className={`w-6 h-6 ${colorClasses.split(' ')[1]}`} />
-                </div>
-                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  metric.positive 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {metric.change}
-                </span>
-              </div>
-              
-              <div>
-                <h3 className={`text-sm font-medium mb-1 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  {metric.title}
-                </h3>
-                <p className="text-2xl font-bold">
-                  {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Graphiques & Détails */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Performance IA */}
-        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <Cpu className="w-5 h-5 mr-2 text-purple-500" />
-            Performance IA
-          </h3>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Latence IA</span>
-                <span>{analytics.performance.aiLatency}ms</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-purple-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((analytics.performance.aiLatency / 1000) * 100, 100)}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Taux de Cache</span>
-                <span>{analytics.performance.cacheHitRate.toFixed(1)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${analytics.performance.cacheHitRate}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Temps de Disponibilité</span>
-                <span>{analytics.performance.uptime}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${analytics.performance.uptime}%` }}
-                ></div>
-              </div>
-            </div>
+              {t('cancel')}
+            </button>
           </div>
         </div>
-
-        {/* Engagement Utilisateur */}
-        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <Heart className="w-5 h-5 mr-2 text-red-500" />
-            Engagement Utilisateur
-          </h3>
-          
-          <div className="space-y-4">
-            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Temps de Session Moyen</span>
-                <span className="text-lg font-bold text-blue-500">
-                  {analytics.engagement.avgSessionTime.toFixed(1)}min
-                </span>
-              </div>
+      )}
+      {/* Header */}
+      <header className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} shadow-sm sticky top-0 z-40 transition-colors duration-300`}>
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold">{t('title')}</h1>
+              <p className="text-xs opacity-70">{t('subtitle')}</p>
             </div>
-            
-            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Satisfaction</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-green-500">
-                    {analytics.engagement.satisfaction.toFixed(1)}/5
-                  </span>
-                  <div className="flex space-x-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`w-4 h-4 ${
-                          i < Math.floor(analytics.engagement.satisfaction) 
-                            ? 'text-yellow-400 fill-current' 
-                            : 'text-gray-300'
-                        }`} 
-                      />
+            <div className="flex items-center gap-4">
+              {/* Statistiques utilisateur */}
+              <div className="hidden md:flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+                  <span>⭐</span>
+                  <span>{userPoints} {t('points')}</span>
+                </div>
+                {userBadges.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {userBadges.slice(0, 3).map((badge, index) => (
+                      <span key={index} className="text-lg" title={t(badge as keyof typeof translations.fr)}>
+                        {t(badge as keyof typeof translations.fr).split(' ')[0]}
+                      </span>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Indicateur de trafic */}
+              <div className="hidden sm:flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>{onlineUsers} {t('onlineNow')}</span>
                 </div>
-              </div>
-            </div>
-            
-            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Temps de Réponse IA</span>
-                <span className="text-lg font-bold text-purple-500">
-                  {analytics.engagement.responseTime}ms
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Activité Temps Réel */}
-      <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <Activity className="w-5 h-5 mr-2 text-green-500" />
-          Activité Temps Réel
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-500 mb-2">
-              {analytics.userBehavior.searchQueries}
-            </div>
-            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Recherches Aujourd'hui
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-500 mb-2">
-              {analytics.userBehavior.pageViews}
-            </div>
-            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Pages Vues
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-500 mb-2">
-              {analytics.userBehavior.bounceRate}%
-            </div>
-            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Taux de Rebond
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Composant de Monitoring des Services
-function ServiceMonitor() {
-  const { darkMode } = useAppState();
-  const { serviceHealth, apiMetrics, isLoading, checkServiceHealth } = useServices();
-
-  const services = [
-    { name: 'API Gateway', key: 'api', icon: Cloud, color: 'blue' },
-    { name: 'Base de données', key: 'database', icon: Database, color: 'green' },
-    { name: 'Service IA', key: 'ai', icon: Brain, color: 'purple' },
-    { name: 'Cache Redis', key: 'cache', icon: Zap, color: 'orange' }
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'text-green-500 bg-green-100';
-      case 'degraded': return 'text-yellow-500 bg-yellow-100';
-      case 'down': return 'text-red-500 bg-red-100';
-      default: return 'text-gray-500 bg-gray-100';
-    }
-  };
-
-  return (
-    <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold flex items-center">
-          <Shield className="w-5 h-5 mr-2 text-green-500" />
-          Monitoring des Services
-        </h3>
-        
-        <button
-          onClick={checkServiceHealth}
-          disabled={isLoading}
-          className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-            isLoading 
-              ? 'bg-gray-300 cursor-not-allowed' 
-              : 'bg-blue-500 text-white hover:bg-blue-600'
-          }`}
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Vérifier</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {services.map((service) => {
-          const status = serviceHealth[service.key] || 'unknown';
-          const IconComponent = service.icon;
-          
-          return (
-            <div
-              key={service.key}
-              className={`p-4 rounded-lg border text-center transition-all hover:shadow-md ${
-                darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <IconComponent className={`w-8 h-8 mx-auto mb-2 text-${service.color}-500`} />
-              <h4 className={`font-medium text-sm mb-1 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {service.name}
-              </h4>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                {status === 'healthy' ? 'Opérationnel' :
-                 status === 'degraded' ? 'Dégradé' :
-                 status === 'down' ? 'Hors service' : 'Inconnu'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Métriques API */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <div className="text-lg font-bold text-blue-500">{apiMetrics.responseTime}ms</div>
-          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Temps de réponse
-          </div>
-        </div>
-        
-        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <div className="text-lg font-bold text-green-500">{apiMetrics.successRate}%</div>
-          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Taux de succès
-          </div>
-        </div>
-        
-        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <div className="text-lg font-bold text-purple-500">{apiMetrics.requestCount}</div>
-          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Requêtes
-          </div>
-        </div>
-        
-        <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <div className="text-lg font-bold text-orange-500">{apiMetrics.errorRate.toFixed(1)}%</div>
-          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Taux d'erreur
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-// ==========================================
-// COMPOSANT SYSTEM TESTER (MANQUANT)
-// ==========================================
-
-function SystemTester() {
-  const { darkMode } = useAppState();
-  const { chatService, recommendationService, analyticsService } = useAIServices();
-  const { ProductService, AIService, AnalyticsService, SystemService } = useServices();
-  const [testResults, setTestResults] = useState<any>({});
-  const [testing, setTesting] = useState(false);
-  const [selectedTest, setSelectedTest] = useState<string | null>(null);
-
-  const tests = [
-    {
-      id: 'ai-chat',
-      name: 'Service Chat IA',
-      description: 'Test du service de chat intelligent',
-      icon: MessageSquare,
-      color: 'blue',
-      test: async () => {
-        const response = await chatService.sendMessage('test', 'Hello AI');
-        return {
-          success: true,
-          response: response.content.substring(0, 100) + '...',
-          confidence: response.metadata?.confidence,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'ai-recommendations',
-      name: 'Recommandations IA',
-      description: 'Test du système de recommandations',
-      icon: Target,
-      color: 'purple',
-      test: async () => {
-        const recommendations = await recommendationService.getPersonalizedRecommendations('test-user');
-        return {
-          success: true,
-          count: recommendations.length,
-          avgConfidence: recommendations.reduce((acc, r) => acc + r.confidence, 0) / recommendations.length,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    },
-    {
-      id: 'analytics',
-      name: 'Analytics IA',
-      description: 'Test du service d\'analytics',
-      icon: BarChart3,
-      color: 'green',
-      test: async () => {
-        const analytics = await analyticsService.getAnalytics();
-        return {
-          success: true,
-          chatSessions: analytics.engagement.chatSessions,
-          activeUsers: analytics.userBehavior.activeUsers,
-          timestamp: new Date().toLocaleTimeString()
-        };
-      }
-    }
-  ];
-
-  const runTest = async (testId: string) => {
-    const test = tests.find(t => t.id === testId);
-    if (!test) return;
-
-    setSelectedTest(testId);
-    setTestResults(prev => ({ ...prev, [testId]: { status: 'running' } }));
-    
-    try {
-      const result = await test.test();
-      setTestResults(prev => ({ ...prev, [testId]: result }));
-    } catch (error) {
-      setTestResults(prev => ({ 
-        ...prev, 
-        [testId]: { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Erreur inconnue',
-          timestamp: new Date().toLocaleTimeString()
-        } 
-      }));
-    } finally {
-      setSelectedTest(null);
-    }
-  };
-
-  const runAllTests = async () => {
-    setTesting(true);
-    for (const test of tests) {
-      await runTest(test.id);
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    setTesting(false);
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center">
-            <Zap className="w-6 h-6 mr-3 text-yellow-500" />
-            Tests Système
-          </h2>
-          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Validation complète de tous les services
-          </p>
-        </div>
-        
-        <button
-          onClick={runAllTests}
-          disabled={testing}
-          className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center space-x-2"
-        >
-          {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          <span>{testing ? 'Tests en cours...' : 'Lancer tous les tests'}</span>
-        </button>
-      </div>
-
-      {/* Tests Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tests.map((test) => {
-          const result = testResults[test.id];
-          const isRunning = selectedTest === test.id;
-          const IconComponent = test.icon;
-          
-          return (
-            <div
-              key={test.id}
-              className={`p-6 rounded-xl border transition-all hover:shadow-lg ${
-                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <IconComponent className="w-8 h-8 text-blue-500" />
-                
-                <div className="flex items-center space-x-2">
-                  {isRunning && <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />}
-                  {result?.success === true && <CheckCircle className="w-4 h-4 text-green-500" />}
-                  {result?.success === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                  
-                  <button
-                    onClick={() => runTest(test.id)}
-                    disabled={isRunning || testing}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      isRunning || testing
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-blue-500 text-white hover:bg-blue-600'
-                    }`}
-                  >
-                    {isRunning ? 'Test...' : 'Tester'}
-                  </button>
+                <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
+                  👁️ {pageViews.toLocaleString()} {t('pageViews')}
                 </div>
               </div>
               
-              <div className="mb-4">
-                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {test.name}
-                </h3>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {test.description}
-                </p>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={toggleDarkMode}
+                  className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  title={t('darkMode')}
+                >
+                  {darkMode ? '🌙' : '☀️'}
+                </button>
+                <Globe size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                <select 
+                  value={language} 
+                  onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
+                  className={`text-sm border rounded px-2 py-1 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="fr">🇫🇷</option>
+                  <option value="en">🇺🇸</option>
+                </select>
               </div>
-              
-              {result && (
-                <div className={`p-3 rounded-lg text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  {result.success === true && (
-                    <div className="text-green-600">
-                      ✅ Succès ({result.timestamp})
-                    </div>
-                  )}
-                  {result.success === false && (
-                    <div className="text-red-600">
-                      ❌ Erreur: {result.error}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-// ==========================================
-// SECTION 6 : CHATBOT IA INTERACTIF & RECOMMANDATIONS
-// ==========================================
-
-// Composant Message de Chat
-function ChatMessage({ message, onActionClick }: { 
-  message: ChatMessage; 
-  onActionClick?: (action: ChatAction) => void;
-}) {
-  const { darkMode } = useAppState();
-  const isUser = message.sender === 'user';
-  
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isUser ? 'order-2' : 'order-1'}`}>
-        {/* Avatar */}
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isUser 
-              ? 'bg-blue-500 text-white' 
-              : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-          }`}>
-            {isUser ? (
-              <span className="text-sm font-bold">U</span>
-            ) : (
-              <Bot className="w-4 h-4" />
-            )}
           </div>
-        </div>
-        
-        {/* Bulle de message */}
-        <div className={`p-3 rounded-2xl shadow-sm ${
-          isUser
-            ? 'bg-blue-500 text-white rounded-br-sm'
-            : darkMode 
-              ? 'bg-gray-700 text-white rounded-bl-sm'
-              : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-        }`}>
-          <p className="text-sm leading-relaxed">{message.content}</p>
           
-          {/* Métadonnées IA */}
-          {!isUser && message.metadata && (
-            <div className={`mt-2 pt-2 border-t ${
-              darkMode ? 'border-gray-600' : 'border-gray-200'
-            }`}>
-              {message.metadata.confidence && (
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-xs opacity-75">Confiance:</span>
-                  <div className="flex-1 bg-gray-300 rounded-full h-1">
-                    <div 
-                      className="bg-green-500 h-1 rounded-full transition-all"
-                      style={{ width: `${message.metadata.confidence * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-xs opacity-75">
-                    {(message.metadata.confidence * 100).toFixed(0)}%
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {/* Actions suggérées */}
-        {!isUser && message.metadata?.actions && message.metadata.actions.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {message.metadata.actions.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => onActionClick?.(action)}
-                className={`w-full text-left p-2 rounded-lg text-xs border transition-colors ${
-                  darkMode
-                    ? 'border-gray-600 bg-gray-800 hover:bg-gray-700 text-gray-300'
-                    : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+          {/* Navigation */}
+          <div className="flex gap-4 mb-3">
+            <button 
+              onClick={() => {setShowBlog(false); setShowAds(false); setShowAdSenseManagement(false);}} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !showBlog && !showAds && !showAdSenseManagement
+                  ? 'bg-blue-600 text-white' 
+                  : darkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('products')}
+            </button>
+            <button 
+              onClick={() => {setShowBlog(true); setShowAds(false); setShowAdSenseManagement(false);}} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showBlog 
+                  ? 'bg-blue-600 text-white' 
+                  : darkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('blog')}
+            </button>
+            {passwordEntered && (
+              <button 
+                onClick={() => {setShowBlog(false); setShowAds(true); setShowAdSenseManagement(false);}} 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showAds 
+                    ? 'bg-red-600 text-white' 
+                    : darkMode 
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <ChevronRight className="w-3 h-3" />
-                  <span>{action.label}</span>
-                </div>
+                📺 {t('ads')}
               </button>
-            ))}
+            )}
+            {passwordEntered && (
+              <button 
+                onClick={() => {setShowBlog(false); setShowAds(false); setShowAdSenseManagement(true);}} 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showAdSenseManagement 
+                    ? 'bg-green-600 text-white' 
+                    : darkMode 
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                💰 AdSense
+              </button>
+            )}
+            <button 
+              onClick={() => setShowQuiz(true)} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-purple-700 text-white hover:bg-purple-600' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              ✨ {t('discoverStyle')}
+            </button>
           </div>
-        )}
-        
-        {/* Timestamp */}
-        <div className={`text-xs mt-1 ${isUser ? 'text-right' : 'text-left'} opacity-50`}>
-          {message.timestamp.toLocaleTimeString()}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Composant Chatbot Complet
-function InteractiveChatbot() {
-  const { darkMode, t } = useAppState();
-  const [isOpen, setIsOpen] = useState(false);
-  const [conversationId] = useState(() => `conv_${Date.now()}`);
-  const { messages, loading, sendMessage, clearChat, suggestions } = useChat(conversationId);
-  const [inputValue, setInputValue] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-scroll vers le bas
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Focus sur l'input quand le chat s'ouvre
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  const handleSend = async () => {
-    if (inputValue.trim() && !loading) {
-      await sendMessage(inputValue.trim());
-      setInputValue('');
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setInputValue(suggestion);
-    inputRef.current?.focus();
-  };
-
-  const handleActionClick = (action: ChatAction) => {
-    setInputValue(action.label);
-    // Auto-send l'action
-    sendMessage(action.label);
-  };
-
-  return (
-    <>
-      {/* Bouton flottant */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-            isOpen 
-              ? 'bg-red-500 hover:bg-red-600 transform rotate-45' 
-              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-xl transform hover:scale-110'
-          }`}
-        >
-          {isOpen ? (
-            <span className="text-white text-xl font-bold transform -rotate-45">×</span>
-          ) : (
-            <MessageSquare className="w-6 h-6 text-white" />
-          )}
-        </button>
-        
-        {/* Badge de notifications */}
-        {!isOpen && messages.length > 0 && (
-          <div className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-            {messages.filter(m => m.sender === 'ai').length}
-          </div>
-        )}
-      </div>
-
-      {/* Fenêtre de chat */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 w-80 h-96 z-40">
-          <div className={`h-full rounded-2xl shadow-2xl border overflow-hidden ${
-            darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
-          }`}>
-            
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">CERDIA AI</h3>
-                    <p className="text-xs opacity-90">Assistant Intelligent</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
+          {/* Filtres pour les produits */}
+          {!showBlog && !showAds && !showAdSenseManagement && (
+            <>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                <button 
+                  onClick={() => setCategoryFilter('')} 
+                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                    categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {t('all')}
+                </button>
+                {availableCategories.map((cat) => (
                   <button
-                    onClick={clearChat}
-                    className="p-1 hover:bg-white hover:bg-opacity-20 rounded"
-                    title="Effacer la conversation"
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 ${
+                      categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    {cat}
                   </button>
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="En ligne" />
+                ))}
+                {passwordEntered && (
+                  <button 
+                    onClick={cleanupCategories}
+                    className="px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 bg-red-500 text-white hover:bg-red-600"
+                    title="Nettoyer les catégories incorrectes"
+                  >
+                    🧹 Nettoyer
+                  </button>
+                )}
+              </div>
+              
+              <div className="mt-3 flex justify-end">
+                <select 
+                  value={sortFilter} 
+                  onChange={(e) => setSortFilter(e.target.value)}
+                  className={`text-sm border rounded px-3 py-1 min-w-[150px] ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <option value="">{t('sortBy')}</option>
+                  <option value="priceLowHigh">{t('priceLowHigh')}</option>
+                  <option value="priceHighLow">{t('priceHighLow')}</option>
+                  <option value="newest">{t('newest')}</option>
+                  <option value="oldest">{t('oldest')}</option>
+                  <option value="nameAZ">{t('nameAZ')}</option>
+                  <option value="nameZA">{t('nameZA')}</option>
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* Page Gestion AdSense */}
+      {showAdSenseManagement && passwordEntered && (
+        <main className="px-4 py-8 max-w-6xl mx-auto">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                💰 {t('manageAdSense')}
+              </h1>
+              <button 
+                onClick={handleAddAdSense}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <Plus size={20} />
+                {t('addAdSense')}
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {adsenseConfigs.map((config, index) => (
+                <div key={config.id} className={`border rounded-xl p-6 ${
+                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                } ${config.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💰</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        config.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {config.isActive ? t('isActive') : 'Inactif'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleEditAdSense(index)}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={() => deleteAdSenseConfig(config.id!)}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Client ID:</strong> {config.clientId}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Slot ID:</strong> {config.slotId}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Format:</strong> {t(`format${config.format.charAt(0).toUpperCase() + config.format.slice(1)}` as keyof typeof translations.fr)}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Position:</strong> {t(`position${config.position.charAt(0).toUpperCase() + config.position.slice(1)}` as keyof typeof translations.fr)}
+                    </p>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <strong>Fréquence:</strong> Tous les {config.frequency} produits
+                    </p>
+                  </div>
+
+                  {/* Aperçu de la publicité AdSense */}
+                  <div className="mt-4 border-t pt-4">
+                    <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Aperçu:</p>
+                    <GoogleAdSense 
+                      clientId={config.clientId}
+                      slotId={config.slotId}
+                      format={config.format}
+                      className={`border rounded ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                      style={{ minHeight: '60px', fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    📅 {config.createdAt ? formatDate(config.createdAt) : 'Date inconnue'}
+                  </p>
+                </div>
+              ))}
+
+              {adsenseConfigs.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="text-6xl mb-4">💰</div>
+                  <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Aucune configuration AdSense
+                  </h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Configurez votre première publicité AdSense
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
+      {/* Page Blog */}
+      {showBlog && (
+        <main className="px-4 py-8 max-w-4xl mx-auto">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
+            <div className="sm:hidden mb-6 flex justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2 text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>{onlineUsers} {t('onlineNow')}</span>
+              </div>
+              <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
+                👁️ {pageViews.toLocaleString()} {t('pageViews')}
+              </div>
+            </div>
+
+            <div className="text-center mb-8">
+              <h1 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('blogTitle')}</h1>
+              <p className={`text-lg mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{t('blogSubtitle')}</p>
+              <p className={`leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('blogContent')}</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('blogFeatures')}</h2>
+                <ul className="space-y-3">
+                  <li className={`flex items-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span className="mr-2">{t('feature1')}</span>
+                  </li>
+                  <li className={`flex items-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span className="mr-2">{t('feature2')}</span>
+                  </li>
+                  <li className={`flex items-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span className="mr-2">{t('feature3')}</span>
+                  </li>
+                  <li className={`flex items-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span className="mr-2">{t('feature4')}</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className={`rounded-xl p-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('contactForm')}</h3>
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <input 
+                    name="name"
+                    type="text" 
+                    placeholder={t('yourName')} 
+                    required
+                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <div 
+                    className={`relative w-full border-2 border-dashed rounded-lg px-4 py-6 transition-all duration-300 ${
+                      isDragOver 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : darkMode ? 'border-gray-500' : 'border-gray-300'
+                    }`}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const productName = e.dataTransfer.getData('text/plain');
+                      setDraggedProduct(productName);
+                      const productInput = document.querySelector('input[name="product"]') as HTMLInputElement;
+                      if (productInput) {
+                        productInput.value = productName;
+                      }
+                      setIsDragOver(false);
+                      showNotificationToast(t('productDropped'));
+                      addPoints(5, language === 'fr' ? '+5 points pour le drag & drop !' : '+5 points for drag & drop!');
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={() => {
+                      setIsDragOver(false);
+                    }}
+                  >
+                    <input 
+                      name="product"
+                      type="text" 
+                      placeholder={t('dragProduct')} 
+                      required
+                      className={`w-full bg-transparent border-none outline-none text-center font-medium ${
+                        darkMode ? 'text-white placeholder-gray-400' : ''
+                      }`}
+                    />
+                    {isDragOver && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-blue-50 bg-opacity-90 rounded-lg">
+                        <span className="text-blue-600 font-semibold">{t('dragDropHint')}</span>
+                      </div>
+                    )}
+                    <div className={`text-xs text-center mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      💡 {language === 'fr' ? 'Glissez un produit ou tapez le nom' : 'Drag a product or type the name'}
+                    </div>
+                  </div>
+                  <textarea 
+                    name="message"
+                    placeholder={t('message')} 
+                    rows={3}
+                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <div className="flex gap-3">
+                    <button 
+                      type="submit"
+                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      💬 {t('sendToMessenger')}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                      className="px-4 bg-gray-600 text-white font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                      title={t('messengerDirect')}
+                    >
+                      📱
+                    </button>
+                  </div>
+                </form>
+                
+                <div className="mt-4 text-center">
+                  <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('messengerDirect')}</p>
+                  <button 
+                    onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                  >
+                    Messenger : Ric CERDIA
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 p-4 overflow-y-auto h-64">
-              {messages.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bot className={`w-12 h-12 mx-auto mb-3 ${
-                    darkMode ? 'text-gray-600' : 'text-gray-400'
-                  }`} />
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Bonjour ! Je suis votre assistant IA.
-                    Comment puis-je vous aider aujourd'hui ?
-                  </p>
-                  
-                  {/* Suggestions initiales */}
-                  <div className="mt-4 space-y-2">
-                    {suggestions.slice(0, 2).map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className={`w-full p-2 rounded-lg text-xs border transition-colors ${
-                          darkMode
-                            ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
-                            : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700'
-                        }`}
+            <div className="mt-12 border-t pt-8">
+              <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('comments')}</h2>
+              
+              <div className={`rounded-xl p-6 mb-8 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('addComment')}</h3>
+                <form onSubmit={handleCommentSubmit} className="space-y-4">
+                  <input 
+                    name="commentName"
+                    type="text" 
+                    placeholder={t('yourName')} 
+                    required
+                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <textarea 
+                    name="commentText"
+                    placeholder={t('yourComment')} 
+                    rows={4}
+                    required
+                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <button 
+                    type="submit"
+                    className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('postComment')}
+                  </button>
+                </form>
+              </div>
+
+              <div className="space-y-6">
+                {comments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>{t('noComments')}</p>
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.id} className={`border rounded-lg p-6 shadow-sm ${
+                      darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+                    }`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold text-lg">
+                              {comment.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{comment.name}</h4>
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{formatDate(comment.timestamp)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className={`leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{comment.comment}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+    {/* Page Gestion des Publicités */}
+      {showAds && passwordEntered && (
+        <main className="px-4 py-8 max-w-6xl mx-auto">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-sm p-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                📺 {t('manageAds')}
+              </h1>
+              <button 
+                onClick={handleAddAd}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Plus size={20} />
+                {t('addAd')}
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {advertisements.map((ad, index) => (
+                <div key={ad.id} className={`border rounded-xl p-6 ${
+                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                } ${ad.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      {ad.type === 'video' ? (
+                        <Video size={20} className="text-red-500" />
+                      ) : (
+                        <Mountain size={20} className="text-blue-500" />
+                      )}
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        ad.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {ad.isActive ? t('isActive') : 'Inactif'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleEditAd(index)}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                       >
-                        {suggestion}
+                        <Pencil size={14} />
                       </button>
-                    ))}
+                      <button 
+                        onClick={() => deleteAdvertisement(ad.id!)}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {ad.imageUrl && (
+                    <div className="mb-4">
+                      <img 
+                        src={ad.imageUrl} 
+                        alt={ad.title}
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <h3 className={`font-semibold text-lg mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {ad.title}
+                  </h3>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {ad.description}
+                  </p>
+                  <p className={`text-xs break-all ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    🔗 {ad.url}
+                  </p>
+                  <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    📅 {ad.createdAt ? formatDate(ad.createdAt) : 'Date inconnue'}
+                  </p>
+                </div>
+              ))}
+
+              {advertisements.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="text-6xl mb-4">📺</div>
+                  <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Aucune publicité
+                  </h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Ajoutez votre première publicité pour commencer
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Aperçu de comment les publicités apparaissent */}
+            {advertisements.filter(ad => ad.isActive).length > 0 && (
+              <div className="mt-12 border-t pt-8">
+                <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  👀 Aperçu des publicités actives
+                </h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {advertisements.filter(ad => ad.isActive).slice(0, 4).map((ad) => (
+                    <div key={ad.id} className={`border rounded-2xl overflow-hidden shadow-sm ${
+                      darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                    }`}>
+                      <div className={`${
+                        ad.type === 'video' 
+                          ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                          : darkMode ? 'bg-gradient-to-br from-blue-800 to-purple-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+                      } p-4 text-white text-center`}>
+                        <h4 className="font-bold text-sm mb-2">{ad.title}</h4>
+                        <p className="text-xs opacity-90 mb-3">{ad.description}</p>
+                        <button 
+                          onClick={() => window.open(ad.url, '_blank')}
+                          className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                        >
+                          {ad.type === 'video' ? '▶️ Voir' : '🖼️ Découvrir'}
+                        </button>
+                      </div>
+                      <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                        <span className="text-xs opacity-60">Publicité • CERDIA</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      )}
+      {/* Page Produits Principale */}
+      {!showBlog && !showAds && !showAdSenseManagement && (
+        <main className="px-2 py-4">
+          {/* Statistiques mobiles */}
+          <div className="md:hidden mb-4 flex justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+              <span>⭐</span>
+              <span>{userPoints} {t('points')}</span>
+            </div>
+            <div className="flex items-center gap-1 text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>{onlineUsers} {t('onlineNow')}</span>
+            </div>
+          </div>
+
+          {/* Barre latérale gauche - Activité récente */}
+          {recentActivity.length > 0 && (
+            <div className="hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 w-64 z-30">
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm mb-4`}>
+                <h3 className={`font-semibold mb-3 text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  🔥 {t('recentActivity')}
+                </h3>
+                <div className="space-y-2">
+                  {recentActivity.slice(0, 3).map((activity, index) => (
+                    <div key={index} className={`text-xs p-2 rounded ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'}`}>
+                      {activity}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Publicité AdSense dans la barre latérale */}
+              {(() => {
+                const sidebarAdConfig = getAdSenseConfigByPosition('sidebar');
+                return sidebarAdConfig ? (
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm mb-4`}>
+                    <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      📢 Publicité
+                    </h4>
+                    <GoogleAdSense 
+                      clientId={sidebarAdConfig.clientId}
+                      slotId={sidebarAdConfig.slotId}
+                      format={sidebarAdConfig.format}
+                      style={{ minHeight: '250px' }}
+                    />
+                  </div>
+                ) : (
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4 shadow-sm`}>
+                    <h4 className={`font-semibold mb-2 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      📢 Publicité
+                    </h4>
+                    <div className={`${darkMode ? 'bg-gradient-to-b from-green-800 to-emerald-800' : 'bg-gradient-to-b from-green-500 to-emerald-500'} rounded p-3 text-white text-center`}>
+                      <p className="text-xs font-semibold mb-1">💎 VIP Deals</p>
+                      <p className="text-xs opacity-90 mb-2">Accès exclusif aux meilleures offres</p>
+                      <button 
+                        onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
+                        className="bg-white text-green-600 px-2 py-1 rounded text-xs font-semibold hover:bg-gray-100 transition-colors"
+                      >
+                        En savoir +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          {/* Grille de produits en colonnes avec AdSense intégré */}
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+            {/* Publicité AdSense en haut */}
+            {(() => {
+              const topAdConfig = getAdSenseConfigByPosition('top');
+              return topAdConfig ? (
+                <div className="break-inside-avoid mb-2">
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+                    </div>
+                    <div className="p-2">
+                      <GoogleAdSense 
+                        clientId={topAdConfig.clientId}
+                        slotId={topAdConfig.slotId}
+                        format={topAdConfig.format}
+                        style={{ minHeight: '120px' }}
+                      />
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {messages.map((message) => (
-                    <ChatMessage 
-                      key={message.id} 
-                      message={message} 
-                      onActionClick={handleActionClick}
-                    />
-                  ))}
-                  {loading && (
-                    <div className="flex justify-start mb-4">
-                      <div className={`p-3 rounded-2xl rounded-bl-sm ${
-                        darkMode ? 'bg-gray-700' : 'bg-gray-100'
-                      }`}>
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              ) : null;
+            })()}
+
+            {filteredAndSortedProducts.map((product, i) => {
+              const shouldShowCustomAd = (i + 1) % 6 === 0;
+              const randomAd = shouldShowCustomAd ? getRandomActiveAd() : null;
+              const shouldShowAdSense = shouldShowAdSenseAd(i);
+              const adSenseConfig = shouldShowAdSense ? getAdSenseConfigByPosition('middle') : null;
+              
+              return (
+                <div key={product.id || i}>
+                  <ProductCard 
+                    product={product} 
+                    language={language}
+                    darkMode={darkMode}
+                    isFavorite={favorites.has(product.id || 0)}
+                    onToggleFavorite={() => toggleFavorite(product.id || 0)}
+                    onEdit={() => handleAdminAction(() => handleEdit(i))}
+                    showAdmin={passwordEntered}
+                    hasValue={hasValue}
+                    hasPriceValue={hasPriceValue}
+                    cleanCategory={cleanCategory}
+                    translateCategory={(cat: string) => translateCategory(cat, language)}
+                    t={t}
+                    onShare={() => addPoints(15, t('sharePoints'))}
+                  />
+                  
+                  {/* Publicité AdSense intégrée aléatoirement */}
+                  {adSenseConfig && (
+                    <div className="break-inside-avoid mb-2">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+                        </div>
+                        <div className="p-2">
+                          <GoogleAdSense 
+                            clientId={adSenseConfig.clientId}
+                            slotId={adSenseConfig.slotId}
+                            format={adSenseConfig.format}
+                            style={{ minHeight: '200px' }}
+                          />
                         </div>
                       </div>
                     </div>
                   )}
-                </>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
 
-            {/* Input */}
-            <div className={`p-4 border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-              <div className="flex space-x-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Tapez votre message..."
-                  disabled={loading}
-                  className={`flex-1 p-2 rounded-lg border text-sm transition-colors ${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  {/* Publicité personnalisée existante */}
+                  {shouldShowCustomAd && randomAd && (
+                    <div className="break-inside-avoid mb-2">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                        <div className={`${
+                          randomAd.type === 'video' 
+                            ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                            : darkMode ? 'bg-gradient-to-br from-blue-800 to-purple-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+                        } p-4 text-white text-center`}>
+                          <h4 className="font-bold text-sm mb-2">{randomAd.title}</h4>
+                          <p className="text-xs opacity-90 mb-3">{randomAd.description}</p>
+                          <button 
+                            onClick={() => window.open(randomAd.url, '_blank')}
+                            className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
+                          >
+                            {randomAd.type === 'video' ? '▶️ Voir' : '🖼️ Découvrir'}
+                          </button>
+                        </div>
+                        <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <span className="text-xs opacity-60">Publicité • CERDIA</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Publicité AdSense en bas */}
+            {(() => {
+              const bottomAdConfig = getAdSenseConfigByPosition('bottom');
+              return bottomAdConfig ? (
+                <div className="break-inside-avoid mb-2">
+                  <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl overflow-hidden shadow-sm border`}>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • Google AdSense</span>
+                    </div>
+                    <div className="p-2">
+                      <GoogleAdSense 
+                        clientId={bottomAdConfig.clientId}
+                        slotId={bottomAdConfig.slotId}
+                        format={bottomAdConfig.format}
+                        style={{ minHeight: '120px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        </main>
+      )}
+      {/* Modal Formulaire Produit */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {editIndex !== null ? t('modify') : t('add')} - Produit
+              </h2>
+              <button 
+                onClick={resetForm} 
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveProduct(); }} className="p-4 space-y-4">
+              <input 
+                name="name" 
+                value={newProduct.name} 
+                onChange={handleInputChange} 
+                placeholder={t('name')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <textarea 
+                name="description" 
+                value={newProduct.description} 
+                onChange={handleInputChange} 
+                placeholder={t('description')} 
+                className={`w-full border p-3 rounded-lg h-20 resize-vertical ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input 
+                  name="priceCa" 
+                  value={newProduct.priceCa} 
+                  onChange={handleInputChange} 
+                  placeholder="Prix CAD" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
                 />
-                <button
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || loading}
-                  className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                <input 
+                  name="priceUs" 
+                  value={newProduct.priceUs} 
+                  onChange={handleInputChange} 
+                  placeholder="Prix USD" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                />
+              </div>
+              <input 
+                name="amazonCa" 
+                value={newProduct.amazonCa} 
+                onChange={handleInputChange} 
+                placeholder="Amazon.ca" 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+              />
+              <input 
+                name="amazonCom" 
+                value={newProduct.amazonCom} 
+                onChange={handleInputChange} 
+                placeholder="Amazon.com" 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+              />
+              <input 
+                name="tiktokUrl" 
+                value={newProduct.tiktokUrl} 
+                onChange={handleInputChange} 
+                placeholder="TikTok" 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+              />
+              <div className="space-y-3">
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('images')}:</label>
+                {newProduct.images.map((image, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input 
+                      name="images" 
+                      value={image} 
+                      onChange={(e) => handleInputChange(e, i)} 
+                      placeholder={`Image URL ${i + 1}`} 
+                      className={`flex-1 border p-3 rounded-lg text-sm ${
+                        darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                      }`} 
+                      type="url" 
+                    />
+                    {newProduct.images.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeImageField(i)} 
+                        className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={addImageField} 
+                  className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2"
                 >
-                  <Send className="w-4 h-4" />
+                  <Plus size={16} />{t('addImage')}
                 </button>
               </div>
+              <div className="space-y-3">
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('categories')}:</label>
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((cat) => {
+                    const isChecked = newProduct.categories.includes(cat);
+                    
+                    return (
+                      <label key={cat} className={`flex items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                        isChecked 
+                          ? 'bg-blue-100 border-2 border-blue-500 text-blue-800' 
+                          : darkMode
+                            ? 'bg-gray-700 border-2 border-transparent hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                      }`}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={(e) => handleCategoryToggle(cat, e.target.checked)} 
+                          className="mr-2" 
+                        /> 
+                        <span className="font-medium">{cat}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <input 
+                  placeholder={passwordEntered ? t('addCategory') : `🔒 ${t('addCategory')} (Admin)`} 
+                  disabled={!passwordEntered}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val) {
+                        if (passwordEntered) {
+                          handleAddCategory(val);
+                          (e.target as HTMLInputElement).value = '';
+                        } else {
+                          if (requestPasswordOnce()) {
+                            handleAddCategory(val);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
+                      }
+                    }
+                  }} 
+                  className={`w-full border p-3 rounded-lg ${
+                    !passwordEntered 
+                      ? darkMode ? 'bg-gray-600 cursor-not-allowed border-gray-500' : 'bg-gray-100 cursor-not-allowed border-gray-300'
+                      : darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                />
+                {newProduct.categories.length > 0 && (
+                  <div className={`p-3 rounded-lg ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+                    <p className="text-sm">{t('selectedCategories')}: {newProduct.categories.join(', ')}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {editIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteProduct(products[editIndex].id)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Formulaire Publicité */}
+      {showAdForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {editAdIndex !== null ? t('modify') : t('add')} - Publicité
+              </h2>
+              <button 
+                onClick={resetAdForm} 
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveAdvertisement(); }} className="p-4 space-y-4">
+              <input 
+                name="title" 
+                value={newAd.title} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adTitle')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <textarea 
+                name="description" 
+                value={newAd.description} 
+                onChange={handleAdInputChange} 
+                placeholder={t('description')} 
+                className={`w-full border p-3 rounded-lg h-20 resize-vertical ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                required 
+              />
+              <input 
+                name="url" 
+                value={newAd.url} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adUrl')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+                required 
+              />
+              <input 
+                name="imageUrl" 
+                value={newAd.imageUrl} 
+                onChange={handleAdInputChange} 
+                placeholder={t('adImage')} 
+                className={`w-full border p-3 rounded-lg ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                }`} 
+                type="url" 
+              />
+              <div className="space-y-3">
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adType')}:
+                </label>
+                <select 
+                  name="type" 
+                  value={newAd.type} 
+                  onChange={handleAdInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="image">🖼️ {t('imageAd')}</option>
+                  <option value="video">📹 {t('videoAd')}</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-3">
+                <input 
+                  type="checkbox" 
+                  name="isActive" 
+                  checked={newAd.isActive} 
+                  onChange={handleAdInputChange}
+                  className="w-4 h-4" 
+                />
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('isActive')}
+                </label>
+              </div>
               
-              {/* Suggestions rapides */}
-              {messages.length > 0 && suggestions.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {suggestions.slice(0, 3).map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className={`px-2 py-1 rounded text-xs border transition-colors ${
-                        darkMode
-                          ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
-                          : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {suggestion.length > 20 ? suggestion.slice(0, 20) + '...' : suggestion}
-                    </button>
-                  ))}
+              {/* Aperçu de la publicité */}
+              {newAd.title && newAd.description && (
+                <div className="border-t pt-4">
+                  <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 block`}>
+                    👀 Aperçu:
+                  </label>
+                  <div className={`border rounded-2xl overflow-hidden shadow-sm ${
+                    darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  }`}>
+                    <div className={`${
+                      newAd.type === 'video' 
+                        ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
+                        : darkMode ? 'bg-gradient-to-br from-orange-800 to-red-800' : 'bg-gradient-to-br from-orange-500 to-red-500'
+                    } p-4 text-white text-center`}>
+                      {newAd.imageUrl && (
+                        <img 
+                          src={newAd.imageUrl} 
+                          alt={newAd.title}
+                          className="w-full h-16 object-cover rounded mb-2"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <h4 className="font-bold text-sm mb-2">
+                        {newAd.type === 'video' ? '📹' : '🖼️'} {newAd.title}
+                      </h4>
+                      <p className="text-xs opacity-90 mb-3">{newAd.description}</p>
+                      <div className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold inline-block">
+                        {newAd.type === 'video' ? '▶️ Voir la vidéo' : '💬 Découvrir'}
+                      </div>
+                    </div>
+                    <div className={`p-2 text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <span className="text-xs opacity-60">Publicité • CERDIA</span>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetAdForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  {editAdIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editAdIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteAdvertisement(advertisements[editAdIndex].id!)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Formulaire AdSense */}
+      {showAdSenseForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 border-b px-4 py-3 flex items-center justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {editAdSenseIndex !== null ? t('modify') : t('add')} - AdSense
+              </h2>
+              <button 
+                onClick={resetAdSenseForm} 
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveAdSenseConfig(); }} className="p-4 space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseClientId')}
+                </label>
+                <input 
+                  name="clientId" 
+                  value={newAdSense.clientId} 
+                  onChange={handleAdSenseInputChange} 
+                  placeholder="ca-pub-1234567890123456" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  required 
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseSlotId')}
+                </label>
+                <input 
+                  name="slotId" 
+                  value={newAdSense.slotId} 
+                  onChange={handleAdSenseInputChange} 
+                  placeholder="1234567890" 
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                  required 
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseFormat')}
+                </label>
+                <select 
+                  name="format" 
+                  value={newAdSense.format} 
+                  onChange={handleAdSenseInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="auto">{t('formatAuto')}</option>
+                  <option value="horizontal">{t('formatHorizontal')}</option>
+                  <option value="rectangle">{t('formatRectangle')}</option>
+                  <option value="vertical">{t('formatVertical')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsensePosition')}
+                </label>
+                <select 
+                  name="position" 
+                  value={newAdSense.position} 
+                  onChange={handleAdSenseInputChange}
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="top">{t('positionTop')}</option>
+                  <option value="middle">{t('positionMiddle')}</option>
+                  <option value="bottom">{t('positionBottom')}</option>
+                  <option value="sidebar">{t('positionSidebar')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('adsenseFrequency')}
+                </label>
+                <input 
+                  name="frequency" 
+                  value={newAdSense.frequency} 
+                  onChange={handleAdSenseInputChange} 
+                  type="number"
+                  min="3"
+                  max="20"
+                  className={`w-full border p-3 rounded-lg ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300'
+                  }`} 
+                />
+                <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Une publicité apparaîtra tous les {newAdSense.frequency} produits (recommandé: 5-10)
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <input 
+                  type="checkbox" 
+                  name="isActive" 
+                  checked={newAdSense.isActive} 
+                  onChange={handleAdSenseInputChange}
+                  className="w-4 h-4" 
+                />
+                <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('isActive')}
+                </label>
+              </div>
+              
+              {/* Aperçu de la configuration AdSense */}
+              {newAdSense.clientId && newAdSense.slotId && (
+                <div className="border-t pt-4">
+                  <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 block`}>
+                    👀 Aperçu:
+                  </label>
+                  <div className={`border rounded-lg p-4 ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                    <GoogleAdSense 
+                      clientId={newAdSense.clientId}
+                      slotId={newAdSense.slotId}
+                      format={newAdSense.format}
+                      style={{ minHeight: '80px' }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-center">
+                    <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      Position: {t(`position${newAdSense.position.charAt(0).toUpperCase() + newAdSense.position.slice(1)}` as keyof typeof translations.fr)} • 
+                      Format: {t(`format${newAdSense.format.charAt(0).toUpperCase() + newAdSense.format.slice(1)}` as keyof typeof translations.fr)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={resetAdSenseForm} 
+                  className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  {editAdSenseIndex !== null ? t('modify') : t('save')}
+                </button>
+                {editAdSenseIndex !== null && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteAdSenseConfig(adsenseConfigs[editAdSenseIndex].id!)} 
+                    className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+     {/* Boutons flottants */}
+      {!showBlog && !showAds && !showAdSenseManagement && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddProduct}
+        >
+          <Plus size={24} />
+        </button>
+      )}
+
+      {showAds && passwordEntered && (
+        <button 
+          className="fixed bottom-6 right-6 w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddAd}
+        >
+          <Video size={24} />
+        </button>
+      )}
+
+      {showAdSenseManagement && passwordEntered && (
+        <button 
+          className="fixed bottom-20 right-6 w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center z-30" 
+          onClick={handleAddAdSense}
+        >
+          💰
+        </button>
+      )}
+
+    </div>
+  );
+}
+
+// Composant ProductCard
+function ProductCard({ product, language, darkMode, isFavorite, onToggleFavorite, onEdit, showAdmin, hasValue, hasPriceValue, cleanCategory, translateCategory, t, onShare }: any) {
+  const [current, setCurrent] = useState(0);
+  const [imageError, setImageError] = useState<{ [key: number]: boolean }>({});
+  const [showZoom, setShowZoom] = useState(false);
+  const [zoomImage, setZoomImage] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+
+  const handleImageDoubleClick = (imageUrl: string) => {
+    setZoomImage(imageUrl);
+    setShowZoom(true);
+  };
+
+  const closeZoom = () => {
+    setShowZoom(false);
+    setZoomImage('');
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: product.description,
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+    onShare();
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', product.name);
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+  return (
+    <>
+      <div 
+        className="break-inside-avoid mb-2"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+          isHovered ? 'transform scale-105' : ''
+        } ${
+          isDragging ? 'opacity-50 transform rotate-2' : ''
+        } border cursor-move`}>
+          <div className="relative aspect-[3/4] bg-gray-100">
+            {images.length > 0 ? (
+              <>
+                {!imageError[current] ? (
+                  <Image 
+                    src={images[current]} 
+                    alt={product.name} 
+                    fill 
+                    className="object-contain cursor-pointer hover:object-cover transition-all duration-300" 
+                    onError={() => setImageError({...imageError, [current]: true})} 
+                    onDoubleClick={() => handleImageDoubleClick(images[current])}
+                    unoptimized 
+                    loader={({ src }) => src} 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <span className="text-sm">{t('imageNotAvailable')}</span>
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button 
+                      onClick={() => setCurrent((current - 1 + images.length) % images.length)} 
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold"
+                    >
+                      ‹
+                    </button>
+                    <button 
+                      onClick={() => setCurrent((current + 1) % images.length)} 
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 text-lg font-bold"
+                    >
+                      ›
+                    </button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                      {images.map((_, index) => (
+                        <div key={index} className={`w-1.5 h-1.5 rounded-full ${index === current ? 'bg-white' : 'bg-white bg-opacity-50'}`} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div className="absolute top-2 right-2 flex gap-1 z-10">
+                  <button 
+                    onClick={onToggleFavorite} 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      isFavorite ? 'bg-red-500 text-white scale-110' : 'bg-white bg-opacity-80 text-gray-600'
+                    }`}
+                  >
+                    <Heart size={16} fill={isFavorite ? 'white' : 'none'} />
+                  </button>
+                  <button 
+                    onClick={handleShare} 
+                    className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    📤
+                  </button>
+                  {showAdmin && (
+                    <button 
+                      onClick={onEdit} 
+                      className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                  {isHovered && (
+                    <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-bounce">
+                      🎯 DRAG
+                    </span>
+                  )}
+                  {Math.random() > 0.7 && (
+                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-pulse">
+                      🔥 HOT
+                    </span>
+                  )}
+                  {Math.random() > 0.8 && (
+                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                      ⚡ DEAL
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <span className="text-sm">{t('noImage')}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3">
+            <h3 className={`font-semibold text-sm line-clamp-2 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {product.name}
+            </h3>
+            <p className={`text-xs line-clamp-3 mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {product.description}
+            </p>
+            
+            {(hasPriceValue(product.priceCa) || hasPriceValue(product.priceUs)) && (
+              <div className="mb-3">
+                <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {t('indicativePrice')} 
+                  {hasPriceValue(product.priceCa) && ` ${product.priceCa} CAD`}
+                  {hasPriceValue(product.priceCa) && hasPriceValue(product.priceUs) && ' |'}
+                  {hasPriceValue(product.priceUs) && ` ${product.priceUs} USD`}
+                </p>
+                <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {t('priceNote')}
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              {(hasValue(product.amazonCa) || hasValue(product.amazonCom)) && (
+                <div className="flex gap-2">
+                  {hasValue(product.amazonCa) && (
+                    <Link href={product.amazonCa} target="_blank" rel="noopener noreferrer" className="flex-1">
+                      <button className="w-full bg-orange-500 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-orange-600 transition-colors">
+                        🛒 Amazon.ca
+                      </button>
+                    </Link>
+                  )}
+                  {hasValue(product.amazonCom) && (
+                    <Link href={product.amazonCom} target="_blank" rel="noopener noreferrer" className="flex-1">
+                      <button className="w-full bg-gray-900 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
+                        🛒 Amazon.com
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              )}
+              {hasValue(product.tiktokUrl) && (
+                <Link href={product.tiktokUrl} target="_blank" rel="noopener noreferrer">
+                  <button className="w-full bg-black text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
+                    🎵 {t('viewOnTiktok')}
+                  </button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Modal Zoom d'Image */}
+      {showZoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onClick={closeZoom}>
+          <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={closeZoom}
+              className="absolute top-4 right-4 w-10 h-10 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm font-bold"
+            >
+              ✕
+            </button>
+            
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newIndex = (current - 1 + images.length) % images.length;
+                    setCurrent(newIndex);
+                    setZoomImage(images[newIndex]);
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl font-bold"
+                >
+                  ‹
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newIndex = (current + 1) % images.length;
+                    setCurrent(newIndex);
+                    setZoomImage(images[newIndex]);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full flex items-center justify-center z-20 backdrop-blur-sm text-2xl font-bold"
+                >
+                  ›
+                </button>
+                
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrent(index);
+                        setZoomImage(images[index]);
+                      }}
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        index === current 
+                          ? 'bg-white' 
+                          : 'bg-white bg-opacity-50 hover:bg-opacity-70'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            <Image
+              src={zoomImage}
+              alt={product.name}
+              width={800}
+              height={800}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              unoptimized
+              loader={({ src }) => src}
+            />
+            
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-60 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+              <p className="text-sm text-center">{product.name}</p>
+              <p className="text-xs text-gray-300 text-center mt-1">
+                {images.length > 1 && `${current + 1}/${images.length} • `}
+                Cliquez pour fermer
+              </p>
             </div>
           </div>
         </div>
       )}
     </>
-  );
-}
-
-// Composant Recommandations IA
-function AIRecommendationsPanel() {
-  const { darkMode, t } = useAppState();
-  const { recommendationService } = useAIServices();
-  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'personal' | 'trending' | 'similar'>('all');
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadRecommendations = useCallback(async () => {
-    setLoading(true);
-    try {
-      const recs = await recommendationService.getPersonalizedRecommendations('user123');
-      setRecommendations(recs);
-    } catch (error) {
-      console.error('Erreur recommandations:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [recommendationService]);
-
-  const refreshRecommendations = async () => {
-    setRefreshing(true);
-    await recommendationService.refreshRecommendations();
-    await loadRecommendations();
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    loadRecommendations();
-  }, [loadRecommendations]);
-
-  const filteredRecommendations = recommendations.filter(rec => 
-    activeFilter === 'all' || rec.type === activeFilter
-  );
-
-  const filters = [
-    { key: 'all', label: 'Toutes', count: recommendations.length },
-    { key: 'personal', label: 'Personnalisées', count: recommendations.filter(r => r.type === 'personal').length },
-    { key: 'trending', label: 'Tendances', count: recommendations.filter(r => r.type === 'trending').length },
-    { key: 'similar', label: 'Similaires', count: recommendations.filter(r => r.type === 'similar').length }
-  ];
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'personal': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'trending': return 'bg-green-100 text-green-800 border-green-200';
-      case 'similar': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'personal': return <Users className="w-3 h-3" />;
-      case 'trending': return <TrendingUp className="w-3 h-3" />;
-      case 'similar': return <Target className="w-3 h-3" />;
-      default: return <Sparkles className="w-3 h-3" />;
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center">
-            <Sparkles className="w-6 h-6 mr-3 text-purple-500" />
-            Recommandations IA
-          </h2>
-          <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Suggestions personnalisées basées sur votre profil et vos préférences
-          </p>
-        </div>
-        
-        <button
-          onClick={refreshRecommendations}
-          disabled={refreshing}
-          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 transition-colors flex items-center space-x-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>{refreshing ? 'Actualisation...' : 'Actualiser'}</span>
-        </button>
-      </div>
-
-      {/* Filtres */}
-      <div className="flex flex-wrap gap-2">
-        {filters.map((filter) => (
-          <button
-            key={filter.key}
-            onClick={() => setActiveFilter(filter.key as any)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-              activeFilter === filter.key
-                ? 'bg-purple-500 text-white'
-                : darkMode
-                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            <span>{filter.label}</span>
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              activeFilter === filter.key
-                ? 'bg-purple-600'
-                : 'bg-gray-300 text-gray-600'
-            }`}>
-              {filter.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Recommandations */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={`p-4 rounded-xl animate-pulse ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}>
-              <div className="h-48 bg-gray-300 rounded-lg mb-4"></div>
-              <div className="h-4 bg-gray-300 rounded mb-2"></div>
-              <div className="h-3 bg-gray-300 rounded w-2/3"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecommendations.map((rec) => (
-            <div
-              key={rec.id}
-              className={`p-4 rounded-xl border transition-all hover:shadow-lg group ${
-                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}
-            >
-              {/* Image */}
-              <div className="relative mb-4">
-                <img
-                  src={rec.image}
-                  alt={rec.title}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                
-                {/* Badge de type */}
-                <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 ${getTypeColor(rec.type)}`}>
-                  {getTypeIcon(rec.type)}
-                  <span className="capitalize">{rec.type}</span>
-                </div>
-                
-                {/* Score de confiance */}
-                <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded-full text-xs">
-                  {(rec.confidence * 100).toFixed(0)}%
-                </div>
-              </div>
-              
-              {/* Contenu */}
-              <div className="space-y-3">
-                <div>
-                  <h3 className={`font-semibold line-clamp-2 group-hover:text-purple-600 transition-colors ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {rec.title}
-                  </h3>
-                  <p className={`text-sm mt-1 line-clamp-2 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    {rec.description}
-                  </p>
-                </div>
-                
-                {/* Prix et rating */}
-                <div className="flex items-center justify-between">
-                  <div className="text-lg font-bold text-purple-600">
-                    {rec.price.toLocaleString('fr-CA', {
-                      style: 'currency',
-                      currency: 'CAD'
-                    })}
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">{rec.rating.toFixed(1)}</span>
-                  </div>
-                </div>
-                
-                {/* Raison */}
-                <div className={`p-2 rounded-lg text-xs ${
-                  darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <span className="font-medium">Pourquoi cette recommandation : </span>
-                  {rec.reason}
-                </div>
-                
-                {/* Tags */}
-                {rec.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {rec.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Actions */}
-                <div className="flex space-x-2 pt-2">
-                  <button className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium">
-                    Voir Détails
-                  </button>
-                  <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Heart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Message si aucune recommandation */}
-      {!loading && filteredRecommendations.length === 0 && (
-        <div className={`text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Aucune recommandation trouvée pour ce filtre.</p>
-          <button
-            onClick={() => setActiveFilter('all')}
-            className="mt-2 text-purple-600 hover:text-purple-800 font-medium"
-          >
-            Voir toutes les recommandations
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-// ==========================================
-// COMPOSANT PRINCIPAL V6 - SECTIONS 1-6
-// ==========================================
-
-function CerdiaDemo() {
-  const { darkMode, t, language, setLanguage, setDarkMode } = useAppState();
-  const [activeTab, setActiveTab] = useState('dashboard');
-
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Analytics et métriques en temps réel' },
-    { id: 'chatbot', label: 'Chat IA', icon: MessageSquare, description: 'Assistant intelligent interactif' },
-    { id: 'recommendations', label: 'Recommandations', icon: Sparkles, description: 'Suggestions IA personnalisées' },
-    { id: 'services', label: 'Services', icon: Shield, description: 'Monitoring de la santé des services' },
-    { id: 'test', label: 'Tests', icon: Zap, description: 'Tests complets du système' }
-  ];
-
-  return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              🚀 CERDIA Platform
-            </h1>
-            <p className={`text-lg mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Plateforme E-commerce avec Intelligence Artificielle - Sections 1-6
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
-            >
-              <Globe className="w-4 h-4" />
-              <span>{language.toUpperCase()}</span>
-            </button>
-            
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                darkMode 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-              }`}
-            >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-1 mb-8 p-1 bg-gray-200 dark:bg-gray-800 rounded-xl">
-          {tabs.map((tab) => {
-            const IconComponent = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-                  activeTab === tab.id
-                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-lg transform scale-105'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                }`}
-                title={tab.description}
-              >
-                <IconComponent className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content */}
-        <div className="transition-all duration-300">
-          {activeTab === 'dashboard' && <AnalyticsDashboard />}
-          {activeTab === 'chatbot' && (
-            <div className="space-y-6">
-              <div className={`p-8 rounded-xl text-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-                <h2 className="text-2xl font-bold mb-2">Assistant IA Interactif</h2>
-                <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Votre assistant personnel est disponible via le bouton flottant en bas à droite.
-                  Cliquez dessus pour commencer une conversation !
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                    <Bot className="w-8 h-8 mx-auto mb-2 text-purple-500" />
-                    <h3 className="font-semibold mb-1">IA Conversationnelle</h3>
-                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      Réponses contextuelles et suggestions intelligentes
-                    </p>
-                  </div>
-                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                    <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                    <h3 className="font-semibold mb-1">Actions Rapides</h3>
-                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      Boutons d'action automatiques dans les réponses
-                    </p>
-                  </div>
-                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                    <Brain className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                    <h3 className="font-semibold mb-1">Mémoire Contextuelle</h3>
-                    <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      L'IA se souvient de votre conversation
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {activeTab === 'recommendations' && <AIRecommendationsPanel />}
-          {activeTab === 'services' && <ServiceMonitor />}
-          {activeTab === 'test' && <SystemTester />}
-        </div>
-
-        {/* Footer Status */}
-        <div className={`mt-12 p-4 rounded-lg border-t-4 border-green-500 ${
-          darkMode ? 'bg-gray-800' : 'bg-white'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-green-600">✅ Système Opérationnel</h3>
-              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Sections 1-6 assemblées et fonctionnelles - Chat IA et Recommandations actifs
-              </p>
-            </div>
-            <div className="flex items-center space-x-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>IA Active</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span>Chat Live</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <span>Recommandations IA</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Chatbot flottant */}
-      <InteractiveChatbot />
-    </div>
-  );
-}
-
-export default function Page() {
-  return (
-    <GlobalProvider>
-      <CerdiaDemo />
-    </GlobalProvider>
   );
 }
