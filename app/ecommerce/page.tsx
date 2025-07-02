@@ -1,7 +1,7 @@
 // app/ecommerce/page.tsx - Sections 1-4 Assemblées
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, useMemo } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, useMemo, useRef } from 'react';
 import { 
   Settings, Globe, Brain, Zap, Users, Target, Sun, Moon, 
   CheckCircle, Cloud, Database, Shield, Activity, AlertTriangle, 
