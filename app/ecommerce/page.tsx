@@ -1144,8 +1144,15 @@ function useGamification(language: 'fr' | 'en' = 'fr') {
 
   useEffect(() => {
     const unsubscribe = gamification.subscribe(setData);
-    return unsubscribe;
-  }, [gamification]);
+    
+    // Charger les données initiales en appelant addPoints avec 0 pour déclencher la lecture
+    gamification.addPoints(0, '', language);
+    
+    // Retourner une fonction de nettoyage qui ne retourne rien
+    return () => {
+      unsubscribe();
+    };
+  }, [gamification, language]);
 
   const addPoints = useCallback((points: number, reason: string) => {
     return gamification.addPoints(points, reason, language);
