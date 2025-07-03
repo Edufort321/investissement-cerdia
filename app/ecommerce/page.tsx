@@ -883,7 +883,7 @@ class GamificationSystem {
     this.listeners.forEach(listener => listener(data));
   }
 
-  subscribe(listener: (data: UserGameification) => void) {
+  subscribe(listener: (data: UserGameification) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
@@ -941,16 +941,18 @@ class GamificationSystem {
     this.saveData(updated);
     this.notifyListeners(updated);
 
-    // Notification de level up
-    if (leveledUp) {
-      this.showNotification(
-        language === 'fr' 
-          ? `🎉 Niveau ${newLevel} atteint ! +${points} points`
-          : `🎉 Level ${newLevel} reached! +${points} points`,
-        'success'
-      );
-    } else {
-      this.showNotification(reason, 'success');
+    // Notification de level up seulement si points > 0
+    if (points > 0) {
+      if (leveledUp) {
+        this.showNotification(
+          language === 'fr' 
+            ? `🎉 Niveau ${newLevel} atteint ! +${points} points`
+            : `🎉 Level ${newLevel} reached! +${points} points`,
+          'success'
+        );
+      } else if (reason) {
+        this.showNotification(reason, 'success');
+      }
     }
 
     return updated;
@@ -1085,10 +1087,14 @@ class GamificationSystem {
 
   private showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
     // Cette fonction sera connectée au système de notifications global
-    const event = new CustomEvent('showNotification', {
-      detail: { message, type }
-    });
-    window.dispatchEvent(event);
+    try {
+      const event = new CustomEvent('showNotification', {
+        detail: { message, type }
+      });
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error('Erreur notification:', error);
+    }
   }
 
   getTierColor(tier: string): string {
@@ -1190,7 +1196,7 @@ class TrafficSimulator {
     return TrafficSimulator.instance;
   }
 
-  subscribe(listener: (data: { pageViews: number; onlineUsers: number; recentActivity: string[] }) => void) {
+  subscribe(listener: (data: { pageViews: number; onlineUsers: number; recentActivity: string[] }) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
