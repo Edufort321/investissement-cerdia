@@ -5008,22 +5008,5 @@ export default function ModernEcommercePage() {
 // Export des composants utiles pour d'autres sections
 export {
   ModernProductCard,
-  ModernHeader,
-  ModernNavigation,
-  SearchAndFilters,
-  StyleQuizModal,
-  ModernBlogSection,
-  ProductFormModal,
-  AdFormModal,
-  AdSenseFormModal,
-  useAppState,
-  useProducts,
-  useFavorites,
-  useGamification,
-  useAdminAuth,
-  useNotifications,
-  useAdvertisements,
-  useAdSense,
-  TrafficSimulator,
-  GamificationSystem
+  // ...
 };
