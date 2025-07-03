@@ -5004,9 +5004,3 @@ export default function ModernEcommercePage() {
     </div>
   );
 }
-
-// Export des composants utiles pour d'autres sections
-export {
-  ModernProductCard,
-  // ...
-};
