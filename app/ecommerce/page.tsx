@@ -1807,13 +1807,13 @@ function useAdSense() {
   };
 }
 // ==========================================
-// SECTION 7 : PARTIE 5 - COMPOSANTS UI MODERNES
+// SECTION 7 : PARTIE 5 - COMPOSANTS UI MODERNES (MOBILE 2 COLONNES)
 // ==========================================
 
 // Composant Header moderne et responsive
 function ModernHeader() {
   const { language, setLanguage, darkMode, toggleDarkMode, t } = useAppState();
-  const gamification = useGamification(language); // ✅ Utiliser le hook complet
+  const gamification = useGamification(language);
   const trafficData = useTrafficSimulator(language);
   const screenSize = useScreenSize();
 
@@ -2277,10 +2277,10 @@ function SearchAndFilters({
   );
 }
 // ==========================================
-// SECTION 7 : PARTIE 6 - COMPOSANT PRODUCTCARD
+// SECTION 7 : PARTIE 6 - COMPOSANT PRODUCTCARD (IMAGES CORRIGÉES)
 // ==========================================
 
-// Composant de carte produit ultra-moderne
+// Composant de carte produit ultra-moderne avec images optimisées
 function ModernProductCard({ 
   product, 
   isFavorite, 
@@ -2304,18 +2304,24 @@ function ModernProductCard({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const screenSize = useScreenSize();
   
   const gesture = useTouchGestures(cardRef);
-  const images = Array.isArray(product.images) ? product.images : [];
+  const images = Array.isArray(product.images) ? product.images.filter(img => img && img.trim() !== '') : [];
   const hasMultipleImages = images.length > 1;
 
   // Navigation d'images avec gestes tactiles
   useEffect(() => {
     if (gesture.direction === 'left' && hasMultipleImages) {
       setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      setImageLoaded(false);
+      setImageError(false);
     } else if (gesture.direction === 'right' && hasMultipleImages) {
       setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+      setImageLoaded(false);
+      setImageError(false);
     }
   }, [gesture.direction, hasMultipleImages, images.length]);
 
@@ -2325,6 +2331,17 @@ function ModernProductCard({
       setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
     } else {
       setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
+    setImageLoaded(false);
+    setImageError(false);
+  };
+
+  // ✅ Fonction pour agrandir l'image avec double-clic
+  const handleImageDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (images.length > 0 && !imageError) {
+      setShowImageModal(true);
     }
   };
 
@@ -2361,6 +2378,20 @@ function ModernProductCard({
     return original - current;
   };
 
+  // ✅ Dimensions adaptives selon l'écran et le mode d'affichage
+  const getImageDimensions = () => {
+    if (screenSize === 'mobile') {
+      // Mobile : 2 colonnes, aspect ratio plus carré
+      return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
+    } else if (screenSize === 'tablet') {
+      // Tablet : aspect ratio équilibré
+      return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
+    } else {
+      // Desktop : plus d'espace vertical
+      return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
+    }
+  };
+
   const cardClassName = `
     group relative overflow-hidden rounded-3xl border-2 transition-all duration-500 cursor-pointer transform-gpu
     ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}
@@ -2377,32 +2408,52 @@ function ModernProductCard({
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
       >
-        {/* Image Container */}
-        <div className={`relative ${viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]'} overflow-hidden`}>
-          {images.length > 0 ? (
+        {/* ✅ Container d'image optimisé */}
+        <div className={`relative ${getImageDimensions()} overflow-hidden bg-gray-100 dark:bg-gray-700`}>
+          {images.length > 0 && !imageError ? (
             <>
               <img
                 src={images[currentImageIndex]}
                 alt={product.name}
-                className={`w-full h-full object-cover transition-all duration-700 ${
+                className={`w-full h-full object-contain transition-all duration-700 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
-                } ${isHovered ? 'scale-110' : 'scale-100'}`}
-                onLoad={() => setImageLoaded(true)}
-                onDoubleClick={() => setShowImageModal(true)}
+                } ${isHovered ? 'scale-105' : 'scale-100'}`}
+                style={{
+                  objectFit: 'contain', // ✅ Assure que l'image entière est visible
+                  backgroundColor: darkMode ? '#374151' : '#f3f4f6'
+                }}
+                onLoad={() => {
+                  setImageLoaded(true);
+                  setImageError(false);
+                }}
+                onError={() => {
+                  setImageError(true);
+                  setImageLoaded(false);
+                }}
+                onDoubleClick={handleImageDoubleClick} // ✅ Double-clic pour agrandir
               />
               
-              {!imageLoaded && (
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse flex items-center justify-center">
+              {!imageLoaded && !imageError && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 animate-pulse flex items-center justify-center">
                   <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
 
+              {/* ✅ Indication de double-clic */}
+              {imageLoaded && !imageError && (
+                <div className={`absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-medium transition-opacity ${
+                  isHovered ? 'opacity-100' : 'opacity-0'
+                } bg-black/70 text-white`}>
+                  📸 Double-clic pour agrandir
+                </div>
+              )}
+
               {/* Navigation d'images */}
-              {hasMultipleImages && (
+              {hasMultipleImages && imageLoaded && !imageError && (
                 <>
                   <button
                     onClick={(e) => handleImageNavigation('prev', e)}
-                    className={`absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all ${
+                    className={`absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all ${
                       isHovered ? 'opacity-100' : 'opacity-0'
                     }`}
                   >
@@ -2410,23 +2461,25 @@ function ModernProductCard({
                   </button>
                   <button
                     onClick={(e) => handleImageNavigation('next', e)}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all ${
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all ${
                       isHovered ? 'opacity-100' : 'opacity-0'
                     }`}
                   >
                     ›
                   </button>
                   
-                  {/* Indicateurs d'images */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                  {/* Indicateurs d'images - plus petits sur mobile */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
                     {images.map((_, index) => (
                       <button
                         key={index}
                         onClick={(e) => {
                           e.stopPropagation();
                           setCurrentImageIndex(index);
+                          setImageLoaded(false);
+                          setImageError(false);
                         }}
-                        className={`w-2 h-2 rounded-full transition-all ${
+                        className={`${screenSize === 'mobile' ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full transition-all ${
                           index === currentImageIndex ? 'bg-white scale-125' : 'bg-white/50'
                         }`}
                       />
@@ -2436,49 +2489,53 @@ function ModernProductCard({
               )}
             </>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-              <span className="text-gray-500 text-sm font-medium">{t('noImage')}</span>
+            // ✅ État d'erreur d'image amélioré
+            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex flex-col items-center justify-center">
+              <div className="text-4xl mb-2">🖼️</div>
+              <span className="text-gray-500 dark:text-gray-400 text-sm font-medium text-center px-4">
+                {imageError ? 'Image non disponible' : t('noImage')}
+              </span>
             </div>
           )}
 
-          {/* Badges */}
-          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+          {/* Badges - adaptés pour mobile */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             {product.isNew && (
-              <ModernBadge variant="success" size="sm">
-                🆕 NOUVEAU
+              <ModernBadge variant="success" size={screenSize === 'mobile' ? 'sm' : 'sm'}>
+                🆕 {screenSize === 'mobile' ? 'NEW' : 'NOUVEAU'}
               </ModernBadge>
             )}
             {product.isPopular && (
-              <ModernBadge variant="warning" size="sm">
-                🔥 POPULAIRE
+              <ModernBadge variant="warning" size={screenSize === 'mobile' ? 'sm' : 'sm'}>
+                🔥 {screenSize === 'mobile' ? 'HOT' : 'POPULAIRE'}
               </ModernBadge>
             )}
             {product.discount && (
-              <ModernBadge variant="error" size="sm">
-                -{product.discount}% OFF
+              <ModernBadge variant="error" size={screenSize === 'mobile' ? 'sm' : 'sm'}>
+                -{product.discount}%
               </ModernBadge>
             )}
             {product.aiScore && product.aiScore >= 95 && (
-              <ModernBadge variant="info" size="sm">
-                ⭐ IA SCORE
+              <ModernBadge variant="info" size={screenSize === 'mobile' ? 'sm' : 'sm'}>
+                ⭐ IA
               </ModernBadge>
             )}
           </div>
 
-          {/* Actions */}
-          <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+          {/* Actions - adaptées pour mobile */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite();
               }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
+              className={`${screenSize === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
                 isFavorite 
                   ? 'bg-red-500 text-white scale-110' 
                   : 'bg-white/90 text-gray-600 hover:bg-white'
               }`}
             >
-              <Heart size={18} fill={isFavorite ? 'white' : 'none'} />
+              <Heart size={screenSize === 'mobile' ? 14 : 18} fill={isFavorite ? 'white' : 'none'} />
             </button>
             
             <button
@@ -2486,11 +2543,11 @@ function ModernProductCard({
                 e.stopPropagation();
                 onShare();
               }}
-              className={`w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
+              className={`${screenSize === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'} bg-blue-500 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
                 isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
               }`}
             >
-              <Send size={16} />
+              <Send size={screenSize === 'mobile' ? 12 : 16} />
             </button>
 
             {showAdmin && onEdit && (
@@ -2499,11 +2556,11 @@ function ModernProductCard({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className={`w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
+                className={`${screenSize === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'} bg-purple-500 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm ${
                   isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
                 }`}
               >
-                <Pencil size={16} />
+                <Pencil size={screenSize === 'mobile' ? 12 : 16} />
               </button>
             )}
           </div>
@@ -2512,30 +2569,30 @@ function ModernProductCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
 
-        {/* Contenu */}
-        <div className="p-6 space-y-4">
+        {/* ✅ Contenu adapté pour mobile */}
+        <div className={`${screenSize === 'mobile' ? 'p-3' : 'p-6'} space-y-3`}>
           {/* Titre et description */}
           <div>
-            <h3 className={`font-bold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors ${
+            <h3 className={`font-bold ${screenSize === 'mobile' ? 'text-sm' : 'text-lg'} mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>
               {product.name}
             </h3>
-            <p className={`text-sm line-clamp-3 leading-relaxed ${
+            <p className={`${screenSize === 'mobile' ? 'text-xs' : 'text-sm'} line-clamp-2 leading-relaxed ${
               darkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
               {product.description}
             </p>
           </div>
 
-          {/* Rating et reviews */}
-          {product.rating && (
-            <div className="flex items-center gap-3">
+          {/* Rating et reviews - cachés sur mobile si pas de place */}
+          {product.rating && screenSize !== 'mobile' && (
+            <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-4 h-4 ${
+                    className={`w-3 h-3 ${
                       i < Math.floor(product.rating!)
                         ? 'text-yellow-400 fill-current'
                         : 'text-gray-300'
@@ -2543,24 +2600,24 @@ function ModernProductCard({
                   />
                 ))}
               </div>
-              <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
-              <span className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                ({product.reviewCount} {t('reviews')})
+              <span className="text-xs font-medium">{product.rating.toFixed(1)}</span>
+              <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                ({product.reviewCount})
               </span>
             </div>
           )}
 
           {/* Prix */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {product.priceCa && (
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className={`${screenSize === 'mobile' ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>
                     {formatPrice(product.priceCa)}
                   </span>
                 )}
                 {product.originalPrice && (
-                  <span className={`text-lg line-through ${
+                  <span className={`${screenSize === 'mobile' ? 'text-sm' : 'text-lg'} line-through ${
                     darkMode ? 'text-gray-500' : 'text-gray-400'
                   }`}>
                     {formatPrice(product.originalPrice)}
@@ -2569,60 +2626,62 @@ function ModernProductCard({
               </div>
             </div>
             
-            {calculateSavings() && (
-              <p className="text-sm text-green-600 font-medium">
+            {calculateSavings() && screenSize !== 'mobile' && (
+              <p className="text-xs text-green-600 font-medium">
                 💰 {t('savings')} {formatPrice(calculateSavings()!.toString())}
               </p>
             )}
           </div>
 
-          {/* Fonctionnalités */}
-          {product.features && product.features.length > 0 && (
-            <div className="space-y-2">
-              <h4 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          {/* Fonctionnalités - cachées sur mobile en mode compact */}
+          {product.features && product.features.length > 0 && screenSize !== 'mobile' && (
+            <div className="space-y-1">
+              <h4 className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {t('features')}:
               </h4>
               <div className="space-y-1">
-                {product.features.slice(0, 3).map((feature, index) => (
+                {product.features.slice(0, 2).map((feature, index) => (
                   <div key={index} className={`flex items-center text-xs ${
                     darkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    <CheckCircle className="w-3 h-3 text-green-500 mr-2 flex-shrink-0" />
+                    <CheckCircle className="w-2 h-2 text-green-500 mr-1 flex-shrink-0" />
                     {feature}
                   </div>
                 ))}
-                {product.features.length > 3 && (
+                {product.features.length > 2 && (
                   <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    +{product.features.length - 3} autres...
+                    +{product.features.length - 2} autres...
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Catégories */}
-          <div className="flex flex-wrap gap-2">
-            {product.categories.slice(0, 3).map((category, index) => (
+          {/* Catégories - limitées sur mobile */}
+          <div className="flex flex-wrap gap-1">
+            {product.categories.slice(0, screenSize === 'mobile' ? 2 : 3).map((category, index) => (
               <ModernBadge key={index} variant="default" size="sm">
                 {category}
               </ModernBadge>
             ))}
           </div>
 
-          {/* Actions d'achat */}
-          <div className="space-y-3 pt-2">
+          {/* Actions d'achat - adaptées pour mobile */}
+          <div className={`space-y-${screenSize === 'mobile' ? '2' : '3'} pt-2`}>
             <button
               onClick={(e) => handleAffiliateClick(e, product.affiliateLink || '#')}
-              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
+              className={`w-full ${screenSize === 'mobile' ? 'px-4 py-3' : 'px-6 py-4'} bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg`}
             >
-              <span>🚀 {t('buyNow')}</span>
+              <span className={screenSize === 'mobile' ? 'text-sm' : 'text-base'}>
+                🚀 {t('buyNow')}
+              </span>
             </button>
             
-            <div className="flex gap-2">
+            <div className={`flex gap-${screenSize === 'mobile' ? '1' : '2'}`}>
               {product.amazonCa && (
                 <button
                   onClick={(e) => handleAffiliateClick(e, product.amazonCa!)}
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+                  className={`flex-1 px-2 py-2 bg-orange-500 text-white ${screenSize === 'mobile' ? 'text-xs' : 'text-sm'} font-medium rounded-xl hover:bg-orange-600 transition-colors`}
                 >
                   Amazon.ca
                 </button>
@@ -2630,7 +2689,7 @@ function ModernProductCard({
               {product.amazonCom && (
                 <button
                   onClick={(e) => handleAffiliateClick(e, product.amazonCom!)}
-                  className="flex-1 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors"
+                  className={`flex-1 px-2 py-2 bg-gray-900 text-white ${screenSize === 'mobile' ? 'text-xs' : 'text-sm'} font-medium rounded-xl hover:bg-gray-800 transition-colors`}
                 >
                   Amazon.com
                 </button>
@@ -2638,7 +2697,7 @@ function ModernProductCard({
               {product.tiktokUrl && (
                 <button
                   onClick={(e) => handleAffiliateClick(e, product.tiktokUrl!)}
-                  className="flex-1 px-4 py-2 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-900 transition-colors"
+                  className={`flex-1 px-2 py-2 bg-black text-white ${screenSize === 'mobile' ? 'text-xs' : 'text-sm'} font-medium rounded-xl hover:bg-gray-900 transition-colors`}
                 >
                   TikTok
                 </button>
@@ -2648,8 +2707,8 @@ function ModernProductCard({
         </div>
       </div>
 
-      {/* Modal d'image */}
-      {showImageModal && (
+      {/* ✅ Modal d'image amélioré */}
+      {showImageModal && images.length > 0 && (
         <ModernModal
           isOpen={showImageModal}
           onClose={() => setShowImageModal(false)}
@@ -2657,12 +2716,57 @@ function ModernProductCard({
           maxWidth="2xl"
         >
           <div className="relative">
-            <img
-              src={images[currentImageIndex]}
-              alt={product.name}
-              className="w-full max-h-96 object-contain rounded-xl"
-            />
+            <div className="relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
+              <img
+                src={images[currentImageIndex]}
+                alt={product.name}
+                className="w-full max-h-[70vh] object-contain"
+                style={{ objectFit: 'contain' }}
+                onError={() => setImageError(true)}
+              />
+              
+              {/* Navigation dans le modal */}
+              {hasMultipleImages && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+              
+              {/* Info dans le modal */}
+              <div className="absolute bottom-4 left-4 right-4 bg-black/70 text-white p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">
+                    Image {currentImageIndex + 1} sur {images.length}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = images[currentImageIndex];
+                        link.download = `${product.name}-${currentImageIndex + 1}.jpg`;
+                        link.click();
+                      }}
+                      className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                    >
+                      💾 Télécharger
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
             
+            {/* Indicateurs dans le modal */}
             {hasMultipleImages && (
               <div className="flex justify-center mt-4 space-x-2">
                 {images.map((_, index) => (
@@ -4251,640 +4355,7 @@ function AdSenseFormModal({
     </ModernModal>
   );
 }
-// ==========================================
-// SECTION 7 : PARTIE 9 - COMPOSANT PRINCIPAL & ASSEMBLAGE FINAL
-// ==========================================
-
-// Composant principal - E-commerce complet moderne
-export default function ModernEcommercePage() {
-  // Hooks principaux
-  const { 
-    language, 
-    darkMode, 
-    viewMode, 
-    setViewMode, 
-    t 
-  } = useAppState();
-  
-  const { 
-    passwordEntered, 
-    handleAdminAction 
-  } = useAdminAuth();
-  
-  const {
-    products,
-    allProducts,
-    loading,
-    error,
-    searchTerm,
-    setSearchTerm,
-    categoryFilter,
-    setCategoryFilter,
-    sortFilter,
-    setSortFilter,
-    availableCategories,
-    refreshProducts,
-    productService
-  } = useProducts();
-
-  const { 
-    favorites, 
-    toggleFavorite, 
-    isFavorite 
-  } = useFavorites();
-
-  const { 
-    notifications, 
-    removeNotification 
-  } = useNotifications();
-
-  const { 
-    addPoints 
-  } = useGamification(language);
-
-  const {
-    advertisements,
-    addAdvertisement,
-    updateAdvertisement,
-    deleteAdvertisement,
-    getRandomAd
-  } = useAdvertisements();
-
-  const {
-    adsenseConfigs,
-    addAdSenseConfig,
-    updateAdSenseConfig,
-    deleteAdSenseConfig,
-    getAdSenseConfigByPosition,
-    shouldShowAdSenseAd
-  } = useAdSense();
-
-  // États pour les modales et vues
-  const [showBlog, setShowBlog] = useState(false);
-  const [showAds, setShowAds] = useState(false);
-  const [showAdSenseManagement, setShowAdSenseManagement] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
-
-  // États pour les formulaires
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [showAdForm, setShowAdForm] = useState(false);
-  const [showAdSenseForm, setShowAdSenseForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
-  const [editingAdSense, setEditingAdSense] = useState<AdSenseConfig | null>(null);
-
-  // Gestion des produits
-  const handleAddProduct = () => {
-    handleAdminAction(() => {
-      setEditingProduct(null);
-      setShowProductForm(true);
-    });
-  };
-
-  const handleEditProduct = (product: Product) => {
-    handleAdminAction(() => {
-      setEditingProduct(product);
-      setShowProductForm(true);
-    });
-  };
-
-  const handleSaveProduct = async (productData: Partial<Product>, editId?: number): Promise<boolean> => {
-    const success = await productService.saveProduct(productData, editId);
-    if (success) {
-      refreshProducts();
-    }
-    return success;
-  };
-
-  const handleDeleteProduct = async (id: number) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      const success = await productService.deleteProduct(id);
-      if (success) {
-        refreshProducts();
-      }
-    }
-  };
-
-  // Gestion des publicités
-  const handleAddAd = () => {
-    handleAdminAction(() => {
-      setEditingAd(null);
-      setShowAdForm(true);
-    });
-  };
-
-  const handleEditAd = (ad: Advertisement) => {
-    setEditingAd(ad);
-    setShowAdForm(true);
-  };
-
-  const handleSaveAd = (adData: Partial<Advertisement>, editId?: number) => {
-    if (editId) {
-      updateAdvertisement(editId, adData);
-    } else {
-      addAdvertisement(adData as Omit<Advertisement, 'id' | 'createdAt'>);
-    }
-  };
-
-  const handleDeleteAd = (id: number) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette publicité ?')) {
-      deleteAdvertisement(id);
-    }
-  };
-
-  // Gestion AdSense
-  const handleAddAdSense = () => {
-    handleAdminAction(() => {
-      setEditingAdSense(null);
-      setShowAdSenseForm(true);
-    });
-  };
-
-  const handleEditAdSense = (config: AdSenseConfig) => {
-    setEditingAdSense(config);
-    setShowAdSenseForm(true);
-  };
-
-  const handleSaveAdSense = (configData: Partial<AdSenseConfig>, editId?: number) => {
-    if (editId) {
-      updateAdSenseConfig(editId, configData);
-    } else {
-      addAdSenseConfig(configData as Omit<AdSenseConfig, 'id' | 'createdAt'>);
-    }
-  };
-
-  const handleDeleteAdSense = (id: number) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette configuration AdSense ?')) {
-      deleteAdSenseConfig(id);
-    }
-  };
-
-  // Gestion du partage
-  const handleShare = (product: Product) => {
-    if (navigator.share) {
-      navigator.share({
-        title: product.name,
-        text: product.description,
-        url: window.location.href
-      });
-    } else {
-      navigator.clipboard.writeText(`${product.name} - ${window.location.href}`);
-    }
-    addPoints(15, t('sharePoints'));
-  };
-
-  // Composant de barre latérale avec activité
-  const SidebarActivity = () => {
-    const trafficData = useTrafficSimulator(language);
-    const screenSize = useScreenSize();
-    
-    if (screenSize === 'mobile') return null;
-
-    return (
-      <div className="hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 w-64 z-30 space-y-4">
-        {/* Activité récente */}
-        <div className={`rounded-2xl border p-6 shadow-lg backdrop-blur-lg ${
-          darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-gray-200'
-        }`}>
-          <h3 className={`font-bold mb-4 text-sm flex items-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            🔥 {t('recentActivity')}
-          </h3>
-          <div className="space-y-2">
-            {trafficData.recentActivity.slice(0, 3).map((activity, index) => (
-              <div key={index} className={`text-xs p-3 rounded-xl ${
-                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'
-              }`}>
-                {activity}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Publicité AdSense ou par défaut */}
-        {(() => {
-          const sidebarAdConfig = getAdSenseConfigByPosition('sidebar');
-          return sidebarAdConfig ? (
-            <div className={`rounded-2xl border p-6 shadow-lg backdrop-blur-lg ${
-              darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-gray-200'
-            }`}>
-              <h4 className={`font-bold mb-3 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                📢 Publicité
-              </h4>
-              <GoogleAdSense 
-                clientId={sidebarAdConfig.clientId}
-                slotId={sidebarAdConfig.slotId}
-                format={sidebarAdConfig.format}
-                style={{ minHeight: '250px' }}
-              />
-            </div>
-          ) : (
-            <div className={`rounded-2xl border p-6 shadow-lg backdrop-blur-lg ${
-              darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-gray-200'
-            }`}>
-              <h4 className={`font-bold mb-3 text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                📢 Publicité
-              </h4>
-              <div className={`rounded-xl p-4 text-white text-center ${
-                darkMode ? 'bg-gradient-to-b from-green-800 to-emerald-800' : 'bg-gradient-to-b from-green-500 to-emerald-500'
-              }`}>
-                <p className="text-xs font-bold mb-1">💎 VIP Deals</p>
-                <p className="text-xs opacity-90 mb-3">Accès exclusif aux meilleures offres</p>
-                <button 
-                  onClick={() => window.open(`https://m.me/${MESSENGER_PAGE_ID}`, '_blank')}
-                  className="bg-white text-green-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 transition-colors"
-                >
-                  En savoir +
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-    );
-  };
-
-  // Rendu des produits avec publicités intégrées
-  const renderProductsWithAds = () => {
-    const productsToRender = [];
-    
-    // Publicité AdSense en haut
-    const topAdConfig = getAdSenseConfigByPosition('top');
-    if (topAdConfig) {
-      productsToRender.push(
-        <div key="top-ad" className={viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''}>
-          <div className={`rounded-2xl overflow-hidden shadow-lg border ${
-            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            <div className={`p-3 text-center text-xs ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-              Publicité • Google AdSense
-            </div>
-            <div className="p-4">
-              <GoogleAdSense 
-                clientId={topAdConfig.clientId}
-                slotId={topAdConfig.slotId}
-                format={topAdConfig.format}
-                style={{ minHeight: '120px' }}
-              />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Produits avec publicités intégrées
-    products.forEach((product, index) => {
-      // Ajouter le produit
-      productsToRender.push(
-        <ModernProductCard
-          key={`product-${product.id}`}
-          product={product}
-          isFavorite={isFavorite(product.id!)}
-          onToggleFavorite={() => toggleFavorite(product.id!)}
-          onShare={() => handleShare(product)}
-          onEdit={() => handleEditProduct(product)}
-          showAdmin={passwordEntered}
-          viewMode={viewMode}
-        />
-      );
-
-      // Publicité AdSense intégrée
-      if (shouldShowAdSenseAd(index)) {
-        const adSenseConfig = getAdSenseConfigByPosition('middle');
-        if (adSenseConfig) {
-          productsToRender.push(
-            <div key={`adsense-${index}`} className={viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''}>
-              <div className={`rounded-2xl overflow-hidden shadow-lg border ${
-                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}>
-                <div className={`p-3 text-center text-xs ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  Publicité • Google AdSense
-                </div>
-                <div className="p-4">
-                  <GoogleAdSense 
-                    clientId={adSenseConfig.clientId}
-                    slotId={adSenseConfig.slotId}
-                    format={adSenseConfig.format}
-                    style={{ minHeight: '200px' }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        }
-      }
-
-      // Publicité personnalisée
-      if ((index + 1) % 6 === 0) {
-        const randomAd = getRandomAd();
-        if (randomAd) {
-          productsToRender.push(
-            <div key={`custom-ad-${index}`} className={viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''}>
-              <div className={`rounded-2xl overflow-hidden shadow-lg border ${
-                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}>
-                <div className={`p-6 text-white text-center ${
-                  randomAd.type === 'video' 
-                    ? darkMode ? 'bg-gradient-to-br from-red-800 to-pink-800' : 'bg-gradient-to-br from-red-500 to-pink-500'
-                    : darkMode ? 'bg-gradient-to-br from-blue-800 to-purple-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'
-                }`}>
-                  <h4 className="font-bold text-lg mb-2">{randomAd.title}</h4>
-                  <p className="text-sm opacity-90 mb-4">{randomAd.description}</p>
-                  <button 
-                    onClick={() => window.open(randomAd.url, '_blank')}
-                    className="bg-white text-gray-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors"
-                  >
-                    {randomAd.type === 'video' ? '▶️ Voir' : '🖼️ Découvrir'}
-                  </button>
-                </div>
-                <div className={`p-3 text-center text-xs ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  Publicité • CERDIA
-                </div>
-              </div>
-            </div>
-          );
-        }
-      }
-    });
-
-    // Publicité AdSense en bas
-    const bottomAdConfig = getAdSenseConfigByPosition('bottom');
-    if (bottomAdConfig) {
-      productsToRender.push(
-        <div key="bottom-ad" className={viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''}>
-          <div className={`rounded-2xl overflow-hidden shadow-lg border ${
-            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            <div className={`p-3 text-center text-xs ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-              Publicité • Google AdSense
-            </div>
-            <div className="p-4">
-              <GoogleAdSense 
-                clientId={bottomAdConfig.clientId}
-                slotId={bottomAdConfig.slotId}
-                format={bottomAdConfig.format}
-                style={{ minHeight: '120px' }}
-              />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return productsToRender;
-  };
-
-  // Affichage conditionnel des erreurs
-  if (error) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        darkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        <EmptyState
-          icon="❌"
-          title="Erreur de chargement"
-          description={error}
-          actionLabel="Réessayer"
-          onAction={refreshProducts}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className={`min-h-screen transition-all duration-500 ${
-      darkMode ? 'bg-gray-900' : 'bg-gray-50'
-    }`}>
-      {/* Notifications */}
-      {notifications.map((notification) => (
-        <NotificationToast
-          key={notification.id}
-          show={true}
-          message={notification.message}
-          type={notification.type}
-          onClose={() => removeNotification(notification.id)}
-        />
-      ))}
-
-      {/* Header moderne */}
-      <ModernHeader />
-
-      {/* Navigation */}
-      <ModernNavigation
-        showBlog={showBlog}
-        setShowBlog={setShowBlog}
-        showAds={showAds}
-        setShowAds={setShowAds}
-        showAdSenseManagement={showAdSenseManagement}
-        setShowAdSenseManagement={setShowAdSenseManagement}
-        passwordEntered={passwordEntered}
-        onQuizClick={() => setShowQuiz(true)}
-      />
-
-      {/* Contenu principal */}
-      <main className="relative">
-        {/* Barre latérale d'activité */}
-        <SidebarActivity />
-
-        {/* Page Blog */}
-        {showBlog && <ModernBlogSection />}
-
-        {/* Page Gestion des Publicités */}
-        {showAds && passwordEntered && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className={`rounded-3xl shadow-lg p-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-              <div className="flex items-center justify-between mb-8">
-                <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  📺 {t('manageAds')}
-                </h1>
-                <button 
-                  onClick={handleAddAd}
-                  className="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-red-700 transition-all transform hover:scale-105 flex items-center gap-2 shadow-lg"
-                >
-                  <Plus size={20} />
-                  {t('addAd')}
-                </button>
-              </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {advertisements.map((ad) => (
-                  <div key={ad.id} className={`border-2 rounded-2xl p-6 transition-all hover:scale-105 ${
-                    darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-                  } ${ad.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        {ad.type === 'video' ? (
-                          <Video size={20} className="text-red-500" />
-                        ) : (
-                          <Mountain size={20} className="text-blue-500" />
-                        )}
-                        <ModernBadge 
-                          variant={ad.isActive ? "success" : "default"} 
-                          size="sm"
-                        >
-                          {ad.isActive ? t('isActive') : 'Inactif'}
-                        </ModernBadge>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleEditAd(ad)}
-                          className="p-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteAd(ad.id!)}
-                          className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {ad.imageUrl && (
-                      <div className="mb-4">
-                        <img 
-                          src={ad.imageUrl} 
-                          alt={ad.title}
-                          className="w-full h-32 object-cover rounded-xl"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <h3 className={`font-bold text-lg mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {ad.title}
-                    </h3>
-                    <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {ad.description}
-                    </p>
-                    <p className={`text-xs break-all ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      🔗 {ad.url}
-                    </p>
-                    {ad.createdAt && (
-                      <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        📅 {formatDate(ad.createdAt, language)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {advertisements.length === 0 && (
-                  <div className="col-span-full">
-                    <EmptyState
-                      icon="📺"
-                      title="Aucune publicité"
-                      description="Ajoutez votre première publicité pour commencer"
-                      actionLabel={t('addAd')}
-                      onAction={handleAddAd}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Page Gestion AdSense */}
-        {showAdSenseManagement && passwordEntered && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className={`rounded-3xl shadow-lg p-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-              <div className="flex items-center justify-between mb-8">
-                <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  💰 {t('manageAdSense')}
-                </h1>
-                <button 
-                  onClick={handleAddAdSense}
-                  className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-green-700 transition-all transform hover:scale-105 flex items-center gap-2 shadow-lg"
-                >
-                  <Plus size={20} />
-                  {t('addAdSense')}
-                </button>
-              </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {adsenseConfigs.map((config) => (
-                  <div key={config.id} className={`border-2 rounded-2xl p-6 transition-all hover:scale-105 ${
-                    darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-                  } ${config.isActive ? 'ring-2 ring-green-500' : 'opacity-60'}`}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">💰</span>
-                        <ModernBadge 
-                          variant={config.isActive ? "success" : "default"} 
-                          size="sm"
-                        >
-                          {config.isActive ? t('isActive') : 'Inactif'}
-                        </ModernBadge>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleEditAdSense(config)}
-                          className="p-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteAdSense(config.id!)}
-                          className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        <strong>Client ID:</strong> {config.clientId}
-                      </p>
-                      <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        <strong>Slot ID:</strong> {config.slotId}
-                      </p>
-                      <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        <strong>Position:</strong> {config.position}
-                      </p>
-                      <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        <strong>Fréquence:</strong> Tous les {config.frequency} produits
-                      </p>
-                    </div>
-
-                    <div className="mt-4 border-t pt-4">
-                      <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Aperçu:</p>
-                      <GoogleAdSense 
-                        clientId={config.clientId}
-                        slotId={config.slotId}
-                        format={config.format}
-                        className={`border rounded-xl ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
-                        style={{ minHeight: '60px', fontSize: '12px' }}
-                      />
-                    </div>
-
-                    {config.createdAt && (
-                      <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        📅 {formatDate(config.createdAt, language)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {adsenseConfigs.length === 0 && (
-                  <div className="col-span-full">
-                    <EmptyState
-                      icon="💰"
-                      title="Aucune configuration AdSense"
-                      description="Configurez votre première publicité AdSense"
-                      actionLabel={t('addAdSense')}
-                      onAction={handleAddAdSense}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Page Produits Principale */}
+{/* Page Produits Principale */}
         {!showBlog && !showAds && !showAdSenseManagement && (
           <>
             {/* Filtres et recherche */}
@@ -4902,13 +4373,13 @@ export default function ModernEcommercePage() {
               onRefresh={refreshProducts}
             />
 
-            {/* Grille des produits */}
+            {/* ✅ Grille des produits avec 2 colonnes sur mobile */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
               {loading ? (
                 <div className={`grid ${
                   viewMode === 'grid' 
-                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-                    : 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4'
+                    ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6' 
+                    : 'columns-2 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4'
                 } mb-8`}>
                   {Array.from({ length: 8 }).map((_, i) => (
                     <div
@@ -4924,8 +4395,8 @@ export default function ModernEcommercePage() {
               ) : products.length > 0 ? (
                 <div className={
                   viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                    : 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4'
+                    ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6'
+                    : 'columns-2 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4 space-y-4'
                 }>
                   {renderProductsWithAds()}
                 </div>
@@ -4955,71 +4426,3 @@ export default function ModernEcommercePage() {
             </div>
           </>
         )}
-      </main>
-
-      {/* Boutons flottants */}
-      {!showBlog && !showAds && !showAdSenseManagement && (
-        <button 
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full shadow-2xl flex items-center justify-center z-30 transform hover:scale-110 transition-all" 
-          onClick={handleAddProduct}
-        >
-          <Plus size={28} />
-        </button>
-      )}
-
-      {showAds && passwordEntered && (
-        <button 
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-full shadow-2xl flex items-center justify-center z-30 transform hover:scale-110 transition-all" 
-          onClick={handleAddAd}
-        >
-          <Video size={28} />
-        </button>
-      )}
-
-      {showAdSenseManagement && passwordEntered && (
-        <button 
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-full shadow-2xl flex items-center justify-center z-30 transform hover:scale-110 transition-all" 
-          onClick={handleAddAdSense}
-        >
-          <span className="text-2xl">💰</span>
-        </button>
-      )}
-
-      {/* Modales */}
-      <StyleQuizModal 
-        isOpen={showQuiz} 
-        onClose={() => setShowQuiz(false)} 
-      />
-
-      <ProductFormModal
-        isOpen={showProductForm}
-        onClose={() => {
-          setShowProductForm(false);
-          setEditingProduct(null);
-        }}
-        product={editingProduct}
-        onSave={handleSaveProduct}
-      />
-
-      <AdFormModal
-        isOpen={showAdForm}
-        onClose={() => {
-          setShowAdForm(false);
-          setEditingAd(null);
-        }}
-        ad={editingAd}
-        onSave={handleSaveAd}
-      />
-
-      <AdSenseFormModal
-        isOpen={showAdSenseForm}
-        onClose={() => {
-          setShowAdSenseForm(false);
-          setEditingAdSense(null);
-        }}
-        config={editingAdSense}
-        onSave={handleSaveAdSense}
-      />
-    </div>
-  );
-}
