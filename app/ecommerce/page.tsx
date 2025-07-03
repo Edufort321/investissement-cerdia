@@ -110,7 +110,7 @@ const CATEGORY_MAPPING = {
   'Book': 'Livre',
   'Tool': 'Outil',
   'Watch': 'Montre'
-};
+} as const;
 
 // Traductions complètes modernes
 const translations = {
@@ -384,7 +384,7 @@ const translations = {
     reviews: 'reviews',
     savings: 'Save'
   }
-};
+} as const;
 // ==========================================
 // SECTION 7 : PARTIE 2 - COMPOSANTS UTILITAIRES & ADSENSE
 // ==========================================
@@ -1086,7 +1086,6 @@ class GamificationSystem {
   }
 
   private showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
-    // Cette fonction sera connectée au système de notifications global
     try {
       const event = new CustomEvent('showNotification', {
         detail: { message, type }
@@ -1132,29 +1131,25 @@ class GamificationSystem {
 
 // Hook pour utiliser le système de gamification
 function useGamification(language: 'fr' | 'en' = 'fr') {
-  const [data, setData] = useState<UserGameification>(() => {
-    // Utilisation de données par défaut au lieu d'appeler getCurrentData
-    return {
-      level: 1,
-      experience: 0,
-      badges: [],
-      streak: { current: 0, longest: 0, lastActivity: '' },
-      referrals: 0,
-      totalSpent: 0,
-      pointsBalance: 0,
-      tier: 'bronze'
-    };
-  });
+  const [data, setData] = useState<UserGameification>(() => ({
+    level: 1,
+    experience: 0,
+    badges: [],
+    streak: { current: 0, longest: 0, lastActivity: '' },
+    referrals: 0,
+    totalSpent: 0,
+    pointsBalance: 0,
+    tier: 'bronze'
+  }));
 
   const gamification = useMemo(() => GamificationSystem.getInstance(), []);
 
   useEffect(() => {
     const unsubscribe = gamification.subscribe(setData);
     
-    // Charger les données initiales en appelant addPoints avec 0 pour déclencher la lecture
+    // Charger les données initiales
     gamification.addPoints(0, '', language);
     
-    // Retourner une fonction de nettoyage qui ne retourne rien
     return () => {
       unsubscribe();
     };
@@ -1516,6 +1511,9 @@ function useProducts() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortFilter, setSortFilter] = useState('newest');
 
+  // ✅ Déplacer useAppState ici au lieu de dans useMemo
+  const { language } = useAppState();
+  
   const productService = useMemo(() => new ProductService(), []);
 
   const loadProducts = useCallback(async () => {
@@ -1596,9 +1594,8 @@ function useProducts() {
     return filtered;
   }, [products, searchTerm, categoryFilter, sortFilter]);
 
-  // Catégories disponibles
+  // ✅ Catégories disponibles - CORRIGÉ avec language comme dépendance
   const availableCategories = useMemo(() => {
-    const { language } = useAppState();
     const defaultCats = DEFAULT_CATEGORIES[language];
     
     const productCategories = new Set<string>();
@@ -1622,7 +1619,7 @@ function useProducts() {
     ]);
     
     return Array.from(allCategories).sort();
-  }, [products]);
+  }, [products, language]); // ✅ Ajouter language comme dépendance
 
   const refreshProducts = useCallback(() => {
     productService.clearCache();
@@ -1809,6 +1806,10 @@ function useAdSense() {
     shouldShowAdSenseAd
   };
 }
+// ==========================================
+// SECTION 7 : PARTIE 5 - COMPOSANTS UI MODERNES
+// ==========================================
+
 // Composant Header moderne et responsive
 function ModernHeader() {
   const { language, setLanguage, darkMode, toggleDarkMode, t } = useAppState();
@@ -2275,6 +2276,9 @@ function SearchAndFilters({
     </div>
   );
 }
+// ==========================================
+// SECTION 7 : PARTIE 6 - COMPOSANT PRODUCTCARD
+// ==========================================
 
 // Composant de carte produit ultra-moderne
 function ModernProductCard({ 
@@ -2327,22 +2331,26 @@ function ModernProductCard({
   const handleCardClick = () => {
     addPoints(2, '+2 points pour l\'exploration !');
     // Analytics
-    window.gtag?.('event', 'product_view', {
-      product_id: product.id,
-      product_name: product.name,
-      value: parseFloat(product.priceCa || '0'),
-      currency: 'CAD'
-    });
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag?.('event', 'product_view', {
+        product_id: product.id,
+        product_name: product.name,
+        value: parseFloat(product.priceCa || '0'),
+        currency: 'CAD'
+      });
+    }
   };
 
   const handleAffiliateClick = (e: React.MouseEvent, link: string) => {
     e.stopPropagation();
     addPoints(10, '+10 points pour cet achat !');
-    window.gtag?.('event', 'affiliate_click', {
-      product_id: product.id,
-      product_name: product.name,
-      affiliate_source: link.includes('amazon') ? 'amazon' : 'direct'
-    });
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag?.('event', 'affiliate_click', {
+        product_id: product.id,
+        product_name: product.name,
+        affiliate_source: link.includes('amazon') ? 'amazon' : 'direct'
+      });
+    }
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
@@ -2546,9 +2554,11 @@ function ModernProductCard({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-green-600">
-                  {formatPrice(product.priceCa!)}
-                </span>
+                {product.priceCa && (
+                  <span className="text-2xl font-bold text-green-600">
+                    {formatPrice(product.priceCa)}
+                  </span>
+                )}
                 {product.originalPrice && (
                   <span className={`text-lg line-through ${
                     darkMode ? 'text-gray-500' : 'text-gray-400'
@@ -2675,7 +2685,7 @@ function ModernProductCard({
   );
 }
 // ==========================================
-// SECTION 7 : PARTIE 6 - SYSTÈME DE QUIZ & BLOG
+// SECTION 7 : PARTIE 7 - SYSTÈME DE QUIZ & BLOG
 // ==========================================
 
 // Composant Quiz de Style Moderne
@@ -3303,7 +3313,7 @@ I would like to get my Sitestripe links for this product. Thank you!`;
   );
 }
 // ==========================================
-// SECTION 7 : PARTIE 7 - GESTION ADMIN & FORMULAIRES
+// SECTION 7 : PARTIE 8 - GESTION ADMIN & FORMULAIRES
 // ==========================================
 
 // Hook pour la gestion de l'authentification admin
@@ -4209,8 +4219,7 @@ function AdSenseFormModal({
             </div>
             <div className="mt-3 text-center">
               <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Position: {t(`position${formData.position!.charAt(0).toUpperCase() + formData.position!.slice(1)}` as keyof typeof translations.fr)} • 
-                Format: {t(`format${formData.format!.charAt(0).toUpperCase() + formData.format!.slice(1)}` as keyof typeof translations.fr)}
+                Position: {formData.position} • Format: {formData.format}
               </span>
             </div>
           </div>
@@ -4243,7 +4252,7 @@ function AdSenseFormModal({
   );
 }
 // ==========================================
-// SECTION 7 : PARTIE 8 - COMPOSANT PRINCIPAL & ASSEMBLAGE FINAL
+// SECTION 7 : PARTIE 9 - COMPOSANT PRINCIPAL & ASSEMBLAGE FINAL
 // ==========================================
 
 // Composant principal - E-commerce complet moderne
@@ -4833,7 +4842,7 @@ export default function ModernEcommercePage() {
                         <strong>Slot ID:</strong> {config.slotId}
                       </p>
                       <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        <strong>Position:</strong> {t(`position${config.position.charAt(0).toUpperCase() + config.position.slice(1)}` as keyof typeof translations.fr)}
+                        <strong>Position:</strong> {config.position}
                       </p>
                       <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                         <strong>Fréquence:</strong> Tous les {config.frequency} produits
