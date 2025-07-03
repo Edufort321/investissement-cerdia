@@ -1127,7 +1127,8 @@ class GamificationSystem {
 // Hook pour utiliser le système de gamification
 function useGamification(language: 'fr' | 'en' = 'fr') {
   const [data, setData] = useState<UserGameification>(() => {
-    return GamificationSystem.getInstance().getCurrentData?.() || {
+    // Utilisation de données par défaut au lieu d'appeler getCurrentData
+    return {
       level: 1,
       experience: 0,
       badges: [],
