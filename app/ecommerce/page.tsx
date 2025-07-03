@@ -1809,14 +1809,10 @@ function useAdSense() {
     shouldShowAdSenseAd
   };
 }
-// ==========================================
-// SECTION 7 : PARTIE 5 - COMPOSANTS UI MODERNES
-// ==========================================
-
 // Composant Header moderne et responsive
 function ModernHeader() {
   const { language, setLanguage, darkMode, toggleDarkMode, t } = useAppState();
-  const { data: gamificationData } = useGamification(language);
+  const gamification = useGamification(language); // ✅ Utiliser le hook complet
   const trafficData = useTrafficSimulator(language);
   const screenSize = useScreenSize();
 
@@ -1852,10 +1848,10 @@ function ModernHeader() {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center space-x-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
-                  <span className={gamificationData.getTierIcon(gamificationData.tier)}>
-                    {gamificationData.getTierIcon(gamificationData.tier)}
+                  <span>
+                    {gamification.getTierIcon(gamification.data.tier)}
                   </span>
-                  <span className="font-medium">{gamificationData.experience} XP</span>
+                  <span className="font-medium">{gamification.data.experience} XP</span>
                 </div>
                 
                 <div className="flex items-center space-x-1 text-green-600">
@@ -1901,8 +1897,8 @@ function ModernHeader() {
         {screenSize === 'mobile' && (
           <div className="pb-3 flex justify-center space-x-4 text-sm">
             <div className="flex items-center space-x-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
-              <span>{gamificationData.getTierIcon(gamificationData.tier)}</span>
-              <span className="font-medium">{gamificationData.experience} XP</span>
+              <span>{gamification.getTierIcon(gamification.data.tier)}</span>
+              <span className="font-medium">{gamification.data.experience} XP</span>
             </div>
             <div className="flex items-center space-x-1 text-green-600">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
