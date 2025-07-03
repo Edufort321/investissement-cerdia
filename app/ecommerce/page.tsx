@@ -2277,10 +2277,10 @@ function SearchAndFilters({
   );
 }
 // ==========================================
-// SECTION 7 : PARTIE 6 - COMPOSANT PRODUCTCARD (IMAGES CORRIGÉES)
+// SECTION 7 : PARTIE 6 - COMPOSANT PRODUCTCARD (DOUBLE-CLIC CORRIGÉ)
 // ==========================================
 
-// Composant de carte produit ultra-moderne avec images optimisées
+// Composant de carte produit ultra-moderne avec double-clic fonctionnel
 function ModernProductCard({ 
   product, 
   isFavorite, 
@@ -2307,6 +2307,10 @@ function ModernProductCard({
   const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const screenSize = useScreenSize();
+  
+  // ✅ Gestion des clics séparés pour éviter les conflits
+  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [clickCount, setClickCount] = useState(0);
   
   const gesture = useTouchGestures(cardRef);
   const images = Array.isArray(product.images) ? product.images.filter(img => img && img.trim() !== '') : [];
@@ -2336,12 +2340,38 @@ function ModernProductCard({
     setImageError(false);
   };
 
-  // ✅ Fonction pour agrandir l'image avec double-clic
-  const handleImageDoubleClick = (e: React.MouseEvent) => {
+  // ✅ Gestion des clics sur l'image (simple et double)
+  const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault();
-    if (images.length > 0 && !imageError) {
-      setShowImageModal(true);
+    
+    setClickCount(prev => prev + 1);
+    
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      setClickTimeout(null);
+    }
+    
+    const timeout = setTimeout(() => {
+      if (clickCount === 1) {
+        // Simple clic - ne rien faire ou action légère
+        console.log('Simple clic sur image');
+      }
+      setClickCount(0);
+    }, 300); // Délai pour détecter le double-clic
+    
+    setClickTimeout(timeout);
+    
+    // Double-clic détecté
+    if (clickCount === 1) {
+      clearTimeout(timeout);
+      setClickCount(0);
+      setClickTimeout(null);
+      
+      // ✅ Ouvrir le modal d'image
+      if (images.length > 0 && !imageError) {
+        console.log('Double-clic détecté - ouverture modal');
+        setShowImageModal(true);
+      }
     }
   };
 
@@ -2378,16 +2408,13 @@ function ModernProductCard({
     return original - current;
   };
 
-  // ✅ Dimensions adaptives selon l'écran et le mode d'affichage
+  // Dimensions adaptives selon l'écran et le mode d'affichage
   const getImageDimensions = () => {
     if (screenSize === 'mobile') {
-      // Mobile : 2 colonnes, aspect ratio plus carré
       return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
     } else if (screenSize === 'tablet') {
-      // Tablet : aspect ratio équilibré
       return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
     } else {
-      // Desktop : plus d'espace vertical
       return viewMode === 'grid' ? 'aspect-[4/5]' : 'aspect-[3/4]';
     }
   };
@@ -2408,18 +2435,19 @@ function ModernProductCard({
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
       >
-        {/* ✅ Container d'image optimisé */}
+        {/* ✅ Container d'image avec gestion de clic optimisée */}
         <div className={`relative ${getImageDimensions()} overflow-hidden bg-gray-100 dark:bg-gray-700`}>
           {images.length > 0 && !imageError ? (
             <>
+              {/* ✅ Image avec gestion du double-clic */}
               <img
                 src={images[currentImageIndex]}
                 alt={product.name}
-                className={`w-full h-full object-contain transition-all duration-700 ${
+                className={`w-full h-full object-contain transition-all duration-700 cursor-pointer ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
                 } ${isHovered ? 'scale-105' : 'scale-100'}`}
                 style={{
-                  objectFit: 'contain', // ✅ Assure que l'image entière est visible
+                  objectFit: 'contain',
                   backgroundColor: darkMode ? '#374151' : '#f3f4f6'
                 }}
                 onLoad={() => {
@@ -2430,7 +2458,7 @@ function ModernProductCard({
                   setImageError(true);
                   setImageLoaded(false);
                 }}
-                onDoubleClick={handleImageDoubleClick} // ✅ Double-clic pour agrandir
+                onClick={handleImageClick} // ✅ Gestion du clic sur l'image
               />
               
               {!imageLoaded && !imageError && (
@@ -2439,12 +2467,17 @@ function ModernProductCard({
                 </div>
               )}
 
-              {/* ✅ Indication de double-clic */}
+              {/* ✅ Indication de double-clic plus visible */}
               {imageLoaded && !imageError && (
-                <div className={`absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-medium transition-opacity ${
+                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${
                   isHovered ? 'opacity-100' : 'opacity-0'
-                } bg-black/70 text-white`}>
-                  📸 Double-clic pour agrandir
+                }`}>
+                  <div className="bg-black/70 text-white px-4 py-2 rounded-xl backdrop-blur-sm">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">📸</span>
+                      <span className="text-sm font-medium">Double-clic pour agrandir</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2468,7 +2501,7 @@ function ModernProductCard({
                     ›
                   </button>
                   
-                  {/* Indicateurs d'images - plus petits sur mobile */}
+                  {/* Indicateurs d'images */}
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
                     {images.map((_, index) => (
                       <button
@@ -2489,7 +2522,7 @@ function ModernProductCard({
               )}
             </>
           ) : (
-            // ✅ État d'erreur d'image amélioré
+            // État d'erreur d'image amélioré
             <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex flex-col items-center justify-center">
               <div className="text-4xl mb-2">🖼️</div>
               <span className="text-gray-500 dark:text-gray-400 text-sm font-medium text-center px-4">
@@ -2569,7 +2602,7 @@ function ModernProductCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
 
-        {/* ✅ Contenu adapté pour mobile */}
+        {/* Contenu adapté pour mobile */}
         <div className={`${screenSize === 'mobile' ? 'p-3' : 'p-6'} space-y-3`}>
           {/* Titre et description */}
           <div>
@@ -2707,7 +2740,7 @@ function ModernProductCard({
         </div>
       </div>
 
-      {/* ✅ Modal d'image amélioré */}
+      {/* ✅ Modal d'image amélioré avec gestion des clics */}
       {showImageModal && images.length > 0 && (
         <ModernModal
           isOpen={showImageModal}
@@ -2720,22 +2753,32 @@ function ModernProductCard({
               <img
                 src={images[currentImageIndex]}
                 alt={product.name}
-                className="w-full max-h-[70vh] object-contain"
+                className="w-full max-h-[70vh] object-contain cursor-pointer"
                 style={{ objectFit: 'contain' }}
                 onError={() => setImageError(true)}
+                onClick={() => {
+                  // Clic simple pour fermer le modal
+                  setShowImageModal(false);
+                }}
               />
               
               {/* Navigation dans le modal */}
               {hasMultipleImages && (
                 <>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+                    }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all"
                   >
                     ‹
                   </button>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+                    }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center z-20 transition-all"
                   >
                     ›
@@ -2751,7 +2794,8 @@ function ModernProductCard({
                   </span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const link = document.createElement('a');
                         link.href = images[currentImageIndex];
                         link.download = `${product.name}-${currentImageIndex + 1}.jpg`;
@@ -2760,6 +2804,12 @@ function ModernProductCard({
                       className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
                     >
                       💾 Télécharger
+                    </button>
+                    <button
+                      onClick={() => setShowImageModal(false)}
+                      className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
+                    >
+                      ✕ Fermer
                     </button>
                   </div>
                 </div>
