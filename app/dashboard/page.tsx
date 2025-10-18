@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
+import AdministrationTab from '@/components/AdministrationTab'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
 
@@ -381,15 +382,7 @@ export default function DashboardPage() {
 
           {activeTab === 'projet' && <ProjetTab />}
 
-          {activeTab === 'administration' && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Administration</h2>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <p className="text-gray-600">Gestion des investisseurs, documents et paramètres.</p>
-                <p className="text-sm text-gray-500 mt-2">En construction...</p>
-              </div>
-            </div>
-          )}
+          {activeTab === 'administration' && <AdministrationTab />}
         </div>
       </main>
 
