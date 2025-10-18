@@ -3,82 +3,31 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X } from 'lucide-react'
+import { useInvestment } from '@/contexts/InvestmentContext'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users } from 'lucide-react'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
 
-interface Investor {
-  id: string
-  firstName: string
-  lastName: string
-  phone: string
-  email: string
-  username: string
-  amount: number
-  investmentType: 'immobilier' | 'actions' | 'mixte'
-  status: 'actif' | 'inactif'
-  accessLevel: 'investisseur'
-  permissions: {
-    dashboard: boolean
-    projet: boolean
-    administration: boolean
-  }
-  createdAt: string
-}
-
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
+  const { investors, properties, transactions, capexAccounts, currentAccounts, loading } = useInvestment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
-
-  // Gestion des investisseurs
-  const [investors, setInvestors] = useState<Investor[]>([])
-  const [newFirstName, setNewFirstName] = useState('')
-  const [newLastName, setNewLastName] = useState('')
-  const [newPhone, setNewPhone] = useState('')
-  const [newEmail, setNewEmail] = useState('')
-  const [newUsername, setNewUsername] = useState('')
-  const [newAmount, setNewAmount] = useState('')
-  const [newType, setNewType] = useState<'immobilier' | 'actions' | 'mixte'>('immobilier')
-  const [permissions, setPermissions] = useState({
-    dashboard: true,
-    projet: false,
-    administration: false
-  })
 
   // Gérer la vue mobile/desktop
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024
       setIsMobile(mobile)
-      setSidebarOpen(!mobile) // Fermé sur mobile, ouvert sur desktop
+      setSidebarOpen(!mobile)
     }
 
-    handleResize() // Initialiser
+    handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  // Charger les investisseurs depuis localStorage
-  useEffect(() => {
-    const savedInvestors = localStorage.getItem('cerdia-investors')
-    if (savedInvestors) {
-      try {
-        setInvestors(JSON.parse(savedInvestors))
-      } catch (error) {
-        console.error('Error loading investors:', error)
-      }
-    }
-  }, [])
-
-  // Sauvegarder les investisseurs dans localStorage
-  useEffect(() => {
-    if (investors.length > 0) {
-      localStorage.setItem('cerdia-investors', JSON.stringify(investors))
-    }
-  }, [investors])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -91,58 +40,22 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  const handleAddInvestor = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Calculer les KPIs en temps réel
+  const totalInvested = investors.reduce((sum, inv) => sum + (inv.total_invested || 0), 0)
+  const totalCurrentValue = investors.reduce((sum, inv) => sum + (inv.current_value || 0), 0)
+  const numberOfProperties = properties.length
+  const averageROI = properties.length > 0
+    ? properties.reduce((sum, prop) => sum + (prop.expected_roi || 0), 0) / properties.length
+    : 0
 
-    if (!newFirstName.trim() || !newLastName.trim() || !newPhone || !newEmail || !newUsername || !newAmount) {
-      alert('Veuillez remplir tous les champs obligatoires')
-      return
-    }
+  // Total payé sur toutes les propriétés
+  const totalPaidOnProperties = properties.reduce((sum, prop) => sum + (prop.paid_amount || 0), 0)
 
-    const newInvestor: Investor = {
-      id: Date.now().toString(),
-      firstName: newFirstName.trim(),
-      lastName: newLastName.trim(),
-      phone: newPhone,
-      email: newEmail,
-      username: newUsername,
-      amount: parseFloat(newAmount),
-      investmentType: newType,
-      status: 'actif',
-      accessLevel: 'investisseur',
-      permissions: { ...permissions },
-      createdAt: new Date().toISOString()
-    }
+  // Revenus mensuels estimés (basé sur ROI)
+  const estimatedMonthlyRevenue = (totalCurrentValue * (averageROI / 100)) / 12
 
-    setInvestors([...investors, newInvestor])
-
-    // Reset form
-    setNewFirstName('')
-    setNewLastName('')
-    setNewPhone('')
-    setNewEmail('')
-    setNewUsername('')
-    setNewAmount('')
-    setNewType('immobilier')
-    setPermissions({
-      dashboard: true,
-      projet: false,
-      administration: false
-    })
-  }
-
-  const handlePermissionChange = (tab: 'dashboard' | 'projet' | 'administration') => {
-    setPermissions(prev => ({
-      ...prev,
-      [tab]: !prev[tab]
-    }))
-  }
-
-  const handleDeleteInvestor = (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet investisseur ?')) {
-      setInvestors(investors.filter(inv => inv.id !== id))
-    }
-  }
+  // Transactions récentes (5 dernières)
+  const recentTransactions = transactions.slice(0, 5)
 
   if (!currentUser) {
     return (
@@ -205,7 +118,7 @@ export default function DashboardPage() {
                   key={tab.id}
                   onClick={() => {
                     setActiveTab(tab.id)
-                    if (isMobile) setSidebarOpen(false) // Fermer sur mobile après sélection
+                    if (isMobile) setSidebarOpen(false)
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
                     activeTab === tab.id
@@ -233,7 +146,7 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* Hamburger Menu - Visible only on mobile, below header */}
+      {/* Hamburger Menu - Visible only on mobile */}
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -249,62 +162,225 @@ export default function DashboardPage() {
         <div className="p-6 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Vue d'ensemble</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Vue d'ensemble</h2>
+                {loading && (
+                  <div className="text-sm text-gray-600 flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin"></div>
+                    Chargement...
+                  </div>
+                )}
+              </div>
+
+              {/* KPIs Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* Stats Cards */}
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-gray-600 text-sm font-medium mb-2">Total Investissements</h3>
-                  <p className="text-3xl font-bold text-gray-900">700 000 $</p>
-                  <p className="text-sm text-green-600 mt-2">+3.2% ce mois</p>
+                {/* Total Investi */}
+                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-gray-600 text-sm font-medium">Total Investi</h3>
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="text-blue-600" size={20} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">{investors.length} investisseurs</p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-gray-600 text-sm font-medium mb-2">Propriétés</h3>
-                  <p className="text-3xl font-bold text-gray-900">3</p>
-                  <p className="text-sm text-gray-600 mt-2">Actives</p>
+
+                {/* Propriétés */}
+                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-gray-600 text-sm font-medium">Propriétés</h3>
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Building2 className="text-purple-600" size={20} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900">{numberOfProperties}</p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    {totalPaidOnProperties.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
+                  </p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-gray-600 text-sm font-medium mb-2">Revenus Mensuels</h3>
-                  <p className="text-3xl font-bold text-gray-900">6 670 $</p>
-                  <p className="text-sm text-blue-600 mt-2">Objectif atteint</p>
+
+                {/* Revenus Mensuels Estimés */}
+                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-gray-600 text-sm font-medium">Revenus Mensuels Est.</h3>
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="text-green-600" size={20} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {estimatedMonthlyRevenue.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-sm text-blue-600 mt-2">Basé sur ROI {averageROI.toFixed(1)}%</p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-gray-600 text-sm font-medium mb-2">ROI Annuel</h3>
-                  <p className="text-3xl font-bold text-gray-900">10.2%</p>
-                  <p className="text-sm text-green-600 mt-2">+1.5% vs projection</p>
+
+                {/* ROI Moyen */}
+                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-gray-600 text-sm font-medium">ROI Moyen Annuel</h3>
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="text-orange-600" size={20} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900">{averageROI.toFixed(1)}%</p>
+                  <p className="text-sm text-green-600 mt-2">Performance solide</p>
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold mb-4">Activité récente</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 pb-4 border-b">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <FolderKanban size={20} className="text-blue-600" />
+              {/* Section Propriétés */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* Liste des Propriétés */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Building2 size={20} className="text-purple-600" />
+                    Portefeuille Immobilier
+                  </h3>
+                  {properties.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Aucune propriété pour le moment</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {properties.map((property) => {
+                        const progress = (property.paid_amount / property.total_cost) * 100
+                        return (
+                          <div key={property.id} className="border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{property.name}</h4>
+                                <p className="text-sm text-gray-600">{property.location}</p>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                property.status === 'en_construction' ? 'bg-yellow-100 text-yellow-800' :
+                                property.status === 'reservation' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {property.status === 'en_construction' ? 'En construction' :
+                                 property.status === 'reservation' ? 'Réservation' : property.status}
+                              </span>
+                            </div>
+                            <div className="mt-3">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Progression</span>
+                                <span className="font-semibold">{progress.toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full transition-all"
+                                  style={{ width: `${progress}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs mt-2 text-gray-600">
+                                <span>
+                                  {property.paid_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
+                                </span>
+                                <span>
+                                  / {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">ROI attendu</span>
+                                <span className="font-semibold text-green-600">{property.expected_roi}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Paiement reçu - Oasis Bay A301</p>
-                      <p className="text-sm text-gray-600">Il y a 2 heures</p>
-                    </div>
-                    <span className="text-green-600 font-semibold">+2,100 $</span>
-                  </div>
-                  <div className="flex items-center gap-4 pb-4 border-b">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Settings size={20} className="text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Rapport mensuel généré</p>
-                      <p className="text-sm text-gray-600">Il y a 1 jour</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
+
+                {/* Répartition des Investisseurs */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users size={20} className="text-blue-600" />
+                    Répartition des Investisseurs
+                  </h3>
+                  {investors.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Aucun investisseur pour le moment</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {investors
+                        .sort((a, b) => b.total_invested - a.total_invested)
+                        .map((investor) => (
+                        <div key={investor.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold">
+                              {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{investor.first_name} {investor.last_name}</p>
+                              <p className="text-sm text-gray-600">{investor.percentage_ownership.toFixed(2)}% du portefeuille</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900">
+                              {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            </p>
+                            <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} actions</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Transactions Récentes */}
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold mb-4">Activité récente</h3>
+                {recentTransactions.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Aucune transaction récente</p>
+                ) : (
+                  <div className="space-y-4">
+                    {recentTransactions.map((transaction) => (
+                      <div key={transaction.id} className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          transaction.type === 'investissement' ? 'bg-green-100' :
+                          transaction.type === 'paiement' ? 'bg-blue-100' :
+                          transaction.type === 'dividende' ? 'bg-purple-100' :
+                          'bg-gray-100'
+                        }`}>
+                          <DollarSign size={20} className={
+                            transaction.type === 'investissement' ? 'text-green-600' :
+                            transaction.type === 'paiement' ? 'text-blue-600' :
+                            transaction.type === 'dividende' ? 'text-purple-600' :
+                            'text-gray-600'
+                          } />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{transaction.description}</p>
+                          <p className="text-sm text-gray-600">
+                            {new Date(transaction.date).toLocaleDateString('fr-CA', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        <span className={`font-semibold ${
+                          transaction.type === 'investissement' || transaction.type === 'dividende'
+                            ? 'text-green-600'
+                            : 'text-blue-600'
+                        }`}>
+                          {transaction.amount >= 0 ? '+' : ''}{transaction.amount.toLocaleString('fr-CA', {
+                            style: 'currency',
+                            currency: 'USD'
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'projet' && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Gestion des Projets</h2>
+              <h2 className="text-2xl font-bold mb-6">Gestion des Projets</h2>
               <div className="bg-white p-6 rounded-lg shadow">
                 <p className="text-gray-600">Le gestionnaire d'investissement et le suivi de paiement seront intégrés ici.</p>
                 <p className="text-sm text-gray-500 mt-2">En construction...</p>
@@ -313,306 +389,11 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'administration' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold mb-4">Administration</h2>
-
-              {/* Gestion des Investisseurs */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Administration</h2>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                  <Settings size={20} />
-                  Gestion des Investisseurs
-                </h3>
-
-                {/* Formulaire d'ajout d'investisseur */}
-                <form onSubmit={handleAddInvestor} className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h4 className="font-medium mb-4">Ajouter un nouvel investisseur</h4>
-
-                  {/* Informations personnelles */}
-                  <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-3">Informations personnelles</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Prénom *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Jean"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newFirstName}
-                          onChange={(e) => setNewFirstName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nom *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Dupont"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newLastName}
-                          onChange={(e) => setNewLastName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Numéro de téléphone *
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="Ex: (514) 555-1234"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newPhone}
-                          onChange={(e) => setNewPhone(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Adresse courriel *
-                        </label>
-                        <input
-                          type="email"
-                          placeholder="Ex: jean.dupont@exemple.com"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Informations de connexion */}
-                  <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-3">Informations de connexion</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nom d'utilisateur *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ex: jdupont"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newUsername}
-                          onChange={(e) => setNewUsername(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Niveau d'accès
-                        </label>
-                        <input
-                          type="text"
-                          value="Investisseur"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Informations d'investissement */}
-                  <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-3">Informations d'investissement</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Montant investi ($) *
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="Ex: 25000"
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                          value={newAmount}
-                          onChange={(e) => setNewAmount(e.target.value)}
-                          min="0"
-                          step="0.01"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Type d'investissement *
-                        </label>
-                        <select
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white"
-                          value={newType}
-                          onChange={(e) => setNewType(e.target.value as 'immobilier' | 'actions' | 'mixte')}
-                          required
-                        >
-                          <option value="immobilier">Immobilier</option>
-                          <option value="actions">Actions</option>
-                          <option value="mixte">Mixte</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Permissions d'accès */}
-                  <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-3">Permissions d'accès aux onglets</h5>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={permissions.dashboard}
-                          onChange={() => handlePermissionChange('dashboard')}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">Dashboard</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={permissions.projet}
-                          onChange={() => handlePermissionChange('projet')}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">Projet</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={permissions.administration}
-                          onChange={() => handlePermissionChange('administration')}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">Administration</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="mt-4 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors"
-                  >
-                    + Ajouter l'investisseur
-                  </button>
-                </form>
-
-                {/* Liste des investisseurs */}
-                <div>
-                  <h4 className="font-medium mb-4">
-                    Liste des investisseurs actifs ({investors.length})
-                  </h4>
-                  {investors.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>Aucun investisseur ajouté pour le moment.</p>
-                      <p className="text-sm mt-2">Utilisez le formulaire ci-dessus pour ajouter des investisseurs.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-gray-200">
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Nom complet</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Utilisateur</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Téléphone</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Courriel</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Montant</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Permissions</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Statut</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {investors.map((investor) => (
-                            <tr key={investor.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-3 px-4">
-                                {investor.firstName} {investor.lastName}
-                              </td>
-                              <td className="py-3 px-4 text-gray-600">{investor.username}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{investor.phone}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{investor.email}</td>
-                              <td className="py-3 px-4 font-semibold">
-                                {investor.amount.toLocaleString('fr-CA', {
-                                  style: 'currency',
-                                  currency: 'USD',
-                                  minimumFractionDigits: 0,
-                                  maximumFractionDigits: 0
-                                })}
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  investor.investmentType === 'immobilier'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : investor.investmentType === 'actions'
-                                    ? 'bg-purple-100 text-purple-800'
-                                    : 'bg-green-100 text-green-800'
-                                }`}>
-                                  {investor.investmentType.charAt(0).toUpperCase() + investor.investmentType.slice(1)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex flex-wrap gap-1">
-                                  {investor.permissions.dashboard && (
-                                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">D</span>
-                                  )}
-                                  {investor.permissions.projet && (
-                                    <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs">P</span>
-                                  )}
-                                  {investor.permissions.administration && (
-                                    <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">A</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  investor.status === 'actif'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {investor.status.charAt(0).toUpperCase() + investor.status.slice(1)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <button
-                                  onClick={() => handleDeleteInvestor(investor.id)}
-                                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                >
-                                  Supprimer
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Paramètres généraux */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="font-semibold mb-4">Paramètres généraux</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Notifications
-                    </label>
-                    <select className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white">
-                      <option>Activer toutes les notifications</option>
-                      <option>Notifications importantes uniquement</option>
-                      <option>Désactiver</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Langue
-                    </label>
-                    <select className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white">
-                      <option>Français</option>
-                      <option>English</option>
-                    </select>
-                  </div>
-                </div>
+                <p className="text-gray-600">Gestion des investisseurs, documents et paramètres.</p>
+                <p className="text-sm text-gray-500 mt-2">En construction...</p>
               </div>
             </div>
           )}
