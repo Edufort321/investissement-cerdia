@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users } from 'lucide-react'
+import ProjetTab from '@/components/ProjetTab'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
 
@@ -378,15 +379,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'projet' && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Gestion des Projets</h2>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <p className="text-gray-600">Le gestionnaire d'investissement et le suivi de paiement seront intégrés ici.</p>
-                <p className="text-sm text-gray-500 mt-2">En construction...</p>
-              </div>
-            </div>
-          )}
+          {activeTab === 'projet' && <ProjetTab />}
 
           {activeTab === 'administration' && (
             <div>
