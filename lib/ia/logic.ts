@@ -1,13 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
-
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Utiliser clé sécurisée pour écriture avec RLS
-)
+import { supabase } from '@/lib/supabase'
 
 /**
  * Fonction IA qui propose automatiquement une tâche à approuver
+ * TODO: Implémenter avec la nouvelle structure Supabase
  */
 export async function proposeTask({
   user_id,
@@ -20,22 +15,11 @@ export async function proposeTask({
   payload: Record<string, any>
   note?: string
 }) {
-  const { data, error } = await supabase.from('task_authorizations').insert([
-    {
-      user_id,
-      task_id: crypto.randomUUID(), // tâche liée ou générée dynamiquement
-      type,
-      payload,
-      status: 'pending',
-      note
-    }
-  ])
+  // Temporairement désactivé - table task_authorizations n'existe plus
+  console.log('proposeTask() appelé mais non implémenté:', { user_id, type, payload, note })
 
-  if (error) {
-    console.error('❌ Erreur proposeTask():', error)
-    return { success: false, error }
+  return {
+    success: false,
+    error: 'Fonction non implémentée - table task_authorizations supprimée'
   }
-
-  console.log('✅ Tâche IA insérée :', data)
-  return { success: true, data }
 }
