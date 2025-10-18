@@ -1,0 +1,12 @@
+'use client'
+
+import ChatCerdiaInvest from '@/components/ChatCerdiaInvest'
+
+export default function Test() {
+  return (
+    <main className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6 text-blue-800">🧪 Test de l'assistant IA CERDIA</h1>
+      <ChatCerdiaInvest mode="investor" />
+    </main>
+  )
+}

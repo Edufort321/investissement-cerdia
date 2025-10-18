@@ -1,0 +1,74 @@
+/* === TAILWIND === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === FONTS GOOGLE === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:wght@500;700&display=swap');
+
+/* === RESET / NORMALISATION === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* === GLOBAL BODY === */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #F9FAFB;
+  color: #1F2937;
+  line-height: 1.6;
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+/* === HEADINGS === */
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', serif;
+  color: #0F1E47;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+/* === LINKS === */
+a {
+  color: #0F1E47;
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+a:hover {
+  color: #D4AF37;
+  transform: translateY(-1px);
+}
+
+/* === BUTTON STYLES === */
+.btn-primary {
+  background-color: #0F1E47;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(15, 30, 71, 0.15);
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  background-color: #1a2960;
+  transform: scale(1.03);
+  box-shadow: 0 6px 16px rgba(15, 30, 71, 0.25);
+}
+
+/* === UTILITÉS GÉNÉRALES === */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.section {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
