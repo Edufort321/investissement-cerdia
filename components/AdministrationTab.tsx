@@ -1253,15 +1253,310 @@ export default function AdministrationTab() {
     </div>
   )
 
-  const renderCompteCourantTab = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-12 rounded-lg shadow-md text-center">
-        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Compte Courant 2025</h3>
-        <p className="text-gray-600">Module en développement - Suivi des opérations courantes</p>
+  const renderCompteCourantTab = () => {
+    // État pour le compte courant
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+    const [compteCourant, setCompteCourant] = useState<any>(null)
+    const [byProject, setByProject] = useState<any[]>([])
+    const [showRecategorize, setShowRecategorize] = useState(false)
+    const [recategorizeTransaction, setRecategorizeTransaction] = useState<any>(null)
+
+    // Charger les données du compte courant
+    useEffect(() => {
+      fetchCompteCourant()
+    }, [selectedYear, selectedMonth])
+
+    const fetchCompteCourant = async () => {
+      try {
+        // Récupérer la vue mensuelle
+        const { data: monthlyData, error: monthlyError } = await supabase
+          .from('compte_courant_mensuel')
+          .select('*')
+          .eq('year', selectedYear)
+          .eq('month', selectedMonth)
+          .single()
+
+        if (monthlyError && monthlyError.code !== 'PGRST116') throw monthlyError
+        setCompteCourant(monthlyData || null)
+
+        // Récupérer la vue par projet
+        const { data: projectData, error: projectError } = await supabase
+          .from('compte_courant_par_projet')
+          .select('*')
+          .eq('year', selectedYear)
+          .eq('month', selectedMonth)
+
+        if (projectError) throw projectError
+        setByProject(projectData || [])
+      } catch (error) {
+        console.error('Erreur lors du chargement du compte courant:', error)
+      }
+    }
+
+    const handleRecategorize = async (transaction: any, newOperationType: string, newProjectCategory: string) => {
+      try {
+        const { error } = await supabase
+          .from('transactions')
+          .update({
+            operation_type: newOperationType,
+            project_category: newProjectCategory,
+            auto_categorized: false
+          })
+          .eq('id', transaction.id)
+
+        if (error) throw error
+
+        setShowRecategorize(false)
+        setRecategorizeTransaction(null)
+        await fetchCompteCourant()
+        alert('Transaction recatégorisée avec succès!')
+      } catch (error: any) {
+        alert('Erreur lors de la recatégorisation: ' + error.message)
+      }
+    }
+
+    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+    return (
+      <div className="space-y-6">
+        {/* Header avec sélection période */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Compte Courant</h2>
+            <p className="text-gray-600 mt-1">Vue agrégée des transactions par catégorie</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+            >
+              {monthNames.map((name, idx) => (
+                <option key={idx} value={idx + 1}>{name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+            >
+              {[2023, 2024, 2025, 2026, 2027].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {!compteCourant ? (
+          <div className="bg-white p-12 rounded-lg shadow-md text-center">
+            <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune donnée</h3>
+            <p className="text-gray-600">Aucune transaction pour {monthNames[selectedMonth - 1]} {selectedYear}</p>
+          </div>
+        ) : (
+          <>
+            {/* Résumé principal */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-green-700">Total Revenus</span>
+                  <TrendingUp className="text-green-600" size={24} />
+                </div>
+                <p className="text-3xl font-bold text-green-900">
+                  {(compteCourant.total_revenues || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                </p>
+                <div className="text-xs text-green-700 mt-2">
+                  {compteCourant.nombre_transactions} transactions
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-700">Coûts Opération</span>
+                  <TrendingDown className="text-blue-600" size={24} />
+                </div>
+                <p className="text-3xl font-bold text-blue-900">
+                  {(compteCourant.total_operational_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-purple-700">Dépenses Projet</span>
+                  <TrendingDown className="text-purple-600" size={24} />
+                </div>
+                <p className="text-3xl font-bold text-purple-900">
+                  {(compteCourant.total_project_expenses || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                </p>
+              </div>
+
+              <div className={`bg-gradient-to-br ${(compteCourant.net_income || 0) >= 0 ? 'from-emerald-50 to-emerald-100 border-emerald-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-6 rounded-lg border`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm font-medium ${(compteCourant.net_income || 0) >= 0 ? 'text-emerald-700' : 'text-orange-700'}`}>
+                    Revenu Net
+                  </span>
+                  <DollarSign className={(compteCourant.net_income || 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'} size={24} />
+                </div>
+                <p className={`text-3xl font-bold ${(compteCourant.net_income || 0) >= 0 ? 'text-emerald-900' : 'text-orange-900'}`}>
+                  {(compteCourant.net_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                </p>
+              </div>
+            </div>
+
+            {/* Détails par catégorie */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Détails Revenus */}
+              <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  Détails Revenus
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Revenus locatifs</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.rental_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Autres revenus</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.other_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Détails Coûts Opération */}
+              <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  Détails Coûts Opération
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Frais gestion</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.management_fees || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Services publics</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.utilities || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Assurances</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.insurance || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Maintenance</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.maintenance || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Taxes foncières</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.property_taxes || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Détails Dépenses Projet */}
+              <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  Détails Dépenses Projet
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Rénovations</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.renovation_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Ameublement</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.furnishing_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Autres projets</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(compteCourant.other_project_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Vue par projet */}
+            {byProject.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900">Détails par Projet</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projet</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localisation</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenus</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Coûts Opér.</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dép. Projet</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenu Net</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {byProject.map((project) => (
+                        <tr key={project.property_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{project.property_name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">{project.location}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className="text-sm font-semibold text-green-600">
+                              {(project.revenues || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {(project.operational_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className="text-sm font-semibold text-purple-600">
+                              {(project.project_expenses || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className={`text-sm font-bold ${(project.net_income || 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'}`}>
+                              {(project.net_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderCapexTab = () => (
     <div className="space-y-6">
