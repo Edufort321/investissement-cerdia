@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage } from 'lucide-react'
+import ProjectAttachments from './ProjectAttachments'
 
 interface PropertyFormData {
   name: string
@@ -43,6 +44,7 @@ export default function ProjetTab() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<any>(null)
+  const [showAttachmentsPropertyId, setShowAttachmentsPropertyId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
@@ -712,11 +714,17 @@ export default function ProjetTab() {
                 {/* Footer Actions */}
                 <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex gap-2">
                   <button
+                    onClick={() => setShowAttachmentsPropertyId(property.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <FileImage size={16} />
+                    Pièces jointes
+                  </button>
+                  <button
                     onClick={() => handleEdit(property)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     <Edit2 size={16} />
-                    Modifier
                   </button>
                   <button
                     onClick={() => handleDelete(property.id, property.name)}
@@ -728,6 +736,35 @@ export default function ProjetTab() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Project Attachments Modal */}
+      {showAttachmentsPropertyId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Pièces jointes du projet</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {properties.find(p => p.id === showAttachmentsPropertyId)?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAttachmentsPropertyId(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+              <ProjectAttachments
+                propertyId={showAttachmentsPropertyId}
+                onClose={() => setShowAttachmentsPropertyId(null)}
+              />
+            </div>
+          </div>
         </div>
       )}
 

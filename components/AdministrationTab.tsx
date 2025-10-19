@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { supabase } from '@/lib/supabase'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown } from 'lucide-react'
+import TransactionAttachments from './TransactionAttachments'
+import TaxReports from './TaxReports'
+import PerformanceTracker from './PerformanceTracker'
 
 interface InvestorFormData {
   user_id: string
@@ -64,7 +67,7 @@ interface Document {
   investor_id: string | null
 }
 
-type SubTabType = 'investisseurs' | 'transactions' | 'compte_courant' | 'capex' | 'rd_dividendes'
+type SubTabType = 'investisseurs' | 'transactions' | 'compte_courant' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function AdministrationTab() {
   const { investors, transactions, properties, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
@@ -1316,6 +1319,13 @@ export default function AdministrationTab() {
               </div>
             </div>
 
+            {/* Section Pièces Jointes - Seulement lors de l'édition */}
+            {editingTransactionId && (
+              <div className="pt-4 border-t border-gray-200">
+                <TransactionAttachments transactionId={editingTransactionId} />
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
@@ -1817,6 +1827,26 @@ export default function AdministrationTab() {
           >
             R&D / Dividendes
           </button>
+          <button
+            onClick={() => setActiveSubTab('rapports_fiscaux')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'rapports_fiscaux'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Rapports Fiscaux
+          </button>
+          <button
+            onClick={() => setActiveSubTab('performance')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'performance'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Performance ROI
+          </button>
         </nav>
       </div>
 
@@ -1826,6 +1856,8 @@ export default function AdministrationTab() {
       {activeSubTab === 'compte_courant' && renderCompteCourantTab()}
       {activeSubTab === 'capex' && renderCapexTab()}
       {activeSubTab === 'rd_dividendes' && renderRdDividendesTab()}
+      {activeSubTab === 'rapports_fiscaux' && <TaxReports />}
+      {activeSubTab === 'performance' && <PerformanceTracker />}
     </div>
   )
 }
