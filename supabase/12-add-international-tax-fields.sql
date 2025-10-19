@@ -63,7 +63,6 @@ FROM transactions t
 LEFT JOIN properties p ON p.id = t.property_id
 WHERE t.source_country IS NOT NULL
   AND t.source_country != 'Canada'
-  AND t.status = 'complete'
 GROUP BY EXTRACT(YEAR FROM t.date), t.source_country, t.source_currency, p.name, p.location
 ORDER BY year DESC, t.source_country;
 
@@ -81,7 +80,6 @@ SELECT
   AVG(t.foreign_tax_rate) as avg_foreign_tax_rate
 FROM transactions t
 WHERE t.foreign_tax_paid > 0
-  AND t.status = 'complete'
 GROUP BY EXTRACT(YEAR FROM t.date), t.source_country, t.fiscal_category
 ORDER BY year DESC, t.source_country;
 
@@ -101,7 +99,6 @@ SELECT
 FROM transactions t
 WHERE t.source_currency IS NOT NULL
   AND t.source_currency != 'CAD'
-  AND t.status = 'complete'
 GROUP BY EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date), t.source_currency
 ORDER BY year DESC, month DESC, t.source_currency;
 
@@ -184,7 +181,7 @@ SELECT
   COUNT(*) as transaction_count
 
 FROM properties p
-LEFT JOIN transactions t ON t.property_id = p.id AND t.status = 'complete'
+LEFT JOIN transactions t ON t.property_id = p.id
 GROUP BY p.id, p.name, p.location, EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC, p.name;
 
@@ -235,12 +232,12 @@ Système de gestion fiscale internationale - Exemples:
      date, type, amount, description, property_id,
      source_currency, source_amount, exchange_rate, source_country,
      foreign_tax_paid, foreign_tax_rate, fiscal_category,
-     operation_type, status
+     operation_type
    ) VALUES (
      ''2025-01-15'', ''dividende'', 4725.00, ''Loyer janvier 2025'', ''property-uuid'',
      ''USD'', 3500.00, 1.35, ''République Dominicaine'',
      350.00, 10.0, ''rental_income'',
-     ''revenu'', ''complete''
+     ''revenu''
    );
    -- Le crédit d''impôt est calculé automatiquement!
 
