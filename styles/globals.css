@@ -72,3 +72,13 @@ a:hover {
   margin-top: 4rem;
   margin-bottom: 4rem;
 }
+
+/* === SCROLLBAR UTILITIES === */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

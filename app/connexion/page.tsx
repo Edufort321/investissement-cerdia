@@ -86,7 +86,7 @@ export default function ConnexionPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black pt-16">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black pt-20">
       {/* Arrière-plan noir simple */}
       <div className="absolute inset-0 bg-black"></div>
 

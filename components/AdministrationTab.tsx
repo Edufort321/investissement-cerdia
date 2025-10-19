@@ -67,7 +67,7 @@ interface Document {
   investor_id: string | null
 }
 
-type SubTabType = 'investisseurs' | 'transactions' | 'compte_courant' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
+type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function AdministrationTab() {
   const { investors, transactions, properties, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
@@ -498,14 +498,14 @@ export default function AdministrationTab() {
   const renderInvestisseursTab = () => (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestion des Investisseurs</h2>
-          <p className="text-gray-600 mt-1">Gérez les investisseurs et leurs documents</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion des Investisseurs</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Gérez les investisseurs et leurs documents</p>
         </div>
         <button
           onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors"
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
         >
           {showAddInvestorForm ? <X size={20} /> : <Plus size={20} />}
           {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
@@ -514,12 +514,12 @@ export default function AdministrationTab() {
 
       {/* Add/Edit Form */}
       {showAddInvestorForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold mb-4">
             {editingInvestorId ? 'Modifier l\'investisseur' : 'Nouvel investisseur'}
           </h3>
           <form onSubmit={handleInvestorSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Informations personnelles */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prénom *</label>
@@ -699,7 +699,7 @@ export default function AdministrationTab() {
             {/* Permissions */}
             <div className="pt-4 border-t border-gray-200">
               <label className="block text-sm font-medium text-gray-700 mb-3">Permissions</label>
-              <div className="flex gap-6">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -739,18 +739,18 @@ export default function AdministrationTab() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
+                className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
                 {loading ? 'Enregistrement...' : editingInvestorId ? 'Modifier' : 'Ajouter'}
               </button>
               <button
                 type="button"
                 onClick={resetInvestorForm}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
                 Annuler
               </button>
@@ -773,7 +773,7 @@ export default function AdministrationTab() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {investors.map((investor) => (
             <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
               {/* Header */}
@@ -850,25 +850,27 @@ export default function AdministrationTab() {
               </div>
 
               {/* Footer Actions */}
-              <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex gap-2">
+              <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => setSelectedInvestorId(investor.id)}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <FileText size={16} />
-                  Documents
+                  <span className="sm:inline">Documents</span>
                 </button>
                 <button
                   onClick={() => handleEditInvestor(investor)}
-                  className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <Edit2 size={16} />
+                  <span className="sm:hidden">Modifier</span>
                 </button>
                 <button
                   onClick={() => handleDeleteInvestor(investor.id, `${investor.first_name} ${investor.last_name}`)}
-                  className="flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <Trash2 size={16} />
+                  <span className="sm:hidden">Supprimer</span>
                 </button>
               </div>
             </div>
@@ -879,7 +881,7 @@ export default function AdministrationTab() {
       {/* Documents Modal */}
       {selectedInvestorId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-3xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Documents</h3>
@@ -967,7 +969,7 @@ export default function AdministrationTab() {
   const renderTransactionsTab = () => (
     <div className="space-y-6">
       {/* Header avec statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-green-700">Entrées</span>
@@ -1000,25 +1002,27 @@ export default function AdministrationTab() {
       </div>
 
       {/* Barre d'actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Filter size={20} className="text-gray-600" />
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-          >
-            <option value="all">Tous les types</option>
-            <option value="investissement">Investissement</option>
-            <option value="paiement">Paiement</option>
-            <option value="dividende">Dividende</option>
-            <option value="depense">Dépense</option>
-          </select>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Filter size={20} className="text-gray-600 flex-shrink-0" />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
+            >
+              <option value="all">Tous les types</option>
+              <option value="investissement">Investissement</option>
+              <option value="paiement">Paiement</option>
+              <option value="dividende">Dividende</option>
+              <option value="depense">Dépense</option>
+            </select>
+          </div>
 
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
           >
             <option value="all">Toutes les catégories</option>
             <option value="capital">Capital</option>
@@ -1030,7 +1034,7 @@ export default function AdministrationTab() {
 
         <button
           onClick={() => setShowAddTransactionForm(!showAddTransactionForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors"
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
         >
           {showAddTransactionForm ? <X size={20} /> : <Plus size={20} />}
           {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
@@ -1039,12 +1043,12 @@ export default function AdministrationTab() {
 
       {/* Formulaire */}
       {showAddTransactionForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold mb-4">
             {editingTransactionId ? 'Modifier la transaction' : 'Nouvelle transaction'}
           </h3>
           <form onSubmit={handleTransactionSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
                 <input
@@ -1160,7 +1164,7 @@ export default function AdministrationTab() {
                 </select>
               </div>
 
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
                 <textarea
                   value={transactionFormData.description}
@@ -1185,8 +1189,8 @@ export default function AdministrationTab() {
 
             {/* Section Fiscalité Internationale */}
             <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-md font-semibold text-gray-900 mb-3">Fiscalité Internationale (Optionnel)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Fiscalité Internationale (Optionnel)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Devise source</label>
                   <select
@@ -1294,7 +1298,7 @@ export default function AdministrationTab() {
                 </div>
 
                 {/* Crédit impôt calculé automatiquement (read-only) */}
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Crédit d'impôt réclamable (calculé auto)</label>
                   <input
                     type="number"
@@ -1306,7 +1310,7 @@ export default function AdministrationTab() {
                   <p className="text-xs text-gray-500 mt-1">Ce montant est calculé automatiquement par le système</p>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes comptable</label>
                   <textarea
                     value={transactionFormData.accountant_notes || ''}
@@ -1326,18 +1330,18 @@ export default function AdministrationTab() {
               </div>
             )}
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
+                className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
                 {loading ? 'Enregistrement...' : editingTransactionId ? 'Modifier' : 'Ajouter'}
               </button>
               <button
                 type="button"
                 onClick={resetTransactionForm}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
                 Annuler
               </button>
@@ -1359,16 +1363,16 @@ export default function AdministrationTab() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1378,17 +1382,17 @@ export default function AdministrationTab() {
 
                   return (
                     <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <Calendar size={14} className="text-gray-400" />
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-900">
+                          <Calendar size={14} className="text-gray-400 hidden sm:inline" />
                           {new Date(transaction.date).toLocaleDateString('fr-CA')}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         {getTypeBadge(transaction.type)}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                      <td className="px-3 sm:px-6 py-4">
+                        <div className="text-xs sm:text-sm font-medium text-gray-900">{transaction.description}</div>
                         {investor && (
                           <div className="text-xs text-gray-500">Investisseur: {investor.first_name} {investor.last_name}</div>
                         )}
@@ -1396,15 +1400,15 @@ export default function AdministrationTab() {
                           <div className="text-xs text-gray-500">Propriété: {property.name}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`flex items-center gap-1 text-sm font-semibold ${
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div className={`flex items-center gap-1 text-xs sm:text-sm font-semibold ${
                           ['investissement', 'dividende'].includes(transaction.type) ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {getTypeIcon(transaction.type)}
                           {transaction.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           transaction.status === 'complete' ? 'bg-green-100 text-green-800' :
                           transaction.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
@@ -1414,8 +1418,8 @@ export default function AdministrationTab() {
                            transaction.status === 'en_attente' ? 'En attente' : 'Annulé'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
                           <button
                             onClick={() => handleEditTransaction(transaction)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -1548,7 +1552,7 @@ export default function AdministrationTab() {
         ) : (
           <>
             {/* Résumé principal */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-green-700">Total Revenus</span>
@@ -1596,7 +1600,7 @@ export default function AdministrationTab() {
             </div>
 
             {/* Détails par catégorie */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Détails Revenus */}
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1775,8 +1779,8 @@ export default function AdministrationTab() {
   return (
     <div className="space-y-6">
       {/* Sub-Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8 overflow-x-auto">
+      <div className="sticky top-16 md:top-20 z-30 bg-gray-100 border-b border-gray-200 -mx-6 px-6 pt-2">
+        <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setActiveSubTab('investisseurs')}
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -1796,16 +1800,6 @@ export default function AdministrationTab() {
             }`}
           >
             Transactions
-          </button>
-          <button
-            onClick={() => setActiveSubTab('compte_courant')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'compte_courant'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Compte Courant 2025
           </button>
           <button
             onClick={() => setActiveSubTab('capex')}
@@ -1853,7 +1847,6 @@ export default function AdministrationTab() {
       {/* Content Area */}
       {activeSubTab === 'investisseurs' && renderInvestisseursTab()}
       {activeSubTab === 'transactions' && renderTransactionsTab()}
-      {activeSubTab === 'compte_courant' && renderCompteCourantTab()}
       {activeSubTab === 'capex' && renderCapexTab()}
       {activeSubTab === 'rd_dividendes' && renderRdDividendesTab()}
       {activeSubTab === 'rapports_fiscaux' && <TaxReports />}

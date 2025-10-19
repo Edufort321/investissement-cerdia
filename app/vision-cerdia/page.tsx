@@ -81,7 +81,7 @@ export default function VisionCerdia() {
   const tr = content[lang]
 
   return (
-    <main className="min-h-screen bg-white px-6 py-12 max-w-4xl mx-auto">
+    <main className="min-h-screen bg-white px-6 pt-24 pb-12 max-w-4xl mx-auto">
       {/* Lang selector */}
       <div className="flex justify-end mb-4">
         <select

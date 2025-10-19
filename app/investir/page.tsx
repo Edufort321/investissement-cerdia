@@ -29,7 +29,7 @@ export default function PageInvestir() {
   const tr = t[lang]
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-6 pt-24 pb-12">
       {/* Sélecteur de langue uniforme */}
       <div className="flex justify-end mb-6">
         <select

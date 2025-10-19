@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default function DevenirInvestisseurPage() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-16 text-gray-800">
+    <div className="max-w-6xl mx-auto px-6 pt-24 pb-16 text-gray-800">
       <h1 className="text-4xl font-bold text-center text-blue-900 mb-6 flex items-center justify-center gap-2">
         <span>💼</span> Rejoindre l’investissement CERDIA
       </h1>

@@ -46,7 +46,7 @@ export default function ImmobilierPage() {
   const tr = t[lang]
 
   return (
-    <main className="max-w-7xl mx-auto px-6 py-12">
+    <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
       {/* Sélecteur de langue */}
       <div className="flex justify-end mb-6">
         <select

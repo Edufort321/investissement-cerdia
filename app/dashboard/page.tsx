@@ -159,15 +159,15 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${isMobile ? 'pt-40' : 'pt-16'}`}>
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${isMobile ? 'pt-32' : 'pt-20'}`}>
         {/* Content Area */}
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && (
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Vue d'ensemble</h2>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Vue d'ensemble</h2>
                 {loading && (
-                  <div className="text-sm text-gray-600 flex items-center gap-2">
+                  <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin"></div>
                     Chargement...
                   </div>
@@ -175,68 +175,68 @@ export default function DashboardPage() {
               </div>
 
               {/* KPIs Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 {/* Total Investi */}
-                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-gray-600 text-sm font-medium">Total Investi</h3>
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="text-blue-600" size={20} />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Total Investi</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="text-blue-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">{investors.length} investisseurs</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{investors.length} investisseurs</p>
                 </div>
 
                 {/* Propriétés */}
-                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-gray-600 text-sm font-medium">Propriétés</h3>
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Building2 className="text-purple-600" size={20} />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Propriétés</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Building2 className="text-purple-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{numberOfProperties}</p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{numberOfProperties}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
                     {totalPaidOnProperties.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
                   </p>
                 </div>
 
                 {/* Revenus Mensuels Estimés */}
-                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-gray-600 text-sm font-medium">Revenus Mensuels Est.</h3>
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="text-green-600" size={20} />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Revenus Mensuels Est.</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="text-green-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {estimatedMonthlyRevenue.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-sm text-blue-600 mt-2">Basé sur ROI {averageROI.toFixed(1)}%</p>
+                  <p className="text-xs sm:text-sm text-blue-600 mt-1 sm:mt-2">Basé sur ROI {averageROI.toFixed(1)}%</p>
                 </div>
 
                 {/* ROI Moyen */}
-                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-gray-600 text-sm font-medium">ROI Moyen Annuel</h3>
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="text-orange-600" size={20} />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">ROI Moyen Annuel</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="text-orange-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{averageROI.toFixed(1)}%</p>
-                  <p className="text-sm text-green-600 mt-2">Performance solide</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{averageROI.toFixed(1)}%</p>
+                  <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2">Performance solide</p>
                 </div>
               </div>
 
               {/* Section Propriétés */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 {/* Liste des Propriétés */}
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Building2 size={20} className="text-purple-600" />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                    <Building2 size={18} className="text-purple-600" />
                     Portefeuille Immobilier
                   </h3>
                   {properties.length === 0 ? (
@@ -295,9 +295,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Répartition des Investisseurs */}
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Users size={20} className="text-blue-600" />
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                    <Users size={18} className="text-blue-600" />
                     Répartition des Investisseurs
                   </h3>
                   {investors.length === 0 ? (
@@ -331,8 +331,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Transactions Récentes */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Activité récente</h3>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Activité récente</h3>
                 {recentTransactions.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">Aucune transaction récente</p>
                 ) : (

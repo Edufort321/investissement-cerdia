@@ -33,7 +33,7 @@ export default function Home() {
   const tr = t[lang]
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50 pt-20">
       {/* HERO SECTION */}
       <section className="max-w-6xl mx-auto px-6 py-16 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-[#2a2a2a] font-serif mb-6 leading-tight">

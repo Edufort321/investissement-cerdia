@@ -25,7 +25,7 @@ export default function FormInvestisseur() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
+    <div className="max-w-2xl mx-auto px-6 pt-24 pb-12">
       <h1 className="text-3xl font-bold text-center text-blue-800 mb-6">✨ Candidature pour devenir investisseur CERDIA</h1>
 
       {!submitted ? (

@@ -236,14 +236,14 @@ export default function ProjetTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestion des Projets</h2>
-          <p className="text-gray-600 mt-1">Gérez vos propriétés immobilières et suivez leur progression</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion des Projets</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Gérez vos propriétés immobilières et suivez leur progression</p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors"
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
         >
           {showAddForm ? <X size={20} /> : <Plus size={20} />}
           {showAddForm ? 'Annuler' : 'Ajouter une propriété'}
@@ -252,13 +252,13 @@ export default function ProjetTab() {
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold mb-4">
             {editingId ? 'Modifier la propriété' : 'Nouvelle propriété'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nom de la propriété *
@@ -382,9 +382,9 @@ export default function ProjetTab() {
 
             {/* Payment Schedule Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-md font-semibold text-gray-900 mb-4">Configuration des Paiements</h4>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">Configuration des Paiements</h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Acompte de réservation ({formData.currency})
@@ -505,18 +505,18 @@ export default function ProjetTab() {
               )}
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
+                className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
                 {loading ? 'Enregistrement...' : editingId ? 'Modifier' : 'Ajouter'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
                 Annuler
               </button>
@@ -539,7 +539,7 @@ export default function ProjetTab() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {properties.map((property) => {
             const progress = (property.paid_amount / property.total_cost) * 100
             const remaining = property.total_cost - property.paid_amount
@@ -551,7 +551,7 @@ export default function ProjetTab() {
             return (
               <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100">
+                <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
@@ -575,7 +575,7 @@ export default function ProjetTab() {
                 </div>
 
                 {/* Body */}
-                <div className="p-6 space-y-4">
+                <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                   {/* Progression */}
                   <div>
                     <div className="flex justify-between text-sm mb-2">
@@ -712,25 +712,27 @@ export default function ProjetTab() {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex gap-2">
+                <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setShowAttachmentsPropertyId(property.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     <FileImage size={16} />
                     Pièces jointes
                   </button>
                   <button
                     onClick={() => handleEdit(property)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     <Edit2 size={16} />
+                    <span className="sm:hidden">Modifier</span>
                   </button>
                   <button
                     onClick={() => handleDelete(property.id, property.name)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     <Trash2 size={16} />
+                    <span className="sm:hidden">Supprimer</span>
                   </button>
                 </div>
               </div>
@@ -742,7 +744,7 @@ export default function ProjetTab() {
       {/* Project Attachments Modal */}
       {showAttachmentsPropertyId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-5xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Pièces jointes du projet</h3>
@@ -771,7 +773,7 @@ export default function ProjetTab() {
       {/* Mark as Paid Modal */}
       {showPaymentModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-[95vw] sm:max-w-md w-full">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Marquer le paiement comme payé</h3>
 
             <div className="mb-4">
@@ -835,7 +837,7 @@ export default function ProjetTab() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="submit"
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
