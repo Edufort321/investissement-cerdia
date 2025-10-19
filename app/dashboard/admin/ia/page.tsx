@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Database } from '@/types/supabase'
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic'
+
 interface Message {
   type: 'user' | 'ia'
   text: string
