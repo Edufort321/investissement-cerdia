@@ -35,7 +35,7 @@ SELECT
   ) as total_expenses,
 
   -- Nombre de mois depuis la réservation
-  EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) as months_since_reservation,
+  EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) as months_since_reservation,
 
   -- ROI réel calculé (revenus / coût total * 100)
   CASE
@@ -54,7 +54,7 @@ SELECT
 
   -- ROI réel annualisé (projeté sur 12 mois)
   CASE
-    WHEN p.total_cost > 0 AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 0 THEN
+    WHEN p.total_cost > 0 AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 0 THEN
       ROUND(
         (
           (COALESCE(
@@ -64,7 +64,7 @@ SELECT
                AND t.type = 'dividende'
             ), 0
           ) / p.total_cost * 100)
-          / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+          / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
           * 12
         )::numeric, 2
       )
@@ -73,7 +73,7 @@ SELECT
 
   -- Écart entre ROI réel annualisé et ROI attendu
   CASE
-    WHEN p.total_cost > 0 AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 0 THEN
+    WHEN p.total_cost > 0 AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 0 THEN
       ROUND(
         (
           (
@@ -84,7 +84,7 @@ SELECT
                  AND t.type = 'dividende'
               ), 0
             ) / p.total_cost * 100)
-            / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+            / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
             * 12
           ) - p.expected_roi
         )::numeric, 2
@@ -97,7 +97,7 @@ SELECT
     -- Excellent: ROI annualisé dépasse l'attendu de plus de 20%
     WHEN
       p.total_cost > 0
-      AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 3
+      AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 3
       AND (
         (
           (COALESCE(
@@ -107,7 +107,7 @@ SELECT
                AND t.type = 'dividende'
             ), 0
           ) / p.total_cost * 100)
-          / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+          / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
           * 12
         ) - p.expected_roi
       ) > (p.expected_roi * 0.2)
@@ -116,7 +116,7 @@ SELECT
     -- Bon: ROI annualisé proche ou légèrement au-dessus de l'attendu
     WHEN
       p.total_cost > 0
-      AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 3
+      AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 3
       AND (
         (
           (COALESCE(
@@ -126,7 +126,7 @@ SELECT
                AND t.type = 'dividende'
             ), 0
           ) / p.total_cost * 100)
-          / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+          / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
           * 12
         ) - p.expected_roi
       ) >= (p.expected_roi * -0.1)
@@ -135,7 +135,7 @@ SELECT
     -- Attention: ROI annualisé 10-30% en dessous de l'attendu
     WHEN
       p.total_cost > 0
-      AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 3
+      AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 3
       AND (
         (
           (COALESCE(
@@ -145,7 +145,7 @@ SELECT
                AND t.type = 'dividende'
             ), 0
           ) / p.total_cost * 100)
-          / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+          / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
           * 12
         ) - p.expected_roi
       ) >= (p.expected_roi * -0.3)
@@ -154,7 +154,7 @@ SELECT
     -- Problème: ROI annualisé plus de 30% en dessous de l'attendu
     WHEN
       p.total_cost > 0
-      AND EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 3
+      AND EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 3
     THEN 'critical'
 
     -- Trop tôt pour évaluer (moins de 3 mois)
@@ -163,7 +163,7 @@ SELECT
 
   -- Message de performance
   CASE
-    WHEN EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) < 3 THEN
+    WHEN EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) < 3 THEN
       'Trop tôt pour évaluer (< 3 mois)'
     WHEN p.total_cost = 0 THEN
       'Coût total non défini'
@@ -181,7 +181,7 @@ SELECT
 FROM properties p
 ORDER BY
   CASE
-    WHEN EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400) > 3
+    WHEN EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400) > 3
     THEN (
       CASE
         WHEN p.total_cost > 0 THEN
@@ -193,7 +193,7 @@ ORDER BY
                  AND t.type = 'dividende'
               ), 0
             ) / p.total_cost * 100)
-            / (EXTRACT(EPOCH FROM (CURRENT_DATE - p.reservation_date::DATE)) / (30.44 * 86400))
+            / (EXTRACT(EPOCH FROM AGE(CURRENT_TIMESTAMP, p.reservation_date)) / (30.44 * 86400))
             * 12
           ) - p.expected_roi
         ELSE -999
