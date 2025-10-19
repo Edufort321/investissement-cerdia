@@ -256,7 +256,7 @@ SELECT
   i.username,
   CONCAT(i.first_name, ' ', i.last_name) as investor_name,
   t.type as transaction_type,
-  t.payment_method as transaction_payment_method
+  t.description as transaction_description
 FROM investment_lines il
 JOIN investors i ON i.id = il.investor_id
 LEFT JOIN transactions t ON t.id = il.transaction_id

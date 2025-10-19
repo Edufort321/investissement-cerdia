@@ -1,6 +1,7 @@
 -- ==========================================
--- SYSTÈME DE COMPTE COURANT 2025
--- Gestion des opérations courantes avec catégorisation automatique
+-- SYSTÈME DE COMPTE COURANT SIMPLIFIÉ
+-- Auto-catégorisation des transactions + Vues agrégées
+-- (Pas de table séparée - on utilise juste les transactions)
 -- ==========================================
 
 -- Étape 1: Ajouter colonnes à la table transactions pour catégorisation
@@ -13,52 +14,7 @@ COMMENT ON COLUMN transactions.operation_type IS 'Type d''opération: cout_opera
 COMMENT ON COLUMN transactions.project_category IS 'Catégorie projet: maintenance, gestion, utilities, renovation, etc.';
 COMMENT ON COLUMN transactions.auto_categorized IS 'Transaction catégorisée automatiquement';
 
--- Étape 2: Créer une table pour les comptes courants (regroupement mensuel)
-CREATE TABLE IF NOT EXISTS current_accounts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-
-  -- Période
-  year INTEGER NOT NULL,
-  month INTEGER NOT NULL,
-
-  -- Totaux par catégorie
-  total_revenues DECIMAL(12, 2) DEFAULT 0,
-  total_operational_costs DECIMAL(12, 2) DEFAULT 0,
-  total_project_expenses DECIMAL(12, 2) DEFAULT 0,
-
-  -- Détails revenus
-  rental_income DECIMAL(12, 2) DEFAULT 0,
-  other_income DECIMAL(12, 2) DEFAULT 0,
-
-  -- Détails coûts d'opération
-  management_fees DECIMAL(12, 2) DEFAULT 0,
-  utilities DECIMAL(12, 2) DEFAULT 0,
-  insurance DECIMAL(12, 2) DEFAULT 0,
-  maintenance DECIMAL(12, 2) DEFAULT 0,
-  property_taxes DECIMAL(12, 2) DEFAULT 0,
-
-  -- Détails dépenses projet
-  renovation_costs DECIMAL(12, 2) DEFAULT 0,
-  furnishing_costs DECIMAL(12, 2) DEFAULT 0,
-  other_project_costs DECIMAL(12, 2) DEFAULT 0,
-
-  -- Balance
-  net_income DECIMAL(12, 2) GENERATED ALWAYS AS (
-    total_revenues - total_operational_costs - total_project_expenses
-  ) STORED,
-
-  -- Métadonnées
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  -- Contrainte unicité période
-  UNIQUE(year, month)
-);
-
--- Index pour optimiser les requêtes
-CREATE INDEX IF NOT EXISTS idx_current_accounts_period ON current_accounts(year, month);
-
--- Étape 3: Fonction pour auto-catégoriser une transaction
+-- Étape 2: Fonction pour auto-catégoriser une transaction
 CREATE OR REPLACE FUNCTION auto_categorize_transaction(
   p_transaction_id UUID,
   p_description TEXT,
@@ -143,7 +99,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Étape 4: Trigger pour auto-catégoriser lors de l'insertion/modification
+-- Étape 3: Trigger pour auto-catégoriser lors de l'insertion/modification
 CREATE OR REPLACE FUNCTION trigger_auto_categorize_transaction()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -178,134 +134,49 @@ FOR EACH ROW
 WHEN (OLD.description IS DISTINCT FROM NEW.description OR OLD.type IS DISTINCT FROM NEW.type)
 EXECUTE FUNCTION trigger_auto_categorize_transaction();
 
--- Étape 5: Fonction pour mettre à jour le compte courant d'un mois
-CREATE OR REPLACE FUNCTION update_current_account_for_month(
-  p_year INTEGER,
-  p_month INTEGER
-) RETURNS VOID AS $$
-DECLARE
-  v_account_id UUID;
-  v_revenues DECIMAL(12, 2);
-  v_op_costs DECIMAL(12, 2);
-  v_proj_expenses DECIMAL(12, 2);
+-- Étape 4: VUE pour le compte courant mensuel (remplace la table current_accounts)
+CREATE OR REPLACE VIEW compte_courant_mensuel AS
+SELECT
+  EXTRACT(YEAR FROM t.date)::INTEGER as year,
+  EXTRACT(MONTH FROM t.date)::INTEGER as month,
 
-  v_rental DECIMAL(12, 2);
-  v_other_income DECIMAL(12, 2);
+  -- Totaux par catégorie
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' THEN amount ELSE 0 END), 0) as total_revenues,
+  COALESCE(SUM(CASE WHEN operation_type = 'cout_operation' THEN amount ELSE 0 END), 0) as total_operational_costs,
+  COALESCE(SUM(CASE WHEN operation_type = 'depense_projet' THEN amount ELSE 0 END), 0) as total_project_expenses,
 
-  v_management DECIMAL(12, 2);
-  v_utilities DECIMAL(12, 2);
-  v_insurance DECIMAL(12, 2);
-  v_maintenance DECIMAL(12, 2);
-  v_taxes DECIMAL(12, 2);
+  -- Détails revenus
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type = 'dividende' THEN amount ELSE 0 END), 0) as rental_income,
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type != 'dividende' THEN amount ELSE 0 END), 0) as other_income,
 
-  v_renovation DECIMAL(12, 2);
-  v_furnishing DECIMAL(12, 2);
-  v_other_proj DECIMAL(12, 2);
-BEGIN
-  -- Calculer les totaux pour le mois
-  SELECT
-    COALESCE(SUM(CASE WHEN operation_type = 'revenu' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN operation_type = 'cout_operation' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN operation_type = 'depense_projet' THEN amount ELSE 0 END), 0),
+  -- Détails coûts d'opération
+  COALESCE(SUM(CASE WHEN project_category = 'management' THEN amount ELSE 0 END), 0) as management_fees,
+  COALESCE(SUM(CASE WHEN project_category = 'utilities' THEN amount ELSE 0 END), 0) as utilities,
+  COALESCE(SUM(CASE WHEN project_category = 'insurance' THEN amount ELSE 0 END), 0) as insurance,
+  COALESCE(SUM(CASE WHEN project_category = 'maintenance' THEN amount ELSE 0 END), 0) as maintenance,
+  COALESCE(SUM(CASE WHEN project_category = 'property_tax' THEN amount ELSE 0 END), 0) as property_taxes,
 
-    COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type = 'dividende' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type != 'dividende' THEN amount ELSE 0 END), 0),
+  -- Détails dépenses projet
+  COALESCE(SUM(CASE WHEN project_category = 'renovation' THEN amount ELSE 0 END), 0) as renovation_costs,
+  COALESCE(SUM(CASE WHEN project_category = 'furnishing' THEN amount ELSE 0 END), 0) as furnishing_costs,
+  COALESCE(SUM(CASE WHEN project_category = 'other_project' THEN amount ELSE 0 END), 0) as other_project_costs,
 
-    COALESCE(SUM(CASE WHEN project_category = 'management' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'utilities' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'insurance' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'maintenance' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'property_tax' THEN amount ELSE 0 END), 0),
+  -- Balance (calculé automatiquement)
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' THEN amount ELSE 0 END), 0) -
+  COALESCE(SUM(CASE WHEN operation_type = 'cout_operation' THEN amount ELSE 0 END), 0) -
+  COALESCE(SUM(CASE WHEN operation_type = 'depense_projet' THEN amount ELSE 0 END), 0) as net_income,
 
-    COALESCE(SUM(CASE WHEN project_category = 'renovation' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'furnishing' THEN amount ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN project_category = 'other_project' THEN amount ELSE 0 END), 0)
-  INTO
-    v_revenues, v_op_costs, v_proj_expenses,
-    v_rental, v_other_income,
-    v_management, v_utilities, v_insurance, v_maintenance, v_taxes,
-    v_renovation, v_furnishing, v_other_proj
-  FROM transactions
-  WHERE
-    EXTRACT(YEAR FROM date) = p_year
-    AND EXTRACT(MONTH FROM date) = p_month
-    AND status = 'complete';
+  -- Métadonnées
+  COUNT(*) as nombre_transactions,
+  MAX(t.updated_at) as derniere_mise_a_jour
 
-  -- Insérer ou mettre à jour le compte courant
-  INSERT INTO current_accounts (
-    year, month,
-    total_revenues, total_operational_costs, total_project_expenses,
-    rental_income, other_income,
-    management_fees, utilities, insurance, maintenance, property_taxes,
-    renovation_costs, furnishing_costs, other_project_costs
-  ) VALUES (
-    p_year, p_month,
-    v_revenues, v_op_costs, v_proj_expenses,
-    v_rental, v_other_income,
-    v_management, v_utilities, v_insurance, v_maintenance, v_taxes,
-    v_renovation, v_furnishing, v_other_proj
-  )
-  ON CONFLICT (year, month) DO UPDATE SET
-    total_revenues = v_revenues,
-    total_operational_costs = v_op_costs,
-    total_project_expenses = v_proj_expenses,
-    rental_income = v_rental,
-    other_income = v_other_income,
-    management_fees = v_management,
-    utilities = v_utilities,
-    insurance = v_insurance,
-    maintenance = v_maintenance,
-    property_taxes = v_taxes,
-    renovation_costs = v_renovation,
-    furnishing_costs = v_furnishing,
-    other_project_costs = v_other_proj,
-    updated_at = NOW();
+FROM transactions t
+WHERE t.status = 'complete'
+GROUP BY EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
+ORDER BY year DESC, month DESC;
 
-END;
-$$ LANGUAGE plpgsql;
-
--- Étape 6: Trigger pour mettre à jour le compte courant automatiquement
-CREATE OR REPLACE FUNCTION trigger_update_current_account()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_year INTEGER;
-  v_month INTEGER;
-BEGIN
-  -- Déterminer le mois affecté
-  IF TG_OP = 'DELETE' THEN
-    v_year := EXTRACT(YEAR FROM OLD.date);
-    v_month := EXTRACT(MONTH FROM OLD.date);
-  ELSE
-    v_year := EXTRACT(YEAR FROM NEW.date);
-    v_month := EXTRACT(MONTH FROM NEW.date);
-  END IF;
-
-  -- Mettre à jour le compte courant du mois
-  PERFORM update_current_account_for_month(v_year, v_month);
-
-  -- Si UPDATE et que la date a changé, mettre à jour aussi l'ancien mois
-  IF TG_OP = 'UPDATE' AND OLD.date IS DISTINCT FROM NEW.date THEN
-    PERFORM update_current_account_for_month(
-      EXTRACT(YEAR FROM OLD.date),
-      EXTRACT(MONTH FROM OLD.date)
-    );
-  END IF;
-
-  IF TG_OP = 'DELETE' THEN
-    RETURN OLD;
-  ELSE
-    RETURN NEW;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_update_current_account_on_transaction
-AFTER INSERT OR UPDATE OR DELETE ON transactions
-FOR EACH ROW
-EXECUTE FUNCTION trigger_update_current_account();
-
--- Étape 7: Vue pour le compte courant par projet
-CREATE OR REPLACE VIEW current_account_by_project AS
+-- Étape 5: Vue pour le compte courant par projet
+CREATE OR REPLACE VIEW compte_courant_par_projet AS
 SELECT
   p.id as property_id,
   p.name as property_name,
@@ -320,15 +191,17 @@ SELECT
     CASE WHEN t.operation_type = 'revenu' THEN t.amount ELSE 0 END -
     CASE WHEN t.operation_type = 'cout_operation' THEN t.amount ELSE 0 END -
     CASE WHEN t.operation_type = 'depense_projet' THEN t.amount ELSE 0 END
-  ) as net_income
+  ) as net_income,
+
+  COUNT(*) as nombre_transactions
 
 FROM properties p
 LEFT JOIN transactions t ON t.property_id = p.id AND t.status = 'complete'
 GROUP BY p.id, p.name, p.location, EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC, p.name;
 
--- Étape 8: Fonction pour obtenir un résumé du compte courant
-CREATE OR REPLACE FUNCTION get_current_account_summary(p_year INTEGER, p_month INTEGER)
+-- Étape 6: Fonction pour obtenir un résumé du compte courant d'un mois
+CREATE OR REPLACE FUNCTION get_compte_courant_summary(p_year INTEGER, p_month INTEGER)
 RETURNS TABLE (
   category VARCHAR(50),
   label VARCHAR(100),
@@ -338,7 +211,7 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   WITH account AS (
-    SELECT * FROM current_accounts WHERE year = p_year AND month = p_month
+    SELECT * FROM compte_courant_mensuel WHERE year = p_year AND month = p_month
   )
   SELECT 'revenues'::VARCHAR(50), 'Revenus locatifs'::VARCHAR(100), a.rental_income, 'revenue'::VARCHAR(20) FROM account a
   UNION ALL
@@ -364,7 +237,41 @@ $$ LANGUAGE plpgsql;
 
 -- Vérification finale
 SELECT
-  '✅ SYSTÈME DE COMPTE COURANT CRÉÉ' as status,
-  'Tables: transactions (updated), current_accounts (new)' as tables,
-  'Triggers: Auto-catégorisation + Mise à jour compte courant' as triggers,
-  'Vue: current_account_by_project' as views;
+  '✅ SYSTÈME DE COMPTE COURANT SIMPLIFIÉ CRÉÉ' as status,
+  'Tables: transactions (updated avec auto-catégorisation)' as tables,
+  'Vues: compte_courant_mensuel, compte_courant_par_projet' as views,
+  'Triggers: Auto-catégorisation temps réel' as triggers,
+  'Avantage: Pas de redondance, tout basé sur les transactions!' as note;
+
+-- Exemples d'utilisation:
+COMMENT ON VIEW compte_courant_mensuel IS '
+Vue agrégée du compte courant par mois - PAS de table séparée!
+
+Exemples:
+
+1. Voir le compte du mois en cours:
+   SELECT * FROM compte_courant_mensuel
+   WHERE year = EXTRACT(YEAR FROM CURRENT_DATE)
+     AND month = EXTRACT(MONTH FROM CURRENT_DATE);
+
+2. Voir l''historique complet:
+   SELECT * FROM compte_courant_mensuel
+   ORDER BY year DESC, month DESC;
+
+3. Voir par projet pour un mois:
+   SELECT * FROM compte_courant_par_projet
+   WHERE year = 2025 AND month = 1;
+
+4. Résumé détaillé d''un mois:
+   SELECT * FROM get_compte_courant_summary(2025, 1);
+
+5. Catégoriser manuellement une transaction:
+   UPDATE transactions
+   SET operation_type = ''cout_operation'',
+       project_category = ''utilities'',
+       auto_categorized = FALSE
+   WHERE id = ''uuid'';
+
+Tout est calculé en temps réel depuis les transactions!
+Pas de duplication de données = pas de problème de synchronisation!
+';
