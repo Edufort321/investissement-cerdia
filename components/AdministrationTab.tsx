@@ -384,7 +384,7 @@ export default function AdministrationTab() {
               {/* Informations d'investissement */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Classe d'action *
+                  Classe de parts *
                 </label>
                 <select
                   value={formData.action_class}
@@ -400,7 +400,7 @@ export default function AdministrationTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total actions *
+                  Total parts *
                 </label>
                 <input
                   type="number"
@@ -415,7 +415,7 @@ export default function AdministrationTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valeur par action ($) *
+                  Valeur par part (CAD $) *
                 </label>
                 <input
                   type="number"
@@ -430,7 +430,7 @@ export default function AdministrationTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total investi ($) *
+                  Total investi (CAD $) *
                 </label>
                 <input
                   type="number"
@@ -645,7 +645,7 @@ export default function AdministrationTab() {
                       Total investi
                     </div>
                     <div className="font-bold text-gray-900">
-                      {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                      {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
                   <div>
@@ -654,11 +654,11 @@ export default function AdministrationTab() {
                       Valeur actuelle
                     </div>
                     <div className="font-bold text-green-600">
-                      {investor.current_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                      {investor.current_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-600 text-xs mb-1">Actions</div>
+                    <div className="text-gray-600 text-xs mb-1">Parts</div>
                     <div className="font-bold text-gray-900">{investor.total_shares.toLocaleString()}</div>
                   </div>
                   <div>

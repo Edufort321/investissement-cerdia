@@ -152,14 +152,14 @@ export default function DashboardPage() {
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-20 left-4 z-40 p-2 bg-[#5e5e5e] text-white rounded-full shadow-lg hover:bg-[#3e3e3e] transition-colors"
+          className="fixed top-24 left-4 z-50 p-3 bg-[#5e5e5e] text-white rounded-full shadow-lg hover:bg-[#3e3e3e] transition-colors"
         >
-          <Menu size={20} />
+          <Menu size={24} />
         </button>
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${isMobile ? 'pt-32' : 'pt-16'}`}>
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${isMobile ? 'pt-40' : 'pt-16'}`}>
         {/* Content Area */}
         <div className="p-6 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && (
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-3xl font-bold text-gray-900">
-                    {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-sm text-gray-500 mt-2">{investors.length} investisseurs</p>
                 </div>
@@ -319,9 +319,9 @@ export default function DashboardPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-gray-900">
-                              {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
-                            <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} actions</p>
+                            <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} parts</p>
                           </div>
                         </div>
                       ))}
