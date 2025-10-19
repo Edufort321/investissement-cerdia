@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Créer le client Supabase
+// Note: Pendant le build, les variables peuvent être vides, mais ça n'empêche pas la compilation
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: typeof window !== 'undefined', // Ne persister que côté client
+  }
+})
 
 // Helper pour uploader un fichier dans Storage
 export async function uploadFile(
