@@ -9,13 +9,19 @@ ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'USD',
 ADD COLUMN IF NOT EXISTS payment_schedule_type VARCHAR(20) DEFAULT 'one_time',
 ADD COLUMN IF NOT EXISTS monthly_payment_amount DECIMAL(12, 2),
 ADD COLUMN IF NOT EXISTS payment_start_date DATE,
-ADD COLUMN IF NOT EXISTS payment_end_date DATE;
+ADD COLUMN IF NOT EXISTS payment_end_date DATE,
+ADD COLUMN IF NOT EXISTS reservation_deposit DECIMAL(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS reservation_deposit_cad DECIMAL(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total_paid_cad DECIMAL(12, 2) DEFAULT 0;
 
 COMMENT ON COLUMN properties.currency IS 'Devise du projet: USD ou CAD';
 COMMENT ON COLUMN properties.payment_schedule_type IS 'Type de paiement: one_time, monthly_degressive, fixed_terms';
 COMMENT ON COLUMN properties.monthly_payment_amount IS 'Montant mensuel si type monthly_degressive';
 COMMENT ON COLUMN properties.payment_start_date IS 'Date de début des paiements';
 COMMENT ON COLUMN properties.payment_end_date IS 'Date de fin des paiements';
+COMMENT ON COLUMN properties.reservation_deposit IS 'Acompte de réservation (se déduit du total)';
+COMMENT ON COLUMN properties.reservation_deposit_cad IS 'Acompte de réservation en CAD';
+COMMENT ON COLUMN properties.total_paid_cad IS 'Total réellement payé en CAD pour coût réel économie canadienne';
 
 -- Étape 2: Créer la table payment_schedules pour suivre les paiements échelonnés
 CREATE TABLE IF NOT EXISTS payment_schedules (
@@ -28,6 +34,10 @@ CREATE TABLE IF NOT EXISTS payment_schedules (
   percentage DECIMAL(5, 2), -- Pourcentage du total (pour fixed_terms)
   amount DECIMAL(12, 2) NOT NULL, -- Montant à payer
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+
+  -- Montant réel payé en CAD pour économie canadienne
+  amount_paid_cad DECIMAL(12, 2), -- Montant réellement payé en CAD
+  exchange_rate_used DECIMAL(10, 4), -- Taux de change utilisé lors du paiement
 
   -- Dates
   due_date DATE NOT NULL, -- Date d'échéance
