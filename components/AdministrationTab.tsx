@@ -40,6 +40,17 @@ interface TransactionFormData {
   payment_method: string
   reference_number: string
   status: string
+  // International tax fields
+  source_currency: string
+  source_amount: number | null
+  exchange_rate: number
+  source_country: string | null
+  foreign_tax_paid: number
+  foreign_tax_rate: number
+  tax_credit_claimable: number
+  fiscal_category: string | null
+  vendor_name: string | null
+  accountant_notes: string | null
 }
 
 interface Document {
@@ -108,7 +119,18 @@ export default function AdministrationTab() {
     category: 'capital',
     payment_method: 'virement',
     reference_number: '',
-    status: 'complete'
+    status: 'complete',
+    // International tax fields defaults
+    source_currency: 'CAD',
+    source_amount: null,
+    exchange_rate: 1.0,
+    source_country: null,
+    foreign_tax_paid: 0,
+    foreign_tax_rate: 0,
+    tax_credit_claimable: 0,
+    fiscal_category: null,
+    vendor_name: null,
+    accountant_notes: null
   })
 
   // Fetch documents for selected investor
@@ -355,7 +377,18 @@ export default function AdministrationTab() {
       category: transaction.category,
       payment_method: transaction.payment_method,
       reference_number: transaction.reference_number || '',
-      status: transaction.status
+      status: transaction.status,
+      // International tax fields
+      source_currency: transaction.source_currency || 'CAD',
+      source_amount: transaction.source_amount || null,
+      exchange_rate: transaction.exchange_rate || 1.0,
+      source_country: transaction.source_country || null,
+      foreign_tax_paid: transaction.foreign_tax_paid || 0,
+      foreign_tax_rate: transaction.foreign_tax_rate || 0,
+      tax_credit_claimable: transaction.tax_credit_claimable || 0,
+      fiscal_category: transaction.fiscal_category || null,
+      vendor_name: transaction.vendor_name || null,
+      accountant_notes: transaction.accountant_notes || null
     })
     setShowAddTransactionForm(true)
   }
@@ -380,7 +413,18 @@ export default function AdministrationTab() {
       category: 'capital',
       payment_method: 'virement',
       reference_number: '',
-      status: 'complete'
+      status: 'complete',
+      // International tax fields defaults
+      source_currency: 'CAD',
+      source_amount: null,
+      exchange_rate: 1.0,
+      source_country: null,
+      foreign_tax_paid: 0,
+      foreign_tax_rate: 0,
+      tax_credit_claimable: 0,
+      fiscal_category: null,
+      vendor_name: null,
+      accountant_notes: null
     })
     setShowAddTransactionForm(false)
     setEditingTransactionId(null)
@@ -1133,6 +1177,142 @@ export default function AdministrationTab() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="Ex: TRX-2025-001"
                 />
+              </div>
+            </div>
+
+            {/* Section Fiscalité Internationale */}
+            <div className="pt-4 border-t border-gray-200">
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Fiscalité Internationale (Optionnel)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Devise source</label>
+                  <select
+                    value={transactionFormData.source_currency}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_currency: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="CAD">CAD $</option>
+                    <option value="USD">USD $</option>
+                    <option value="DOP">DOP (Peso Dominicain)</option>
+                    <option value="EUR">EUR €</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Montant devise source</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.source_amount || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_amount: e.target.value ? parseFloat(e.target.value) : null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    placeholder="Montant original"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux de change</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.exchange_rate}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, exchange_rate: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    min="0"
+                    step="0.0001"
+                    placeholder="1.0000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pays source</label>
+                  <input
+                    type="text"
+                    value={transactionFormData.source_country || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_country: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="Ex: République Dominicaine"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Impôt étranger payé (CAD $)</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.foreign_tax_paid}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, foreign_tax_paid: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux impôt étranger (%)</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.foreign_tax_rate}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, foreign_tax_rate: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie fiscale</label>
+                  <select
+                    value={transactionFormData.fiscal_category || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">Aucune</option>
+                    <option value="rental_income">Revenu locatif</option>
+                    <option value="management_fee">Frais de gestion</option>
+                    <option value="utilities">Services publics</option>
+                    <option value="insurance">Assurance</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="property_tax">Taxe foncière</option>
+                    <option value="renovation">Rénovation (CAPEX)</option>
+                    <option value="furnishing">Ameublement (CAPEX)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom du vendeur/compagnie</label>
+                  <input
+                    type="text"
+                    value={transactionFormData.vendor_name || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, vendor_name: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="Nom du fournisseur"
+                  />
+                </div>
+
+                {/* Crédit impôt calculé automatiquement (read-only) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Crédit d'impôt réclamable (calculé auto)</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.tax_credit_claimable}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                    readOnly
+                    disabled
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Ce montant est calculé automatiquement par le système</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes comptable</label>
+                  <textarea
+                    value={transactionFormData.accountant_notes || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, accountant_notes: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    rows={2}
+                    placeholder="Notes pour le comptable..."
+                  />
+                </div>
               </div>
             </div>
 
