@@ -14,6 +14,34 @@ interface Property {
   paid_amount: number
   reservation_date: string
   expected_roi: number
+  // Payment schedule fields
+  currency?: string
+  payment_schedule_type?: string
+  reservation_deposit?: number
+  reservation_deposit_cad?: number
+  total_paid_cad?: number
+  payment_start_date?: string
+  payment_end_date?: string
+  created_at: string
+  updated_at: string
+}
+
+interface PaymentSchedule {
+  id: string
+  property_id: string
+  term_number: number
+  term_label: string
+  percentage: number | null
+  amount: number
+  currency: string
+  amount_paid_cad: number | null
+  exchange_rate_used: number | null
+  due_date: string
+  paid_date: string | null
+  status: string
+  alert_days_before: number
+  alert_sent: boolean
+  notes: string | null
   created_at: string
   updated_at: string
 }
@@ -99,6 +127,7 @@ interface InvestmentContextType {
   capexAccounts: CapexAccount[]
   currentAccounts: CurrentAccount[]
   rndAccounts: RnDAccount[]
+  paymentSchedules: PaymentSchedule[]
 
   // Loading states
   loading: boolean
@@ -123,6 +152,13 @@ interface InvestmentContextType {
 
   // Accounts operations
   fetchAccounts: () => Promise<void>
+
+  // Payment schedules operations
+  fetchPaymentSchedules: (propertyId?: string) => Promise<void>
+  addPaymentSchedule: (schedule: Partial<PaymentSchedule>) => Promise<{ success: boolean; error?: string }>
+  updatePaymentSchedule: (id: string, updates: Partial<PaymentSchedule>) => Promise<{ success: boolean; error?: string }>
+  deletePaymentSchedule: (id: string) => Promise<{ success: boolean; error?: string }>
+  markPaymentAsPaid: (id: string, paidDate: string, amountPaidCad: number, exchangeRate: number) => Promise<{ success: boolean; error?: string }>
 }
 
 const InvestmentContext = createContext<InvestmentContextType | undefined>(undefined)
@@ -144,6 +180,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   const [capexAccounts, setCapexAccounts] = useState<CapexAccount[]>([])
   const [currentAccounts, setCurrentAccounts] = useState<CurrentAccount[]>([])
   const [rndAccounts, setRnDAccounts] = useState<RnDAccount[]>([])
+  const [paymentSchedules, setPaymentSchedules] = useState<PaymentSchedule[]>([])
   const [loading, setLoading] = useState(false)
 
   // Fetch Investors
@@ -349,6 +386,100 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [fetchTransactions])
 
+  // Fetch Payment Schedules
+  const fetchPaymentSchedules = useCallback(async (propertyId?: string) => {
+    try {
+      let query = supabase
+        .from('payment_schedules')
+        .select('*')
+        .order('due_date', { ascending: true })
+
+      if (propertyId) {
+        query = query.eq('property_id', propertyId)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setPaymentSchedules(data || [])
+    } catch (error) {
+      console.error('Error fetching payment schedules:', error)
+    }
+  }, [])
+
+  // Add Payment Schedule
+  const addPaymentSchedule = useCallback(async (schedule: Partial<PaymentSchedule>) => {
+    try {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .insert([schedule])
+
+      if (error) throw error
+      await fetchPaymentSchedules()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }, [fetchPaymentSchedules])
+
+  // Update Payment Schedule
+  const updatePaymentSchedule = useCallback(async (id: string, updates: Partial<PaymentSchedule>) => {
+    try {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .update(updates)
+        .eq('id', id)
+
+      if (error) throw error
+      await fetchPaymentSchedules()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }, [fetchPaymentSchedules])
+
+  // Delete Payment Schedule
+  const deletePaymentSchedule = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      await fetchPaymentSchedules()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }, [fetchPaymentSchedules])
+
+  // Mark Payment as Paid
+  const markPaymentAsPaid = useCallback(async (
+    id: string,
+    paidDate: string,
+    amountPaidCad: number,
+    exchangeRate: number
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .update({
+          status: 'paid',
+          paid_date: paidDate,
+          amount_paid_cad: amountPaidCad,
+          exchange_rate_used: exchangeRate
+        })
+        .eq('id', id)
+
+      if (error) throw error
+      await fetchPaymentSchedules()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }, [fetchPaymentSchedules])
+
   // Load all data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -358,9 +489,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         fetchProperties(),
         fetchTransactions(),
         fetchAccounts(),
+        fetchPaymentSchedules(),
       ]).finally(() => setLoading(false))
     }
-  }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts])
+  }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules])
 
   const value: InvestmentContextType = {
     investors,
@@ -369,6 +501,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     capexAccounts,
     currentAccounts,
     rndAccounts,
+    paymentSchedules,
     loading,
     fetchInvestors,
     addInvestor,
@@ -383,6 +516,11 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     updateTransaction,
     deleteTransaction,
     fetchAccounts,
+    fetchPaymentSchedules,
+    addPaymentSchedule,
+    updatePaymentSchedule,
+    deletePaymentSchedule,
+    markPaymentAsPaid,
   }
 
   return <InvestmentContext.Provider value={value}>{children}</InvestmentContext.Provider>

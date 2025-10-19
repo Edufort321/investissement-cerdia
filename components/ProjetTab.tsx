@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 interface PropertyFormData {
   name: string
@@ -12,13 +12,38 @@ interface PropertyFormData {
   paid_amount: number
   reservation_date: string
   expected_roi: number
+  // Payment schedule fields
+  currency: string
+  payment_schedule_type: string
+  reservation_deposit: number
+  reservation_deposit_cad: number
+  payment_start_date: string
+}
+
+interface PaymentTerm {
+  label: string
+  percentage: number
+  days_offset: number
 }
 
 export default function ProjetTab() {
-  const { properties, addProperty, updateProperty, deleteProperty, loading } = useInvestment()
+  const {
+    properties,
+    addProperty,
+    updateProperty,
+    deleteProperty,
+    paymentSchedules,
+    fetchPaymentSchedules,
+    markPaymentAsPaid,
+    loading
+  } = useInvestment()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<any>(null)
+
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
     location: '',
@@ -26,8 +51,31 @@ export default function ProjetTab() {
     total_cost: 0,
     paid_amount: 0,
     reservation_date: new Date().toISOString().split('T')[0],
-    expected_roi: 0
+    expected_roi: 0,
+    currency: 'USD',
+    payment_schedule_type: 'one_time',
+    reservation_deposit: 0,
+    reservation_deposit_cad: 0,
+    payment_start_date: new Date().toISOString().split('T')[0]
   })
+
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
+    { label: 'Acompte', percentage: 50, days_offset: 0 },
+    { label: '2e versement', percentage: 20, days_offset: 30 },
+    { label: '3e versement', percentage: 20, days_offset: 60 },
+    { label: 'Versement final', percentage: 10, days_offset: 90 }
+  ])
+
+  const [paymentFormData, setPaymentFormData] = useState({
+    paid_date: new Date().toISOString().split('T')[0],
+    amount_paid_cad: 0,
+    exchange_rate: 1.35
+  })
+
+  // Fetch payment schedules when component mounts
+  useEffect(() => {
+    fetchPaymentSchedules()
+  }, [fetchPaymentSchedules])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,7 +110,12 @@ export default function ProjetTab() {
       total_cost: property.total_cost,
       paid_amount: property.paid_amount,
       reservation_date: property.reservation_date.split('T')[0],
-      expected_roi: property.expected_roi
+      expected_roi: property.expected_roi,
+      currency: property.currency || 'USD',
+      payment_schedule_type: property.payment_schedule_type || 'one_time',
+      reservation_deposit: property.reservation_deposit || 0,
+      reservation_deposit_cad: property.reservation_deposit_cad || 0,
+      payment_start_date: property.payment_start_date?.split('T')[0] || new Date().toISOString().split('T')[0]
     })
     setShowAddForm(true)
   }
@@ -84,10 +137,63 @@ export default function ProjetTab() {
       total_cost: 0,
       paid_amount: 0,
       reservation_date: new Date().toISOString().split('T')[0],
-      expected_roi: 0
+      expected_roi: 0,
+      currency: 'USD',
+      payment_schedule_type: 'one_time',
+      reservation_deposit: 0,
+      reservation_deposit_cad: 0,
+      payment_start_date: new Date().toISOString().split('T')[0]
     })
     setShowAddForm(false)
     setEditingId(null)
+  }
+
+  const handleMarkAsPaid = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedPayment) return
+
+    const result = await markPaymentAsPaid(
+      selectedPayment.id,
+      paymentFormData.paid_date,
+      paymentFormData.amount_paid_cad,
+      paymentFormData.exchange_rate
+    )
+
+    if (result.success) {
+      setShowPaymentModal(false)
+      setSelectedPayment(null)
+      setPaymentFormData({
+        paid_date: new Date().toISOString().split('T')[0],
+        amount_paid_cad: 0,
+        exchange_rate: 1.35
+      })
+    } else {
+      alert('Erreur lors du marquage du paiement: ' + result.error)
+    }
+  }
+
+  const openPaymentModal = (payment: any) => {
+    setSelectedPayment(payment)
+    setPaymentFormData({
+      paid_date: new Date().toISOString().split('T')[0],
+      amount_paid_cad: payment.amount * (payment.currency === 'USD' ? 1.35 : 1),
+      exchange_rate: payment.currency === 'USD' ? 1.35 : 1.0
+    })
+    setShowPaymentModal(true)
+  }
+
+  const addPaymentTerm = () => {
+    setPaymentTerms([...paymentTerms, { label: '', percentage: 0, days_offset: 0 }])
+  }
+
+  const removePaymentTerm = (index: number) => {
+    setPaymentTerms(paymentTerms.filter((_, i) => i !== index))
+  }
+
+  const updatePaymentTerm = (index: number, field: keyof PaymentTerm, value: string | number) => {
+    const updated = [...paymentTerms]
+    updated[index] = { ...updated[index], [field]: value }
+    setPaymentTerms(updated)
   }
 
   const getStatusBadge = (status: string) => {
@@ -103,6 +209,26 @@ export default function ProjetTab() {
         {badge.label}
       </span>
     )
+  }
+
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <CheckCircle className="text-green-600" size={16} />
+      case 'overdue':
+        return <AlertCircle className="text-red-600" size={16} />
+      default:
+        return <Clock className="text-gray-400" size={16} />
+    }
+  }
+
+  const getPropertyPayments = (propertyId: string) => {
+    return paymentSchedules.filter(ps => ps.property_id === propertyId)
+  }
+
+  const calculateTotalPaidCAD = (propertyId: string) => {
+    const payments = getPropertyPayments(propertyId).filter(p => p.status === 'paid')
+    return payments.reduce((sum, p) => sum + (p.amount_paid_cad || 0), 0)
   }
 
   return (
@@ -128,7 +254,8 @@ export default function ProjetTab() {
           <h3 className="text-lg font-semibold mb-4">
             {editingId ? 'Modifier la propriété' : 'Nouvelle propriété'}
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,7 +317,22 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Coût total ($) *
+                  Devise *
+                </label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="CAD">CAD ($)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Coût total *
                 </label>
                 <input
                   type="number"
@@ -206,7 +348,7 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant payé ($) *
+                  Montant payé
                 </label>
                 <input
                   type="number"
@@ -216,7 +358,6 @@ export default function ProjetTab() {
                   placeholder="Ex: 116817.94"
                   min="0"
                   step="0.01"
-                  required
                 />
               </div>
 
@@ -235,6 +376,131 @@ export default function ProjetTab() {
                   required
                 />
               </div>
+            </div>
+
+            {/* Payment Schedule Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-4">Configuration des Paiements</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Acompte de réservation ({formData.currency})
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.reservation_deposit}
+                    onChange={(e) => setFormData({ ...formData, reservation_deposit: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="Ex: 10000"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Ce montant se déduit du total</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Acompte payé en CAD
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.reservation_deposit_cad}
+                    onChange={(e) => setFormData({ ...formData, reservation_deposit_cad: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="Ex: 13500"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Montant réel en économie canadienne</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type de calendrier de paiement
+                  </label>
+                  <select
+                    value={formData.payment_schedule_type}
+                    onChange={(e) => setFormData({ ...formData, payment_schedule_type: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="one_time">Paiement unique</option>
+                    <option value="fixed_terms">Termes fixes (personnalisés)</option>
+                    <option value="monthly_degressive">Mensuel dégressif</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date de début des paiements
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.payment_start_date}
+                    onChange={(e) => setFormData({ ...formData, payment_start_date: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Fixed Terms Configuration */}
+              {formData.payment_schedule_type === 'fixed_terms' && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-sm font-semibold text-gray-900">Termes de paiement</h5>
+                    <button
+                      type="button"
+                      onClick={addPaymentTerm}
+                      className="text-sm text-[#5e5e5e] hover:text-[#3e3e3e] font-medium"
+                    >
+                      + Ajouter un terme
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {paymentTerms.map((term, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={term.label}
+                          onChange={(e) => updatePaymentTerm(index, 'label', e.target.value)}
+                          placeholder="Label"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                        <input
+                          type="number"
+                          value={term.percentage}
+                          onChange={(e) => updatePaymentTerm(index, 'percentage', parseFloat(e.target.value))}
+                          placeholder="%"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                        />
+                        <input
+                          type="number"
+                          value={term.days_offset}
+                          onChange={(e) => updatePaymentTerm(index, 'days_offset', parseInt(e.target.value))}
+                          placeholder="Jours"
+                          className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePaymentTerm(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-2 text-xs text-gray-600">
+                    Total: {paymentTerms.reduce((sum, term) => sum + term.percentage, 0)}%
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -275,6 +541,10 @@ export default function ProjetTab() {
           {properties.map((property) => {
             const progress = (property.paid_amount / property.total_cost) * 100
             const remaining = property.total_cost - property.paid_amount
+            const propertyPayments = getPropertyPayments(property.id)
+            const totalPaidCAD = calculateTotalPaidCAD(property.id)
+            const pendingPayments = propertyPayments.filter(p => p.status === 'pending').length
+            const overduePayments = propertyPayments.filter(p => p.status === 'overdue').length
 
             return (
               <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -291,9 +561,14 @@ export default function ProjetTab() {
                     {getStatusBadge(property.status)}
                   </div>
 
-                  <div className="flex items-center text-sm text-gray-600 gap-1">
-                    <Calendar size={14} />
-                    Réservé le {new Date(property.reservation_date).toLocaleDateString('fr-CA')}
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={14} />
+                      Réservé le {new Date(property.reservation_date).toLocaleDateString('fr-CA')}
+                    </div>
+                    <div className="font-semibold text-xs bg-gray-100 px-2 py-1 rounded">
+                      {property.currency || 'USD'}
+                    </div>
                   </div>
                 </div>
 
@@ -313,13 +588,103 @@ export default function ProjetTab() {
                     </div>
                     <div className="flex justify-between text-xs mt-2 text-gray-600">
                       <span>
-                        {property.paid_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
+                        {property.paid_amount.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} payé
                       </span>
                       <span>
-                        {remaining.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} restant
+                        {remaining.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} restant
                       </span>
                     </div>
                   </div>
+
+                  {/* CAD Tracking */}
+                  {totalPaidCAD > 0 && (
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="text-xs text-green-700 font-medium mb-1">Total payé en CAD</div>
+                      <div className="text-lg font-bold text-green-800">
+                        {totalPaidCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-xs text-green-600 mt-1">Coût réel en économie canadienne</div>
+                    </div>
+                  )}
+
+                  {/* Payment Alerts */}
+                  {(pendingPayments > 0 || overduePayments > 0) && (
+                    <div className="flex gap-2">
+                      {pendingPayments > 0 && (
+                        <div className="flex-1 bg-blue-50 p-2 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-1 text-xs text-blue-700">
+                            <Clock size={12} />
+                            {pendingPayments} en attente
+                          </div>
+                        </div>
+                      )}
+                      {overduePayments > 0 && (
+                        <div className="flex-1 bg-red-50 p-2 rounded-lg border border-red-200">
+                          <div className="flex items-center gap-1 text-xs text-red-700">
+                            <AlertCircle size={12} />
+                            {overduePayments} en retard
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment Schedule */}
+                  {propertyPayments.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setSelectedPropertyId(selectedPropertyId === property.id ? null : property.id)}
+                        className="text-sm font-medium text-[#5e5e5e] hover:text-[#3e3e3e] mb-2"
+                      >
+                        {selectedPropertyId === property.id ? '▼' : '▶'} Calendrier de paiements ({propertyPayments.length})
+                      </button>
+
+                      {selectedPropertyId === property.id && (
+                        <div className="space-y-2 mt-2">
+                          {propertyPayments.map(payment => (
+                            <div key={payment.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  {getPaymentStatusIcon(payment.status)}
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {payment.term_label}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-bold text-gray-900">
+                                  {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs text-gray-600">
+                                <span>Échéance: {new Date(payment.due_date).toLocaleDateString('fr-CA')}</span>
+                                {payment.status === 'paid' && payment.paid_date && (
+                                  <span className="text-green-600 font-medium">
+                                    Payé le {new Date(payment.paid_date).toLocaleDateString('fr-CA')}
+                                  </span>
+                                )}
+                              </div>
+
+                              {payment.amount_paid_cad && (
+                                <div className="text-xs text-green-700 font-medium mt-1">
+                                  Payé: {payment.amount_paid_cad.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} CAD
+                                  {payment.exchange_rate_used && ` (taux: ${payment.exchange_rate_used})`}
+                                </div>
+                              )}
+
+                              {payment.status === 'pending' && (
+                                <button
+                                  onClick={() => openPaymentModal(payment)}
+                                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-3 rounded transition-colors"
+                                >
+                                  Marquer comme payé
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -329,7 +694,7 @@ export default function ProjetTab() {
                         Coût total
                       </div>
                       <div className="font-bold text-gray-900">
-                        {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                        {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div>
@@ -363,6 +728,93 @@ export default function ProjetTab() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Mark as Paid Modal */}
+      {showPaymentModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Marquer le paiement comme payé</h3>
+
+            <div className="mb-4">
+              <div className="text-sm text-gray-600 mb-2">
+                <strong>{selectedPayment.term_label}</strong>
+              </div>
+              <div className="text-lg font-bold text-gray-900 mb-1">
+                {selectedPayment.amount.toLocaleString('fr-CA', { style: 'currency', currency: selectedPayment.currency })}
+              </div>
+              <div className="text-xs text-gray-600">
+                Échéance: {new Date(selectedPayment.due_date).toLocaleDateString('fr-CA')}
+              </div>
+            </div>
+
+            <form onSubmit={handleMarkAsPaid} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date de paiement *
+                </label>
+                <input
+                  type="date"
+                  value={paymentFormData.paid_date}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, paid_date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Montant payé en CAD *
+                </label>
+                <input
+                  type="number"
+                  value={paymentFormData.amount_paid_cad}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, amount_paid_cad: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+              </div>
+
+              {selectedPayment.currency === 'USD' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Taux de change USD→CAD *
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentFormData.exchange_rate}
+                    onChange={(e) => setPaymentFormData({ ...paymentFormData, exchange_rate: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    step="0.0001"
+                    min="0"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Calcul auto: {(selectedPayment.amount * paymentFormData.exchange_rate).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Confirmer le paiement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
