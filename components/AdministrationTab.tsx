@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { supabase } from '@/lib/supabase'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, ExternalLink } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown } from 'lucide-react'
 
 interface InvestorFormData {
   user_id: string
@@ -29,6 +29,19 @@ interface InvestorFormData {
   }
 }
 
+interface TransactionFormData {
+  date: string
+  type: string
+  amount: number
+  description: string
+  investor_id: string | null
+  property_id: string | null
+  category: string
+  payment_method: string
+  reference_number: string
+  status: string
+}
+
 interface Document {
   id: string
   name: string
@@ -40,16 +53,28 @@ interface Document {
   investor_id: string | null
 }
 
-export default function AdministrationTab() {
-  const { investors, addInvestor, updateInvestor, deleteInvestor, loading } = useInvestment()
+type SubTabType = 'investisseurs' | 'transactions' | 'compte_courant' | 'capex' | 'rd_dividendes'
 
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+export default function AdministrationTab() {
+  const { investors, transactions, properties, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+
+  // Sub-tab state
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>('investisseurs')
+
+  // Investors state
+  const [showAddInvestorForm, setShowAddInvestorForm] = useState(false)
+  const [editingInvestorId, setEditingInvestorId] = useState<string | null>(null)
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState(false)
 
-  const [formData, setFormData] = useState<InvestorFormData>({
+  // Transactions state
+  const [showAddTransactionForm, setShowAddTransactionForm] = useState(false)
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
+  const [filterType, setFilterType] = useState<string>('all')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+
+  const [investorFormData, setInvestorFormData] = useState<InvestorFormData>({
     user_id: '',
     first_name: '',
     last_name: '',
@@ -71,6 +96,19 @@ export default function AdministrationTab() {
       projet: false,
       administration: false
     }
+  })
+
+  const [transactionFormData, setTransactionFormData] = useState<TransactionFormData>({
+    date: new Date().toISOString().split('T')[0],
+    type: 'investissement',
+    amount: 0,
+    description: '',
+    investor_id: null,
+    property_id: null,
+    category: 'capital',
+    payment_method: 'virement',
+    reference_number: '',
+    status: 'complete'
   })
 
   // Fetch documents for selected investor
@@ -95,41 +133,44 @@ export default function AdministrationTab() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ==========================================
+  // INVESTOR HANDLERS
+  // ==========================================
+
+  const handleInvestorSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Calculate current_value and percentage_ownership
-    const totalInvested = formData.total_invested
-    const currentValue = formData.total_shares * formData.share_value
+    const totalInvested = investorFormData.total_invested
+    const currentValue = investorFormData.total_shares * investorFormData.share_value
 
     const dataToSubmit = {
-      ...formData,
+      ...investorFormData,
       current_value: currentValue,
       total_invested: totalInvested
     }
 
-    if (editingId) {
-      const result = await updateInvestor(editingId, dataToSubmit)
+    if (editingInvestorId) {
+      const result = await updateInvestor(editingInvestorId, dataToSubmit)
       if (result.success) {
-        setEditingId(null)
-        resetForm()
+        setEditingInvestorId(null)
+        resetInvestorForm()
       } else {
         alert('Erreur lors de la modification: ' + result.error)
       }
     } else {
       const result = await addInvestor(dataToSubmit)
       if (result.success) {
-        setShowAddForm(false)
-        resetForm()
+        setShowAddInvestorForm(false)
+        resetInvestorForm()
       } else {
         alert('Erreur lors de l\'ajout: ' + result.error)
       }
     }
   }
 
-  const handleEdit = (investor: any) => {
-    setEditingId(investor.id)
-    setFormData({
+  const handleEditInvestor = (investor: any) => {
+    setEditingInvestorId(investor.id)
+    setInvestorFormData({
       user_id: investor.user_id,
       first_name: investor.first_name,
       last_name: investor.last_name,
@@ -148,10 +189,10 @@ export default function AdministrationTab() {
       access_level: investor.access_level,
       permissions: investor.permissions
     })
-    setShowAddForm(true)
+    setShowAddInvestorForm(true)
   }
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDeleteInvestor = async (id: string, name: string) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'investisseur "${name}" ?`)) {
       const result = await deleteInvestor(id)
       if (!result.success) {
@@ -167,7 +208,6 @@ export default function AdministrationTab() {
     setUploading(true)
 
     try {
-      // Upload to Supabase Storage
       const fileName = `${selectedInvestorId}/${Date.now()}_${file.name}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
@@ -175,7 +215,6 @@ export default function AdministrationTab() {
 
       if (uploadError) throw uploadError
 
-      // Create document record
       const { error: dbError } = await supabase
         .from('documents')
         .insert([{
@@ -189,7 +228,6 @@ export default function AdministrationTab() {
 
       if (dbError) throw dbError
 
-      // Refresh documents
       await fetchDocuments(selectedInvestorId)
       alert('Document téléchargé avec succès!')
     } catch (error: any) {
@@ -208,7 +246,6 @@ export default function AdministrationTab() {
 
       if (error) throw error
 
-      // Create download link
       const url = URL.createObjectURL(data)
       const a = document.createElement('a')
       a.href = url
@@ -224,14 +261,12 @@ export default function AdministrationTab() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return
 
     try {
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([storagePath])
 
       if (storageError) throw storageError
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
@@ -239,7 +274,6 @@ export default function AdministrationTab() {
 
       if (dbError) throw dbError
 
-      // Refresh documents
       if (selectedInvestorId) {
         await fetchDocuments(selectedInvestorId)
       }
@@ -249,8 +283,8 @@ export default function AdministrationTab() {
     }
   }
 
-  const resetForm = () => {
-    setFormData({
+  const resetInvestorForm = () => {
+    setInvestorFormData({
       user_id: '',
       first_name: '',
       last_name: '',
@@ -273,9 +307,88 @@ export default function AdministrationTab() {
         administration: false
       }
     })
-    setShowAddForm(false)
-    setEditingId(null)
+    setShowAddInvestorForm(false)
+    setEditingInvestorId(null)
   }
+
+  // ==========================================
+  // TRANSACTION HANDLERS
+  // ==========================================
+
+  const handleTransactionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const dataToSubmit = {
+      ...transactionFormData,
+      investor_id: transactionFormData.investor_id || null,
+      property_id: transactionFormData.property_id || null
+    }
+
+    if (editingTransactionId) {
+      const result = await updateTransaction(editingTransactionId, dataToSubmit)
+      if (result.success) {
+        setEditingTransactionId(null)
+        resetTransactionForm()
+      } else {
+        alert('Erreur lors de la modification: ' + result.error)
+      }
+    } else {
+      const result = await addTransaction(dataToSubmit)
+      if (result.success) {
+        setShowAddTransactionForm(false)
+        resetTransactionForm()
+      } else {
+        alert('Erreur lors de l\'ajout: ' + result.error)
+      }
+    }
+  }
+
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransactionId(transaction.id)
+    setTransactionFormData({
+      date: transaction.date.split('T')[0],
+      type: transaction.type,
+      amount: transaction.amount,
+      description: transaction.description,
+      investor_id: transaction.investor_id,
+      property_id: transaction.property_id,
+      category: transaction.category,
+      payment_method: transaction.payment_method,
+      reference_number: transaction.reference_number || '',
+      status: transaction.status
+    })
+    setShowAddTransactionForm(true)
+  }
+
+  const handleDeleteTransaction = async (id: string, description: string) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la transaction "${description}" ?`)) {
+      const result = await deleteTransaction(id)
+      if (!result.success) {
+        alert('Erreur lors de la suppression: ' + result.error)
+      }
+    }
+  }
+
+  const resetTransactionForm = () => {
+    setTransactionFormData({
+      date: new Date().toISOString().split('T')[0],
+      type: 'investissement',
+      amount: 0,
+      description: '',
+      investor_id: null,
+      property_id: null,
+      category: 'capital',
+      payment_method: 'virement',
+      reference_number: '',
+      status: 'complete'
+    })
+    setShowAddTransactionForm(false)
+    setEditingTransactionId(null)
+  }
+
+  // ==========================================
+  // UTILITY FUNCTIONS
+  // ==========================================
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
@@ -291,7 +404,51 @@ export default function AdministrationTab() {
     )
   }
 
-  return (
+  const getTypeIcon = (type: string) => {
+    if (['investissement', 'dividende'].includes(type)) {
+      return <TrendingUp className="text-green-600" size={20} />
+    }
+    return <TrendingDown className="text-red-600" size={20} />
+  }
+
+  const getTypeBadge = (type: string) => {
+    const badges: Record<string, { bg: string; text: string; label: string }> = {
+      investissement: { bg: 'bg-green-100', text: 'text-green-800', label: 'Investissement' },
+      paiement: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Paiement' },
+      dividende: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Dividende' },
+      depense: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dépense' }
+    }
+    const badge = badges[type] || badges.investissement
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+        {badge.label}
+      </span>
+    )
+  }
+
+  // Filtrer les transactions
+  const filteredTransactions = transactions.filter(t => {
+    if (filterType !== 'all' && t.type !== filterType) return false
+    if (filterCategory !== 'all' && t.category !== filterCategory) return false
+    return true
+  })
+
+  // Calculs statistiques pour transactions
+  const totalIn = filteredTransactions
+    .filter(t => ['investissement', 'dividende'].includes(t.type))
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalOut = filteredTransactions
+    .filter(t => ['paiement', 'depense'].includes(t.type))
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const balance = totalIn - totalOut
+
+  // ==========================================
+  // SUB-TAB CONTENT RENDERERS
+  // ==========================================
+
+  const renderInvestisseursTab = () => (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -300,82 +457,72 @@ export default function AdministrationTab() {
           <p className="text-gray-600 mt-1">Gérez les investisseurs et leurs documents</p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors"
         >
-          {showAddForm ? <X size={20} /> : <Plus size={20} />}
-          {showAddForm ? 'Annuler' : 'Ajouter un investisseur'}
+          {showAddInvestorForm ? <X size={20} /> : <Plus size={20} />}
+          {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
         </button>
       </div>
 
       {/* Add/Edit Form */}
-      {showAddForm && (
+      {showAddInvestorForm && (
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? 'Modifier l\'investisseur' : 'Nouvel investisseur'}
+            {editingInvestorId ? 'Modifier l\'investisseur' : 'Nouvel investisseur'}
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleInvestorSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Informations personnelles */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prénom *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Prénom *</label>
                 <input
                   type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  value={investorFormData.first_name}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, first_name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nom *</label>
                 <input
                   type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  value={investorFormData.last_name}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, last_name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  value={investorFormData.email}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Téléphone
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
                 <input
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={investorFormData.phone}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, phone: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom d'utilisateur *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nom d'utilisateur *</label>
                 <input
                   type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  value={investorFormData.username}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, username: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
@@ -383,12 +530,10 @@ export default function AdministrationTab() {
 
               {/* Informations d'investissement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Classe de parts *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Classe de parts *</label>
                 <select
-                  value={formData.action_class}
-                  onChange={(e) => setFormData({ ...formData, action_class: e.target.value })}
+                  value={investorFormData.action_class}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, action_class: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
@@ -399,13 +544,11 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total parts *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total parts *</label>
                 <input
                   type="number"
-                  value={formData.total_shares}
-                  onChange={(e) => setFormData({ ...formData, total_shares: parseFloat(e.target.value) })}
+                  value={investorFormData.total_shares}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, total_shares: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   min="0"
                   step="1"
@@ -414,13 +557,11 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valeur par part (CAD $) *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Valeur par part (CAD $) *</label>
                 <input
                   type="number"
-                  value={formData.share_value}
-                  onChange={(e) => setFormData({ ...formData, share_value: parseFloat(e.target.value) })}
+                  value={investorFormData.share_value}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, share_value: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   min="0"
                   step="0.01"
@@ -429,13 +570,11 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total investi (CAD $) *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total investi (CAD $) *</label>
                 <input
                   type="number"
-                  value={formData.total_invested}
-                  onChange={(e) => setFormData({ ...formData, total_invested: parseFloat(e.target.value) })}
+                  value={investorFormData.total_invested}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, total_invested: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   min="0"
                   step="0.01"
@@ -444,13 +583,11 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  % de propriété *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">% de propriété *</label>
                 <input
                   type="number"
-                  value={formData.percentage_ownership}
-                  onChange={(e) => setFormData({ ...formData, percentage_ownership: parseFloat(e.target.value) })}
+                  value={investorFormData.percentage_ownership}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, percentage_ownership: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   min="0"
                   max="100"
@@ -460,12 +597,10 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type d'investissement *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type d'investissement *</label>
                 <select
-                  value={formData.investment_type}
-                  onChange={(e) => setFormData({ ...formData, investment_type: e.target.value })}
+                  value={investorFormData.investment_type}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, investment_type: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
@@ -476,12 +611,10 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Statut *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Statut *</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  value={investorFormData.status}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, status: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
@@ -492,25 +625,21 @@ export default function AdministrationTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date d'adhésion *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date d'adhésion *</label>
                 <input
                   type="date"
-                  value={formData.join_date}
-                  onChange={(e) => setFormData({ ...formData, join_date: e.target.value })}
+                  value={investorFormData.join_date}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, join_date: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Niveau d'accès *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Niveau d'accès *</label>
                 <select
-                  value={formData.access_level}
-                  onChange={(e) => setFormData({ ...formData, access_level: e.target.value })}
+                  value={investorFormData.access_level}
+                  onChange={(e) => setInvestorFormData({ ...investorFormData, access_level: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
@@ -522,17 +651,15 @@ export default function AdministrationTab() {
 
             {/* Permissions */}
             <div className="pt-4 border-t border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Permissions
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Permissions</label>
               <div className="flex gap-6">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.permissions.dashboard}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      permissions: { ...formData.permissions, dashboard: e.target.checked }
+                    checked={investorFormData.permissions.dashboard}
+                    onChange={(e) => setInvestorFormData({
+                      ...investorFormData,
+                      permissions: { ...investorFormData.permissions, dashboard: e.target.checked }
                     })}
                     className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
                   />
@@ -541,10 +668,10 @@ export default function AdministrationTab() {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.permissions.projet}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      permissions: { ...formData.permissions, projet: e.target.checked }
+                    checked={investorFormData.permissions.projet}
+                    onChange={(e) => setInvestorFormData({
+                      ...investorFormData,
+                      permissions: { ...investorFormData.permissions, projet: e.target.checked }
                     })}
                     className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
                   />
@@ -553,10 +680,10 @@ export default function AdministrationTab() {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.permissions.administration}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      permissions: { ...formData.permissions, administration: e.target.checked }
+                    checked={investorFormData.permissions.administration}
+                    onChange={(e) => setInvestorFormData({
+                      ...investorFormData,
+                      permissions: { ...investorFormData.permissions, administration: e.target.checked }
                     })}
                     className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
                   />
@@ -571,11 +698,11 @@ export default function AdministrationTab() {
                 disabled={loading}
                 className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
-                {loading ? 'Enregistrement...' : editingId ? 'Modifier' : 'Ajouter'}
+                {loading ? 'Enregistrement...' : editingInvestorId ? 'Modifier' : 'Ajouter'}
               </button>
               <button
                 type="button"
-                onClick={resetForm}
+                onClick={resetInvestorForm}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
                 Annuler
@@ -592,7 +719,7 @@ export default function AdministrationTab() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun investisseur</h3>
           <p className="text-gray-600 mb-4">Commencez par ajouter votre premier investisseur</p>
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => setShowAddInvestorForm(true)}
             className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors"
           >
             Ajouter un investisseur
@@ -685,13 +812,13 @@ export default function AdministrationTab() {
                   Documents
                 </button>
                 <button
-                  onClick={() => handleEdit(investor)}
+                  onClick={() => handleEditInvestor(investor)}
                   className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button
-                  onClick={() => handleDelete(investor.id, `${investor.first_name} ${investor.last_name}`)}
+                  onClick={() => handleDeleteInvestor(investor.id, `${investor.first_name} ${investor.last_name}`)}
                   className="flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <Trash2 size={16} />
@@ -706,7 +833,6 @@ export default function AdministrationTab() {
       {selectedInvestorId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Documents</h3>
@@ -725,7 +851,6 @@ export default function AdministrationTab() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
               {/* Upload Section */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
@@ -789,6 +914,443 @@ export default function AdministrationTab() {
           </div>
         </div>
       )}
+    </div>
+  )
+
+  const renderTransactionsTab = () => (
+    <div className="space-y-6">
+      {/* Header avec statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-green-700">Entrées</span>
+            <TrendingUp className="text-green-600" size={20} />
+          </div>
+          <p className="text-2xl font-bold text-green-900">
+            {totalIn.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-red-700">Sorties</span>
+            <TrendingDown className="text-red-600" size={20} />
+          </div>
+          <p className="text-2xl font-bold text-red-900">
+            {totalOut.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className={`bg-gradient-to-br ${balance >= 0 ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-4 rounded-lg border`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde</span>
+            <DollarSign className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={20} />
+          </div>
+          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
+            {balance.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+          </p>
+        </div>
+      </div>
+
+      {/* Barre d'actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Filter size={20} className="text-gray-600" />
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+          >
+            <option value="all">Tous les types</option>
+            <option value="investissement">Investissement</option>
+            <option value="paiement">Paiement</option>
+            <option value="dividende">Dividende</option>
+            <option value="depense">Dépense</option>
+          </select>
+
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+          >
+            <option value="all">Toutes les catégories</option>
+            <option value="capital">Capital</option>
+            <option value="operation">Opération</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="admin">Administration</option>
+          </select>
+        </div>
+
+        <button
+          onClick={() => setShowAddTransactionForm(!showAddTransactionForm)}
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors"
+        >
+          {showAddTransactionForm ? <X size={20} /> : <Plus size={20} />}
+          {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
+        </button>
+      </div>
+
+      {/* Formulaire */}
+      {showAddTransactionForm && (
+        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-lg font-semibold mb-4">
+            {editingTransactionId ? 'Modifier la transaction' : 'Nouvelle transaction'}
+          </h3>
+          <form onSubmit={handleTransactionSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                <input
+                  type="date"
+                  value={transactionFormData.date}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+                <select
+                  value={transactionFormData.type}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="investissement">Investissement</option>
+                  <option value="paiement">Paiement</option>
+                  <option value="dividende">Dividende</option>
+                  <option value="depense">Dépense</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Montant ($) *</label>
+                <input
+                  type="number"
+                  value={transactionFormData.amount}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, amount: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie *</label>
+                <select
+                  value={transactionFormData.category}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, category: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="capital">Capital</option>
+                  <option value="operation">Opération</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="admin">Administration</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Méthode de paiement *</label>
+                <select
+                  value={transactionFormData.payment_method}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_method: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="virement">Virement</option>
+                  <option value="cheque">Chèque</option>
+                  <option value="especes">Espèces</option>
+                  <option value="carte">Carte</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Statut *</label>
+                <select
+                  value={transactionFormData.status}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, status: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="complete">Complété</option>
+                  <option value="en_attente">En attente</option>
+                  <option value="annule">Annulé</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Investisseur</label>
+                <select
+                  value={transactionFormData.investor_id || ''}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, investor_id: e.target.value || null })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="">Aucun</option>
+                  {investors.map(inv => (
+                    <option key={inv.id} value={inv.id}>
+                      {inv.first_name} {inv.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Propriété</label>
+                <select
+                  value={transactionFormData.property_id || ''}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || null })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="">Aucune</option>
+                  {properties.map(prop => (
+                    <option key={prop.id} value={prop.id}>
+                      {prop.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <textarea
+                  value={transactionFormData.description}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Numéro de référence</label>
+                <input
+                  type="text"
+                  value={transactionFormData.reference_number}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, reference_number: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: TRX-2025-001"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Enregistrement...' : editingTransactionId ? 'Modifier' : 'Ajouter'}
+              </button>
+              <button
+                type="button"
+                onClick={resetTransactionForm}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Liste des transactions */}
+      {filteredTransactions.length === 0 ? (
+        <div className="bg-white p-12 rounded-lg shadow-md text-center">
+          <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
+          <p className="text-gray-600 mb-4">
+            {filterType !== 'all' || filterCategory !== 'all'
+              ? 'Aucune transaction ne correspond aux filtres sélectionnés'
+              : 'Commencez par ajouter votre première transaction'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTransactions.map((transaction) => {
+                  const investor = investors.find(i => i.id === transaction.investor_id)
+                  const property = properties.find(p => p.id === transaction.property_id)
+
+                  return (
+                    <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-sm text-gray-900">
+                          <Calendar size={14} className="text-gray-400" />
+                          {new Date(transaction.date).toLocaleDateString('fr-CA')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getTypeBadge(transaction.type)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                        {investor && (
+                          <div className="text-xs text-gray-500">Investisseur: {investor.first_name} {investor.last_name}</div>
+                        )}
+                        {property && (
+                          <div className="text-xs text-gray-500">Propriété: {property.name}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`flex items-center gap-1 text-sm font-semibold ${
+                          ['investissement', 'dividende'].includes(transaction.type) ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {getTypeIcon(transaction.type)}
+                          {transaction.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          transaction.status === 'complete' ? 'bg-green-100 text-green-800' :
+                          transaction.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {transaction.status === 'complete' ? 'Complété' :
+                           transaction.status === 'en_attente' ? 'En attente' : 'Annulé'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction.id, transaction.description)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderCompteCourantTab = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-12 rounded-lg shadow-md text-center">
+        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Compte Courant 2025</h3>
+        <p className="text-gray-600">Module en développement - Suivi des opérations courantes</p>
+      </div>
+    </div>
+  )
+
+  const renderCapexTab = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-12 rounded-lg shadow-md text-center">
+        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">CAPEX 2025</h3>
+        <p className="text-gray-600">Module en développement - Gestion des dépenses en capital</p>
+      </div>
+    </div>
+  )
+
+  const renderRdDividendesTab = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-12 rounded-lg shadow-md text-center">
+        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">R&D et Dividendes</h3>
+        <p className="text-gray-600">Module en développement - Gestion des dividendes et R&D</p>
+      </div>
+    </div>
+  )
+
+  // ==========================================
+  // MAIN RENDER
+  // ==========================================
+
+  return (
+    <div className="space-y-6">
+      {/* Sub-Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto">
+          <button
+            onClick={() => setActiveSubTab('investisseurs')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'investisseurs'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Investisseurs
+          </button>
+          <button
+            onClick={() => setActiveSubTab('transactions')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'transactions'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Transactions
+          </button>
+          <button
+            onClick={() => setActiveSubTab('compte_courant')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'compte_courant'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Compte Courant 2025
+          </button>
+          <button
+            onClick={() => setActiveSubTab('capex')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'capex'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            CAPEX 2025
+          </button>
+          <button
+            onClick={() => setActiveSubTab('rd_dividendes')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'rd_dividendes'
+                ? 'border-[#5e5e5e] text-[#5e5e5e]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            R&D / Dividendes
+          </button>
+        </nav>
+      </div>
+
+      {/* Content Area */}
+      {activeSubTab === 'investisseurs' && renderInvestisseursTab()}
+      {activeSubTab === 'transactions' && renderTransactionsTab()}
+      {activeSubTab === 'compte_courant' && renderCompteCourantTab()}
+      {activeSubTab === 'capex' && renderCapexTab()}
+      {activeSubTab === 'rd_dividendes' && renderRdDividendesTab()}
     </div>
   )
 }
