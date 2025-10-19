@@ -1,29 +1,22 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
-import { useTransition, useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function LanguageSwitcher() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isPending, startTransition] = useTransition()
-  const [currentLang, setCurrentLang] = useState<'fr' | 'en'>('fr')
+  const { language, setLanguage } = useLanguage()
 
   const toggleLanguage = () => {
-    const newLang = currentLang === 'fr' ? 'en' : 'fr'
-    setCurrentLang(newLang)
-    const newPath = `/${newLang}${pathname.replace(/^\/(fr|en)/, '')}`
-    startTransition(() => {
-      router.push(newPath)
-    })
+    const newLang = language === 'fr' ? 'en' : 'fr'
+    setLanguage(newLang)
   }
 
   return (
     <span
       onClick={toggleLanguage}
-      className="cursor-pointer"
+      className="cursor-pointer font-medium"
+      title={language === 'fr' ? 'Switch to English' : 'Passer au français'}
     >
-      FR/EN
+      {language === 'fr' ? 'FR' : 'EN'} / {language === 'fr' ? 'EN' : 'FR'}
     </span>
   )
 }
