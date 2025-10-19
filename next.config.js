@@ -34,6 +34,12 @@ const withPWA = require('next-pwa')({
 const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig = {
+  output: 'standalone',
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
+  },
   i18n: {
     locales: ['fr', 'en'],
     defaultLocale: 'fr',
