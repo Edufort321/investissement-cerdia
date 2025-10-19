@@ -171,7 +171,6 @@ SELECT
   MAX(t.updated_at) as derniere_mise_a_jour
 
 FROM transactions t
-WHERE t.status = 'complete'
 GROUP BY EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC;
 
@@ -196,7 +195,7 @@ SELECT
   COUNT(*) as nombre_transactions
 
 FROM properties p
-LEFT JOIN transactions t ON t.property_id = p.id AND t.status = 'complete'
+LEFT JOIN transactions t ON t.property_id = p.id
 GROUP BY p.id, p.name, p.location, EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC, p.name;
 
