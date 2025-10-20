@@ -527,12 +527,12 @@ export default function AdministrationTab() {
 
       {/* Add/Edit Form */}
       {showAddInvestorForm && (
-        <div ref={investorFormRef} className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold mb-4">
+        <div ref={investorFormRef} className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 max-w-full overflow-hidden">
+          <h3 className="text-base sm:text-lg font-semibold mb-4 break-words">
             {editingInvestorId ? 'Modifier l\'investisseur' : 'Nouvel investisseur'}
           </h3>
-          <form onSubmit={handleInvestorSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleInvestorSubmit} className="space-y-4 max-w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-full">
               {/* Informations personnelles */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prénom *</label>
@@ -786,9 +786,9 @@ export default function AdministrationTab() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 max-w-full">
           {investors.map((investor) => (
-            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0">
+            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full">
               {/* Header */}
               <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-3 gap-2">
@@ -2137,9 +2137,9 @@ export default function AdministrationTab() {
   // ==========================================
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Sub-Tab Navigation */}
-      <div className="sticky top-16 md:top-20 z-30 bg-gray-100 border-b border-gray-200 -mx-6 px-6 pt-2">
+      <div className="sticky top-16 md:top-20 z-30 bg-gray-100 border-b border-gray-200 -mx-6 px-6 pt-2 max-w-full">
         <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setActiveSubTab('investisseurs')}
