@@ -415,34 +415,61 @@ export default function TaxReports() {
                 <span>{t('taxReports.exportPDF')}</span>
               </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Mobile View: Cards */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {t1135Data.properties.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-gray-500">
+                  {t('taxReports.noForeignAssets')}
+                </div>
+              ) : (
+                t1135Data.properties.map((prop, index) => (
+                  <div key={index} className="p-3 space-y-2">
+                    <div className="font-medium text-sm text-gray-900 break-words">{prop.name}</div>
+                    <div className="text-xs text-gray-600 break-words">{prop.location}</div>
+                    <div className="text-xs text-gray-500">{prop.country}</div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                      <span className="text-xs text-gray-600">{t('taxReports.originalCost')}:</span>
+                      <span className="text-xs font-medium text-gray-900">{formatCurrency(prop.cost, prop.currency)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">{t('taxReports.costCAD')}:</span>
+                      <span className="text-xs font-bold text-gray-900">{formatCurrency(prop.costCAD)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('projects.name')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('projects.location')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.originalCost')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.costCAD')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.name')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.location')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.originalCost')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.costCAD')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {t1135Data.properties.map((prop, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none">{prop.name}</td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 truncate max-w-[120px] sm:max-w-none">{prop.location}</td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 truncate">{prop.country}</td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900">{prop.name}</td>
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-600">{prop.location}</td>
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-600">{prop.country}</td>
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
                         {formatCurrency(prop.cost, prop.currency)}
                       </td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 text-right whitespace-nowrap">
                         {formatCurrency(prop.costCAD)}
                       </td>
                     </tr>
                   ))}
                   {t1135Data.properties.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-3 sm:px-6 py-6 sm:py-8 text-center text-xs sm:text-sm text-gray-500">
+                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
                         {t('taxReports.noForeignAssets')}
                       </td>
                     </tr>
@@ -491,34 +518,63 @@ export default function TaxReports() {
                 <span>{t('taxReports.exportPDF')}</span>
               </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Mobile View: Cards */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {t2209Data.byCountry.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-gray-500">
+                  {t('taxReports.noForeignTaxData')}
+                </div>
+              ) : (
+                t2209Data.byCountry.map((country, index) => (
+                  <div key={index} className="p-3 space-y-2">
+                    <div className="font-medium text-sm text-gray-900 mb-2">{country.country}</div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">{t('taxReports.foreignIncome')}:</span>
+                      <span className="text-xs font-medium text-gray-900">{formatCurrency(country.income)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">{t('taxReports.taxPaid')}:</span>
+                      <span className="text-xs font-medium text-gray-900">{formatCurrency(country.taxPaid)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                      <span className="text-xs text-gray-600">{t('taxReports.taxCredit')}:</span>
+                      <span className="text-xs font-bold text-green-600">{formatCurrency(country.taxCredit)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.foreignIncome')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.taxPaid')}</th>
-                    <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{t('taxReports.taxCredit')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.foreignIncome')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.taxPaid')}</th>
+                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.taxCredit')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {t2209Data.byCountry.map((country, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none">{country.country}</td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900">{country.country}</td>
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
                         {formatCurrency(country.income)}
                       </td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
                         {formatCurrency(country.taxPaid)}
                       </td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-green-600 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-green-600 text-right whitespace-nowrap">
                         {formatCurrency(country.taxCredit)}
                       </td>
                     </tr>
                   ))}
                   {t2209Data.byCountry.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-3 sm:px-6 py-6 sm:py-8 text-center text-xs sm:text-sm text-gray-500">
+                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">
                         {t('taxReports.noForeignTaxData')}
                       </td>
                     </tr>

@@ -312,9 +312,12 @@ export default function PerformanceTracker() {
                   )}
 
                   {/* Time Info */}
-                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1 min-w-0">
                     <Clock size={10} className="sm:w-3 sm:h-3 flex-shrink-0" />
-                    <span className="truncate">{Math.floor(perf.months_since_reservation)} {language === 'fr' ? 'mois depuis réservation' : 'months since reservation'}</span>
+                    <span className="truncate min-w-0">
+                      {Math.floor(perf.months_since_reservation)} {language === 'fr' ? 'mois' : 'months'}
+                      <span className="hidden sm:inline"> {language === 'fr' ? 'depuis réservation' : 'since reservation'}</span>
+                    </span>
                   </div>
                 </div>
               </div>
