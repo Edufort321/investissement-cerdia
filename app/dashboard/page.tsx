@@ -73,22 +73,31 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  // Calculer les KPIs en temps réel
-  const totalInvested = investors.reduce((sum, inv) => sum + (inv.total_invested || 0), 0)
-  const totalCurrentValue = investors.reduce((sum, inv) => sum + (inv.current_value || 0), 0)
+  // Calculer les KPIs en temps réel basés sur les TRANSACTIONS
+
+  // 1. TOTAL INVESTISSEURS - Somme des apports (transactions de type 'investissement')
+  const totalInvestisseurs = transactions
+    .filter(t => t.type === 'investissement')
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  // 2. INVESTISSEMENT IMMOBILIER - Somme des paiements sur propriétés (transactions avec property_id, sauf investissements)
+  const totalInvestissementImmobilier = transactions
+    .filter(t => t.property_id && t.type !== 'investissement')
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+  // 3. DÉPENSES OPÉRATION - Somme des dépenses CAPEX, R&D, etc.
+  const totalDepensesOperation = capexAccounts.reduce((sum, acc) => sum + acc.total_spent, 0)
+
+  // 4. COMPTE COURANT - Calculé = Total Investisseurs - Investissements - Dépenses
+  const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilier - totalDepensesOperation
+
+  // Autres KPIs
   const numberOfProperties = properties.length
+  const totalCurrentValue = investors.reduce((sum, inv) => sum + (inv.current_value || 0), 0)
   const averageROI = properties.length > 0
     ? properties.reduce((sum, prop) => sum + (prop.expected_roi || 0), 0) / properties.length
     : 0
-
-  // Total payé sur toutes les propriétés
-  const totalPaidOnProperties = properties.reduce((sum, prop) => sum + (prop.paid_amount || 0), 0)
-
-  // Revenus mensuels estimés (basé sur ROI)
   const estimatedMonthlyRevenue = (totalCurrentValue * (averageROI / 100)) / 12
-
-  // Solde total des comptes courants
-  const totalCurrentAccountBalance = currentAccounts.reduce((sum, acc) => sum + acc.balance, 0)
 
   // Transactions récentes (5 dernières)
   const recentTransactions = transactions.slice(0, 5)
@@ -232,91 +241,64 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* KPIs Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {/* Total Investi (montant payé sur propriétés) */}
+              {/* KPIs Cards - Flux de Trésorerie */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                {/* 1. Total Investisseurs */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Total Investi</h3>
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Total Investisseurs</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="text-blue-600" size={18} />
+                      <Users className="text-blue-600" size={18} />
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalPaidOnProperties.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalInvestisseurs.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Immobilier ({numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'})</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Apports ({investors.length} investisseurs)</p>
                 </div>
 
-                {/* Valeur Actuelle */}
+                {/* 2. Investissement Immobilier */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Valeur Actuelle</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="text-indigo-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalCurrentValue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
-                    Valeur totale du portefeuille
-                  </p>
-                </div>
-
-                {/* Compte Courant */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Compte Courant</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-cyan-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="text-cyan-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalCurrentAccountBalance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Fonds disponibles</p>
-                </div>
-
-                {/* Propriétés */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Propriétés</h3>
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Investissement Immobilier</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
                       <Building2 className="text-purple-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{numberOfProperties}</p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
-                    {totalPaidOnProperties.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {totalInvestissementImmobilier.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'}</p>
                 </div>
 
-                {/* Revenus Mensuels Estimés */}
+                {/* 3. Dépenses Opération */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Revenus Mensuels Est.</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="text-green-600" size={18} />
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Dépenses Opération</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <TrendingDown className="text-orange-600" size={18} />
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {estimatedMonthlyRevenue.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalDepensesOperation.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-blue-600 mt-1 sm:mt-2">Basé sur ROI {averageROI.toFixed(1)}%</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">CAPEX, R&D, etc.</p>
                 </div>
 
-                {/* ROI Moyen */}
+                {/* 4. Compte Courant */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">ROI Moyen Annuel</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="text-orange-600" size={18} />
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Compte Courant</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="text-green-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{averageROI.toFixed(1)}%</p>
-                  <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2">Performance solide</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {compteCurrentCalcule.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Fonds disponibles</p>
                 </div>
+
               </div>
 
               {/* Taux de change USD→CAD */}
