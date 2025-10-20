@@ -75,7 +75,24 @@ interface AdministrationTabProps {
 }
 
 export default function AdministrationTab({ activeSubTab }: AdministrationTabProps) {
-  const { investors, transactions, properties, paymentSchedules, capexAccounts, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+  const {
+    investors,
+    transactions,
+    properties,
+    paymentSchedules,
+    capexAccounts,
+    rndAccounts,
+    shareSettings,
+    investorSummaries,
+    addInvestor,
+    updateInvestor,
+    deleteInvestor,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    updateNominalShareValue,
+    loading
+  } = useInvestment()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -86,6 +103,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState(false)
+
+  // Share settings state
+  const [editingNominalValue, setEditingNominalValue] = useState(false)
+  const [nominalValueInput, setNominalValueInput] = useState<string>('')
+  const [savingNominalValue, setSavingNominalValue] = useState(false)
 
   // Transactions state
   const [showAddTransactionForm, setShowAddTransactionForm] = useState(false)
@@ -236,6 +258,41 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       }
     }
   }
+
+  // SHARE VALUE HANDLERS
+  // ==========================================
+
+  const handleSaveNominalValue = async () => {
+    const newValue = parseFloat(nominalValueInput)
+
+    if (isNaN(newValue) || newValue <= 0) {
+      alert('Veuillez entrer une valeur valide supérieure à 0')
+      return
+    }
+
+    setSavingNominalValue(true)
+    const result = await updateNominalShareValue(newValue)
+    setSavingNominalValue(false)
+
+    if (result.success) {
+      setEditingNominalValue(false)
+      setNominalValueInput('')
+    } else {
+      alert('Erreur lors de la mise à jour: ' + result.error)
+    }
+  }
+
+  const handleCancelNominalValueEdit = () => {
+    setEditingNominalValue(false)
+    setNominalValueInput('')
+  }
+
+  const handleStartEditNominalValue = () => {
+    setNominalValueInput(shareSettings?.nominal_share_value.toFixed(2) || '1.00')
+    setEditingNominalValue(true)
+  }
+
+  // ==========================================
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !selectedInvestorId) return
@@ -511,6 +568,75 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const renderInvestisseursTab = () => (
     <div className="space-y-4 sm:space-y-6 max-w-full overflow-x-hidden px-1 sm:px-0">
+      {/* Share Values Header */}
+      <div className="bg-gradient-to-r from-[#5e5e5e] to-[#3e3e3e] rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          {/* Nominal Share Value - Editable */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="text-white" size={20} />
+                <h3 className="text-sm font-medium text-white/90">Valeur Nominale (Prix de vente)</h3>
+              </div>
+              {!editingNominalValue && (
+                <button
+                  onClick={handleStartEditNominalValue}
+                  className="text-white/80 hover:text-white transition-colors"
+                  title="Modifier la valeur nominale"
+                >
+                  <Edit2 size={16} />
+                </button>
+              )}
+            </div>
+            {editingNominalValue ? (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={nominalValueInput}
+                  onChange={(e) => setNominalValueInput(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white rounded-lg text-gray-900 focus:ring-2 focus:ring-white/50 focus:outline-none"
+                  placeholder="1.00"
+                  disabled={savingNominalValue}
+                />
+                <button
+                  onClick={handleSaveNominalValue}
+                  disabled={savingNominalValue}
+                  className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 text-sm"
+                >
+                  {savingNominalValue ? 'Sauvegarde...' : 'Sauver'}
+                </button>
+                <button
+                  onClick={handleCancelNominalValueEdit}
+                  disabled={savingNominalValue}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <p className="text-2xl sm:text-3xl font-bold text-white">
+                {shareSettings?.nominal_share_value.toFixed(2) || '1.00'} CAD
+              </p>
+            )}
+            <p className="text-xs text-white/70 mt-1">Par part</p>
+          </div>
+
+          {/* Estimated Share Value - Read-only */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="text-white" size={20} />
+              <h3 className="text-sm font-medium text-white/90">Valeur Estimée (Selon ROI)</h3>
+            </div>
+            <p className="text-2xl sm:text-3xl font-bold text-white">
+              {shareSettings?.estimated_share_value.toFixed(2) || '1.00'} CAD
+            </p>
+            <p className="text-xs text-white/70 mt-1">Calculée automatiquement</p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
