@@ -510,30 +510,30 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   // ==========================================
 
   const renderInvestisseursTab = () => (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-x-hidden px-1 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Gestion des Investisseurs</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">Gestion des Investisseurs</h2>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
         </div>
         <button
           onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0"
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
         >
-          {showAddInvestorForm ? <X size={20} /> : <Plus size={20} />}
+          {showAddInvestorForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
           {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
         </button>
       </div>
 
       {/* Add/Edit Form */}
       {showAddInvestorForm && (
-        <div ref={investorFormRef} className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 max-w-full overflow-hidden">
-          <h3 className="text-base sm:text-lg font-semibold mb-4 break-words">
+        <div ref={investorFormRef} className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md border border-gray-200 max-w-full overflow-hidden">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 break-words">
             {editingInvestorId ? 'Modifier l\'investisseur' : 'Nouvel investisseur'}
           </h3>
-          <form onSubmit={handleInvestorSubmit} className="space-y-4 max-w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-full">
+          <form onSubmit={handleInvestorSubmit} className="space-y-3 sm:space-y-4 max-w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-full">
               {/* Informations personnelles */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prénom *</label>
@@ -775,31 +775,31 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
       {/* Investors List */}
       {investors.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow-md text-center">
-          <Users size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun investisseur</h3>
-          <p className="text-gray-600 mb-4">Commencez par ajouter votre premier investisseur</p>
+        <div className="bg-white p-8 sm:p-12 rounded-lg shadow-md text-center">
+          <Users size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Aucun investisseur</h3>
+          <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Commencez par ajouter votre premier investisseur</p>
           <button
             onClick={() => setShowAddInvestorForm(true)}
-            className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors"
+            className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 sm:px-6 py-2 rounded-full transition-colors text-sm sm:text-base"
           >
             Ajouter un investisseur
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 max-w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 max-w-full">
           {investors.map((investor) => (
-            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full">
+            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full flex flex-col">
               {/* Header */}
-              <div className="p-4 sm:p-6 border-b border-gray-100">
-                <div className="flex items-start justify-between mb-3 gap-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-base sm:text-lg flex-shrink-0">
+              <div className="p-3 sm:p-4 md:p-5 border-b border-gray-100">
+                <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm sm:text-base flex-shrink-0">
                       {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{investor.first_name} {investor.last_name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 truncate">@{investor.username}</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 truncate">{investor.first_name} {investor.last_name}</h3>
+                      <p className="text-xs text-gray-600 truncate">@{investor.username}</p>
                     </div>
                   </div>
                   <div className="flex-shrink-0">
@@ -807,88 +807,86 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </div>
                 </div>
 
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  <div className="flex items-center text-gray-600 gap-2">
-                    <Mail size={14} className="flex-shrink-0" />
+                <div className="space-y-1 sm:space-y-1.5 text-xs">
+                  <div className="flex items-center text-gray-600 gap-1.5 sm:gap-2">
+                    <Mail size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                     <span className="truncate">{investor.email}</span>
                   </div>
                   {investor.phone && (
-                    <div className="flex items-center text-gray-600 gap-2">
-                      <Phone size={14} className="flex-shrink-0" />
-                      <span>{investor.phone}</span>
+                    <div className="flex items-center text-gray-600 gap-1.5 sm:gap-2">
+                      <Phone size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                      <span className="truncate">{investor.phone}</span>
                     </div>
                   )}
-                  <div className="flex items-center text-gray-600 gap-2">
-                    <Calendar size={14} className="flex-shrink-0" />
+                  <div className="flex items-center text-gray-600 gap-1.5 sm:gap-2">
+                    <Calendar size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                     <span className="truncate">Membre depuis {new Date(investor.join_date).toLocaleDateString('fr-CA')}</span>
                   </div>
                 </div>
               </div>
 
               {/* Body */}
-              <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="p-3 sm:p-4 md:p-5 space-y-2 sm:space-y-3 flex-1">
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <div className="flex items-center gap-1 text-gray-600 text-xs mb-1">
-                      <DollarSign size={12} className="flex-shrink-0" />
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1">
+                      <DollarSign size={11} className="sm:w-3 sm:h-3 flex-shrink-0" />
                       <span className="truncate">Total investi</span>
                     </div>
-                    <div className="font-bold text-gray-900 text-sm sm:text-base truncate">
+                    <div className="font-bold text-gray-900 text-xs sm:text-sm md:text-base truncate">
                       {investor.total_invested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1 text-gray-600 text-xs mb-1">
-                      <TrendingUp size={12} className="flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1">
+                      <TrendingUp size={11} className="sm:w-3 sm:h-3 flex-shrink-0" />
                       <span className="truncate">Valeur actuelle</span>
                     </div>
-                    <div className="font-bold text-green-600 text-sm sm:text-base truncate">
+                    <div className="font-bold text-green-600 text-xs sm:text-sm md:text-base truncate">
                       {investor.current_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-gray-600 text-xs mb-1">Parts</div>
-                    <div className="font-bold text-gray-900 text-sm sm:text-base">{investor.total_shares.toLocaleString()}</div>
+                  <div className="min-w-0">
+                    <div className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 truncate">Parts</div>
+                    <div className="font-bold text-gray-900 text-xs sm:text-sm md:text-base truncate">{investor.total_shares.toLocaleString()}</div>
                   </div>
-                  <div>
-                    <div className="text-gray-600 text-xs mb-1">Propriété</div>
-                    <div className="font-bold text-gray-900 text-sm sm:text-base">{investor.percentage_ownership.toFixed(2)}%</div>
+                  <div className="min-w-0">
+                    <div className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 truncate">Propriété</div>
+                    <div className="font-bold text-gray-900 text-xs sm:text-sm md:text-base truncate">{investor.percentage_ownership.toFixed(2)}%</div>
                   </div>
                 </div>
 
-                <div className="pt-2 sm:pt-3 border-t border-gray-100">
-                  <div className="text-xs text-gray-600 mb-1.5 sm:mb-2">Classe {investor.action_class} • {investor.investment_type}</div>
-                  <div className="text-xs text-gray-500">
+                <div className="pt-1.5 sm:pt-2 border-t border-gray-100">
+                  <div className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Classe {investor.action_class} • {investor.investment_type}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 truncate">
                     Accès: {investor.access_level === 'admin' ? 'Administrateur' : 'Investisseur'}
                   </div>
                 </div>
               </div>
 
               {/* Footer Actions */}
-              <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
+              <div className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 bg-gray-50 border-t border-gray-100 flex flex-row gap-1.5 sm:gap-2">
                 <button
                   onClick={() => setSelectedInvestorId(investor.id)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
                 >
-                  <FileText size={16} />
-                  <span>Documents</span>
+                  <FileText size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Docs</span>
                 </button>
                 <button
                   onClick={() => handleEditInvestor(investor)}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
                 >
-                  <Edit2 size={16} />
-                  <span className="hidden sm:inline">Modifier</span>
-                  <span className="sm:hidden">Modifier</span>
+                  <Edit2 size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Modifier</span>
                 </button>
                 <button
                   onClick={() => handleDeleteInvestor(investor.id, `${investor.first_name} ${investor.last_name}`)}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
                 >
-                  <Trash2 size={16} />
-                  <span className="hidden sm:inline">Supprimer</span>
-                  <span className="sm:hidden">Supprimer</span>
+                  <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Supprimer</span>
                 </button>
               </div>
             </div>
@@ -898,12 +896,12 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
       {/* Documents Modal */}
       {selectedInvestorId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-3xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Documents</h3>
-                <p className="text-sm text-gray-600 mt-1">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-[98vw] sm:max-w-[95vw] md:max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 truncate">Documents</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
                   {investors.find(i => i.id === selectedInvestorId)?.first_name} {investors.find(i => i.id === selectedInvestorId)?.last_name}
                 </p>
               </div>
@@ -912,18 +910,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   setSelectedInvestorId(null)
                   setDocuments([])
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="p-3 sm:p-4 md:p-6 overflow-y-auto max-h-[calc(95vh-100px)] sm:max-h-[calc(90vh-140px)]">
               {/* Upload Section */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <label className="flex flex-col items-center gap-2 cursor-pointer">
-                  <Upload size={32} className="text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <label className="flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
+                  <Upload size={28} className="sm:w-8 sm:h-8 text-gray-400" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-2">
                     {uploading ? 'Téléchargement en cours...' : 'Cliquez pour télécharger un document'}
                   </span>
                   <input
@@ -938,39 +936,39 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Documents List */}
               {documents.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600">Aucun document pour cet investisseur</p>
+                <div className="text-center py-8 sm:py-12">
+                  <FileText size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+                  <p className="text-sm sm:text-base text-gray-600">Aucun document pour cet investisseur</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FileText size={20} className="text-blue-600" />
+                    <div key={doc.id} className="flex items-center justify-between gap-2 p-2.5 sm:p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FileText size={16} className="sm:w-5 sm:h-5 text-blue-600" />
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{doc.name}</p>
-                          <p className="text-sm text-gray-600">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 text-xs sm:text-sm md:text-base truncate">{doc.name}</p>
+                          <p className="text-[10px] sm:text-xs text-gray-600 truncate">
                             {(doc.file_size / 1024).toFixed(2)} KB • {new Date(doc.uploaded_at).toLocaleDateString('fr-CA')}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleDownloadDocument(doc.storage_path, doc.name)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Télécharger"
                         >
-                          <Download size={18} />
+                          <Download size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                         <button
                           onClick={() => handleDeleteDocument(doc.id, doc.storage_path)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Supprimer"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                       </div>
                     </div>
