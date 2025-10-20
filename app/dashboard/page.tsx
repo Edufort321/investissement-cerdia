@@ -14,7 +14,7 @@ type TabType = 'dashboard' | 'projet' | 'administration'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
-  const { investors, properties, transactions, capexAccounts, currentAccounts, paymentSchedules, loading } = useInvestment()
+  const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, loading } = useInvestment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -85,8 +85,10 @@ export default function DashboardPage() {
     .filter(t => t.property_id && t.type !== 'investissement')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-  // 3. DÉPENSES OPÉRATION - Somme des dépenses CAPEX, R&D, etc.
-  const totalDepensesOperation = capexAccounts.reduce((sum, acc) => sum + acc.total_spent, 0)
+  // 3. DÉPENSES OPÉRATION - Somme des dépenses CAPEX + R&D
+  const totalDepensesOperation =
+    capexAccounts.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) +
+    (rndAccounts?.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) || 0)
 
   // 4. COMPTE COURANT - Calculé = Total Investisseurs - Investissements - Dépenses
   const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilier - totalDepensesOperation
