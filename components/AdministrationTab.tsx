@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { supabase } from '@/lib/supabase'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
 import TransactionAttachments from './TransactionAttachments'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
@@ -84,6 +84,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     rndAccounts,
     shareSettings,
     investorSummaries,
+    investorInvestments,
     addInvestor,
     updateInvestor,
     deleteInvestor,
@@ -104,6 +105,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState(false)
+  const [expandedInvestorHistory, setExpandedInvestorHistory] = useState<string | null>(null)
 
   // Share settings state
   const [editingNominalValue, setEditingNominalValue] = useState(false)
@@ -1209,6 +1211,77 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <div className="text-[10px] sm:text-xs text-gray-500 truncate">
                     Accès: {investor.access_level === 'admin' ? 'Administrateur' : 'Investisseur'}
                   </div>
+                </div>
+
+                {/* Investment History Section */}
+                <div className="pt-2 sm:pt-3 border-t border-gray-100 mt-2 sm:mt-3">
+                  <button
+                    onClick={() => setExpandedInvestorHistory(expandedInvestorHistory === investor.id ? null : investor.id)}
+                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <span>Historique des investissements ({investorInvestments.filter(inv => inv.investor_id === investor.id).length})</span>
+                    {expandedInvestorHistory === investor.id ? (
+                      <ChevronUp size={16} />
+                    ) : (
+                      <ChevronDown size={16} />
+                    )}
+                  </button>
+
+                  {expandedInvestorHistory === investor.id && (
+                    <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                      {investorInvestments
+                        .filter(inv => inv.investor_id === investor.id)
+                        .sort((a, b) => new Date(b.investment_date).getTime() - new Date(a.investment_date).getTime())
+                        .map((investment) => (
+                          <div key={investment.id} className="bg-gray-50 rounded-lg p-2 sm:p-3 text-xs">
+                            <div className="flex items-start justify-between mb-1.5">
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <Calendar size={12} />
+                                <span className="font-medium">
+                                  {new Date(investment.investment_date).toLocaleDateString('fr-CA')}
+                                </span>
+                              </div>
+                              <div className="text-green-600 font-bold">
+                                {investment.amount_invested.toLocaleString('fr-CA', { style: 'currency', currency: investment.currency })}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-600">
+                              <div>
+                                <span className="font-medium">Prix/part:</span>{' '}
+                                {investment.share_price_at_purchase.toFixed(4)} CAD
+                              </div>
+                              <div>
+                                <span className="font-medium">Parts:</span>{' '}
+                                {investment.number_of_shares.toFixed(4)}
+                              </div>
+                              {investment.payment_method && (
+                                <div className="col-span-2">
+                                  <span className="font-medium">Paiement:</span>{' '}
+                                  {investment.payment_method}
+                                </div>
+                              )}
+                              {investment.reference_number && (
+                                <div className="col-span-2">
+                                  <span className="font-medium">Réf:</span>{' '}
+                                  {investment.reference_number}
+                                </div>
+                              )}
+                              {investment.notes && (
+                                <div className="col-span-2 mt-1 pt-1 border-t border-gray-200">
+                                  <span className="font-medium">Notes:</span>{' '}
+                                  <span className="text-gray-500">{investment.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      {investorInvestments.filter(inv => inv.investor_id === investor.id).length === 0 && (
+                        <div className="text-center py-4 text-gray-500 text-xs">
+                          Aucun investissement enregistré
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
