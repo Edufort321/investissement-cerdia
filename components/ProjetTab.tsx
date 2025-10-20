@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
+import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 interface PropertyFormData {
   name: string
@@ -45,6 +46,8 @@ export default function ProjetTab() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<any>(null)
   const [showAttachmentsPropertyId, setShowAttachmentsPropertyId] = useState<string | null>(null)
+  const [exchangeRate, setExchangeRate] = useState<number>(1.35)
+  const [loadingRate, setLoadingRate] = useState(false)
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
@@ -78,6 +81,25 @@ export default function ProjetTab() {
   useEffect(() => {
     fetchPaymentSchedules()
   }, [fetchPaymentSchedules])
+
+  // Load exchange rate on mount
+  useEffect(() => {
+    loadExchangeRate()
+  }, [])
+
+  const loadExchangeRate = async () => {
+    setLoadingRate(true)
+    try {
+      const rate = await getCurrentExchangeRate('USD', 'CAD')
+      setExchangeRate(rate)
+      // Update the payment form with the new rate
+      setPaymentFormData(prev => ({ ...prev, exchange_rate: rate }))
+    } catch (error) {
+      console.error('Error loading exchange rate:', error)
+    } finally {
+      setLoadingRate(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -679,46 +701,91 @@ export default function ProjetTab() {
 
                       {selectedPropertyId === property.id && (
                         <div className="space-y-2 mt-2">
-                          {propertyPayments.map(payment => (
-                            <div key={payment.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {getPaymentStatusIcon(payment.status)}
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {payment.term_label}
-                                  </span>
-                                </div>
-                                <span className="text-sm font-bold text-gray-900">
-                                  {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}
-                                </span>
-                              </div>
+                          {/* Exchange Rate Display */}
+                          <div className="bg-blue-50 p-2 rounded-lg border border-blue-200 flex items-center justify-between">
+                            <div className="text-xs font-medium text-blue-900">
+                              Taux USD→CAD: <span className="font-bold">{exchangeRate.toFixed(4)}</span>
+                            </div>
+                            <button
+                              onClick={loadExchangeRate}
+                              disabled={loadingRate}
+                              className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                              title="Rafraîchir"
+                            >
+                              <RefreshCw size={12} className={loadingRate ? 'animate-spin' : ''} />
+                            </button>
+                          </div>
 
-                              <div className="flex items-center justify-between text-xs text-gray-600">
-                                <span>Échéance: {new Date(payment.due_date).toLocaleDateString('fr-CA')}</span>
-                                {payment.status === 'paid' && payment.paid_date && (
-                                  <span className="text-green-600 font-medium">
-                                    Payé le {new Date(payment.paid_date).toLocaleDateString('fr-CA')}
-                                  </span>
+                          {propertyPayments.map(payment => {
+                            // Calculer montant en CAD (temps réel si pending, fixé si paid)
+                            const amountCAD = payment.status === 'paid' && payment.amount_paid_cad
+                              ? payment.amount_paid_cad
+                              : payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
+
+                            return (
+                              <div key={payment.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                {/* Header with status and label */}
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {getPaymentStatusIcon(payment.status)}
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {payment.term_label}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Montants USD et CAD côte à côte */}
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                  {/* Montant USD (contrat) */}
+                                  <div className="bg-white p-2 rounded border border-gray-300">
+                                    <div className="text-xs text-gray-600 mb-1">Contrat (USD)</div>
+                                    <div className="text-sm font-bold text-gray-900">
+                                      {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                    </div>
+                                  </div>
+
+                                  {/* Montant CAD (converti ou fixé) */}
+                                  <div className={`p-2 rounded border ${payment.status === 'paid' ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-300'}`}>
+                                    <div className="text-xs text-gray-600 mb-1">
+                                      {payment.status === 'paid' ? 'Payé (CAD)' : 'Estimé (CAD)'}
+                                    </div>
+                                    <div className={`text-sm font-bold ${payment.status === 'paid' ? 'text-green-900' : 'text-blue-900'}`}>
+                                      {amountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                                    </div>
+                                    {payment.status === 'paid' && payment.exchange_rate_used && (
+                                      <div className="text-xs text-green-700 mt-1">
+                                        Taux: {payment.exchange_rate_used.toFixed(4)}
+                                      </div>
+                                    )}
+                                    {payment.status === 'pending' && payment.currency === 'USD' && (
+                                      <div className="text-xs text-blue-700 mt-1">
+                                        Taux actuel
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Date info */}
+                                <div className="flex items-center justify-between text-xs text-gray-600">
+                                  <span>Échéance: {new Date(payment.due_date).toLocaleDateString('fr-CA')}</span>
+                                  {payment.status === 'paid' && payment.paid_date && (
+                                    <span className="text-green-600 font-medium">
+                                      Payé le {new Date(payment.paid_date).toLocaleDateString('fr-CA')}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {payment.status === 'pending' && (
+                                  <button
+                                    onClick={() => openPaymentModal(payment)}
+                                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-3 rounded transition-colors"
+                                  >
+                                    Marquer comme payé
+                                  </button>
                                 )}
                               </div>
-
-                              {payment.amount_paid_cad && (
-                                <div className="text-xs text-green-700 font-medium mt-1">
-                                  Payé: {payment.amount_paid_cad.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} CAD
-                                  {payment.exchange_rate_used && ` (taux: ${payment.exchange_rate_used})`}
-                                </div>
-                              )}
-
-                              {payment.status === 'pending' && (
-                                <button
-                                  onClick={() => openPaymentModal(payment)}
-                                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-3 rounded transition-colors"
-                                >
-                                  Marquer comme payé
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       )}
                     </div>
