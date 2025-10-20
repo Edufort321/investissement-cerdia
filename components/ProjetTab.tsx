@@ -73,8 +73,11 @@ export default function ProjetTab() {
 
   const [paymentFormData, setPaymentFormData] = useState({
     paid_date: new Date().toISOString().split('T')[0],
-    amount_paid_cad: 0,
-    exchange_rate: 1.35
+    amount_usd: 0,
+    amount_cad_conversion: 0,
+    fees_cad: 0,
+    amount_cad_total: 0,
+    effective_exchange_rate: 1.35
   })
 
   // Fetch payment schedules when component mounts
@@ -176,11 +179,12 @@ export default function ProjetTab() {
     e.preventDefault()
     if (!selectedPayment) return
 
+    // Utiliser le taux effectif (incluant frais) pour marquer le paiement
     const result = await markPaymentAsPaid(
       selectedPayment.id,
       paymentFormData.paid_date,
-      paymentFormData.amount_paid_cad,
-      paymentFormData.exchange_rate
+      paymentFormData.amount_cad_total, // Total incluant frais
+      paymentFormData.effective_exchange_rate // Taux effectif
     )
 
     if (result.success) {
@@ -188,8 +192,11 @@ export default function ProjetTab() {
       setSelectedPayment(null)
       setPaymentFormData({
         paid_date: new Date().toISOString().split('T')[0],
-        amount_paid_cad: 0,
-        exchange_rate: 1.35
+        amount_usd: 0,
+        amount_cad_conversion: 0,
+        fees_cad: 0,
+        amount_cad_total: 0,
+        effective_exchange_rate: 1.35
       })
     } else {
       alert('Erreur lors du marquage du paiement: ' + result.error)
@@ -197,13 +204,33 @@ export default function ProjetTab() {
   }
 
   const openPaymentModal = (payment: any) => {
+    const amountUSD = payment.amount
+    const conversion = amountUSD * exchangeRate
+
     setSelectedPayment(payment)
     setPaymentFormData({
       paid_date: new Date().toISOString().split('T')[0],
-      amount_paid_cad: payment.amount * (payment.currency === 'USD' ? 1.35 : 1),
-      exchange_rate: payment.currency === 'USD' ? 1.35 : 1.0
+      amount_usd: amountUSD,
+      amount_cad_conversion: conversion,
+      fees_cad: 0,
+      amount_cad_total: conversion,
+      effective_exchange_rate: exchangeRate
     })
     setShowPaymentModal(true)
+  }
+
+  // Fonction pour recalculer le total CAD et taux effectif
+  const updateCADCalculations = (conversionCAD: number, fees: number, amountUSD: number) => {
+    const total = conversionCAD + fees
+    const effectiveRate = amountUSD > 0 ? total / amountUSD : 0
+
+    setPaymentFormData(prev => ({
+      ...prev,
+      amount_cad_conversion: conversionCAD,
+      fees_cad: fees,
+      amount_cad_total: total,
+      effective_exchange_rate: effectiveRate
+    }))
   }
 
   const addPaymentTerm = () => {
@@ -905,40 +932,80 @@ export default function ProjetTab() {
                 />
               </div>
 
+              {/* Montant USD */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Montant du contrat (USD)
+                </label>
+                <div className="text-2xl font-bold text-gray-900">
+                  {paymentFormData.amount_usd.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                </div>
+              </div>
+
+              {/* Conversion CAD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant payé en CAD *
+                  Conversion en CAD *
                 </label>
                 <input
                   type="number"
-                  value={paymentFormData.amount_paid_cad}
-                  onChange={(e) => setPaymentFormData({ ...paymentFormData, amount_paid_cad: parseFloat(e.target.value) })}
+                  value={paymentFormData.amount_cad_conversion}
+                  onChange={(e) => {
+                    const conversion = parseFloat(e.target.value) || 0
+                    updateCADCalculations(conversion, paymentFormData.fees_cad, paymentFormData.amount_usd)
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   step="0.01"
                   min="0"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Montant reçu par la banque (sans frais)
+                </p>
               </div>
 
-              {selectedPayment.currency === 'USD' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Taux de change USD→CAD *
-                  </label>
-                  <input
-                    type="number"
-                    value={paymentFormData.exchange_rate}
-                    onChange={(e) => setPaymentFormData({ ...paymentFormData, exchange_rate: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    step="0.0001"
-                    min="0"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Calcul auto: {(selectedPayment.amount * paymentFormData.exchange_rate).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
-                  </p>
+              {/* Frais bancaires */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Frais bancaires (CAD) *
+                </label>
+                <input
+                  type="number"
+                  value={paymentFormData.fees_cad}
+                  onChange={(e) => {
+                    const fees = parseFloat(e.target.value) || 0
+                    updateCADCalculations(paymentFormData.amount_cad_conversion, fees, paymentFormData.amount_usd)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Frais de transfert, conversion, etc.
+                </p>
+              </div>
+
+              {/* Total CAD payé */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-blue-700 mb-1">Total CAD payé</div>
+                    <div className="text-xl font-bold text-blue-900">
+                      {paymentFormData.amount_cad_total.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-blue-700 mb-1">Taux effectif</div>
+                    <div className="text-xl font-bold text-blue-900">
+                      {paymentFormData.effective_exchange_rate.toFixed(4)}
+                    </div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      (incluant frais)
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
