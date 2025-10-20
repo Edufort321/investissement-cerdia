@@ -262,7 +262,7 @@ export default function DashboardPage() {
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Apports CAD ({investors.length} investisseurs)</p>
                 </div>
 
-                {/* 2. Investissement Immobilier (USD) */}
+                {/* 2. Investissement Immobilier (CAD) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Investissement Immobilier</h3>
@@ -271,10 +271,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalInvestissementImmobilierUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalInvestissementImmobilierCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
-                    {numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'} • ≈ {totalInvestissementImmobilierCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    {numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'} • {totalInvestissementImmobilierUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD
                   </p>
                 </div>
 
@@ -326,7 +326,17 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-4">
                       {properties.map((property) => {
-                        const progress = (property.paid_amount / property.total_cost) * 100
+                        // Calculer le montant payé depuis les transactions réelles
+                        const paidFromTransactions = transactions
+                          .filter(t => t.property_id === property.id && t.type !== 'investissement')
+                          .reduce((sum, t) => sum + Math.abs(t.amount), 0) // USD
+
+                        // Convertir en CAD
+                        const paidAmountCAD = paidFromTransactions * exchangeRate
+                        const totalCostCAD = property.total_cost * exchangeRate
+
+                        const progress = (paidFromTransactions / property.total_cost) * 100
+
                         return (
                           <div key={property.id} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-start justify-between mb-2">
@@ -356,11 +366,14 @@ export default function DashboardPage() {
                               </div>
                               <div className="flex justify-between text-xs mt-2 text-gray-600">
                                 <span>
-                                  {property.paid_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} payé
+                                  {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} payé
                                 </span>
                                 <span>
-                                  / {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                  / {totalCostCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                 </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                ({paidFromTransactions.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} / {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD)
                               </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-100">
