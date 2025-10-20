@@ -509,16 +509,16 @@ export default function AdministrationTab() {
   // ==========================================
 
   const renderInvestisseursTab = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion des Investisseurs</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Gérez les investisseurs et leurs documents</p>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Gestion des Investisseurs</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
         </div>
         <button
           onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0"
         >
           {showAddInvestorForm ? <X size={20} /> : <Plus size={20} />}
           {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
@@ -788,7 +788,7 @@ export default function AdministrationTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {investors.map((investor) => (
-            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0">
               {/* Header */}
               <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-3 gap-2">
@@ -1856,7 +1856,7 @@ export default function AdministrationTab() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <DollarSign size={20} className="text-blue-600" />
-            Dépenses CAPEX 2025 ({capexTransactions.length} transactions)
+            Dépenses CAPEX ({capexTransactions.length} transactions)
           </h3>
 
           {capexTransactions.length === 0 ? (
@@ -2169,7 +2169,7 @@ export default function AdministrationTab() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            CAPEX 2025
+            CAPEX
           </button>
           <button
             onClick={() => setActiveSubTab('rd_dividendes')}
