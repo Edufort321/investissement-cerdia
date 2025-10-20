@@ -39,6 +39,7 @@ interface TransactionFormData {
   description: string
   investor_id: string | null
   property_id: string | null
+  payment_schedule_id: string | null // Lien vers paiement programmé
   category: string
   payment_method: string
   reference_number: string
@@ -70,7 +71,7 @@ interface Document {
 type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function AdministrationTab() {
-  const { investors, transactions, properties, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+  const { investors, transactions, properties, paymentSchedules, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
 
   // Sub-tab state
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('investisseurs')
@@ -119,6 +120,7 @@ export default function AdministrationTab() {
     description: '',
     investor_id: null,
     property_id: null,
+    payment_schedule_id: null,
     category: 'capital',
     payment_method: 'virement',
     reference_number: '',
@@ -346,7 +348,8 @@ export default function AdministrationTab() {
     const dataToSubmit = {
       ...transactionFormData,
       investor_id: transactionFormData.investor_id || null,
-      property_id: transactionFormData.property_id || null
+      property_id: transactionFormData.property_id || null,
+      payment_schedule_id: transactionFormData.payment_schedule_id || null
     }
 
     if (editingTransactionId) {
@@ -377,6 +380,7 @@ export default function AdministrationTab() {
       description: transaction.description,
       investor_id: transaction.investor_id,
       property_id: transaction.property_id,
+      payment_schedule_id: transaction.payment_schedule_id || null,
       category: transaction.category,
       payment_method: transaction.payment_method,
       reference_number: transaction.reference_number || '',
@@ -413,6 +417,7 @@ export default function AdministrationTab() {
       description: '',
       investor_id: null,
       property_id: null,
+      payment_schedule_id: null,
       category: 'capital',
       payment_method: 'virement',
       reference_number: '',
@@ -1152,7 +1157,7 @@ export default function AdministrationTab() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Propriété</label>
                 <select
                   value={transactionFormData.property_id || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || null })}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || null, payment_schedule_id: null })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">Aucune</option>
@@ -1163,6 +1168,44 @@ export default function AdministrationTab() {
                   ))}
                 </select>
               </div>
+
+              {/* Paiement lié (optionnel, si propriété sélectionnée) */}
+              {transactionFormData.property_id && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Paiement lié (optionnel)
+                    <span className="ml-1 text-xs text-gray-500">- Le paiement sera marqué comme "payé" automatiquement</span>
+                  </label>
+                  <select
+                    value={transactionFormData.payment_schedule_id || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">Aucun paiement lié</option>
+                    {paymentSchedules
+                      .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue'))
+                      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+                      .map(payment => {
+                        const dueDate = new Date(payment.due_date)
+                        const today = new Date()
+                        const isOverdue = dueDate < today
+                        return (
+                          <option key={payment.id} value={payment.id}>
+                            {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
+                            {' '}({dueDate.toLocaleDateString('fr-CA')})
+                            {isOverdue ? ' 🔴 EN RETARD' : ''}
+                          </option>
+                        )
+                      })
+                    }
+                  </select>
+                  {transactionFormData.payment_schedule_id && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      ✓ Ce paiement sera automatiquement marqué comme "payé" lors de l'enregistrement de la transaction.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
