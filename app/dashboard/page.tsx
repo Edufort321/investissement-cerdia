@@ -7,6 +7,7 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users, AlertCircle, Clock, Calendar } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
+import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
@@ -85,6 +86,9 @@ export default function DashboardPage() {
 
   // Revenus mensuels estimés (basé sur ROI)
   const estimatedMonthlyRevenue = (totalCurrentValue * (averageROI / 100)) / 12
+
+  // Solde total des comptes courants
+  const totalCurrentAccountBalance = currentAccounts.reduce((sum, acc) => sum + acc.balance, 0)
 
   // Transactions récentes (5 dernières)
   const recentTransactions = transactions.slice(0, 5)
@@ -229,8 +233,8 @@ export default function DashboardPage() {
               </div>
 
               {/* KPIs Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {/* Total Investi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                {/* Total Investi (montant payé sur propriétés) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Total Investi</h3>
@@ -239,9 +243,39 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    {totalPaidOnProperties.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{investors.length} investisseurs</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Immobilier ({numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'})</p>
+                </div>
+
+                {/* Valeur Actuelle */}
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Valeur Actuelle</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="text-indigo-600" size={18} />
+                    </div>
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {totalCurrentValue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
+                    Valeur totale du portefeuille
+                  </p>
+                </div>
+
+                {/* Compte Courant */}
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Compte Courant</h3>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-cyan-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="text-cyan-600" size={18} />
+                    </div>
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {totalCurrentAccountBalance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Fonds disponibles</p>
                 </div>
 
                 {/* Propriétés */}
@@ -283,6 +317,11 @@ export default function DashboardPage() {
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">{averageROI.toFixed(1)}%</p>
                   <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2">Performance solide</p>
                 </div>
+              </div>
+
+              {/* Taux de change USD→CAD */}
+              <div className="mb-6 sm:mb-8">
+                <ExchangeRateWidget />
               </div>
 
               {/* Section Propriétés */}
