@@ -75,7 +75,7 @@ interface AdministrationTabProps {
 }
 
 export default function AdministrationTab({ activeSubTab }: AdministrationTabProps) {
-  const { investors, transactions, properties, paymentSchedules, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+  const { investors, transactions, properties, paymentSchedules, capexAccounts, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
