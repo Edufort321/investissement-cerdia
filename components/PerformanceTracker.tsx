@@ -126,14 +126,14 @@ export default function PerformanceTracker() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-1 sm:px-0 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">
             {language === 'fr' ? 'Suivi de Performance ROI' : 'ROI Performance Tracking'}
           </h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
             {language === 'fr'
               ? 'Analyse de performance des projets avec alertes automatiques'
               : 'Project performance analysis with automatic alerts'}
@@ -141,48 +141,48 @@ export default function PerformanceTracker() {
         </div>
         <button
           onClick={fetchPerformances}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex-shrink-0"
         >
-          <RefreshCw size={18} />
-          {language === 'fr' ? 'Actualiser' : 'Refresh'}
+          <RefreshCw size={14} className="sm:w-[18px] sm:h-[18px]" />
+          <span>{language === 'fr' ? 'Actualiser' : 'Refresh'}</span>
         </button>
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-          <div className="text-xs text-gray-600 mb-1">{language === 'fr' ? 'Total' : 'Total'}</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
+        <div className="bg-white p-3 sm:p-4 rounded-lg border-2 border-gray-200">
+          <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Total' : 'Total'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{stats.total}</div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
-          <div className="text-xs text-green-700 mb-1">{language === 'fr' ? 'Excellents' : 'Excellent'}</div>
-          <div className="text-2xl font-bold text-green-800">{stats.excellent}</div>
+        <div className="bg-green-50 p-3 sm:p-4 rounded-lg border-2 border-green-300">
+          <div className="text-[10px] sm:text-xs text-green-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Excellents' : 'Excellent'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-800">{stats.excellent}</div>
         </div>
-        <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
-          <div className="text-xs text-blue-700 mb-1">{language === 'fr' ? 'Bons' : 'Good'}</div>
-          <div className="text-2xl font-bold text-blue-800">{stats.good}</div>
+        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border-2 border-blue-300">
+          <div className="text-[10px] sm:text-xs text-blue-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Bons' : 'Good'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">{stats.good}</div>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
-          <div className="text-xs text-yellow-700 mb-1">{language === 'fr' ? 'Attention' : 'Warning'}</div>
-          <div className="text-2xl font-bold text-yellow-800">{stats.warning}</div>
+        <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
+          <div className="text-[10px] sm:text-xs text-yellow-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Attention' : 'Warning'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-800">{stats.warning}</div>
         </div>
-        <div className="bg-red-50 p-4 rounded-lg border-2 border-red-300">
-          <div className="text-xs text-red-700 mb-1">{language === 'fr' ? 'Critiques' : 'Critical'}</div>
-          <div className="text-2xl font-bold text-red-800">{stats.critical}</div>
+        <div className="bg-red-50 p-3 sm:p-4 rounded-lg border-2 border-red-300">
+          <div className="text-[10px] sm:text-xs text-red-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Critiques' : 'Critical'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-800">{stats.critical}</div>
         </div>
-        <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
-          <div className="text-xs text-gray-600 mb-1">{language === 'fr' ? 'En attente' : 'Pending'}</div>
-          <div className="text-2xl font-bold text-gray-700">{stats.pending}</div>
+        <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-gray-300">
+          <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'En attente' : 'Pending'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{stats.pending}</div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 -mx-1 sm:mx-0 px-1 sm:px-0">
         {['all', 'critical', 'warning', 'good', 'excellent', 'pending'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               filter === f
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -195,13 +195,13 @@ export default function PerformanceTracker() {
 
       {/* Performance Cards */}
       {filteredPerformances.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
-          <p className="text-gray-600">
+        <div className="bg-white p-8 sm:p-12 rounded-lg border border-gray-200 text-center">
+          <p className="text-sm sm:text-base text-gray-600">
             {language === 'fr' ? 'Aucun projet trouvé' : 'No projects found'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           {filteredPerformances.map((perf) => {
             const statusConfig = getStatusConfig(perf.performance_status)
             const Icon = statusConfig.icon
@@ -209,46 +209,46 @@ export default function PerformanceTracker() {
             return (
               <div
                 key={perf.property_id}
-                className={`bg-white rounded-lg border-2 ${statusConfig.border} overflow-hidden hover:shadow-lg transition-shadow`}
+                className={`bg-white rounded-lg border-2 ${statusConfig.border} overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full`}
               >
                 {/* Header */}
-                <div className={`p-4 ${statusConfig.bg} border-b-2 ${statusConfig.border}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-gray-900 text-lg mb-1">{perf.property_name}</h4>
-                      <p className="text-sm text-gray-600">{perf.location}</p>
+                <div className={`p-3 sm:p-4 ${statusConfig.bg} border-b-2 ${statusConfig.border}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-sm sm:text-base md:text-lg mb-0.5 sm:mb-1 truncate">{perf.property_name}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">{perf.location}</p>
                     </div>
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}`}>
-                      <Icon size={16} />
-                      <span className="text-xs font-bold">{statusConfig.label}</span>
+                    <div className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border} flex-shrink-0`}>
+                      <Icon size={14} className="sm:w-4 sm:h-4" />
+                      <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">{statusConfig.label}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-4 space-y-3">
+                <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                   {/* ROI Comparison */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-600 mb-1">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div className="text-center min-w-0">
+                      <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'ROI Attendu' : 'Expected ROI'}
                       </div>
-                      <div className="text-lg font-bold text-gray-900">{perf.expected_roi}%</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold text-gray-900">{perf.expected_roi}%</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-600 mb-1">
+                    <div className="text-center min-w-0">
+                      <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'ROI Réel' : 'Actual ROI'}
                       </div>
-                      <div className="text-lg font-bold text-blue-600">{perf.annualized_roi}%</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-sm sm:text-base md:text-lg font-bold text-blue-600">{perf.annualized_roi}%</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 truncate">
                         ({language === 'fr' ? 'annualisé' : 'annualized'})
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-600 mb-1">
+                    <div className="text-center min-w-0">
+                      <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'Écart' : 'Variance'}
                       </div>
-                      <div className={`text-lg font-bold ${
+                      <div className={`text-sm sm:text-base md:text-lg font-bold ${
                         perf.roi_variance >= 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {perf.roi_variance > 0 ? '+' : ''}{perf.roi_variance}%
@@ -258,17 +258,17 @@ export default function PerformanceTracker() {
 
                   {/* Progress Bar */}
                   <div>
-                    <div className="flex justify-between text-xs text-gray-600 mb-1">
-                      <span>{language === 'fr' ? 'Performance' : 'Performance'}</span>
-                      <span>
+                    <div className="flex justify-between text-[10px] sm:text-xs text-gray-600 mb-1">
+                      <span className="truncate">{language === 'fr' ? 'Performance' : 'Performance'}</span>
+                      <span className="flex-shrink-0">
                         {perf.annualized_roi >= 0
                           ? `${((perf.annualized_roi / perf.expected_roi) * 100).toFixed(0)}%`
                           : '0%'}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                       <div
-                        className={`h-2 rounded-full ${
+                        className={`h-1.5 sm:h-2 rounded-full ${
                           perf.roi_variance >= perf.expected_roi * 0.2
                             ? 'bg-green-600'
                             : perf.roi_variance >= perf.expected_roi * -0.1
@@ -285,20 +285,20 @@ export default function PerformanceTracker() {
                   </div>
 
                   {/* Financial Details */}
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-                    <div>
-                      <div className="text-xs text-gray-600 mb-1">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-200">
+                    <div className="min-w-0">
+                      <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'Revenus totaux' : 'Total Revenue'}
                       </div>
-                      <div className="font-bold text-green-600">
+                      <div className="text-xs sm:text-sm md:text-base font-bold text-green-600 truncate">
                         {formatCurrency(perf.total_revenue, perf.currency)}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-gray-600 mb-1">
+                    <div className="min-w-0">
+                      <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'Coût total' : 'Total Cost'}
                       </div>
-                      <div className="font-bold text-gray-900">
+                      <div className="text-xs sm:text-sm md:text-base font-bold text-gray-900 truncate">
                         {formatCurrency(perf.total_cost, perf.currency)}
                       </div>
                     </div>
@@ -307,14 +307,14 @@ export default function PerformanceTracker() {
                   {/* Performance Message */}
                   {perf.performance_message && (
                     <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                      <p className="text-xs text-gray-600">{perf.performance_message}</p>
+                      <p className="text-[10px] sm:text-xs text-gray-600 break-words">{perf.performance_message}</p>
                     </div>
                   )}
 
                   {/* Time Info */}
-                  <div className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock size={12} />
-                    {Math.floor(perf.months_since_reservation)} {language === 'fr' ? 'mois depuis réservation' : 'months since reservation'}
+                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+                    <Clock size={10} className="sm:w-3 sm:h-3 flex-shrink-0" />
+                    <span className="truncate">{Math.floor(perf.months_since_reservation)} {language === 'fr' ? 'mois depuis réservation' : 'months since reservation'}</span>
                   </div>
                 </div>
               </div>
