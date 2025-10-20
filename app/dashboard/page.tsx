@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
@@ -15,6 +16,7 @@ type TabType = 'dashboard' | 'projet' | 'administration'
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, loading } = useInvestment()
+  const { t, language } = useLanguage()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -39,13 +41,13 @@ export default function DashboardPage() {
     const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     if (daysUntil < 0) {
-      return { color: 'red', emoji: '🔴', label: 'En retard' }
+      return { color: 'red', emoji: '🔴', label: t('dashboard.overdue') }
     } else if (daysUntil <= 5) {
-      return { color: 'orange', emoji: '🟠', label: 'Urgent' }
+      return { color: 'orange', emoji: '🟠', label: t('dashboard.urgent') }
     } else if (daysUntil <= 10) {
-      return { color: 'yellow', emoji: '🟡', label: 'Bientôt' }
+      return { color: 'yellow', emoji: '🟡', label: t('dashboard.soon') }
     } else {
-      return { color: 'green', emoji: '🟢', label: 'À venir' }
+      return { color: 'green', emoji: '🟢', label: t('dashboard.upcoming') }
     }
   }
 
@@ -136,16 +138,16 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     )
   }
 
   const tabs = [
-    { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'projet' as TabType, label: 'Projet', icon: FolderKanban },
-    { id: 'administration' as TabType, label: 'Administration', icon: Settings },
+    { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard },
+    { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban },
+    { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
   ]
 
   return (
@@ -159,7 +161,7 @@ export default function DashboardPage() {
         <div className="p-6">
           {/* Header Sidebar */}
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-bold">Navigation</h2>
+            <h2 className="text-xl font-bold">{t('nav.dashboard')}</h2>
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -178,7 +180,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-sm text-gray-700">{currentUser.role === 'admin' ? 'Administrateur' : 'Investisseur'}</p>
+                <p className="text-sm text-gray-700">{currentUser.role === 'admin' ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
               </div>
             </div>
           </div>
@@ -214,7 +216,7 @@ export default function DashboardPage() {
               className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-600 hover:bg-red-100 hover:text-red-700 transition-all"
             >
               <LogOut size={20} />
-              <span className="font-medium">Déconnexion</span>
+              <span className="font-medium">{t('nav.logout')}</span>
             </button>
           </div>
         </div>
@@ -237,11 +239,11 @@ export default function DashboardPage() {
           {activeTab === 'dashboard' && (
             <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Vue d'ensemble</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('dashboard.overview')}</h2>
                 {loading && (
                   <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin"></div>
-                    Chargement...
+                    {t('common.loading')}
                   </div>
                 )}
               </div>

@@ -126,7 +126,7 @@ export default function ExchangeRateWidget() {
           </p>
         </div>
         <button
-          onClick={fetchExchangeRate}
+          onClick={() => fetchExchangeRate()}
           disabled={loading}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           title="Rafraîchir"
