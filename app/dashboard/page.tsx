@@ -4,19 +4,49 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, Building2, DollarSign, Users, AlertCircle, Clock, Calendar } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
+import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
-  const { investors, properties, transactions, capexAccounts, currentAccounts, loading } = useInvestment()
+  const { investors, properties, transactions, capexAccounts, currentAccounts, paymentSchedules, loading } = useInvestment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [exchangeRate, setExchangeRate] = useState<number>(1.35)
+
+  // Charger le taux de change au montage
+  useEffect(() => {
+    const loadExchangeRate = async () => {
+      const rate = await getCurrentExchangeRate('USD', 'CAD')
+      setExchangeRate(rate)
+    }
+    loadExchangeRate()
+  }, [])
+
+  // Fonction helper pour calculer le flag de couleur selon proximité échéance
+  const getColorFlag = (dueDate: string): { color: string; emoji: string; label: string } => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(dueDate)
+    due.setHours(0, 0, 0, 0)
+    const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysUntil < 0) {
+      return { color: 'red', emoji: '🔴', label: 'En retard' }
+    } else if (daysUntil <= 5) {
+      return { color: 'orange', emoji: '🟠', label: 'Urgent' }
+    } else if (daysUntil <= 10) {
+      return { color: 'yellow', emoji: '🟡', label: 'Bientôt' }
+    } else {
+      return { color: 'green', emoji: '🟢', label: 'À venir' }
+    }
+  }
 
   // Gérer la vue mobile/desktop
   useEffect(() => {
@@ -58,6 +88,30 @@ export default function DashboardPage() {
 
   // Transactions récentes (5 dernières)
   const recentTransactions = transactions.slice(0, 5)
+
+  // Paiements à venir (pending/overdue uniquement, triés par date)
+  const upcomingPayments = paymentSchedules
+    .filter(payment => payment.status === 'pending' || payment.status === 'overdue')
+    .map(payment => {
+      const property = properties.find(p => p.id === payment.property_id)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const due = new Date(payment.due_date)
+      due.setHours(0, 0, 0, 0)
+      const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const flag = getColorFlag(payment.due_date)
+      const amountInCAD = payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
+
+      return {
+        ...payment,
+        property_name: property?.name || 'Propriété inconnue',
+        property_location: property?.location || '',
+        days_until_due: daysUntil,
+        color_flag: flag,
+        amount_in_cad: amountInCAD
+      }
+    })
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
 
   if (!currentUser) {
     return (
@@ -329,6 +383,95 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+
+              {/* Paiements à venir */}
+              {upcomingPayments.length > 0 && (
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
+                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                    <AlertCircle size={18} className="text-orange-600" />
+                    Paiements à venir
+                    <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">
+                      {upcomingPayments.length} paiement{upcomingPayments.length > 1 ? 's' : ''} en attente
+                    </span>
+                  </h3>
+                  <div className="space-y-3">
+                    {upcomingPayments.map((payment) => {
+                      const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
+                                          payment.color_flag.color === 'orange' ? 'bg-orange-50 border-orange-200' :
+                                          payment.color_flag.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+                                          'bg-green-50 border-green-200'
+
+                      return (
+                        <div key={payment.id} className={`border rounded-lg p-3 sm:p-4 ${bgColorClass}`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            {/* Flag et statut */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl sm:text-2xl">{payment.color_flag.emoji}</span>
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-gray-700">{payment.color_flag.label}</p>
+                                <p className="text-xs text-gray-600">
+                                  {payment.days_until_due < 0
+                                    ? `${Math.abs(payment.days_until_due)} jour${Math.abs(payment.days_until_due) > 1 ? 's' : ''} de retard`
+                                    : payment.days_until_due === 0
+                                    ? 'Aujourd\'hui'
+                                    : `Dans ${payment.days_until_due} jour${payment.days_until_due > 1 ? 's' : ''}`
+                                  }
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Informations du paiement */}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">{payment.property_name}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">{payment.term_label}</p>
+                            </div>
+
+                            {/* Date d'échéance */}
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                              <Calendar size={14} className="text-gray-500" />
+                              <span>
+                                {new Date(payment.due_date).toLocaleDateString('fr-CA', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+
+                            {/* Montants */}
+                            <div className="text-right">
+                              <p className="font-bold text-gray-900">
+                                {payment.amount.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: payment.currency,
+                                  minimumFractionDigits: 0
+                                })}
+                              </p>
+                              {payment.currency === 'USD' && (
+                                <p className="text-xs text-gray-600">
+                                  ≈ {payment.amount_in_cad.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: 'CAD',
+                                    minimumFractionDigits: 0
+                                  })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Note sur le taux de change */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-600 flex items-center gap-1">
+                      <Clock size={12} />
+                      Taux de change USD→CAD: {exchangeRate.toFixed(4)} (mis à jour quotidiennement)
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Transactions Récentes */}
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
