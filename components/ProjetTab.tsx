@@ -24,7 +24,7 @@ interface PropertyFormData {
 interface PaymentTerm {
   label: string
   percentage: number
-  days_offset: number
+  due_date: string // Date d'échéance au format YYYY-MM-DD
 }
 
 export default function ProjetTab() {
@@ -62,10 +62,10 @@ export default function ProjetTab() {
   })
 
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
-    { label: 'Acompte', percentage: 50, days_offset: 0 },
-    { label: '2e versement', percentage: 20, days_offset: 30 },
-    { label: '3e versement', percentage: 20, days_offset: 60 },
-    { label: 'Versement final', percentage: 10, days_offset: 90 }
+    { label: 'Acompte', percentage: 50, due_date: new Date().toISOString().split('T')[0] },
+    { label: '2e versement', percentage: 20, due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0] },
+    { label: '3e versement', percentage: 20, due_date: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0] },
+    { label: 'Versement final', percentage: 10, due_date: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0] }
   ])
 
   const [paymentFormData, setPaymentFormData] = useState({
@@ -185,7 +185,7 @@ export default function ProjetTab() {
   }
 
   const addPaymentTerm = () => {
-    setPaymentTerms([...paymentTerms, { label: '', percentage: 0, days_offset: 0 }])
+    setPaymentTerms([...paymentTerms, { label: '', percentage: 0, due_date: new Date().toISOString().split('T')[0] }])
   }
 
   const removePaymentTerm = (index: number) => {
@@ -459,47 +459,83 @@ export default function ProjetTab() {
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    {paymentTerms.map((term, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          value={term.label}
-                          onChange={(e) => updatePaymentTerm(index, 'label', e.target.value)}
-                          placeholder="Label"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <input
-                          type="number"
-                          value={term.percentage}
-                          onChange={(e) => updatePaymentTerm(index, 'percentage', parseFloat(e.target.value))}
-                          placeholder="%"
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                        <input
-                          type="number"
-                          value={term.days_offset}
-                          onChange={(e) => updatePaymentTerm(index, 'days_offset', parseInt(e.target.value))}
-                          placeholder="Jours"
-                          className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          min="0"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePaymentTerm(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                  {/* En-têtes des colonnes */}
+                  <div className="grid grid-cols-[1fr_80px_120px_140px_40px] gap-2 mb-2 px-1">
+                    <div className="text-xs font-semibold text-gray-600">Label</div>
+                    <div className="text-xs font-semibold text-gray-600">%</div>
+                    <div className="text-xs font-semibold text-gray-600">Montant ({formData.currency})</div>
+                    <div className="text-xs font-semibold text-gray-600">Date échéance</div>
+                    <div></div>
                   </div>
 
-                  <div className="mt-2 text-xs text-gray-600">
-                    Total: {paymentTerms.reduce((sum, term) => sum + term.percentage, 0)}%
+                  <div className="space-y-2">
+                    {paymentTerms.map((term, index) => {
+                      // Calculer le montant basé sur le pourcentage
+                      const amountAfterDeposit = (formData.total_cost || 0) - (formData.reservation_deposit || 0)
+                      const calculatedAmount = amountAfterDeposit * (term.percentage / 100)
+
+                      return (
+                        <div key={index} className="grid grid-cols-[1fr_80px_120px_140px_40px] gap-2 items-center">
+                          <input
+                            type="text"
+                            value={term.label}
+                            onChange={(e) => updatePaymentTerm(index, 'label', e.target.value)}
+                            placeholder="Ex: Acompte"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          />
+                          <input
+                            type="number"
+                            value={term.percentage}
+                            onChange={(e) => updatePaymentTerm(index, 'percentage', parseFloat(e.target.value) || 0)}
+                            placeholder="%"
+                            className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm text-center"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                          <div className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-right font-medium text-gray-700">
+                            {calculatedAmount.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </div>
+                          <input
+                            type="date"
+                            value={term.due_date}
+                            onChange={(e) => updatePaymentTerm(index, 'due_date', e.target.value)}
+                            className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePaymentTerm(index)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Total pourcentage:</span>
+                        <span className={`ml-2 font-bold ${paymentTerms.reduce((sum, term) => sum + term.percentage, 0) === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                          {paymentTerms.reduce((sum, term) => sum + term.percentage, 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Total montant:</span>
+                        <span className="ml-2 font-bold text-blue-600">
+                          {paymentTerms.reduce((sum, term) => {
+                            const amountAfterDeposit = (formData.total_cost || 0) - (formData.reservation_deposit || 0)
+                            return sum + (amountAfterDeposit * (term.percentage / 100))
+                          }, 0).toLocaleString('fr-CA', { style: 'currency', currency: formData.currency })}
+                        </span>
+                      </div>
+                    </div>
+                    {paymentTerms.reduce((sum, term) => sum + term.percentage, 0) !== 100 && (
+                      <p className="text-xs text-red-600 mt-2">⚠️ Le total doit être égal à 100%</p>
+                    )}
                   </div>
                 </div>
               )}
