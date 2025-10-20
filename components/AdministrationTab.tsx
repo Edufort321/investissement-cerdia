@@ -91,6 +91,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     updateTransaction,
     deleteTransaction,
     updateNominalShareValue,
+    addInvestment,
     loading
   } = useInvestment()
 
@@ -108,6 +109,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [editingNominalValue, setEditingNominalValue] = useState(false)
   const [nominalValueInput, setNominalValueInput] = useState<string>('')
   const [savingNominalValue, setSavingNominalValue] = useState(false)
+
+  // Investment form state
+  const [showAddInvestmentForm, setShowAddInvestmentForm] = useState(false)
+  const [investmentFormData, setInvestmentFormData] = useState({
+    investor_id: '',
+    investment_date: new Date().toISOString().split('T')[0],
+    amount_invested: 0,
+    currency: 'CAD',
+    payment_method: '',
+    reference_number: '',
+    notes: '',
+  })
 
   // Transactions state
   const [showAddTransactionForm, setShowAddTransactionForm] = useState(false)
@@ -290,6 +303,48 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const handleStartEditNominalValue = () => {
     setNominalValueInput(shareSettings?.nominal_share_value.toFixed(2) || '1.00')
     setEditingNominalValue(true)
+  }
+
+  // INVESTMENT HANDLERS
+  // ==========================================
+
+  const handleInvestmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!investmentFormData.investor_id) {
+      alert('Veuillez sélectionner un investisseur')
+      return
+    }
+
+    if (investmentFormData.amount_invested <= 0) {
+      alert('Le montant investi doit être supérieur à 0')
+      return
+    }
+
+    const result = await addInvestment(investmentFormData)
+
+    if (result.success) {
+      // Reset form
+      setInvestmentFormData({
+        investor_id: '',
+        investment_date: new Date().toISOString().split('T')[0],
+        amount_invested: 0,
+        currency: 'CAD',
+        payment_method: '',
+        reference_number: '',
+        notes: '',
+      })
+      setShowAddInvestmentForm(false)
+      alert('Investissement ajouté avec succès!')
+    } else {
+      alert('Erreur lors de l\'ajout de l\'investissement: ' + result.error)
+    }
+  }
+
+  // Calculer le nombre de parts basé sur le montant et le prix nominal actuel
+  const calculateShares = () => {
+    if (!shareSettings || investmentFormData.amount_invested <= 0) return 0
+    return investmentFormData.amount_invested / shareSettings.nominal_share_value
   }
 
   // ==========================================
@@ -643,16 +698,182 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">Gestion des Investisseurs</h2>
           <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
         </div>
-        <button
-          onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
-        >
-          {showAddInvestorForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
-          {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => setShowAddInvestmentForm(!showAddInvestmentForm)}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
+          >
+            {showAddInvestmentForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
+            {showAddInvestmentForm ? 'Annuler' : 'Nouvel investissement'}
+          </button>
+          <button
+            onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
+            className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
+          >
+            {showAddInvestorForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
+            {showAddInvestorForm ? 'Annuler' : 'Nouvel investisseur'}
+          </button>
+        </div>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add Investment Form */}
+      {showAddInvestmentForm && (
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md border border-green-200 max-w-full overflow-hidden">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 break-words text-green-700">
+            Nouvel Investissement
+          </h3>
+          <form onSubmit={handleInvestmentSubmit} className="space-y-3 sm:space-y-4 max-w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-full">
+              {/* Investisseur */}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Investisseur *</label>
+                <select
+                  value={investmentFormData.investor_id}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, investor_id: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="">Sélectionner un investisseur</option>
+                  {investors.map((investor) => (
+                    <option key={investor.id} value={investor.id}>
+                      {investor.first_name} {investor.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date d'investissement */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date d'investissement *</label>
+                <input
+                  type="date"
+                  value={investmentFormData.investment_date}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, investment_date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Montant investi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Montant investi *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={investmentFormData.amount_invested || ''}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, amount_invested: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Devise */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Devise *</label>
+                <select
+                  value={investmentFormData.currency}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, currency: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="CAD">CAD</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              {/* Méthode de paiement */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Méthode de paiement</label>
+                <input
+                  type="text"
+                  value={investmentFormData.payment_method}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, payment_method: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  placeholder="Virement, Chèque, etc."
+                />
+              </div>
+
+              {/* Numéro de référence */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Numéro de référence</label>
+                <input
+                  type="text"
+                  value={investmentFormData.reference_number}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, reference_number: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  placeholder="Numéro de transaction"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea
+                  value={investmentFormData.notes}
+                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent resize-none"
+                  placeholder="Notes additionnelles..."
+                />
+              </div>
+            </div>
+
+            {/* Calcul automatique des parts */}
+            {shareSettings && investmentFormData.amount_invested > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Calcul automatique des parts</p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Prix par part: {shareSettings.nominal_share_value.toFixed(2)} CAD
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-green-700">
+                      {calculateShares().toFixed(4)} parts
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      {investmentFormData.amount_invested.toFixed(2)} {investmentFormData.currency} ÷ {shareSettings.nominal_share_value.toFixed(2)} CAD
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddInvestmentForm(false)
+                  setInvestmentFormData({
+                    investor_id: '',
+                    investment_date: new Date().toISOString().split('T')[0],
+                    amount_invested: 0,
+                    currency: 'CAD',
+                    payment_method: '',
+                    reference_number: '',
+                    notes: '',
+                  })
+                }}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors text-sm sm:text-base"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm sm:text-base"
+              >
+                Ajouter l'investissement
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Add/Edit Investor Form */}
       {showAddInvestorForm && (
         <div ref={investorFormRef} className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md border border-gray-200 max-w-full overflow-hidden">
           <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 break-words">
