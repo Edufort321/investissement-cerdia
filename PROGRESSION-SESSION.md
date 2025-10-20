@@ -2,16 +2,21 @@
 
 ## ✅ COMPLÉTÉ AUJOURD'HUI
 
-### 1. **Système Bilingue FR/EN - Phase 1** 🌍
-- ✅ Enrichi `LanguageContext.tsx` avec 40+ traductions Dashboard
+### 1. **Système Bilingue FR/EN - Phases 1 & 2** 🌍
+- ✅ Enrichi `LanguageContext.tsx` avec 40+ traductions Dashboard (FR + EN)
 - ✅ Intégré `useLanguage` hook dans `app/dashboard/page.tsx`
-- ✅ Traduit: navigation, sidebar, user info, drapeaux paiements, loading
+- ✅ **Phase 1:** Navigation, sidebar, user info, drapeaux paiements, loading
+- ✅ **Phase 2:** 4 KPIs traduits avec formatage devise dynamique (fr-CA/en-CA)
+- ✅ **Phase 2:** Portefeuille Immobilier + Répartition Investisseurs traduits
+- ✅ **Phase 2:** Paiements à venir traduits avec gestion pluriels
 - ✅ Correction bug TypeScript dans `ExchangeRateWidget.tsx`
-- 🔶 **RESTE:** Terminer traductions complètes Dashboard (KPIs, cartes propriétés, transactions)
 - 🔶 **RESTE:** Intégrer dans ProjetTab.tsx et AdministrationTab.tsx
 
-**Commit:** `fed687f` - Ajout système bilingue FR/EN - Phase 1
-**Status:** 30% complété, base fonctionnelle en place
+**Commits:**
+- `fed687f` - Système bilingue Phase 1
+- `b4495bf` - Traductions Dashboard Phase 2 complète
+
+**Status:** ~60% complété, Dashboard presque entièrement bilingue
 
 ---
 
@@ -60,8 +65,10 @@
 
 - **Push #1:** `fed687f` - Système bilingue Phase 1
 - **Push #2:** `158dff2` - Documentation Storage
+- **Push #3:** `591f3e5` - Rapport de progression
+- **Push #4:** `b4495bf` - Traductions Dashboard Phase 2 complète ⭐
 
-**Vercel auto-deploy:** ✅ Actif
+**Vercel auto-deploy:** ✅ Actif (4 déploiements)
 
 ---
 
@@ -161,15 +168,15 @@ const renderRdDividendesTab = () => {
 
 ## 📈 MÉTRIQUES
 
-**Temps de session:** ~2h30
-**Lignes de code ajoutées:** ~400
-**Fichiers créés:** 2
-**Fichiers modifiés:** 3
-**Commits:** 2
-**Pushs Vercel:** 2
+**Temps de session:** ~3h
+**Lignes de code ajoutées/modifiées:** ~600
+**Fichiers créés:** 3
+**Fichiers modifiés:** 4
+**Commits:** 4
+**Pushs Vercel:** 4
 
-**Complété global:** ~65%
-**Temps restant estimé:** 8-10 heures
+**Complété global:** ~70%
+**Temps restant estimé:** 6-8 heures
 
 ---
 
