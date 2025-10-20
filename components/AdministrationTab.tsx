@@ -71,7 +71,7 @@ interface Document {
 type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function AdministrationTab() {
-  const { investors, transactions, properties, paymentSchedules, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+  const { investors, transactions, properties, paymentSchedules, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
 
   // Sub-tab state
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('investisseurs')
@@ -1795,25 +1795,330 @@ export default function AdministrationTab() {
     )
   }
 
-  const renderCapexTab = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-12 rounded-lg shadow-md text-center">
-        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">CAPEX 2025</h3>
-        <p className="text-gray-600">Module en développement - Gestion des dépenses en capital</p>
-      </div>
-    </div>
-  )
+  const renderCapexTab = () => {
+    // Calculer le total CAPEX depuis les comptes
+    const totalInvestmentCapex = capexAccounts.reduce((sum, acc) => sum + (acc.investment_capex || 0), 0)
+    const totalOperationCapex = capexAccounts.reduce((sum, acc) => sum + (acc.operation_capex || 0), 0)
+    const totalCapex = totalInvestmentCapex + totalOperationCapex
 
-  const renderRdDividendesTab = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-12 rounded-lg shadow-md text-center">
-        <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">R&D et Dividendes</h3>
-        <p className="text-gray-600">Module en développement - Gestion des dividendes et R&D</p>
+    // Transactions CAPEX
+    const capexTransactions = transactions.filter(t => t.type === 'capex')
+    const totalCapexTransactions = capexTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+    return (
+      <div className="space-y-6">
+        {/* Header Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-700">CAPEX Investissement</span>
+              <DollarSign className="text-blue-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-blue-900">
+              {totalInvestmentCapex.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-purple-700">CAPEX Opération</span>
+              <DollarSign className="text-purple-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-purple-900">
+              {totalOperationCapex.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-green-700">Total Réserve CAPEX</span>
+              <TrendingUp className="text-green-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-green-900">
+              {totalCapex.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+        </div>
+
+        {/* Transactions CAPEX */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <DollarSign size={20} className="text-blue-600" />
+            Dépenses CAPEX 2025 ({capexTransactions.length} transactions)
+          </h3>
+
+          {capexTransactions.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">Aucune dépense CAPEX pour le moment</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-blue-700">Total dépensé en CAPEX</span>
+                  <span className="text-xl font-bold text-blue-900">
+                    {totalCapexTransactions.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {capexTransactions
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((transaction) => (
+                      <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            {transaction.category || 'CAPEX'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  const renderRdDividendesTab = () => {
+    // Calculer les totaux R&D depuis les comptes
+    const totalInvestmentRnd = rndAccounts.reduce((sum, acc) => sum + (acc.investment_capex || 0), 0)
+    const totalOperationRnd = rndAccounts.reduce((sum, acc) => sum + (acc.operation_capex || 0), 0)
+    const totalDividends = rndAccounts.reduce((sum, acc) => sum + (acc.dividend_total || 0), 0)
+
+    // Transactions R&D et Dividendes
+    const rndTransactions = transactions.filter(t => t.type === 'rnd')
+    const dividendeTransactions = transactions.filter(t => t.type === 'dividende')
+    const totalRndSpent = rndTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const totalDividendsDistributed = dividendeTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+    // Dividendes par investisseur
+    const dividendsByInvestor = investors.map(investor => {
+      const investorDividends = dividendeTransactions.filter(t => t.investor_id === investor.id)
+      const totalReceived = investorDividends.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+      return {
+        investor,
+        totalReceived,
+        transactionCount: investorDividends.length
+      }
+    }).filter(item => item.totalReceived > 0)
+    .sort((a, b) => b.totalReceived - a.totalReceived)
+
+    return (
+      <div className="space-y-6">
+        {/* Header Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-lg border border-cyan-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-cyan-700">R&D Investissement</span>
+              <TrendingUp className="text-cyan-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-cyan-900">
+              {totalInvestmentRnd.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-indigo-700">R&D Opération</span>
+              <TrendingUp className="text-indigo-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-indigo-900">
+              {totalOperationRnd.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-purple-700">Total Dividendes</span>
+              <DollarSign className="text-purple-600" size={20} />
+            </div>
+            <p className="text-2xl font-bold text-purple-900">
+              {totalDividends.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            </p>
+          </div>
+        </div>
+
+        {/* Section R&D */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp size={20} className="text-cyan-600" />
+            Dépenses R&D ({rndTransactions.length} transactions)
+          </h3>
+
+          {rndTransactions.length === 0 ? (
+            <div className="text-center py-12">
+              <TrendingUp size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">Aucune dépense R&D pour le moment</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-cyan-700">Total dépensé en R&D</span>
+                  <span className="text-xl font-bold text-cyan-900">
+                    {totalRndSpent.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {rndTransactions
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((transaction) => (
+                      <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800">
+                            {transaction.category || 'R&D'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Section Dividendes */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <DollarSign size={20} className="text-purple-600" />
+            Dividendes Distribués ({dividendeTransactions.length} transactions)
+          </h3>
+
+          {dividendeTransactions.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">Aucun dividende distribué pour le moment</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-purple-700">Total distribué</span>
+                  <span className="text-xl font-bold text-purple-900">
+                    {totalDividendsDistributed.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dividendes par investisseur */}
+              {dividendsByInvestor.length > 0 && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                  <h4 className="text-sm font-semibold text-purple-900 mb-3">Répartition par Investisseur</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {dividendsByInvestor.map(({ investor, totalReceived, transactionCount }) => (
+                      <div key={investor.id} className="bg-white p-3 rounded-lg border border-purple-100">
+                        <div className="text-sm font-medium text-gray-900">
+                          {investor.first_name} {investor.last_name}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {transactionCount} paiement{transactionCount > 1 ? 's' : ''}
+                        </div>
+                        <div className="text-lg font-bold text-purple-600 mt-2">
+                          {totalReceived.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tableau des transactions dividendes */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Investisseur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {dividendeTransactions
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((transaction) => {
+                        const investor = investors.find(inv => inv.id === transaction.investor_id)
+                        return (
+                          <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {investor ? `${investor.first_name} ${investor.last_name}` : 'Non assigné'}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-900">{transaction.description}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <span className="text-sm font-semibold text-purple-600">
+                                {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // ==========================================
   // MAIN RENDER

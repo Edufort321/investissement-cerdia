@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
@@ -39,6 +40,7 @@ export default function ProjetTab() {
     markPaymentAsPaid,
     loading
   } = useInvestment()
+  const { t, language } = useLanguage()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -148,10 +150,10 @@ export default function ProjetTab() {
   }
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la propriété "${name}" ?`)) {
+    if (confirm(t('projects.confirmDelete') + ` "${name}" ?`)) {
       const result = await deleteProperty(id)
       if (!result.success) {
-        alert('Erreur lors de la suppression: ' + result.error)
+        alert(t('error.deleteFailed') + ': ' + result.error)
       }
     }
   }
@@ -199,7 +201,7 @@ export default function ProjetTab() {
         effective_exchange_rate: 1.35
       })
     } else {
-      alert('Erreur lors du marquage du paiement: ' + result.error)
+      alert(t('error.generic') + ': ' + result.error)
     }
   }
 
@@ -249,10 +251,10 @@ export default function ProjetTab() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
-      reservation: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Réservation' },
-      en_construction: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'En construction' },
-      complete: { bg: 'bg-green-100', text: 'text-green-800', label: 'Complété' },
-      actif: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Actif' }
+      reservation: { bg: 'bg-blue-100', text: 'text-blue-800', label: t('status.reservation') },
+      en_construction: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: t('status.construction') },
+      complete: { bg: 'bg-green-100', text: 'text-green-800', label: t('status.completed') },
+      actif: { bg: 'bg-purple-100', text: 'text-purple-800', label: t('status.active') }
     }
     const badge = badges[status] || badges.reservation
     return (
@@ -287,15 +289,15 @@ export default function ProjetTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion des Projets</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Gérez vos propriétés immobilières et suivez leur progression</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('projects.title')}</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">{t('projects.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
         >
           {showAddForm ? <X size={20} /> : <Plus size={20} />}
-          {showAddForm ? 'Annuler' : 'Ajouter une propriété'}
+          {showAddForm ? t('common.cancel') : t('projects.add')}
         </button>
       </div>
 

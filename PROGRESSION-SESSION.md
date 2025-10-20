@@ -2,6 +2,50 @@
 
 ## ✅ COMPLÉTÉ AUJOURD'HUI
 
+### SESSION CONTINUÉE - MODULES CAPEX ET R&D ⭐
+
+#### 1. **Module CAPEX 2025** 💰
+- ✅ Implémentation complète du module CAPEX dans `AdministrationTab.tsx`
+- ✅ 3 KPI cards avec gradients (bleu/violet/vert)
+  - CAPEX Investissement
+  - CAPEX Opération
+  - Total Réserve CAPEX
+- ✅ Tableau transactions CAPEX avec tri chronologique
+- ✅ Calculs automatiques depuis `capexAccounts` context
+- ✅ Empty state avec icône et message
+- ✅ Summary card affichant total dépensé
+
+**Fonctionnalités:**
+- Filtrage transactions par type `capex`
+- Formatage CAD avec `toLocaleString('fr-CA')`
+- Table responsive avec hover states
+- Badges catégories colorés
+
+#### 2. **Module R&D/Dividendes** 🎯
+- ✅ Implémentation complète du module R&D/Dividendes dans `AdministrationTab.tsx`
+- ✅ 3 KPI cards avec gradients (cyan/indigo/violet)
+  - R&D Investissement
+  - R&D Opération
+  - Total Dividendes
+- ✅ Section R&D avec tableau transactions
+- ✅ Section Dividendes avec 2 vues:
+  - **Répartition par investisseur** (grid cards)
+  - **Tableau transactions** avec nom investisseur
+- ✅ Calculs automatiques depuis `rndAccounts` context
+- ✅ Ajout `rndAccounts` au destructuring `useInvestment`
+
+**Fonctionnalités:**
+- Filtrage transactions R&D (type `rnd`)
+- Filtrage transactions dividendes (type `dividende`)
+- Calcul par investisseur avec tri décroissant
+- Gestion pluriel automatique ("1 paiement" vs "X paiements")
+- Empty states pour R&D et Dividendes
+
+**Fichiers modifiés:**
+- `components/AdministrationTab.tsx` (lignes 74, 1798-2121)
+
+---
+
 ### 1. **Système Bilingue FR/EN - Phases 1 & 2** 🌍
 - ✅ Enrichi `LanguageContext.tsx` avec 40+ traductions Dashboard (FR + EN)
 - ✅ Intégré `useLanguage` hook dans `app/dashboard/page.tsx`
