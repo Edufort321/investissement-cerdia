@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
+import type { InvestorInvestment, ShareSettings, InvestorSummary } from '@/types/shares'
 
 // Types
 interface Property {
@@ -128,6 +129,9 @@ interface InvestmentContextType {
   currentAccounts: CurrentAccount[]
   rndAccounts: RnDAccount[]
   paymentSchedules: PaymentSchedule[]
+  investorInvestments: InvestorInvestment[]
+  shareSettings: ShareSettings | null
+  investorSummaries: InvestorSummary[]
 
   // Loading states
   loading: boolean
@@ -159,6 +163,15 @@ interface InvestmentContextType {
   updatePaymentSchedule: (id: string, updates: Partial<PaymentSchedule>) => Promise<{ success: boolean; error?: string }>
   deletePaymentSchedule: (id: string) => Promise<{ success: boolean; error?: string }>
   markPaymentAsPaid: (id: string, paidDate: string, amountPaidCad: number, exchangeRate: number) => Promise<{ success: boolean; error?: string }>
+
+  // Share system operations
+  fetchShareSettings: () => Promise<void>
+  updateNominalShareValue: (newValue: number) => Promise<{ success: boolean; error?: string }>
+  updateEstimatedShareValue: (newValue: number) => Promise<{ success: boolean; error?: string }>
+  fetchInvestorInvestments: (investorId?: string) => Promise<void>
+  addInvestment: (investment: Partial<InvestorInvestment>) => Promise<{ success: boolean; error?: string }>
+  fetchInvestorSummaries: () => Promise<void>
+  calculateEstimatedShareValue: () => Promise<number>
 }
 
 const InvestmentContext = createContext<InvestmentContextType | undefined>(undefined)
@@ -181,6 +194,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   const [currentAccounts, setCurrentAccounts] = useState<CurrentAccount[]>([])
   const [rndAccounts, setRnDAccounts] = useState<RnDAccount[]>([])
   const [paymentSchedules, setPaymentSchedules] = useState<PaymentSchedule[]>([])
+  const [investorInvestments, setInvestorInvestments] = useState<InvestorInvestment[]>([])
+  const [shareSettings, setShareSettings] = useState<ShareSettings | null>(null)
+  const [investorSummaries, setInvestorSummaries] = useState<InvestorSummary[]>([])
   const [loading, setLoading] = useState(false)
 
   // Fetch Investors
@@ -480,6 +496,210 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [fetchPaymentSchedules])
 
+  // ==========================================
+  // SHARE SYSTEM FUNCTIONS
+  // ==========================================
+
+  // Fetch Share Settings (valeurs nominale et estimée des parts)
+  const fetchShareSettings = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('share_settings')
+        .select('*')
+        .single()
+
+      if (error) {
+        // Si la vue n'existe pas encore, retourner des valeurs par défaut
+        console.warn('Share settings not found, using defaults:', error)
+        setShareSettings({
+          nominal_share_value: 1.00,
+          estimated_share_value: 1.00,
+          company_name: 'CERDIA Investment Platform',
+          calculation_method: 'weighted_roi',
+        })
+        return
+      }
+
+      setShareSettings(data)
+    } catch (error) {
+      console.error('Error fetching share settings:', error)
+      setShareSettings({
+        nominal_share_value: 1.00,
+        estimated_share_value: 1.00,
+        company_name: 'CERDIA Investment Platform',
+        calculation_method: 'weighted_roi',
+      })
+    }
+  }, [])
+
+  // Update Nominal Share Value (prix de vente actuel)
+  const updateNominalShareValue = useCallback(async (newValue: number) => {
+    try {
+      // Utiliser la fonction helper update_setting
+      const { error } = await supabase.rpc('update_setting', {
+        key_name: 'nominal_share_value',
+        new_value: newValue.toString()
+      })
+
+      if (error) throw error
+
+      // Rafraîchir les settings
+      await fetchShareSettings()
+      return { success: true }
+    } catch (error: any) {
+      console.error('Error updating nominal share value:', error)
+      return { success: false, error: error.message }
+    }
+  }, [fetchShareSettings])
+
+  // Update Estimated Share Value (valeur calculée selon ROI)
+  const updateEstimatedShareValue = useCallback(async (newValue: number) => {
+    try {
+      const { error } = await supabase.rpc('update_setting', {
+        key_name: 'estimated_share_value',
+        new_value: newValue.toString()
+      })
+
+      if (error) throw error
+
+      await fetchShareSettings()
+      return { success: true }
+    } catch (error: any) {
+      console.error('Error updating estimated share value:', error)
+      return { success: false, error: error.message }
+    }
+  }, [fetchShareSettings])
+
+  // Fetch Investor Investments (historique achats de parts)
+  const fetchInvestorInvestments = useCallback(async (investorId?: string) => {
+    try {
+      let query = supabase
+        .from('investor_investments')
+        .select('*')
+        .order('investment_date', { ascending: false })
+
+      if (investorId) {
+        query = query.eq('investor_id', investorId)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setInvestorInvestments(data || [])
+    } catch (error) {
+      console.error('Error fetching investor investments:', error)
+      setInvestorInvestments([])
+    }
+  }, [])
+
+  // Add Investment (nouvel achat de parts)
+  const addInvestment = useCallback(async (investment: Partial<InvestorInvestment>) => {
+    try {
+      if (!shareSettings) {
+        throw new Error('Share settings not loaded')
+      }
+
+      // Calculer le nombre de parts selon le prix nominal actuel
+      const amount = investment.amount_invested || 0
+      const sharePrice = shareSettings.nominal_share_value
+      const numberOfShares = amount / sharePrice
+
+      const newInvestment = {
+        ...investment,
+        share_price_at_purchase: sharePrice,
+        number_of_shares: numberOfShares,
+        currency: investment.currency || 'CAD',
+      }
+
+      const { error } = await supabase
+        .from('investor_investments')
+        .insert([newInvestment])
+
+      if (error) throw error
+
+      // Rafraîchir les données
+      await fetchInvestorInvestments()
+      await fetchInvestorSummaries()
+      return { success: true }
+    } catch (error: any) {
+      console.error('Error adding investment:', error)
+      return { success: false, error: error.message }
+    }
+  }, [shareSettings, fetchInvestorInvestments])
+
+  // Fetch Investor Summaries (résumés avec calculs)
+  const fetchInvestorSummaries = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('investor_summary')
+        .select('*')
+
+      if (error) throw error
+
+      // Ajouter les calculs de valeur actuelle si on a les settings
+      const enrichedData = (data || []).map((summary: any) => {
+        const currentValue = shareSettings
+          ? summary.total_shares * shareSettings.estimated_share_value
+          : 0
+        const gainLoss = currentValue - summary.total_amount_invested
+        const roiPercentage = summary.total_amount_invested > 0
+          ? (gainLoss / summary.total_amount_invested) * 100
+          : 0
+
+        return {
+          ...summary,
+          current_value: currentValue,
+          gain_loss: gainLoss,
+          roi_percentage: roiPercentage,
+        }
+      })
+
+      setInvestorSummaries(enrichedData)
+    } catch (error) {
+      console.error('Error fetching investor summaries:', error)
+      setInvestorSummaries([])
+    }
+  }, [shareSettings])
+
+  // Calculate Estimated Share Value (basé sur ROI des propriétés)
+  const calculateEstimatedShareValue = useCallback(async () => {
+    try {
+      // Récupérer la performance globale des propriétés
+      const { data: perfData, error: perfError } = await supabase
+        .from('property_performance')
+        .select('*')
+
+      if (perfError) throw perfError
+
+      if (!perfData || perfData.length === 0) {
+        return 1.00 // Valeur par défaut si pas de données
+      }
+
+      // Calculer la moyenne pondérée du ROI
+      let totalInvestment = 0
+      let weightedROI = 0
+
+      perfData.forEach((perf: any) => {
+        const investment = perf.total_cost || 0
+        const roi = perf.annualized_roi || 0
+        totalInvestment += investment
+        weightedROI += investment * (roi / 100)
+      })
+
+      const averageROI = totalInvestment > 0 ? weightedROI / totalInvestment : 0
+
+      // Appliquer le ROI à la valeur nominale
+      // Formule simple: valeur_estimée = valeur_nominale × (1 + ROI_moyen)
+      const nominalValue = shareSettings?.nominal_share_value || 1.00
+      const estimatedValue = nominalValue * (1 + averageROI)
+
+      return estimatedValue
+    } catch (error) {
+      console.error('Error calculating estimated share value:', error)
+      return 1.00
+    }
+  }, [shareSettings])
+
   // Load all data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -490,9 +710,12 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         fetchTransactions(),
         fetchAccounts(),
         fetchPaymentSchedules(),
+        fetchShareSettings(),
+        fetchInvestorInvestments(),
+        fetchInvestorSummaries(),
       ]).finally(() => setLoading(false))
     }
-  }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules])
+  }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
 
   const value: InvestmentContextType = {
     investors,
@@ -502,6 +725,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     currentAccounts,
     rndAccounts,
     paymentSchedules,
+    investorInvestments,
+    shareSettings,
+    investorSummaries,
     loading,
     fetchInvestors,
     addInvestor,
@@ -521,6 +747,13 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     updatePaymentSchedule,
     deletePaymentSchedule,
     markPaymentAsPaid,
+    fetchShareSettings,
+    updateNominalShareValue,
+    updateEstimatedShareValue,
+    fetchInvestorInvestments,
+    addInvestment,
+    fetchInvestorSummaries,
+    calculateEstimatedShareValue,
   }
 
   return <InvestmentContext.Provider value={value}>{children}</InvestmentContext.Provider>
