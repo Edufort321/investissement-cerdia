@@ -2,7 +2,79 @@
 
 ## ✅ COMPLÉTÉ AUJOURD'HUI
 
-### SESSION CONTINUÉE - MODULES CAPEX ET R&D ⭐
+### SESSION CONTINUÉE #2 - NAVIGATION & RESPONSIVE 🎨
+
+#### 3. **Sous-navigation Administration dans Sidebar** 📱
+- ✅ Ajout type `AdminSubTabType` dans `dashboard/page.tsx`
+- ✅ État `adminSubTab` pour gérer la sélection
+- ✅ Menu expandable sous le bouton Administration
+- ✅ 6 sous-onglets cliquables:
+  - Investisseurs
+  - Transactions
+  - CAPEX
+  - R&D/Dividendes
+  - Rapports Fiscaux
+  - Performance ROI
+- ✅ Suppression navigation interne dans `AdministrationTab.tsx`
+- ✅ `AdministrationTab` accepte maintenant `activeSubTab` en prop
+- ✅ Fermeture automatique sidebar sur mobile après sélection
+
+**Fichiers modifiés:**
+- `app/dashboard/page.tsx` (lignes 15, 23, 212-293, 658)
+- `components/AdministrationTab.tsx` (lignes 73-77, 2140-2150)
+
+**Commit:** `5d58fb3` - Déplacer sous-onglets Administration dans sidebar
+
+---
+
+#### 4. **Optimisation Responsive Complète - Onglet Investisseurs** 📱💻🖥️
+
+**Mobile First (320px+):**
+- Réduction padding: `p-3` (au lieu de `p-4/p-6`)
+- Réduction gaps: `gap-2`, `gap-3` (au lieu de `gap-4/gap-6`)
+- Tailles police adaptatives: `text-xs` → `sm` → `md` → `base`
+- Icônes redimensionnées: 12px → 14px → 16px
+- Boutons compacts avec texte court ("Docs" au lieu de "Documents")
+- Marges minimales: `px-1` pour éviter débordement
+
+**Tablet (640px - md):**
+- Padding modéré: `p-4`
+- Grille 2 colonnes pour cartes investisseurs
+- Espacement progressif: `gap-3-4`
+
+**Desktop (768px+ - xl):**
+- Grille jusqu'à 3 colonnes: `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`
+- Padding généreux: `p-5`, `gap-5`
+- Interface pleine taille
+
+**Éléments optimisés:**
+- ✅ Section Header (titre + bouton "Ajouter")
+- ✅ Formulaire ajout/édition investisseur
+- ✅ Grille de cartes investisseurs (responsive 1→2→3 cols)
+- ✅ Cartes investisseurs:
+  - Header avec avatar et statut
+  - Stats grid (Total investi, Valeur, Parts, Propriété)
+  - Footer actions (Documents, Modifier, Supprimer)
+- ✅ Modal documents avec viewport adaptatif (`max-w-[98vw]` mobile)
+- ✅ Upload section
+- ✅ Liste documents avec texte tronqué
+
+**Techniques appliquées:**
+- `min-w-0` pour permettre shrinking
+- `truncate` sur tous les textes longs
+- `flex-shrink-0` sur icônes/badges
+- `break-words` pour mots longs
+- Tailles arbitraires: `text-[10px]`, `max-w-[98vw]`
+- Breakpoints multiples: `xs → sm → md → lg → xl`
+
+**Fichiers modifiés:**
+- `components/AdministrationTab.tsx` (lignes 513-982)
+
+**Commit:** `6edd605` - Optimisation responsive complète onglet Investisseurs
+
+---
+
+### SESSION CONTINUÉE #1 - MODULES CAPEX ET R&D ⭐
 
 #### 1. **Module CAPEX 2025** 💰
 - ✅ Implémentation complète du module CAPEX dans `AdministrationTab.tsx`
@@ -111,8 +183,10 @@
 - **Push #2:** `158dff2` - Documentation Storage
 - **Push #3:** `591f3e5` - Rapport de progression
 - **Push #4:** `b4495bf` - Traductions Dashboard Phase 2 complète ⭐
+- **Push #5:** `5d58fb3` - Déplacer sous-onglets Administration dans sidebar ⭐
+- **Push #6:** `6edd605` - Optimisation responsive complète onglet Investisseurs ⭐
 
-**Vercel auto-deploy:** ✅ Actif (4 déploiements)
+**Vercel auto-deploy:** ✅ Actif (6 déploiements)
 
 ---
 
@@ -153,28 +227,15 @@
 
 ---
 
-### 3. **Implémenter Modules CAPEX 2025 et R&D/Dividendes** (Temps: 3-4h)
+### 3. **Implémenter Modules CAPEX 2025 et R&D/Dividendes** ✅ COMPLÉTÉ
 
 #### Module CAPEX 2025
 **Fichier:** `components/AdministrationTab.tsx` ligne 1798
-```typescript
-const renderCapexTab = () => {
-  // Afficher solde CAPEX (investment + operation)
-  // Tableau dépenses CAPEX par projet
-  // Graphique évolution mensuelle
-  // Budget vs Réalisé
-}
-```
+✅ **Implémenté** - 3 KPI cards, tableau transactions, calculs automatiques
 
 #### Module R&D/Dividendes
 **Fichier:** `components/AdministrationTab.tsx` ligne 1808
-```typescript
-const renderRdDividendesTab = () => {
-  // Section R&D avec formulaire
-  // Section Dividendes avec calcul automatique par investisseur
-  // Historique distributions
-}
-```
+✅ **Implémenté** - Sections R&D et Dividendes, répartition par investisseur
 
 ---
 
@@ -203,24 +264,25 @@ const renderRdDividendesTab = () => {
 2. **Terminer traductions Dashboard** (1h) 🌍 IMPACT VISIBLE
 3. **Intégrer bilingue ProjetTab** (45 min)
 4. **Intégrer bilingue AdministrationTab** (45 min)
-5. **Implémenter module CAPEX** (2h)
-6. **Implémenter module R&D/Dividendes** (2h)
-7. **Tests complets** (1h)
-8. **Push final vers Vercel** 🚀
+5. ✅ ~~Implémenter module CAPEX~~ **COMPLÉTÉ**
+6. ✅ ~~Implémenter module R&D/Dividendes~~ **COMPLÉTÉ**
+7. ✅ ~~Optimisation responsive Administration~~ **COMPLÉTÉ**
+8. **Tests complets** (1h)
+9. **Push final vers Vercel** 🚀
 
 ---
 
 ## 📈 MÉTRIQUES
 
-**Temps de session:** ~3h
-**Lignes de code ajoutées/modifiées:** ~600
+**Temps de session:** ~4h (incluant 2 sessions continuées)
+**Lignes de code ajoutées/modifiées:** ~800
 **Fichiers créés:** 3
-**Fichiers modifiés:** 4
-**Commits:** 4
-**Pushs Vercel:** 4
+**Fichiers modifiés:** 6
+**Commits:** 6
+**Pushs Vercel:** 6
 
-**Complété global:** ~70%
-**Temps restant estimé:** 6-8 heures
+**Complété global:** ~80%
+**Temps restant estimé:** 3-4 heures
 
 ---
 
@@ -237,11 +299,19 @@ const renderRdDividendesTab = () => {
 
 - Le formulaire de transactions internationales est **DÉJÀ COMPLET** ✅
 - Les tables Supabase sont créées ✅
-- Le système bilingue est fonctionnel mais partiel (30%)
-- Les modules CAPEX et R&D sont des placeholders à implémenter
+- Le système bilingue est fonctionnel mais partiel (~60%)
+- Les modules CAPEX et R&D sont **COMPLÉTÉS** ✅
+- La navigation Administration avec sous-onglets dans sidebar est **COMPLÉTÉE** ✅
+- L'optimisation responsive de l'onglet Investisseurs est **COMPLÉTÉE** ✅
 - Le serveur tourne sur le port 3003 (après nettoyage cache)
+
+**RESTE À FAIRE:**
+- Créer buckets Supabase Storage
+- Finaliser traductions bilingues (ProjetTab, AdministrationTab)
+- Optimiser responsive autres onglets (Transactions, CAPEX, R&D)
+- Tests complets multi-navigateurs et multi-devices
 
 ---
 
-**Dernière mise à jour:** 2025-10-20 21:45
-**Prochaine session:** Continuer avec création buckets + traductions
+**Dernière mise à jour:** 2025-10-20 23:00
+**Prochaine session:** Création buckets Supabase + Traductions bilingues complètes
