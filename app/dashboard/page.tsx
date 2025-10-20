@@ -12,6 +12,7 @@ import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   const { t, language } = useLanguage()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
+  const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
@@ -190,21 +192,106 @@ export default function DashboardPage() {
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    if (isMobile) setSidebarOpen(false)
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-[#5e5e5e] text-white'
-                      : 'text-black hover:bg-[#3e3e3e] hover:text-white'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{tab.label}</span>
-                </button>
+                <div key={tab.id}>
+                  <button
+                    onClick={() => {
+                      setActiveTab(tab.id)
+                      if (isMobile && tab.id !== 'administration') setSidebarOpen(false)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-[#5e5e5e] text-white'
+                        : 'text-black hover:bg-[#3e3e3e] hover:text-white'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+
+                  {/* Sous-onglets Administration */}
+                  {tab.id === 'administration' && activeTab === 'administration' && (
+                    <div className="mt-2 ml-4 space-y-1">
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('investisseurs')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'investisseurs'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Investisseurs
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('transactions')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'transactions'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Transactions
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('capex')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'capex'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        CAPEX
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('rd_dividendes')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'rd_dividendes'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        R&D / Dividendes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('rapports_fiscaux')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'rapports_fiscaux'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Rapports Fiscaux
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('performance')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'performance'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Performance ROI
+                      </button>
+                    </div>
+                  )}
+                </div>
               )
             })}
           </nav>
@@ -568,7 +655,7 @@ export default function DashboardPage() {
 
           {activeTab === 'projet' && <ProjetTab />}
 
-          {activeTab === 'administration' && <AdministrationTab />}
+          {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>
       </main>
 

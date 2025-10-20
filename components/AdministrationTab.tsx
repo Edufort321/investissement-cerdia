@@ -70,11 +70,12 @@ interface Document {
 
 type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
-export default function AdministrationTab() {
-  const { investors, transactions, properties, paymentSchedules, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+interface AdministrationTabProps {
+  activeSubTab: SubTabType
+}
 
-  // Sub-tab state
-  const [activeSubTab, setActiveSubTab] = useState<SubTabType>('investisseurs')
+export default function AdministrationTab({ activeSubTab }: AdministrationTabProps) {
+  const { investors, transactions, properties, paymentSchedules, rndAccounts, addInvestor, updateInvestor, deleteInvestor, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -2138,72 +2139,6 @@ export default function AdministrationTab() {
 
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
-      {/* Sub-Tab Navigation */}
-      <div className="sticky top-16 md:top-20 z-30 bg-gray-100 border-b border-gray-200 -mx-6 px-6 pt-2 max-w-full">
-        <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setActiveSubTab('investisseurs')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'investisseurs'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Investisseurs
-          </button>
-          <button
-            onClick={() => setActiveSubTab('transactions')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'transactions'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Transactions
-          </button>
-          <button
-            onClick={() => setActiveSubTab('capex')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'capex'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            CAPEX
-          </button>
-          <button
-            onClick={() => setActiveSubTab('rd_dividendes')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'rd_dividendes'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            R&D / Dividendes
-          </button>
-          <button
-            onClick={() => setActiveSubTab('rapports_fiscaux')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'rapports_fiscaux'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Rapports Fiscaux
-          </button>
-          <button
-            onClick={() => setActiveSubTab('performance')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeSubTab === 'performance'
-                ? 'border-[#5e5e5e] text-[#5e5e5e]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Performance ROI
-          </button>
-        </nav>
-      </div>
-
       {/* Content Area */}
       {activeSubTab === 'investisseurs' && renderInvestisseursTab()}
       {activeSubTab === 'transactions' && renderTransactionsTab()}
