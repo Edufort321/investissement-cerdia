@@ -75,23 +75,26 @@ export default function DashboardPage() {
 
   // Calculer les KPIs en temps réel basés sur les TRANSACTIONS
 
-  // 1. TOTAL INVESTISSEURS - Somme des apports (transactions de type 'investissement')
+  // 1. TOTAL INVESTISSEURS (CAD) - Somme des apports (transactions de type 'investissement')
   const totalInvestisseurs = transactions
     .filter(t => t.type === 'investissement')
     .reduce((sum, t) => sum + t.amount, 0)
 
-  // 2. INVESTISSEMENT IMMOBILIER - Somme des paiements sur propriétés (transactions avec property_id, sauf investissements)
-  const totalInvestissementImmobilier = transactions
+  // 2. INVESTISSEMENT IMMOBILIER (USD) - Somme des paiements sur propriétés (transactions avec property_id, sauf investissements)
+  const totalInvestissementImmobilierUSD = transactions
     .filter(t => t.property_id && t.type !== 'investissement')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-  // 3. DÉPENSES OPÉRATION - Somme des dépenses CAPEX + R&D
+  // Convertir Investissement Immobilier en CAD pour le calcul du Compte Courant
+  const totalInvestissementImmobilierCAD = totalInvestissementImmobilierUSD * exchangeRate
+
+  // 3. DÉPENSES OPÉRATION (CAD) - Somme des dépenses CAPEX + R&D
   const totalDepensesOperation =
     capexAccounts.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) +
     (rndAccounts?.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) || 0)
 
-  // 4. COMPTE COURANT - Calculé = Total Investisseurs - Investissements - Dépenses
-  const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilier - totalDepensesOperation
+  // 4. COMPTE COURANT (CAD) - Calculé = Total Investisseurs - Investissements (convertis) - Dépenses
+  const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilierCAD - totalDepensesOperation
 
   // Autres KPIs
   const numberOfProperties = properties.length
@@ -245,7 +248,7 @@ export default function DashboardPage() {
 
               {/* KPIs Cards - Flux de Trésorerie */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {/* 1. Total Investisseurs */}
+                {/* 1. Total Investisseurs (CAD) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Total Investisseurs</h3>
@@ -254,12 +257,12 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalInvestisseurs.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalInvestisseurs.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Apports ({investors.length} investisseurs)</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Apports CAD ({investors.length} investisseurs)</p>
                 </div>
 
-                {/* 2. Investissement Immobilier */}
+                {/* 2. Investissement Immobilier (USD) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Investissement Immobilier</h3>
@@ -268,12 +271,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalInvestissementImmobilier.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalInvestissementImmobilierUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
+                    {numberOfProperties} {numberOfProperties > 1 ? 'propriétés' : 'propriété'} • ≈ {totalInvestissementImmobilierCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                  </p>
                 </div>
 
-                {/* 3. Dépenses Opération */}
+                {/* 3. Dépenses Opération (CAD) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Dépenses Opération</h3>
@@ -282,12 +287,12 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {totalDepensesOperation.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {totalDepensesOperation.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">CAPEX, R&D, etc.</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">CAPEX, R&D, etc. (CAD)</p>
                 </div>
 
-                {/* 4. Compte Courant */}
+                {/* 4. Compte Courant (CAD) */}
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">Compte Courant</h3>
@@ -296,9 +301,9 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {compteCurrentCalcule.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                    {compteCurrentCalcule.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Fonds disponibles</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Fonds disponibles CAD</p>
                 </div>
 
               </div>
