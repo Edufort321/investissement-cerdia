@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Autoplay } from 'swiper/modules'
+import { useLanguage } from '@/contexts/LanguageContext'
 import 'swiper/css'
 import 'swiper/css/pagination'
 
 export default function ImmobilierPage() {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr')
+  const { language } = useLanguage()
 
   const t = {
     fr: {
@@ -43,22 +43,10 @@ export default function ImmobilierPage() {
     }
   }
 
-  const tr = t[lang]
+  const tr = t[language]
 
   return (
     <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
-      {/* Sélecteur de langue */}
-      <div className="flex justify-end mb-6">
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value as 'fr' | 'en')}
-          className="border px-3 py-1 rounded-md shadow text-sm"
-        >
-          <option value="fr">🇨🇦 Français</option>
-          <option value="en">🇺🇸 English</option>
-        </select>
-      </div>
-
       {/* Titre */}
       <h2 className="text-3xl font-bold text-[#2234B9] mb-2">{tr.titre}</h2>
       <p className="text-gray-700 mb-10 max-w-3xl">{tr.description}</p>
