@@ -14,6 +14,12 @@ import {
 interface Scenario {
   id: string
   name: string
+  country: string
+  state_region: string
+  promoter_name: string
+  broker_name: string
+  broker_email: string
+  company_name: string
   purchase_price: number
   initial_fees: number
   promoter_data: PromoterData
@@ -120,6 +126,12 @@ export default function ScenariosTab() {
   // Formulaire création scénario
   const [formData, setFormData] = useState({
     name: '',
+    country: '',
+    state_region: '',
+    promoter_name: '',
+    broker_name: '',
+    broker_email: '',
+    company_name: '',
     purchase_price: 0,
     initial_fees: 0,
     promoter_data: {
@@ -229,6 +241,12 @@ export default function ScenariosTab() {
         .from('scenarios')
         .insert([{
           name: formData.name,
+          country: formData.country,
+          state_region: formData.state_region,
+          promoter_name: formData.promoter_name,
+          broker_name: formData.broker_name,
+          broker_email: formData.broker_email,
+          company_name: formData.company_name,
           purchase_price: formData.purchase_price,
           initial_fees: formData.initial_fees,
           promoter_data: formData.promoter_data,
@@ -248,6 +266,12 @@ export default function ScenariosTab() {
       // Réinitialiser le formulaire
       setFormData({
         name: '',
+        country: '',
+        state_region: '',
+        promoter_name: '',
+        broker_name: '',
+        broker_email: '',
+        company_name: '',
         purchase_price: 0,
         initial_fees: 0,
         promoter_data: {
@@ -816,6 +840,72 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="Ex: Villa Punta Cana - Phase 2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.country')}</label>
+                <input
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => setFormData({...formData, country: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: République Dominicaine"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.stateRegion')}</label>
+                <input
+                  type="text"
+                  value={formData.state_region}
+                  onChange={(e) => setFormData({...formData, state_region: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: La Altagracia"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.promoterName')}</label>
+                <input
+                  type="text"
+                  value={formData.promoter_name}
+                  onChange={(e) => setFormData({...formData, promoter_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Juan Pérez"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.companyName')}</label>
+                <input
+                  type="text"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Caribbean Real Estate Inc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerName')}</label>
+                <input
+                  type="text"
+                  value={formData.broker_name}
+                  onChange={(e) => setFormData({...formData, broker_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Maria Rodriguez"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerEmail')}</label>
+                <input
+                  type="email"
+                  value={formData.broker_email}
+                  onChange={(e) => setFormData({...formData, broker_email: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: maria.rodriguez@realestate.com"
                 />
               </div>
 
