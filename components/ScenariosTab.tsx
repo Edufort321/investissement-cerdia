@@ -66,6 +66,19 @@ interface PaymentTerm {
   due_date: string
 }
 
+interface ActualValue {
+  id?: string
+  scenario_id: string
+  year: number
+  property_value?: number
+  rental_income?: number
+  management_fees?: number
+  net_income?: number
+  cumulative_cashflow?: number
+  occupancy_rate?: number
+  notes?: string
+}
+
 interface ScenarioResult {
   id?: string
   scenario_id: string
@@ -139,6 +152,8 @@ export default function ScenariosTab() {
   const [analyzing, setAnalyzing] = useState(false)
   const [activeView, setActiveView] = useState<'list' | 'create' | 'details'>('list')
   const [activeScenarioType, setActiveScenarioType] = useState<'conservative' | 'moderate' | 'optimistic'>('moderate')
+  const [actualValues, setActualValues] = useState<ActualValue[]>([])
+  const [editingActualYear, setEditingActualYear] = useState<number | null>(null)
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
 
@@ -259,6 +274,9 @@ export default function ScenariosTab() {
 
       if (docsError) throw docsError
       setDocuments(docsData || [])
+
+      // Charger valeurs réelles (pour projets achetés)
+      await loadActualValues(scenarioId)
 
     } catch (error) {
       console.error('Error loading scenario details:', error)
@@ -861,6 +879,58 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     } catch (error) {
       console.error('Error deleting document:', error)
       alert(t('scenarioDocuments.deleteError'))
+    }
+  }
+
+  // Charger les valeurs réelles
+  const loadActualValues = async (scenarioId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('scenario_actual_values')
+        .select('*')
+        .eq('scenario_id', scenarioId)
+        .order('year', { ascending: true })
+
+      if (error) throw error
+      setActualValues(data || [])
+    } catch (error) {
+      console.error('Error loading actual values:', error)
+    }
+  }
+
+  // Sauvegarder/Mettre à jour une valeur réelle
+  const saveActualValue = async (actualValue: ActualValue) => {
+    if (!selectedScenario) return
+
+    try {
+      const { data, error } = await supabase
+        .from('scenario_actual_values')
+        .upsert({
+          scenario_id: selectedScenario.id,
+          year: actualValue.year,
+          property_value: actualValue.property_value,
+          rental_income: actualValue.rental_income,
+          management_fees: actualValue.management_fees,
+          net_income: actualValue.net_income,
+          cumulative_cashflow: actualValue.cumulative_cashflow,
+          occupancy_rate: actualValue.occupancy_rate,
+          notes: actualValue.notes
+        }, {
+          onConflict: 'scenario_id,year'
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Recharger les valeurs
+      await loadActualValues(selectedScenario.id)
+      setEditingActualYear(null)
+      alert('Valeurs réelles sauvegardées!')
+
+    } catch (error) {
+      console.error('Error saving actual value:', error)
+      alert('Erreur lors de la sauvegarde des valeurs réelles')
     }
   }
 
