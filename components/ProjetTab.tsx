@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface PropertyFormData {
   name: string
@@ -51,6 +52,10 @@ export default function ProjetTab() {
   const [showAttachmentsPropertyId, setShowAttachmentsPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
+  const [scenarios, setScenarios] = useState<any[]>([])
+  const [scenarioResults, setScenarioResults] = useState<any[]>([])
+
+  const supabase = createClientComponentClient()
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
@@ -84,6 +89,36 @@ export default function ProjetTab() {
     loadExchangeRate()
   }, [])
 
+  // Load scenarios and their results for converted projects
+  useEffect(() => {
+    const loadScenarios = async () => {
+      try {
+        const { data: scenariosData, error: scenariosError } = await supabase
+          .from('scenarios')
+          .select('*')
+          .eq('status', 'purchased')
+
+        if (scenariosError) throw scenariosError
+        setScenarios(scenariosData || [])
+
+        // Load scenario results for all scenarios
+        if (scenariosData && scenariosData.length > 0) {
+          const { data: resultsData, error: resultsError } = await supabase
+            .from('scenario_results')
+            .select('*')
+            .in('scenario_id', scenariosData.map(s => s.id))
+
+          if (resultsError) throw resultsError
+          setScenarioResults(resultsData || [])
+        }
+      } catch (error) {
+        console.error('Error loading scenarios:', error)
+      }
+    }
+
+    loadScenarios()
+  }, [properties])
+
   const loadExchangeRate = async () => {
     setLoadingRate(true)
     try {
@@ -99,24 +134,19 @@ export default function ProjetTab() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (editingId) {
-      // Update existing property
-      const result = await updateProperty(editingId, formData)
-      if (result.success) {
-        setEditingId(null)
-        resetForm()
-      } else {
-        alert('Erreur lors de la modification: ' + result.error)
-      }
+    if (!editingId) {
+      alert('Impossible d\'ajouter de nouvelles propriétés. Utilisez l\'onglet Évaluateur pour créer un scénario.')
+      return
+    }
+
+    // Update existing property
+    const result = await updateProperty(editingId, formData)
+    if (result.success) {
+      setEditingId(null)
+      setShowAddForm(false)
+      resetForm()
     } else {
-      // Add new property
-      const result = await addProperty(formData)
-      if (result.success) {
-        setShowAddForm(false)
-        resetForm()
-      } else {
-        alert('Erreur lors de l\'ajout: ' + result.error)
-      }
+      alert('Erreur lors de la modification: ' + result.error)
     }
   }
 
@@ -242,22 +272,15 @@ export default function ProjetTab() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('projects.title')}</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">{t('projects.subtitle')}</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Projets convertis depuis les scénarios approuvés</p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
-        >
-          {showAddForm ? <X size={20} /> : <Plus size={20} />}
-          {showAddForm ? t('common.cancel') : t('projects.add')}
-        </button>
       </div>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
+      {/* Edit Form (modification uniquement) */}
+      {showAddForm && editingId && (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-base sm:text-lg font-semibold mb-4">
-            {editingId ? 'Modifier la propriété' : 'Nouvelle propriété'}
+            Modifier la propriété
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
@@ -594,14 +617,9 @@ export default function ProjetTab() {
       {properties.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune propriété</h3>
-          <p className="text-gray-600 mb-4">Commencez par ajouter votre première propriété immobilière</p>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors"
-          >
-            Ajouter une propriété
-          </button>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun projet actif</h3>
+          <p className="text-gray-600 mb-2">Les projets sont créés automatiquement depuis l'onglet <strong>Évaluateur</strong></p>
+          <p className="text-sm text-gray-500">Créez un scénario → Analysez → Vote des investisseurs → Marquez comme acheté</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -618,6 +636,11 @@ export default function ProjetTab() {
             const propertyPayments = getPropertyPayments(property.id)
             const pendingPayments = propertyPayments.filter(p => p.status === 'pending').length
             const overduePayments = propertyPayments.filter(p => p.status === 'overdue').length
+
+            // Trouver le scénario d'origine pour ce projet
+            const originScenario = scenarios.find(s => s.converted_property_id === property.id)
+            const scenarioData = originScenario ? scenarioResults.filter(r => r.scenario_id === originScenario.id) : []
+            const moderateScenario = scenarioData.find(r => r.scenario_type === 'moderate')
 
             return (
               <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -705,6 +728,49 @@ export default function ProjetTab() {
                         {totalPaidCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                       </div>
                       <div className="text-xs text-green-600 mt-1">Coût total</div>
+                    </div>
+                  )}
+
+                  {/* Scenario Information */}
+                  {originScenario && moderateScenario && (
+                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calculator size={14} className="text-purple-700" />
+                        <div className="text-xs font-bold text-purple-900">Scénario d'évaluation</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-xs text-purple-700">ROI annuel moyen</div>
+                          <div className="text-sm font-bold text-purple-900">
+                            {moderateScenario.summary.avg_annual_return?.toFixed(2)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-purple-700">Retour total</div>
+                          <div className="text-sm font-bold text-purple-900">
+                            {moderateScenario.summary.total_return?.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-purple-700">Point mort</div>
+                          <div className="text-sm font-bold text-purple-900">
+                            Année {moderateScenario.summary.break_even_year}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-purple-700">Recommandation</div>
+                          <div className={`text-xs font-bold ${
+                            moderateScenario.summary.recommendation === 'recommended' ? 'text-green-700' :
+                            moderateScenario.summary.recommendation === 'not_recommended' ? 'text-red-700' : 'text-yellow-700'
+                          }`}>
+                            {moderateScenario.summary.recommendation === 'recommended' ? '✅ Recommandé' :
+                             moderateScenario.summary.recommendation === 'not_recommended' ? '⚠️ Déconseillé' : '📊 À considérer'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-purple-600 mt-2">
+                        Créé le {new Date(originScenario.created_at).toLocaleDateString('fr-CA')}
+                      </div>
                     </div>
                   )}
 

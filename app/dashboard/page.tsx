@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
-import EvaluateurTab from '@/components/EvaluateurTab'
+import ScenariosTab from '@/components/ScenariosTab'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
@@ -672,7 +672,7 @@ export default function DashboardPage() {
 
           {activeTab === 'projet' && <ProjetTab />}
 
-          {activeTab === 'evaluateur' && <EvaluateurTab />}
+          {activeTab === 'evaluateur' && <ScenariosTab />}
 
           {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>

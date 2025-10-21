@@ -24,6 +24,7 @@ interface InvestorFormData {
   investment_type: string
   status: string
   join_date: string
+  can_vote: boolean
   access_level: string
   permissions: {
     dashboard: boolean
@@ -134,6 +135,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     investment_type: 'capital',
     status: 'actif',
     join_date: new Date().toISOString().split('T')[0],
+    can_vote: true,
     access_level: 'investor',
     permissions: {
       dashboard: true,
@@ -242,6 +244,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       investment_type: investor.investment_type,
       status: investor.status,
       join_date: investor.join_date.split('T')[0],
+      can_vote: investor.can_vote !== undefined ? investor.can_vote : true,
       access_level: investor.access_level,
       permissions: investor.permissions
     })
@@ -897,6 +900,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
                   />
                   <span className="text-sm text-gray-700">Administration</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={investorFormData.can_vote}
+                    onChange={(e) => setInvestorFormData({
+                      ...investorFormData,
+                      can_vote: e.target.checked
+                    })}
+                    className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
+                  />
+                  <span className="text-sm text-gray-700">Droit de vote</span>
                 </label>
               </div>
             </div>

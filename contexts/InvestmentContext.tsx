@@ -92,6 +92,7 @@ interface Investor {
   investment_type: string
   status: string
   join_date: string
+  can_vote: boolean
   access_level: string
   permissions: {
     dashboard: boolean
