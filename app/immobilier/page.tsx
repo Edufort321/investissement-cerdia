@@ -50,7 +50,7 @@ export default function ImmobilierPage() {
     <main className="max-w-7xl mx-auto px-6 pt-32 pb-12">
       {/* Header Section */}
       <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-[#2234B9] mb-4">{tr.titre}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#2a2a2a] mb-4">{tr.titre}</h1>
         <p className="text-lg text-gray-600 max-w-4xl leading-relaxed">{tr.description}</p>
       </div>
 
@@ -64,7 +64,7 @@ export default function ImmobilierPage() {
             pagination={{ clickable: true }}
             navigation={true}
             modules={[Pagination, Navigation]}
-            className="h-64 md:h-80"
+            className="h-96 md:h-[500px]"
           >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
@@ -84,10 +84,10 @@ export default function ImmobilierPage() {
 
             {/* Badges Info */}
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-medium">
                 {tr.secretUnit}
               </span>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-medium">
                 {tr.secretDelivery}
               </span>
             </div>
@@ -107,7 +107,7 @@ export default function ImmobilierPage() {
               href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#5e5e5e] text-white rounded-lg hover:bg-[#3e3e3e] transition-colors font-medium"
             >
               {tr.secretLink}
               <span className="text-lg">→</span>
@@ -123,7 +123,7 @@ export default function ImmobilierPage() {
             pagination={{ clickable: true }}
             navigation={true}
             modules={[Pagination, Navigation]}
-            className="h-64 md:h-80"
+            className="h-96 md:h-[500px]"
           >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
@@ -143,7 +143,7 @@ export default function ImmobilierPage() {
 
             {/* Badges Info */}
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-medium">
                 {tr.oasisUnit}
               </span>
             </div>
@@ -163,7 +163,7 @@ export default function ImmobilierPage() {
               href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#5e5e5e] text-white rounded-lg hover:bg-[#3e3e3e] transition-colors font-medium"
             >
               {tr.oasisLink}
               <span className="text-lg">→</span>
@@ -173,12 +173,12 @@ export default function ImmobilierPage() {
       </div>
 
       {/* Contact Section */}
-      <div className="mt-16 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 text-center">
+      <div className="mt-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-8 text-center">
         <h3 className="text-2xl font-bold text-gray-900 mb-3">Besoin d'informations?</h3>
         <p className="text-gray-600 mb-4">{tr.contact}</p>
         <a
           href="mailto:eric.dufort@cerdia.ai"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors font-medium"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#5e5e5e] text-white rounded-full hover:bg-[#3e3e3e] transition-colors font-medium"
         >
           <span>eric.dufort@cerdia.ai</span>
           <span className="text-lg">✉️</span>
