@@ -9,6 +9,7 @@ import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, T
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
+import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'administration'
@@ -666,6 +667,9 @@ export default function DashboardPage() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* PWA Install Prompt */}
+      <InstallPWAPrompt />
     </div>
   )
 }
