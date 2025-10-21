@@ -7,7 +7,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
-  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle
+  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus
 } from 'lucide-react'
 
 // Types
@@ -220,7 +220,7 @@ export default function ScenariosTab() {
 
   const createScenario = async () => {
     if (!currentUser || !formData.name || formData.purchase_price === 0) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      alert(t('scenarios.fillRequired'))
       return
     }
 
@@ -260,10 +260,10 @@ export default function ScenariosTab() {
         payment_terms: []
       })
 
-      alert('Scénario créé avec succès!')
+      alert(t('scenarios.created'))
     } catch (error) {
       console.error('Error creating scenario:', error)
-      alert('Erreur lors de la création du scénario')
+      alert(t('scenarios.createError'))
     }
   }
 
@@ -302,11 +302,11 @@ export default function ScenariosTab() {
       if (error) throw error
 
       setScenarioResults(data)
-      alert('Analyse terminée! Les 3 scénarios ont été générés.')
+      alert(t('scenarios.analyzed'))
 
     } catch (error) {
       console.error('Error analyzing scenario:', error)
-      alert('Erreur lors de l\'analyse du scénario')
+      alert(t('scenarios.analyzeError'))
     } finally {
       setAnalyzing(false)
     }
@@ -373,7 +373,7 @@ export default function ScenariosTab() {
       recommendation = 'not_recommended'
     }
 
-    const evaluation_text = generateEvaluation(type, avgAnnualReturn, breakEvenYear, totalReturn, recommendation, pd.project_duration)
+    const evaluation_text = generateEvaluation(type, avgAnnualReturn, breakEvenYear, totalReturn, recommendation, pd.project_duration, t)
 
     const summary: ScenarioSummary = {
       total_return: totalReturn,
@@ -399,28 +399,29 @@ export default function ScenariosTab() {
     breakEven: number,
     totalReturn: number,
     recommendation: 'recommended' | 'consider' | 'not_recommended',
-    duration: number
+    duration: number,
+    translate: (key: string) => string
   ): string => {
-    const scenarioName = type === 'conservative' ? 'Conservateur' : type === 'moderate' ? 'Modéré' : 'Élevé'
-    let recText = 'à considérer avec prudence'
-    if (recommendation === 'recommended') recText = 'recommandé'
-    if (recommendation === 'not_recommended') recText = 'déconseillé'
+    const scenarioName = type === 'conservative' ? translate('scenarioType.conservative') : type === 'moderate' ? translate('scenarioType.moderate') : translate('scenarioType.optimistic')
+    let recText = translate('scenarioResults.toConsider')
+    if (recommendation === 'recommended') recText = translate('scenarioResults.recommended')
+    if (recommendation === 'not_recommended') recText = translate('scenarioResults.notRecommended')
 
-    return `**Scénario ${scenarioName}**
+    return `**${translate('scenarioResults.scenarioLabel')} ${scenarioName}**
 
-**Recommandation:** Projet ${recText}
+**${translate('scenarioResults.recommendation')}:** ${translate('scenarioResults.project')} ${recText}
 
-**Rendement annuel moyen:** ${avgAnnualReturn.toFixed(2)}%
-**Point mort:** Année ${breakEven}
-**Retour total:** ${totalReturn.toFixed(1)}% sur ${duration} ans
+**${translate('scenarioResults.avgAnnualReturn')}:** ${avgReturn.toFixed(2)}%
+**${translate('scenarioResults.breakEven')}:** ${translate('scenarioResults.year')} ${breakEven}
+**${translate('scenarioResults.totalReturn')}:** ${totalReturn.toFixed(1)}% ${translate('scenarioResults.over')} ${duration} ${translate('common.years')}
 
-${avgReturn > 8 ? '✅ Rendement attractif' : avgReturn < 3 ? '⚠️ Rendement faible' : '📊 Rendement modéré'}
-${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort éloigné' : '📊 Point mort acceptable'}`
+${avgReturn > 8 ? '✅ ' + translate('scenarioResults.attractiveReturn') : avgReturn < 3 ? '⚠️ ' + translate('scenarioResults.lowReturn') : '📊 ' + translate('scenarioResults.moderateReturn')}
+${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakEven > 7 ? '⚠️ ' + translate('scenarioResults.distantBreakEven') : '📊 ' + translate('scenarioResults.acceptableBreakEven')}`
   }
 
   const submitForVote = async () => {
     if (!selectedScenario || scenarioResults.length === 0) {
-      alert('Veuillez d\'abord analyser le scénario avant de le soumettre au vote')
+      alert(t('scenarioConvert.analyzeFirst'))
       return
     }
 
@@ -434,10 +435,10 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
 
       setSelectedScenario({ ...selectedScenario, status: 'pending_vote' })
       await loadScenarios()
-      alert('Scénario soumis au vote des investisseurs!')
+      alert(t('scenarios.submitted'))
     } catch (error) {
       console.error('Error submitting for vote:', error)
-      alert('Erreur lors de la soumission au vote')
+      alert(t('scenarios.submitError'))
     }
   }
 
@@ -447,7 +448,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
     // Vérifier si l'investisseur a le droit de vote
     const currentInvestor = investors.find(inv => inv.user_id === currentUser.id)
     if (!currentInvestor?.can_vote) {
-      alert('Vous n\'avez pas la permission de voter sur ce scénario')
+      alert(t('voting.noVotingPermission'))
       return
     }
 
@@ -483,10 +484,10 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
       }
 
       await loadScenarioDetails(selectedScenario.id)
-      alert('Vote enregistré!')
+      alert(t('voting.voteRecorded'))
     } catch (error) {
       console.error('Error casting vote:', error)
-      alert('Erreur lors de l\'enregistrement du vote')
+      alert(t('voting.voteError'))
     }
   }
 
@@ -496,11 +497,11 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
     // Vérifier si l'utilisateur est admin
     const currentInvestor = currentUser ? investors.find(inv => inv.user_id === currentUser.id) : null
     if (!currentInvestor || currentInvestor.access_level !== 'admin') {
-      alert('Seuls les administrateurs peuvent forcer l\'approbation')
+      alert(t('voting.onlyAdminsCanForce'))
       return
     }
 
-    if (!confirm('⚠️ Êtes-vous sûr de vouloir FORCER l\'approbation de ce scénario?\n\nCeci contourne le système de vote normal et marque le scénario comme approuvé par les investisseurs.')) return
+    if (!confirm(t('voting.forceConfirm'))) return
 
     try {
       const { error } = await supabase
@@ -512,26 +513,26 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
 
       setSelectedScenario({ ...selectedScenario, status: 'approved' })
       await loadScenarios()
-      alert('✅ Scénario marqué comme approuvé (forcé par admin)')
+      alert(t('voting.forcedSuccess'))
     } catch (error) {
       console.error('Error forcing approval:', error)
-      alert('Erreur lors du forçage de l\'approbation')
+      alert(t('voting.forceError'))
     }
   }
 
   const markAsPurchased = async () => {
     if (!selectedScenario || selectedScenario.status !== 'approved') {
-      alert('Le scénario doit être approuvé avant de le marquer comme acheté')
+      alert(t('scenarioConvert.mustBeApproved'))
       return
     }
 
-    if (!confirm('Voulez-vous convertir ce scénario en projet actif?')) return
+    if (!confirm(t('scenarioConvert.confirmConversion'))) return
 
     try {
       // Créer la propriété
       const propertyData = {
         name: selectedScenario.name,
-        location: 'À définir',
+        location: t('scenarios.toBeDefinedLocation'),
         status: 'active',
         total_cost: selectedScenario.purchase_price + selectedScenario.initial_fees,
         paid_amount: 0,
@@ -585,13 +586,13 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
 
       if (updateError) throw updateError
 
-      alert('Scénario converti en projet actif avec succès!')
+      alert(t('scenarioConvert.success'))
       setActiveView('list')
       await loadScenarios()
 
     } catch (error) {
       console.error('Error marking as purchased:', error)
-      alert('Erreur lors de la conversion en projet')
+      alert(t('scenarioConvert.error'))
     }
   }
 
@@ -602,7 +603,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
     const maxSize = 50 * 1024 * 1024 // 50MB
 
     if (file.size > maxSize) {
-      alert('Le fichier est trop volumineux (max 50MB)')
+      alert(t('scenarioDocuments.fileTooLarge'))
       return
     }
 
@@ -634,11 +635,11 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
       if (dbError) throw dbError
 
       await loadScenarioDetails(selectedScenario.id)
-      alert('Document uploadé avec succès!')
+      alert(t('scenarioDocuments.uploadSuccess'))
 
     } catch (error) {
       console.error('Error uploading document:', error)
-      alert('Erreur lors de l\'upload du document')
+      alert(t('scenarioDocuments.uploadError'))
     } finally {
       setUploadingFile(false)
       event.target.value = ''
@@ -646,7 +647,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
   }
 
   const deleteDocument = async (docId: string, filePath: string) => {
-    if (!confirm('Voulez-vous vraiment supprimer ce document?')) return
+    if (!confirm(t('scenarioDocuments.deleteConfirm'))) return
 
     try {
       // Supprimer du storage
@@ -665,21 +666,21 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
       if (dbError) throw dbError
 
       await loadScenarioDetails(selectedScenario!.id)
-      alert('Document supprimé')
+      alert(t('scenarioDocuments.deleteSuccess'))
 
     } catch (error) {
       console.error('Error deleting document:', error)
-      alert('Erreur lors de la suppression')
+      alert(t('scenarioDocuments.deleteError'))
     }
   }
 
   const getStatusBadge = (status: Scenario['status']) => {
     const badges = {
-      draft: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Brouillon', icon: FileText },
-      pending_vote: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'En vote', icon: Vote },
-      approved: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approuvé', icon: CheckCircle },
-      rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejeté', icon: XCircle },
-      purchased: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Acheté', icon: ShoppingCart }
+      draft: { bg: 'bg-gray-100', text: 'text-gray-700', label: t('scenarioStatus.draft'), icon: FileText },
+      pending_vote: { bg: 'bg-blue-100', text: 'text-blue-700', label: t('scenarioStatus.pending_vote'), icon: Vote },
+      approved: { bg: 'bg-green-100', text: 'text-green-700', label: t('scenarioStatus.approved'), icon: CheckCircle },
+      rejected: { bg: 'bg-red-100', text: 'text-red-700', label: t('scenarioStatus.rejected'), icon: XCircle },
+      purchased: { bg: 'bg-purple-100', text: 'text-purple-700', label: t('scenarioStatus.purchased'), icon: ShoppingCart }
     }
 
     const badge = badges[status]
@@ -703,33 +704,33 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Scénarios d'Évaluation</h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Créer, analyser et voter sur les opportunités d'investissement</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('scenarios.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">{t('scenarios.subtitle')}</p>
           </div>
           <button
             onClick={() => setActiveView('create')}
             className="px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
           >
             <Calculator size={20} />
-            Nouveau scénario
+            {t('scenarios.newScenario')}
           </button>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
             <Clock className="animate-spin mx-auto text-gray-400" size={48} />
-            <p className="text-gray-600 mt-4">Chargement...</p>
+            <p className="text-gray-600 mt-4">{t('common.loading')}</p>
           </div>
         ) : scenarios.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center">
             <Calculator className="mx-auto text-gray-400" size={64} />
-            <h3 className="text-lg font-bold text-gray-900 mt-4">Aucun scénario</h3>
-            <p className="text-gray-600 mt-2">Créez votre premier scénario d'évaluation</p>
+            <h3 className="text-lg font-bold text-gray-900 mt-4">{t('scenarios.noScenarios')}</h3>
+            <p className="text-gray-600 mt-2">{t('scenarios.createFirst')}</p>
             <button
               onClick={() => setActiveView('create')}
               className="mt-4 px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors"
             >
-              Créer un scénario
+              {t('scenarios.create')}
             </button>
           </div>
         ) : (
@@ -744,26 +745,26 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       <div>
-                        <p className="text-xs text-gray-600">Prix d'achat</p>
+                        <p className="text-xs text-gray-600">{t('scenarios.purchasePrice').replace(' ($)', '')}</p>
                         <p className="text-sm font-bold text-gray-900">
                           {scenario.purchase_price.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">Coût total</p>
+                        <p className="text-xs text-gray-600">{t('projects.totalCost')}</p>
                         <p className="text-sm font-bold text-gray-900">
                           {(scenario.purchase_price + scenario.initial_fees).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">Loyer mensuel</p>
+                        <p className="text-xs text-gray-600">{t('scenarios.monthlyRent').replace(' ($)', '')}</p>
                         <p className="text-sm font-bold text-gray-900">
                           {scenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">Durée</p>
-                        <p className="text-sm font-bold text-gray-900">{scenario.promoter_data.project_duration} ans</p>
+                        <p className="text-xs text-gray-600">{t('projects.duration')}</p>
+                        <p className="text-sm font-bold text-gray-900">{scenario.promoter_data.project_duration} {t('common.years')}</p>
                       </div>
                     </div>
                   </div>
@@ -775,7 +776,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                     className="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     <Eye size={16} />
-                    Voir
+                    {t('scenarios.view')}
                   </button>
                 </div>
               </div>
@@ -792,23 +793,23 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nouveau Scénario</h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Créer une évaluation pour une opportunité d'investissement</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('scenarios.newScenario')}</h2>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">{t('scenarios.subtitle')}</p>
           </div>
           <button
             onClick={() => setActiveView('list')}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
           >
-            Retour
+            {t('scenarios.back')}
           </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Informations de base</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nom du projet *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.name')} *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -819,7 +820,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Prix d'achat ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.purchasePrice')} *</label>
                 <input
                   type="number"
                   value={formData.purchase_price || ''}
@@ -830,7 +831,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Frais initiaux ($)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.initialFees')}</label>
                 <input
                   type="number"
                   value={formData.initial_fees || ''}
@@ -843,10 +844,10 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Données du promoteur</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterData')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Loyer mensuel ($)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.monthlyRent')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.monthly_rent || ''}
@@ -860,7 +861,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Appréciation annuelle (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.annualAppreciation')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.annual_appreciation || ''}
@@ -875,7 +876,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Taux d'occupation (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.occupancyRate')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.occupancy_rate || ''}
@@ -889,7 +890,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Frais de gestion (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.managementFees')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.management_fees || ''}
@@ -904,7 +905,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Durée du projet (années)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.projectDuration')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.project_duration || ''}
@@ -919,19 +920,146 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
             </div>
           </div>
 
+          {/* Section Termes de Paiement */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">{t('scenarios.paymentTerms')}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    payment_terms: [
+                      ...formData.payment_terms,
+                      {
+                        label: '',
+                        amount_type: 'percentage',
+                        percentage: 0,
+                        fixed_amount: 0,
+                        due_date: ''
+                      }
+                    ]
+                  })
+                }}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+              >
+                <Plus size={16} />
+                {t('scenarios.addTerm')}
+              </button>
+            </div>
+
+            {formData.payment_terms.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">{t('scenarios.noPaymentTerms')}</p>
+            ) : (
+              <div className="space-y-3">
+                {formData.payment_terms.map((term, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.termLabel')}</label>
+                        <input
+                          type="text"
+                          value={term.label}
+                          onChange={(e) => {
+                            const newTerms = [...formData.payment_terms]
+                            newTerms[index].label = e.target.value
+                            setFormData({...formData, payment_terms: newTerms})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder={t('scenarios.termLabelPlaceholder')}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.amountType')}</label>
+                        <select
+                          value={term.amount_type}
+                          onChange={(e) => {
+                            const newTerms = [...formData.payment_terms]
+                            newTerms[index].amount_type = e.target.value as 'percentage' | 'fixed_amount'
+                            setFormData({...formData, payment_terms: newTerms})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                        >
+                          <option value="percentage">{t('scenarios.percentage')}</option>
+                          <option value="fixed_amount">{t('scenarios.fixedAmount')}</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          {term.amount_type === 'percentage' ? t('scenarios.percentageValue') : t('scenarios.amountUSD')}
+                        </label>
+                        <input
+                          type="number"
+                          value={term.amount_type === 'percentage' ? (term.percentage || '') : (term.fixed_amount || '')}
+                          onChange={(e) => {
+                            const newTerms = [...formData.payment_terms]
+                            if (term.amount_type === 'percentage') {
+                              newTerms[index].percentage = parseFloat(e.target.value) || 0
+                            } else {
+                              newTerms[index].fixed_amount = parseFloat(e.target.value) || 0
+                            }
+                            setFormData({...formData, payment_terms: newTerms})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder={term.amount_type === 'percentage' ? '10' : '25000'}
+                          step={term.amount_type === 'percentage' ? '0.1' : '100'}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.dueDate')}</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            value={term.due_date}
+                            onChange={(e) => {
+                              const newTerms = [...formData.payment_terms]
+                              newTerms[index].due_date = e.target.value
+                              setFormData({...formData, payment_terms: newTerms})
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTerms = formData.payment_terms.filter((_, i) => i !== index)
+                              setFormData({...formData, payment_terms: newTerms})
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Afficher le montant calculé si pourcentage */}
+                    {term.amount_type === 'percentage' && term.percentage > 0 && formData.purchase_price > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        {t('scenarios.calculatedAmount')}: {((formData.purchase_price * term.percentage) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-4 justify-end pt-4 border-t border-gray-200">
             <button
               onClick={() => setActiveView('list')}
               className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button
               onClick={createScenario}
               disabled={!formData.name || formData.purchase_price === 0}
               className="px-6 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Créer le scénario
+              {t('scenarios.create')}
             </button>
           </div>
         </div>
@@ -963,7 +1091,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
             }}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
           >
-            Retour
+            {t('scenarios.back')}
           </button>
         </div>
 
@@ -978,7 +1106,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 flex items-center gap-2"
                 >
                   <Calculator size={16} />
-                  {analyzing ? 'Analyse en cours...' : 'Analyser'}
+                  {analyzing ? t('scenarios.analyzing') : t('scenarios.analyze')}
                 </button>
                 {scenarioResults.length > 0 && (
                   <button
@@ -986,7 +1114,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     <Vote size={16} />
-                    Soumettre au vote
+                    {t('scenarios.submitForVote')}
                   </button>
                 )}
               </>
@@ -999,7 +1127,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                 className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 border-2 border-orange-800"
               >
                 <AlertCircle size={16} />
-                Forcer l'approbation (Admin)
+                {t('scenarios.forceApproval')}
               </button>
             )}
 
@@ -1009,7 +1137,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
               >
                 <ShoppingCart size={16} />
-                Marquer comme acheté
+                {t('scenarios.markAsPurchased')}
               </button>
             )}
 
@@ -1017,7 +1145,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <Download size={16} />
-              Exporter PDF
+              {t('scenarios.exportPDF')}
             </button>
           </div>
         </div>
@@ -1025,11 +1153,11 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
         {/* Documents */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Documents du promoteur</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('scenarios.promoterDocuments')}</h3>
             {selectedScenario.status === 'draft' && (
               <label className="px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2">
                 <FileUp size={16} />
-                {uploadingFile ? 'Upload...' : 'Ajouter'}
+                {uploadingFile ? t('scenarioDocuments.uploading') : t('scenarioDocuments.upload')}
                 <input
                   type="file"
                   onChange={uploadDocument}
@@ -1042,7 +1170,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
           </div>
 
           {documents.length === 0 ? (
-            <p className="text-gray-600 text-sm text-center py-8">Aucun document</p>
+            <p className="text-gray-600 text-sm text-center py-8">{t('scenarioDocuments.noDocuments')}</p>
           ) : (
             <div className="space-y-2">
               {documents.map(doc => (
@@ -1091,7 +1219,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  📉 Conservateur
+                  📉 {t('scenarioType.conservative')}
                 </button>
                 <button
                   onClick={() => setActiveScenarioType('moderate')}
@@ -1101,7 +1229,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  📊 Modéré
+                  📊 {t('scenarioType.moderate')}
                 </button>
                 <button
                   onClick={() => setActiveScenarioType('optimistic')}
@@ -1111,7 +1239,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  📈 Élevé
+                  📈 {t('scenarioType.optimistic')}
                 </button>
               </div>
             </div>
@@ -1123,7 +1251,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                       <TrendingUp size={16} />
-                      Rendement annuel moyen
+                      {t('scenarioResults.avgAnnualReturn')}
                     </div>
                     <div className={`text-2xl font-bold ${
                       activeResult.summary.avg_annual_return > 8 ? 'text-green-600' :
@@ -1136,7 +1264,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                       <DollarSign size={16} />
-                      Retour total
+                      {t('scenarioResults.totalReturn')}
                     </div>
                     <div className="text-2xl font-bold text-gray-900">
                       {activeResult.summary.total_return.toFixed(1)}%
@@ -1146,7 +1274,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                       <Home size={16} />
-                      Valeur finale
+                      {t('scenarioResults.finalValue')}
                     </div>
                     <div className="text-2xl font-bold text-gray-900">
                       {activeResult.summary.final_property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
@@ -1156,17 +1284,17 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                       <FileText size={16} />
-                      Point mort
+                      {t('scenarioResults.breakEven')}
                     </div>
                     <div className="text-2xl font-bold text-gray-900">
-                      Année {activeResult.summary.break_even_year}
+                      {t('scenarioResults.year')} {activeResult.summary.break_even_year}
                     </div>
                   </div>
                 </div>
 
                 {/* Évaluation écrite */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Évaluation</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.evaluation')}</h3>
                   <div className="prose prose-sm max-w-none whitespace-pre-line text-gray-700">
                     {activeResult.evaluation_text}
                   </div>
@@ -1174,16 +1302,16 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
 
                 {/* Tableau projection */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Projection annuelle</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.projection')}</h3>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="text-left p-2 font-medium text-gray-700">Année</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Valeur bien</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Revenus</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Frais</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Net</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Cashflow</th>
+                        <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
+                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.propertyValue')}</th>
+                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.revenues')}</th>
+                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.fees')}</th>
+                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.net')}</th>
+                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.cashflow')}</th>
                         <th className="text-right p-2 font-medium text-gray-700">ROI (%)</th>
                       </tr>
                     </thead>
@@ -1222,23 +1350,23 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
         {/* Section de vote */}
         {selectedScenario.status === 'pending_vote' && voteStatus && (
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Statut du vote</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('voting.status')}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-700 font-medium">Votes reçus</p>
+                <p className="text-sm text-blue-700 font-medium">{t('voting.votesReceived')}</p>
                 <p className="text-2xl font-bold text-blue-900">{voteStatus.total_votes} / {voteStatus.total_eligible_voters}</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-700 font-medium">Approbations</p>
+                <p className="text-sm text-green-700 font-medium">{t('voting.approvals')}</p>
                 <p className="text-2xl font-bold text-green-900">{voteStatus.approve_votes}</p>
               </div>
               <div className="bg-red-50 p-4 rounded-lg">
-                <p className="text-sm text-red-700 font-medium">Rejets</p>
+                <p className="text-sm text-red-700 font-medium">{t('voting.rejections')}</p>
                 <p className="text-2xl font-bold text-red-900">{voteStatus.reject_votes}</p>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm text-purple-700 font-medium">Taux d'approbation</p>
+                <p className="text-sm text-purple-700 font-medium">{t('voting.approvalRate')}</p>
                 <p className="text-2xl font-bold text-purple-900">{voteStatus.approval_percentage.toFixed(1)}%</p>
               </div>
             </div>
@@ -1246,27 +1374,27 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
             {canVote && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 mb-3">
-                  {currentUserVote ? 'Vous avez voté: ' + (currentUserVote.vote === 'approve' ? '✅ Approuver' : '❌ Rejeter') : 'Votre vote:'}
+                  {currentUserVote ? t('voting.yourVote') + ': ' + (currentUserVote.vote === 'approve' ? '✅ ' + t('voting.approve') : '❌ ' + t('voting.reject')) : t('voting.yourVote') + ':'}
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => castVote('approve')}
                     className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                   >
-                    ✅ Approuver
+                    ✅ {t('voting.approve')}
                   </button>
                   <button
                     onClick={() => castVote('reject')}
                     className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
                   >
-                    ❌ Rejeter
+                    ❌ {t('voting.reject')}
                   </button>
                 </div>
               </div>
             )}
 
             <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-3">Votes individuels ({votes.length})</h4>
+              <h4 className="text-sm font-bold text-gray-900 mb-3">{t('voting.individualVotes')} ({votes.length})</h4>
               <div className="space-y-2">
                 {votes.map(vote => (
                   <div key={vote.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -1277,7 +1405,7 @@ ${breakEven <= 5 ? '✅ Point mort rapide' : breakEven > 7 ? '⚠️ Point mort 
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       vote.vote === 'approve' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {vote.vote === 'approve' ? '✅ Approuver' : '❌ Rejeter'}
+                      {vote.vote === 'approve' ? '✅ ' + t('voting.approve') : '❌ ' + t('voting.reject')}
                     </span>
                   </div>
                 ))}
