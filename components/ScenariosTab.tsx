@@ -25,6 +25,9 @@ interface Scenario {
   purchase_price: number
   initial_fees: number
   transaction_fees: TransactionFees
+  construction_status: 'in_progress' | 'completed'
+  delivery_date?: string
+  completion_year?: number
   promoter_data: PromoterData
   payment_terms: PaymentTerm[]
   status: 'draft' | 'pending_vote' | 'approved' | 'rejected' | 'purchased'
@@ -154,6 +157,9 @@ export default function ScenariosTab() {
       fixed_amount: 0,
       currency: 'USD' as 'CAD' | 'USD'
     },
+    construction_status: 'in_progress' as 'in_progress' | 'completed',
+    delivery_date: '',
+    completion_year: new Date().getFullYear(),
     promoter_data: {
       monthly_rent: 0,
       rent_type: 'monthly' as 'monthly' | 'nightly',
@@ -274,6 +280,9 @@ export default function ScenariosTab() {
           purchase_price: formData.purchase_price,
           initial_fees: formData.initial_fees,
           transaction_fees: formData.transaction_fees,
+          construction_status: formData.construction_status,
+          delivery_date: formData.construction_status === 'in_progress' ? formData.delivery_date : null,
+          completion_year: formData.construction_status === 'completed' ? formData.completion_year : null,
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           status: 'draft',
@@ -307,6 +316,9 @@ export default function ScenariosTab() {
           fixed_amount: 0,
           currency: 'USD'
         },
+        construction_status: 'in_progress',
+        delivery_date: '',
+        completion_year: new Date().getFullYear(),
         promoter_data: {
           monthly_rent: 0,
           rent_type: 'monthly',
@@ -1054,6 +1066,52 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     <option value="CAD">CAD $</option>
                     <option value="USD">USD $</option>
                   </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Statut de Construction */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.constructionStatus')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.constructionStatusLabel')}</label>
+                <select
+                  value={formData.construction_status}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    construction_status: e.target.value as 'in_progress' | 'completed'
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="in_progress">{t('scenarios.inProgress')}</option>
+                  <option value="completed">{t('scenarios.completed')}</option>
+                </select>
+              </div>
+
+              {formData.construction_status === 'in_progress' ? (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.deliveryDate')}</label>
+                  <input
+                    type="date"
+                    value={formData.delivery_date}
+                    onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  />
+                </div>
+              ) : (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.completionYear')}</label>
+                  <input
+                    type="number"
+                    value={formData.completion_year || ''}
+                    onChange={(e) => setFormData({...formData, completion_year: parseInt(e.target.value) || new Date().getFullYear()})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="2024"
+                    min="1900"
+                    max="2100"
+                  />
                 </div>
               )}
             </div>
