@@ -24,6 +24,7 @@ interface Scenario {
   company_name: string
   purchase_price: number
   initial_fees: number
+  transaction_fees: TransactionFees
   promoter_data: PromoterData
   payment_terms: PaymentTerm[]
   status: 'draft' | 'pending_vote' | 'approved' | 'rejected' | 'purchased'
@@ -35,10 +36,19 @@ interface Scenario {
 
 interface PromoterData {
   monthly_rent: number
+  rent_type: 'monthly' | 'nightly'
+  rent_currency: 'CAD' | 'USD'
   annual_appreciation: number
   occupancy_rate: number
   management_fees: number
   project_duration: number
+}
+
+interface TransactionFees {
+  type: 'percentage' | 'fixed_amount'
+  percentage?: number
+  fixed_amount?: number
+  currency?: 'CAD' | 'USD'
 }
 
 interface PaymentTerm {
@@ -138,8 +148,16 @@ export default function ScenariosTab() {
     company_name: '',
     purchase_price: 0,
     initial_fees: 0,
+    transaction_fees: {
+      type: 'percentage' as 'percentage' | 'fixed_amount',
+      percentage: 0,
+      fixed_amount: 0,
+      currency: 'USD' as 'CAD' | 'USD'
+    },
     promoter_data: {
       monthly_rent: 0,
+      rent_type: 'monthly' as 'monthly' | 'nightly',
+      rent_currency: 'USD' as 'CAD' | 'USD',
       annual_appreciation: 5,
       occupancy_rate: 80,
       management_fees: 10,
@@ -255,6 +273,7 @@ export default function ScenariosTab() {
           company_name: formData.company_name,
           purchase_price: formData.purchase_price,
           initial_fees: formData.initial_fees,
+          transaction_fees: formData.transaction_fees,
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           status: 'draft',
@@ -282,8 +301,16 @@ export default function ScenariosTab() {
         company_name: '',
         purchase_price: 0,
         initial_fees: 0,
+        transaction_fees: {
+          type: 'percentage',
+          percentage: 0,
+          fixed_amount: 0,
+          currency: 'USD'
+        },
         promoter_data: {
           monthly_rent: 0,
+          rent_type: 'monthly',
+          rent_currency: 'USD',
           annual_appreciation: 5,
           occupancy_rate: 80,
           management_fees: 10,
@@ -961,13 +988,82 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 />
               </div>
             </div>
+
+            {/* Frais de Transaction */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.transactionFeesType')}</label>
+                <select
+                  value={formData.transaction_fees.type}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    transaction_fees: {
+                      ...formData.transaction_fees,
+                      type: e.target.value as 'percentage' | 'fixed_amount'
+                    }
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="percentage">{t('scenarios.percentage')}</option>
+                  <option value="fixed_amount">{t('scenarios.fixedAmount')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {formData.transaction_fees.type === 'percentage' ? t('scenarios.percentageValue') : t('scenarios.amountValue')}
+                </label>
+                <input
+                  type="number"
+                  value={formData.transaction_fees.type === 'percentage'
+                    ? (formData.transaction_fees.percentage || '')
+                    : (formData.transaction_fees.fixed_amount || '')}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0
+                    setFormData({
+                      ...formData,
+                      transaction_fees: {
+                        ...formData.transaction_fees,
+                        ...(formData.transaction_fees.type === 'percentage'
+                          ? { percentage: value }
+                          : { fixed_amount: value }
+                        )
+                      }
+                    })
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder={formData.transaction_fees.type === 'percentage' ? '2.5' : '5000'}
+                  step={formData.transaction_fees.type === 'percentage' ? '0.1' : '100'}
+                />
+              </div>
+
+              {formData.transaction_fees.type === 'fixed_amount' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.currency')}</label>
+                  <select
+                    value={formData.transaction_fees.currency}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      transaction_fees: {
+                        ...formData.transaction_fees,
+                        currency: e.target.value as 'CAD' | 'USD'
+                      }
+                    })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  >
+                    <option value="CAD">CAD $</option>
+                    <option value="USD">USD $</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterData')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.monthlyRent')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentAmount')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.monthly_rent || ''}
@@ -978,6 +1074,36 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="1500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentType')}</label>
+                <select
+                  value={formData.promoter_data.rent_type}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    promoter_data: {...formData.promoter_data, rent_type: e.target.value as 'monthly' | 'nightly'}
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="monthly">{t('scenarios.monthly')}</option>
+                  <option value="nightly">{t('scenarios.nightly')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentCurrency')}</label>
+                <select
+                  value={formData.promoter_data.rent_currency}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    promoter_data: {...formData.promoter_data, rent_currency: e.target.value as 'CAD' | 'USD'}
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="CAD">CAD $</option>
+                  <option value="USD">USD $</option>
+                </select>
               </div>
 
               <div>
