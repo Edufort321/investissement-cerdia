@@ -9,11 +9,12 @@ import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, T
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import ScenariosTab from '@/components/ScenariosTab'
+import InvestorReservationsCalendar from '@/components/InvestorReservationsCalendar'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
-type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'administration'
+type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function DashboardPage() {
@@ -166,6 +167,7 @@ export default function DashboardPage() {
     { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban },
     { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator },
+    { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar },
     { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
   ]
 
@@ -674,6 +676,13 @@ export default function DashboardPage() {
           {activeTab === 'projet' && <ProjetTab />}
 
           {activeTab === 'evaluateur' && <ScenariosTab />}
+
+          {activeTab === 'reservations' && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-6">Calendrier de réservations</h1>
+              <InvestorReservationsCalendar />
+            </div>
+          )}
 
           {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>

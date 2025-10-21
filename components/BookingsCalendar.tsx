@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Plus, Edit2, Trash2, DollarSign, Users } from 'lucide-react'
+import { Calendar, Plus, Edit2, Trash2, DollarSign, Users, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface Booking {
@@ -28,6 +28,7 @@ export function BookingsCalendar({ scenarioId, currency = 'USD', defaultNightlyR
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
