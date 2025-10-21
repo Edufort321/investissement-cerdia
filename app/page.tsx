@@ -95,12 +95,12 @@ export default function Home() {
           <Link href="/immobilier" className="block group">
             <div className="grid md:grid-cols-2 gap-8 items-center bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
               {/* Image */}
-              <div className="relative h-64 md:h-96 overflow-hidden">
+              <div className="relative h-80 md:h-[500px] overflow-hidden bg-gray-100">
                 <Image
                   src="/cerdia-slide-immobilier.png"
                   alt="Immobilier"
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="object-contain transition-transform duration-500 group-hover:scale-105"
                   priority
                 />
               </div>
@@ -139,12 +139,12 @@ export default function Home() {
                 </span>
               </div>
               {/* Image (à droite sur desktop) */}
-              <div className="relative h-64 md:h-96 overflow-hidden order-1 md:order-2">
+              <div className="relative h-80 md:h-[500px] overflow-hidden bg-gray-100 order-1 md:order-2">
                 <Image
                   src="/cerdia-slide-location.png"
                   alt="Location"
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </div>
