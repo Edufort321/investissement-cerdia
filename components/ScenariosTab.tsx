@@ -14,6 +14,8 @@ import {
 interface Scenario {
   id: string
   name: string
+  unit_number: string
+  address: string
   country: string
   state_region: string
   promoter_name: string
@@ -126,6 +128,8 @@ export default function ScenariosTab() {
   // Formulaire création scénario
   const [formData, setFormData] = useState({
     name: '',
+    unit_number: '',
+    address: '',
     country: '',
     state_region: '',
     promoter_name: '',
@@ -241,6 +245,8 @@ export default function ScenariosTab() {
         .from('scenarios')
         .insert([{
           name: formData.name,
+          unit_number: formData.unit_number,
+          address: formData.address,
           country: formData.country,
           state_region: formData.state_region,
           promoter_name: formData.promoter_name,
@@ -266,6 +272,8 @@ export default function ScenariosTab() {
       // Réinitialiser le formulaire
       setFormData({
         name: '',
+        unit_number: '',
+        address: '',
         country: '',
         state_region: '',
         promoter_name: '',
@@ -840,6 +848,28 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="Ex: Villa Punta Cana - Phase 2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.unitNumber')}</label>
+                <input
+                  type="text"
+                  value={formData.unit_number}
+                  onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: 305"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.address')}</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Avenida Barceló, Bávaro"
                 />
               </div>
 
