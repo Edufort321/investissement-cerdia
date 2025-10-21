@@ -7,13 +7,15 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
-  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus
+  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X
 } from 'lucide-react'
+import { DropZone } from './DropZone'
 
 // Types
 interface Scenario {
   id: string
   name: string
+  main_photo_url?: string
   unit_number: string
   address: string
   country: string
@@ -143,6 +145,7 @@ export default function ScenariosTab() {
   // Formulaire création scénario
   const [formData, setFormData] = useState({
     name: '',
+    main_photo_url: '',
     unit_number: '',
     address: '',
     country: '',
@@ -673,6 +676,59 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
   }
 
+  const uploadMainPhoto = async (files: any[]) => {
+    if (files.length === 0) return
+
+    const file = files[0].file
+    const maxSize = 10 * 1024 * 1024 // 10MB
+
+    if (file.size > maxSize) {
+      alert('La photo est trop volumineuse (max 10MB)')
+      return
+    }
+
+    setUploadingFile(true)
+
+    try {
+      // Si en mode création (pas de scenario ID encore), on stocke temporairement en base64
+      if (!selectedScenario) {
+        setFormData({...formData, main_photo_url: files[0].url})
+        setUploadingFile(false)
+        return
+      }
+
+      // Si scenario existe déjà, upload vers Supabase
+      const timestamp = Date.now()
+      const filePath = `${selectedScenario.id}/main-photo-${timestamp}.${file.name.split('.').pop()}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('scenario-documents')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('scenario-documents')
+        .getPublicUrl(filePath)
+
+      const { error: updateError } = await supabase
+        .from('scenarios')
+        .update({ main_photo_url: publicUrl })
+        .eq('id', selectedScenario.id)
+
+      if (updateError) throw updateError
+
+      setSelectedScenario({...selectedScenario, main_photo_url: publicUrl})
+      alert('Photo principale uploadée avec succès!')
+
+    } catch (error) {
+      console.error('Error uploading main photo:', error)
+      alert('Erreur lors de l\'upload de la photo')
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
   const uploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedScenario || !event.target.files || event.target.files.length === 0) return
 
@@ -884,8 +940,42 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
+
+            {/* Photo principale et nom du projet */}
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              {/* Photo principale à gauche */}
+              <div className="w-full md:w-64 flex-shrink-0">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Photo principale</label>
+                {formData.main_photo_url ? (
+                  <div className="relative group">
+                    <img
+                      src={formData.main_photo_url}
+                      alt="Photo principale"
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                    />
+                    <button
+                      onClick={() => setFormData({...formData, main_photo_url: ''})}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-48">
+                    <DropZone
+                      onFilesSelected={uploadMainPhoto}
+                      accept="image/*"
+                      multiple={false}
+                      maxSize={10}
+                      label="Photo du projet"
+                      className="h-full"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Nom du projet à droite */}
+              <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.name')} *</label>
                 <input
                   type="text"
@@ -895,6 +985,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   placeholder="Ex: Villa Punta Cana - Phase 2"
                 />
               </div>
+            </div>
+
+            {/* Autres champs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.unitNumber')}</label>
