@@ -2077,6 +2077,571 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </div>
                 )}
 
+                {/* Graphiques comparatifs Projections vs Réelles */}
+                {selectedScenario.status === 'purchased' && actualValues.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Graphiques comparatifs</h3>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Graphique Valeur du bien */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Valeur du bien</h4>
+                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                          {(() => {
+                            const maxValue = Math.max(
+                              ...activeResult.yearly_data.map(d => d.property_value),
+                              ...actualValues.filter(a => a.property_value).map(a => a.property_value!)
+                            )
+                            const minValue = Math.min(
+                              ...activeResult.yearly_data.map(d => d.property_value),
+                              ...actualValues.filter(a => a.property_value).map(a => a.property_value!)
+                            )
+                            const range = maxValue - minValue
+                            const padding = range * 0.1
+
+                            return (
+                              <svg className="w-full h-full">
+                                {/* Grille horizontale */}
+                                {[0, 25, 50, 75, 100].map((percent) => (
+                                  <g key={percent}>
+                                    <line
+                                      x1="0%"
+                                      y1={`${100 - percent}%`}
+                                      x2="100%"
+                                      y2={`${100 - percent}%`}
+                                      stroke="#e5e7eb"
+                                      strokeWidth="1"
+                                    />
+                                    <text
+                                      x="0"
+                                      y={`${100 - percent}%`}
+                                      dy="-4"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      ${((minValue - padding + (maxValue - minValue + 2 * padding) * percent / 100) / 1000).toFixed(0)}k
+                                    </text>
+                                  </g>
+                                ))}
+
+                                {/* Ligne des projections (bleu) */}
+                                <polyline
+                                  points={activeResult.yearly_data.map((d, i) => {
+                                    const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                    const y = 100 - ((d.property_value - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                    return `${x},${y}`
+                                  }).join(' ')}
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Points des projections */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((d.property_value - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  return (
+                                    <circle
+                                      key={i}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="4"
+                                      fill="#3b82f6"
+                                    />
+                                  )
+                                })}
+
+                                {/* Ligne des valeurs réelles (vert/rouge) */}
+                                {actualValues.filter(a => a.property_value).length > 1 && (
+                                  <polyline
+                                    points={actualValues.filter(a => a.property_value).map((actual) => {
+                                      const i = actual.year - 1
+                                      const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                      const y = 100 - ((actual.property_value! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                      return `${x},${y}`
+                                    }).join(' ')}
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                  />
+                                )}
+
+                                {/* Points des valeurs réelles */}
+                                {actualValues.filter(a => a.property_value).map((actual) => {
+                                  const i = actual.year - 1
+                                  const projected = activeResult.yearly_data[i]
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((actual.property_value! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  const isGood = actual.property_value! >= projected.property_value
+                                  return (
+                                    <circle
+                                      key={actual.year}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="5"
+                                      fill={isGood ? '#10b981' : '#ef4444'}
+                                      stroke="white"
+                                      strokeWidth="2"
+                                    />
+                                  )
+                                })}
+
+                                {/* Légendes des années en bas */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  return (
+                                    <text
+                                      key={i}
+                                      x={`${x}%`}
+                                      y="100%"
+                                      textAnchor="middle"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      An {d.year}
+                                    </text>
+                                  )
+                                })}
+                              </svg>
+                            )
+                          })()}
+                        </div>
+                        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-blue-500"></div>
+                            <span className="text-gray-600">Projection</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
+                            <span className="text-gray-600">Réel</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Graphique Revenus locatifs */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Revenus locatifs</h4>
+                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                          {(() => {
+                            const maxValue = Math.max(
+                              ...activeResult.yearly_data.map(d => d.rental_income),
+                              ...actualValues.filter(a => a.rental_income).map(a => a.rental_income!)
+                            )
+                            const minValue = Math.min(
+                              ...activeResult.yearly_data.map(d => d.rental_income),
+                              ...actualValues.filter(a => a.rental_income).map(a => a.rental_income!)
+                            )
+                            const range = maxValue - minValue
+                            const padding = range * 0.1
+
+                            return (
+                              <svg className="w-full h-full">
+                                {/* Grille horizontale */}
+                                {[0, 25, 50, 75, 100].map((percent) => (
+                                  <g key={percent}>
+                                    <line
+                                      x1="0%"
+                                      y1={`${100 - percent}%`}
+                                      x2="100%"
+                                      y2={`${100 - percent}%`}
+                                      stroke="#e5e7eb"
+                                      strokeWidth="1"
+                                    />
+                                    <text
+                                      x="0"
+                                      y={`${100 - percent}%`}
+                                      dy="-4"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      ${((minValue - padding + (maxValue - minValue + 2 * padding) * percent / 100) / 1000).toFixed(0)}k
+                                    </text>
+                                  </g>
+                                ))}
+
+                                {/* Ligne des projections */}
+                                <polyline
+                                  points={activeResult.yearly_data.map((d, i) => {
+                                    const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                    const y = 100 - ((d.rental_income - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                    return `${x},${y}`
+                                  }).join(' ')}
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Points des projections */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((d.rental_income - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  return (
+                                    <circle
+                                      key={i}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="4"
+                                      fill="#3b82f6"
+                                    />
+                                  )
+                                })}
+
+                                {/* Ligne des valeurs réelles */}
+                                {actualValues.filter(a => a.rental_income).length > 1 && (
+                                  <polyline
+                                    points={actualValues.filter(a => a.rental_income).map((actual) => {
+                                      const i = actual.year - 1
+                                      const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                      const y = 100 - ((actual.rental_income! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                      return `${x},${y}`
+                                    }).join(' ')}
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                  />
+                                )}
+
+                                {/* Points des valeurs réelles */}
+                                {actualValues.filter(a => a.rental_income).map((actual) => {
+                                  const i = actual.year - 1
+                                  const projected = activeResult.yearly_data[i]
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((actual.rental_income! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  const isGood = actual.rental_income! >= projected.rental_income
+                                  return (
+                                    <circle
+                                      key={actual.year}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="5"
+                                      fill={isGood ? '#10b981' : '#ef4444'}
+                                      stroke="white"
+                                      strokeWidth="2"
+                                    />
+                                  )
+                                })}
+
+                                {/* Légendes des années */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  return (
+                                    <text
+                                      key={i}
+                                      x={`${x}%`}
+                                      y="100%"
+                                      textAnchor="middle"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      An {d.year}
+                                    </text>
+                                  )
+                                })}
+                              </svg>
+                            )
+                          })()}
+                        </div>
+                        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-blue-500"></div>
+                            <span className="text-gray-600">Projection</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
+                            <span className="text-gray-600">Réel</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Graphique Revenu net */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Revenu net</h4>
+                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                          {(() => {
+                            const maxValue = Math.max(
+                              ...activeResult.yearly_data.map(d => d.net_income),
+                              ...actualValues.filter(a => a.net_income).map(a => a.net_income!)
+                            )
+                            const minValue = Math.min(
+                              ...activeResult.yearly_data.map(d => d.net_income),
+                              ...actualValues.filter(a => a.net_income).map(a => a.net_income!)
+                            )
+                            const range = maxValue - minValue
+                            const padding = range * 0.1
+
+                            return (
+                              <svg className="w-full h-full">
+                                {/* Grille horizontale */}
+                                {[0, 25, 50, 75, 100].map((percent) => (
+                                  <g key={percent}>
+                                    <line
+                                      x1="0%"
+                                      y1={`${100 - percent}%`}
+                                      x2="100%"
+                                      y2={`${100 - percent}%`}
+                                      stroke="#e5e7eb"
+                                      strokeWidth="1"
+                                    />
+                                    <text
+                                      x="0"
+                                      y={`${100 - percent}%`}
+                                      dy="-4"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      ${((minValue - padding + (maxValue - minValue + 2 * padding) * percent / 100) / 1000).toFixed(0)}k
+                                    </text>
+                                  </g>
+                                ))}
+
+                                {/* Ligne des projections */}
+                                <polyline
+                                  points={activeResult.yearly_data.map((d, i) => {
+                                    const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                    const y = 100 - ((d.net_income - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                    return `${x},${y}`
+                                  }).join(' ')}
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Points des projections */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((d.net_income - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  return (
+                                    <circle
+                                      key={i}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="4"
+                                      fill="#3b82f6"
+                                    />
+                                  )
+                                })}
+
+                                {/* Ligne des valeurs réelles */}
+                                {actualValues.filter(a => a.net_income).length > 1 && (
+                                  <polyline
+                                    points={actualValues.filter(a => a.net_income).map((actual) => {
+                                      const i = actual.year - 1
+                                      const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                      const y = 100 - ((actual.net_income! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                      return `${x},${y}`
+                                    }).join(' ')}
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                  />
+                                )}
+
+                                {/* Points des valeurs réelles */}
+                                {actualValues.filter(a => a.net_income).map((actual) => {
+                                  const i = actual.year - 1
+                                  const projected = activeResult.yearly_data[i]
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((actual.net_income! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  const isGood = actual.net_income! >= projected.net_income
+                                  return (
+                                    <circle
+                                      key={actual.year}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="5"
+                                      fill={isGood ? '#10b981' : '#ef4444'}
+                                      stroke="white"
+                                      strokeWidth="2"
+                                    />
+                                  )
+                                })}
+
+                                {/* Légendes des années */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  return (
+                                    <text
+                                      key={i}
+                                      x={`${x}%`}
+                                      y="100%"
+                                      textAnchor="middle"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      An {d.year}
+                                    </text>
+                                  )
+                                })}
+                              </svg>
+                            )
+                          })()}
+                        </div>
+                        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-blue-500"></div>
+                            <span className="text-gray-600">Projection</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
+                            <span className="text-gray-600">Réel</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Graphique Cashflow cumulatif */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Cashflow cumulatif</h4>
+                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                          {(() => {
+                            const maxValue = Math.max(
+                              ...activeResult.yearly_data.map(d => d.cumulative_cashflow),
+                              ...actualValues.filter(a => a.cumulative_cashflow).map(a => a.cumulative_cashflow!)
+                            )
+                            const minValue = Math.min(
+                              ...activeResult.yearly_data.map(d => d.cumulative_cashflow),
+                              ...actualValues.filter(a => a.cumulative_cashflow).map(a => a.cumulative_cashflow!)
+                            )
+                            const range = maxValue - minValue
+                            const padding = range * 0.1
+
+                            return (
+                              <svg className="w-full h-full">
+                                {/* Grille horizontale */}
+                                {[0, 25, 50, 75, 100].map((percent) => (
+                                  <g key={percent}>
+                                    <line
+                                      x1="0%"
+                                      y1={`${100 - percent}%`}
+                                      x2="100%"
+                                      y2={`${100 - percent}%`}
+                                      stroke="#e5e7eb"
+                                      strokeWidth="1"
+                                    />
+                                    <text
+                                      x="0"
+                                      y={`${100 - percent}%`}
+                                      dy="-4"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      ${((minValue - padding + (maxValue - minValue + 2 * padding) * percent / 100) / 1000).toFixed(0)}k
+                                    </text>
+                                  </g>
+                                ))}
+
+                                {/* Ligne des projections */}
+                                <polyline
+                                  points={activeResult.yearly_data.map((d, i) => {
+                                    const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                    const y = 100 - ((d.cumulative_cashflow - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                    return `${x},${y}`
+                                  }).join(' ')}
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Points des projections */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((d.cumulative_cashflow - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  return (
+                                    <circle
+                                      key={i}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="4"
+                                      fill="#3b82f6"
+                                    />
+                                  )
+                                })}
+
+                                {/* Ligne des valeurs réelles */}
+                                {actualValues.filter(a => a.cumulative_cashflow).length > 1 && (
+                                  <polyline
+                                    points={actualValues.filter(a => a.cumulative_cashflow).map((actual) => {
+                                      const i = actual.year - 1
+                                      const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                      const y = 100 - ((actual.cumulative_cashflow! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                      return `${x},${y}`
+                                    }).join(' ')}
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                  />
+                                )}
+
+                                {/* Points des valeurs réelles */}
+                                {actualValues.filter(a => a.cumulative_cashflow).map((actual) => {
+                                  const i = actual.year - 1
+                                  const projected = activeResult.yearly_data[i]
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  const y = 100 - ((actual.cumulative_cashflow! - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  const isGood = actual.cumulative_cashflow! >= projected.cumulative_cashflow
+                                  return (
+                                    <circle
+                                      key={actual.year}
+                                      cx={`${x}%`}
+                                      cy={`${y}%`}
+                                      r="5"
+                                      fill={isGood ? '#10b981' : '#ef4444'}
+                                      stroke="white"
+                                      strokeWidth="2"
+                                    />
+                                  )
+                                })}
+
+                                {/* Légendes des années */}
+                                {activeResult.yearly_data.map((d, i) => {
+                                  const x = (i / (activeResult.yearly_data.length - 1)) * 100
+                                  return (
+                                    <text
+                                      key={i}
+                                      x={`${x}%`}
+                                      y="100%"
+                                      textAnchor="middle"
+                                      fontSize="10"
+                                      fill="#6b7280"
+                                    >
+                                      An {d.year}
+                                    </text>
+                                  )
+                                })}
+                              </svg>
+                            )
+                          })()}
+                        </div>
+                        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-blue-500"></div>
+                            <span className="text-gray-600">Projection</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
+                            <span className="text-gray-600">Réel</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-900">
+                        <strong>💡 Interprétation:</strong>
+                      </p>
+                      <ul className="mt-2 text-sm text-blue-800 space-y-1">
+                        <li>• <strong className="text-green-600">Points verts</strong> = Performance réelle ≥ projection (objectif atteint ou dépassé)</li>
+                        <li>• <strong className="text-red-600">Points rouges</strong> = Performance réelle &lt; projection (sous-performance)</li>
+                        <li>• <strong className="text-blue-600">Ligne continue</strong> = Projections initiales du scénario</li>
+                        <li>• <strong className="text-green-600">Ligne pointillée</strong> = Évolution réelle du projet</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
                 {/* Analyse des revenus locatifs */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.rentalIncomeAnalysis')}</h3>
