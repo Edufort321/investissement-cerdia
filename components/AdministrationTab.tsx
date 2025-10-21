@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
 import TransactionAttachments from './TransactionAttachments'
@@ -96,6 +97,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     addInvestment,
     loading
   } = useInvestment()
+
+  const { t } = useLanguage()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -911,7 +914,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     })}
                     className="w-4 h-4 text-[#5e5e5e] focus:ring-[#5e5e5e] rounded"
                   />
-                  <span className="text-sm text-gray-700">Droit de vote</span>
+                  <span className="text-sm text-gray-700">{t('investors.votingRights')}</span>
                 </label>
               </div>
             </div>

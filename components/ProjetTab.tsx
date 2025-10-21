@@ -135,7 +135,7 @@ export default function ProjetTab() {
     e.preventDefault()
 
     if (!editingId) {
-      alert('Impossible d\'ajouter de nouvelles propriétés. Utilisez l\'onglet Évaluateur pour créer un scénario.')
+      alert(t('projects.cannotAddManually'))
       return
     }
 
@@ -146,7 +146,7 @@ export default function ProjetTab() {
       setShowAddForm(false)
       resetForm()
     } else {
-      alert('Erreur lors de la modification: ' + result.error)
+      alert(t('projects.updateError') + result.error)
     }
   }
 
@@ -272,7 +272,7 @@ export default function ProjetTab() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('projects.title')}</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Projets convertis depuis les scénarios approuvés</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">{t('projects.convertedFromScenarios')}</p>
         </div>
       </div>
 
@@ -736,40 +736,40 @@ export default function ProjetTab() {
                     <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
                       <div className="flex items-center gap-2 mb-2">
                         <Calculator size={14} className="text-purple-700" />
-                        <div className="text-xs font-bold text-purple-900">Scénario d'évaluation</div>
+                        <div className="text-xs font-bold text-purple-900">{t('projectScenario.title')}</div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <div className="text-xs text-purple-700">ROI annuel moyen</div>
+                          <div className="text-xs text-purple-700">{t('scenarioResults.avgAnnualReturn')}</div>
                           <div className="text-sm font-bold text-purple-900">
                             {moderateScenario.summary.avg_annual_return?.toFixed(2)}%
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-purple-700">Retour total</div>
+                          <div className="text-xs text-purple-700">{t('scenarioResults.totalReturn')}</div>
                           <div className="text-sm font-bold text-purple-900">
                             {moderateScenario.summary.total_return?.toFixed(1)}%
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-purple-700">Point mort</div>
+                          <div className="text-xs text-purple-700">{t('scenarioResults.breakEven')}</div>
                           <div className="text-sm font-bold text-purple-900">
-                            Année {moderateScenario.summary.break_even_year}
+                            {t('scenarioResults.year')} {moderateScenario.summary.break_even_year}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-purple-700">Recommandation</div>
+                          <div className="text-xs text-purple-700">{t('scenarioResults.recommendation')}</div>
                           <div className={`text-xs font-bold ${
                             moderateScenario.summary.recommendation === 'recommended' ? 'text-green-700' :
                             moderateScenario.summary.recommendation === 'not_recommended' ? 'text-red-700' : 'text-yellow-700'
                           }`}>
-                            {moderateScenario.summary.recommendation === 'recommended' ? '✅ Recommandé' :
-                             moderateScenario.summary.recommendation === 'not_recommended' ? '⚠️ Déconseillé' : '📊 À considérer'}
+                            {moderateScenario.summary.recommendation === 'recommended' ? '✅ ' + t('scenarioResults.recommended') :
+                             moderateScenario.summary.recommendation === 'not_recommended' ? '⚠️ ' + t('scenarioResults.notRecommended') : '📊 ' + t('scenarioResults.toConsider')}
                           </div>
                         </div>
                       </div>
                       <div className="text-xs text-purple-600 mt-2">
-                        Créé le {new Date(originScenario.created_at).toLocaleDateString('fr-CA')}
+                        {t('projectScenario.createdOn')} {new Date(originScenario.created_at).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                       </div>
                     </div>
                   )}

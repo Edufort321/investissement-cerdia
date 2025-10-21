@@ -98,6 +98,10 @@ const translations = {
     'projects.confirmDelete': 'Êtes-vous sûr de vouloir supprimer ce projet',
     'projects.noProjects': 'Aucun projet',
     'projects.addFirst': 'Commencez par ajouter votre premier projet',
+    'projects.duration': 'Durée',
+    'projects.cannotAddManually': 'Impossible d\'ajouter de nouvelles propriétés. Utilisez l\'onglet Évaluateur pour créer un scénario.',
+    'projects.convertedFromScenarios': 'Projets convertis depuis les scénarios approuvés',
+    'projects.updateError': 'Erreur lors de la modification: ',
 
     // Administration
     'admin.title': 'Administration',
@@ -208,6 +212,7 @@ const translations = {
     'common.confirm': 'Confirmer',
     'common.yes': 'Oui',
     'common.no': 'Non',
+    'common.years': 'ans',
 
     // Documents
     'documents.title': 'Documents',
@@ -341,6 +346,7 @@ const translations = {
     'scenarios.view': 'Voir',
     'scenarios.required': 'requis',
     'scenarios.optional': 'optionnel',
+    'scenarios.toBeDefinedLocation': 'À définir',
 
     // Scenario Status
     'scenarioStatus.draft': 'Brouillon',
@@ -368,9 +374,18 @@ const translations = {
     'scenarioResults.net': 'Net',
     'scenarioResults.cashflow': 'Cashflow',
     'scenarioResults.recommendation': 'Recommandation',
-    'scenarioResults.recommended': 'Recommandé',
-    'scenarioResults.notRecommended': 'Déconseillé',
-    'scenarioResults.toConsider': 'À considérer',
+    'scenarioResults.recommended': 'recommandé',
+    'scenarioResults.notRecommended': 'déconseillé',
+    'scenarioResults.toConsider': 'à considérer avec prudence',
+    'scenarioResults.scenarioLabel': 'Scénario',
+    'scenarioResults.project': 'Projet',
+    'scenarioResults.over': 'sur',
+    'scenarioResults.attractiveReturn': 'Rendement attractif',
+    'scenarioResults.lowReturn': 'Rendement faible',
+    'scenarioResults.moderateReturn': 'Rendement modéré',
+    'scenarioResults.quickBreakEven': 'Point mort rapide',
+    'scenarioResults.distantBreakEven': 'Point mort éloigné',
+    'scenarioResults.acceptableBreakEven': 'Point mort acceptable',
 
     // Voting
     'voting.status': 'Statut du vote',
@@ -383,11 +398,13 @@ const translations = {
     'voting.approve': 'Approuver',
     'voting.reject': 'Rejeter',
     'voting.voteRecorded': 'Vote enregistré!',
+    'voting.voteError': 'Erreur lors de l\'enregistrement du vote',
     'voting.individualVotes': 'Votes individuels',
     'voting.noVotingPermission': 'Vous n\'avez pas la permission de voter sur ce scénario',
     'voting.onlyAdminsCanForce': 'Seuls les administrateurs peuvent forcer l\'approbation',
     'voting.forceConfirm': 'Êtes-vous sûr de vouloir FORCER l\'approbation de ce scénario?\n\nCeci contourne le système de vote normal et marque le scénario comme approuvé par les investisseurs.',
     'voting.forcedSuccess': 'Scénario marqué comme approuvé (forcé par admin)',
+    'voting.forceError': 'Erreur lors du forçage de l\'approbation',
     'voting.totalEligibleVoters': 'Votants éligibles',
 
     // Documents
@@ -426,8 +443,11 @@ const translations = {
     // Messages
     'scenarios.fillRequired': 'Veuillez remplir tous les champs obligatoires',
     'scenarios.created': 'Scénario créé avec succès!',
+    'scenarios.createError': 'Erreur lors de la création du scénario',
     'scenarios.analyzed': 'Analyse terminée! Les 3 scénarios ont été générés.',
+    'scenarios.analyzeError': 'Erreur lors de l\'analyse du scénario',
     'scenarios.submitted': 'Scénario soumis au vote des investisseurs!',
+    'scenarios.submitError': 'Erreur lors de la soumission au vote',
     'scenarios.noAddProjects': 'Impossible d\'ajouter de nouvelles propriétés. Utilisez l\'onglet Évaluateur pour créer un scénario.',
 
     // Project List Messages
@@ -523,6 +543,10 @@ const translations = {
     'projects.confirmDelete': 'Are you sure you want to delete this project',
     'projects.noProjects': 'No Projects',
     'projects.addFirst': 'Start by adding your first project',
+    'projects.duration': 'Duration',
+    'projects.cannotAddManually': 'Cannot add new properties manually. Use the Evaluator tab to create a scenario.',
+    'projects.convertedFromScenarios': 'Projects converted from approved scenarios',
+    'projects.updateError': 'Error updating: ',
 
     // Administration
     'admin.title': 'Administration',
@@ -633,6 +657,7 @@ const translations = {
     'common.confirm': 'Confirm',
     'common.yes': 'Yes',
     'common.no': 'No',
+    'common.years': 'years',
 
     // Documents
     'documents.title': 'Documents',
@@ -766,6 +791,7 @@ const translations = {
     'scenarios.view': 'View',
     'scenarios.required': 'required',
     'scenarios.optional': 'optional',
+    'scenarios.toBeDefinedLocation': 'To be defined',
 
     // Scenario Status
     'scenarioStatus.draft': 'Draft',
@@ -793,9 +819,18 @@ const translations = {
     'scenarioResults.net': 'Net',
     'scenarioResults.cashflow': 'Cashflow',
     'scenarioResults.recommendation': 'Recommendation',
-    'scenarioResults.recommended': 'Recommended',
-    'scenarioResults.notRecommended': 'Not Recommended',
-    'scenarioResults.toConsider': 'To Consider',
+    'scenarioResults.recommended': 'recommended',
+    'scenarioResults.notRecommended': 'not recommended',
+    'scenarioResults.toConsider': 'to consider with caution',
+    'scenarioResults.scenarioLabel': 'Scenario',
+    'scenarioResults.project': 'Project',
+    'scenarioResults.over': 'over',
+    'scenarioResults.attractiveReturn': 'Attractive return',
+    'scenarioResults.lowReturn': 'Low return',
+    'scenarioResults.moderateReturn': 'Moderate return',
+    'scenarioResults.quickBreakEven': 'Quick break even',
+    'scenarioResults.distantBreakEven': 'Distant break even',
+    'scenarioResults.acceptableBreakEven': 'Acceptable break even',
 
     // Voting
     'voting.status': 'Vote Status',
@@ -808,11 +843,13 @@ const translations = {
     'voting.approve': 'Approve',
     'voting.reject': 'Reject',
     'voting.voteRecorded': 'Vote recorded!',
+    'voting.voteError': 'Error recording vote',
     'voting.individualVotes': 'Individual Votes',
     'voting.noVotingPermission': 'You don\'t have permission to vote on this scenario',
     'voting.onlyAdminsCanForce': 'Only administrators can force approval',
     'voting.forceConfirm': 'Are you sure you want to FORCE approval of this scenario?\n\nThis bypasses the normal voting system and marks the scenario as approved by investors.',
     'voting.forcedSuccess': 'Scenario marked as approved (forced by admin)',
+    'voting.forceError': 'Error forcing approval',
     'voting.totalEligibleVoters': 'Eligible Voters',
 
     // Documents
@@ -851,8 +888,11 @@ const translations = {
     // Messages
     'scenarios.fillRequired': 'Please fill in all required fields',
     'scenarios.created': 'Scenario created successfully!',
+    'scenarios.createError': 'Error creating scenario',
     'scenarios.analyzed': 'Analysis complete! 3 scenarios have been generated.',
+    'scenarios.analyzeError': 'Error analyzing scenario',
     'scenarios.submitted': 'Scenario submitted for investor voting!',
+    'scenarios.submitError': 'Error submitting for vote',
     'scenarios.noAddProjects': 'Cannot add new properties manually. Use the Evaluator tab to create a scenario.',
 
     // Project List Messages
