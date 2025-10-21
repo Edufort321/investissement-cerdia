@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
+import EvaluateurTab from '@/components/EvaluateurTab'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
-type TabType = 'dashboard' | 'projet' | 'administration'
+type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'administration'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
 
 export default function DashboardPage() {
@@ -136,6 +137,20 @@ export default function DashboardPage() {
     })
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
 
+  // Calculer les statistiques réelles des investisseurs depuis les transactions
+  const investorStats = investors.map(investor => {
+    // Calculer le total investi depuis les transactions
+    const totalFromTransactions = transactions
+      .filter(t => t.investor_id === investor.id && t.type === 'investissement')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    return {
+      ...investor,
+      calculated_total_invested: totalFromTransactions,
+      calculated_percentage: totalInvestisseurs > 0 ? (totalFromTransactions / totalInvestisseurs) * 100 : 0
+    }
+  })
+
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -150,6 +165,7 @@ export default function DashboardPage() {
   const tabs = [
     { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban },
+    { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator },
     { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
   ]
 
@@ -326,7 +342,7 @@ export default function DashboardPage() {
         <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && (
             <div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 mt-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('dashboard.overview')}</h2>
                 {loading && (
                   <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
@@ -485,12 +501,12 @@ export default function DashboardPage() {
                     <Users size={18} className="text-blue-600" />
                     {t('dashboard.investorBreakdown')}
                   </h3>
-                  {investors.length === 0 ? (
+                  {investorStats.length === 0 ? (
                     <p className="text-gray-500 text-center py-8">{t('dashboard.noInvestors')}</p>
                   ) : (
                     <div className="space-y-3">
-                      {investors
-                        .sort((a, b) => b.total_invested - a.total_invested)
+                      {investorStats
+                        .sort((a, b) => b.calculated_total_invested - a.calculated_total_invested)
                         .map((investor) => (
                         <div key={investor.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                           <div className="flex items-center gap-3">
@@ -499,12 +515,12 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">{investor.first_name} {investor.last_name}</p>
-                              <p className="text-sm text-gray-600">{investor.percentage_ownership.toFixed(2)}% {t('dashboard.ownership')}</p>
+                              <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-gray-900">
-                              {investor.total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                              {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
                             <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} {t('dashboard.shares')}</p>
                           </div>
@@ -655,6 +671,8 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'projet' && <ProjetTab />}
+
+          {activeTab === 'evaluateur' && <EvaluateurTab />}
 
           {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>

@@ -61,6 +61,18 @@ interface Transaction {
   status: string
   created_at: string
   updated_at: string
+  // International tax fields
+  payment_schedule_id: string | null
+  source_currency: string | null
+  source_amount: number | null
+  exchange_rate: number | null
+  source_country: string | null
+  foreign_tax_paid: number | null
+  foreign_tax_rate: number | null
+  tax_credit_claimable: number | null
+  fiscal_category: string | null
+  vendor_name: string | null
+  accountant_notes: string | null
 }
 
 interface Investor {

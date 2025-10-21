@@ -55,7 +55,7 @@ CREATE TRIGGER set_investor_investments_updated_at
 CREATE OR REPLACE VIEW public.investor_summary AS
 SELECT
   i.id AS investor_id,
-  i.name AS investor_name,
+  CONCAT(i.first_name, ' ', i.last_name) AS investor_name,
   i.email,
   COUNT(ii.id) AS total_investments,
   COALESCE(SUM(ii.amount_invested), 0) AS total_amount_invested,
@@ -65,7 +65,7 @@ SELECT
   MAX(ii.investment_date) AS last_investment_date
 FROM public.investors i
 LEFT JOIN public.investor_investments ii ON i.id = ii.investor_id
-GROUP BY i.id, i.name, i.email;
+GROUP BY i.id, i.first_name, i.last_name, i.email;
 
 -- Commentaires
 COMMENT ON TABLE public.investor_investments IS 'Historique des investissements (achats de parts) par investisseur';
