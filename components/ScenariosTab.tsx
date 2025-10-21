@@ -10,6 +10,7 @@ import {
   FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X
 } from 'lucide-react'
 import { DropZone } from './DropZone'
+import { BookingsCalendar } from './BookingsCalendar'
 
 // Types
 interface Scenario {
@@ -156,6 +157,7 @@ export default function ScenariosTab() {
   const [editingActualYear, setEditingActualYear] = useState<number | null>(null)
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [detailTab, setDetailTab] = useState<'overview' | 'bookings'>('overview')
 
   // Formulaire création scénario
   const [formData, setFormData] = useState({
@@ -1711,8 +1713,39 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </div>
         </div>
 
-        {/* Documents */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        {/* Onglets de navigation */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDetailTab('overview')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                detailTab === 'overview'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Vue d'ensemble
+            </button>
+            {selectedScenario.status === 'purchased' && (
+              <button
+                onClick={() => setDetailTab('bookings')}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  detailTab === 'bookings'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Calendrier de bookings
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Contenu de l'onglet Vue d'ensemble */}
+        {detailTab === 'overview' && (
+          <>
+            {/* Documents */}
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterDocuments')}</h3>
 
           {/* Zone de drag & drop pour documents */}
@@ -2927,6 +2960,20 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </>
             )}
           </>
+        )}
+          </>
+        )}
+
+        {/* Contenu de l'onglet Bookings */}
+        {detailTab === 'bookings' && selectedScenario.status === 'purchased' && (
+          <BookingsCalendar
+            scenarioId={selectedScenario.id}
+            currency={selectedScenario.promoter_data.rent_currency}
+            defaultNightlyRate={selectedScenario.promoter_data.rent_type === 'nightly'
+              ? selectedScenario.promoter_data.monthly_rent
+              : Math.round(selectedScenario.promoter_data.monthly_rent / 30)
+            }
+          />
         )}
 
         {/* Section de vote */}
