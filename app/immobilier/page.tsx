@@ -2,10 +2,11 @@
 
 import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Pagination, Autoplay } from 'swiper/modules'
+import { Pagination, Navigation } from 'swiper/modules'
 import { useLanguage } from '@/contexts/LanguageContext'
 import 'swiper/css'
 import 'swiper/css/pagination'
+import 'swiper/css/navigation'
 
 export default function ImmobilierPage() {
   const { language } = useLanguage()
@@ -59,8 +60,8 @@ export default function ImmobilierPage() {
             spaceBetween={10}
             slidesPerView={1}
             pagination={{ clickable: true }}
-            autoplay={{ delay: 3000 }}
-            modules={[Pagination, Autoplay]}
+            navigation={true}
+            modules={[Pagination, Navigation]}
             className="mb-4 rounded-lg overflow-hidden"
           >
             {[1, 2, 3, 4].map((i) => (
@@ -97,8 +98,8 @@ export default function ImmobilierPage() {
             spaceBetween={10}
             slidesPerView={1}
             pagination={{ clickable: true }}
-            autoplay={{ delay: 3000 }}
-            modules={[Pagination, Autoplay]}
+            navigation={true}
+            modules={[Pagination, Navigation]}
             className="mb-4 rounded-lg overflow-hidden"
           >
             {[1, 2, 3, 4].map((i) => (

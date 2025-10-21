@@ -144,7 +144,6 @@ export default function Home() {
             <p>{tr.powered}</p>
           </div>
         </footer>
-      </div>
     </div>
   )
 }
