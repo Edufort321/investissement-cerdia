@@ -1905,6 +1905,178 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </table>
                 </div>
 
+                {/* Tableau comparatif Projections vs Réelles (uniquement pour projets achetés) */}
+                {selectedScenario.status === 'purchased' && (
+                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">Projections vs Valeurs Réelles</h3>
+                      <button
+                        onClick={() => setEditingActualYear(editingActualYear ? null : 1)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                      >
+                        {editingActualYear ? 'Annuler' : 'Saisir valeurs réelles'}
+                      </button>
+                    </div>
+
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-gray-300 bg-gray-50">
+                          <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
+                          <th colSpan={3} className="text-center p-2 font-medium text-blue-700 border-r-2 border-gray-300">PROJECTION</th>
+                          <th colSpan={3} className="text-center p-2 font-medium text-green-700">VALEURS RÉELLES</th>
+                        </tr>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="text-left p-2"></th>
+                          <th className="text-right p-2 text-xs text-gray-600">Valeur bien</th>
+                          <th className="text-right p-2 text-xs text-gray-600">Revenus</th>
+                          <th className="text-right p-2 text-xs text-gray-600 border-r-2 border-gray-300">Net</th>
+                          <th className="text-right p-2 text-xs text-gray-600">Valeur bien</th>
+                          <th className="text-right p-2 text-xs text-gray-600">Revenus</th>
+                          <th className="text-right p-2 text-xs text-gray-600">Net</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeResult.yearly_data.map((projected) => {
+                          const actual = actualValues.find(a => a.year === projected.year)
+                          const isEditing = editingActualYear === projected.year
+
+                          return (
+                            <tr key={projected.year} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="p-2 font-medium text-gray-900">
+                                {projected.year}
+                                {!actual && editingActualYear && (
+                                  <button
+                                    onClick={() => setEditingActualYear(projected.year)}
+                                    className="ml-2 text-xs text-blue-600 hover:underline"
+                                  >
+                                    Saisir
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* PROJECTION */}
+                              <td className="p-2 text-right text-gray-700 text-xs">
+                                {projected.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              </td>
+                              <td className="p-2 text-right text-gray-700 text-xs">
+                                {projected.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              </td>
+                              <td className="p-2 text-right text-gray-700 text-xs border-r-2 border-gray-300">
+                                {projected.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              </td>
+
+                              {/* VALEURS RÉELLES */}
+                              {isEditing ? (
+                                <>
+                                  <td className="p-1">
+                                    <input
+                                      type="number"
+                                      placeholder="Valeur"
+                                      defaultValue={actual?.property_value || ''}
+                                      onBlur={(e) => {
+                                        const newActual = {
+                                          ...actual,
+                                          scenario_id: selectedScenario.id,
+                                          year: projected.year,
+                                          property_value: parseFloat(e.target.value) || undefined
+                                        } as ActualValue
+                                        saveActualValue(newActual)
+                                      }}
+                                      className="w-full px-2 py-1 text-xs border rounded"
+                                    />
+                                  </td>
+                                  <td className="p-1">
+                                    <input
+                                      type="number"
+                                      placeholder="Revenus"
+                                      defaultValue={actual?.rental_income || ''}
+                                      onBlur={(e) => {
+                                        const newActual = {
+                                          ...actual,
+                                          scenario_id: selectedScenario.id,
+                                          year: projected.year,
+                                          rental_income: parseFloat(e.target.value) || undefined
+                                        } as ActualValue
+                                        saveActualValue(newActual)
+                                      }}
+                                      className="w-full px-2 py-1 text-xs border rounded"
+                                    />
+                                  </td>
+                                  <td className="p-1">
+                                    <input
+                                      type="number"
+                                      placeholder="Net"
+                                      defaultValue={actual?.net_income || ''}
+                                      onBlur={(e) => {
+                                        const newActual = {
+                                          ...actual,
+                                          scenario_id: selectedScenario.id,
+                                          year: projected.year,
+                                          net_income: parseFloat(e.target.value) || undefined
+                                        } as ActualValue
+                                        saveActualValue(newActual)
+                                      }}
+                                      className="w-full px-2 py-1 text-xs border rounded"
+                                    />
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className={`p-2 text-right font-medium text-xs ${
+                                    actual?.property_value
+                                      ? (actual.property_value >= projected.property_value ? 'text-green-600' : 'text-red-600')
+                                      : 'text-gray-400'
+                                  }`}>
+                                    {actual?.property_value
+                                      ? actual.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      : '—'
+                                    }
+                                  </td>
+                                  <td className={`p-2 text-right font-medium text-xs ${
+                                    actual?.rental_income
+                                      ? (actual.rental_income >= projected.rental_income ? 'text-green-600' : 'text-red-600')
+                                      : 'text-gray-400'
+                                  }`}>
+                                    {actual?.rental_income
+                                      ? actual.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      : '—'
+                                    }
+                                  </td>
+                                  <td className={`p-2 text-right font-medium text-xs ${
+                                    actual?.net_income
+                                      ? (actual.net_income >= projected.net_income ? 'text-green-600' : 'text-red-600')
+                                      : 'text-gray-400'
+                                  }`}>
+                                    {actual?.net_income
+                                      ? actual.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      : '—'
+                                    }
+                                    {actual && (
+                                      <button
+                                        onClick={() => setEditingActualYear(projected.year)}
+                                        className="ml-2 text-blue-600 hover:underline"
+                                      >
+                                        ✎
+                                      </button>
+                                    )}
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+
+                    <div className="mt-4 text-xs text-gray-600">
+                      <p>💡 <strong>Code couleur:</strong></p>
+                      <p className="text-green-600">• Vert = Valeur réelle ≥ Projection (bon)</p>
+                      <p className="text-red-600">• Rouge = Valeur réelle &lt; Projection (attention)</p>
+                      <p className="text-gray-400">• Gris = Pas encore de données</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Analyse des revenus locatifs */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.rentalIncomeAnalysis')}</h3>
