@@ -45,6 +45,8 @@ interface PromoterData {
   occupancy_rate: number
   management_fees: number
   project_duration: number
+  tax_rate: number // Taux d'imposition sur revenus locatifs (%)
+  annual_rent_increase: number // Augmentation locative annuelle (%)
 }
 
 interface TransactionFees {
@@ -167,7 +169,9 @@ export default function ScenariosTab() {
       annual_appreciation: 5,
       occupancy_rate: 80,
       management_fees: 10,
-      project_duration: 10
+      project_duration: 10,
+      tax_rate: 27, // Taux par défaut 27%
+      annual_rent_increase: 2 // Augmentation locative 2%
     },
     payment_terms: [] as PaymentTerm[]
   })
@@ -326,7 +330,9 @@ export default function ScenariosTab() {
           annual_appreciation: 5,
           occupancy_rate: 80,
           management_fees: 10,
-          project_duration: 10
+          project_duration: 10,
+          tax_rate: 27,
+          annual_rent_increase: 2
         },
         payment_terms: []
       })
@@ -1219,6 +1225,36 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="10"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.taxRate')}</label>
+                <input
+                  type="number"
+                  value={formData.promoter_data.tax_rate || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    promoter_data: {...formData.promoter_data, tax_rate: parseFloat(e.target.value) || 27}
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="27"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.annualRentIncrease')}</label>
+                <input
+                  type="number"
+                  value={formData.promoter_data.annual_rent_increase || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    promoter_data: {...formData.promoter_data, annual_rent_increase: parseFloat(e.target.value) || 2}
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="2"
+                  step="0.1"
                 />
               </div>
             </div>
