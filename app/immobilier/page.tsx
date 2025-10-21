@@ -47,22 +47,24 @@ export default function ImmobilierPage() {
   const tr = t[language]
 
   return (
-    <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
-      {/* Titre */}
-      <h2 className="text-3xl font-bold text-[#2234B9] mb-2">{tr.titre}</h2>
-      <p className="text-gray-700 mb-10 max-w-3xl">{tr.description}</p>
+    <main className="max-w-7xl mx-auto px-6 pt-32 pb-12">
+      {/* Header Section */}
+      <div className="mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold text-[#2234B9] mb-4">{tr.titre}</h1>
+        <p className="text-lg text-gray-600 max-w-4xl leading-relaxed">{tr.description}</p>
+      </div>
 
       {/* Projets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Secret Garden */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
           <Swiper
-            spaceBetween={10}
+            spaceBetween={0}
             slidesPerView={1}
             pagination={{ clickable: true }}
             navigation={true}
             modules={[Pagination, Navigation]}
-            className="mb-4 rounded-lg overflow-hidden"
+            className="h-64 md:h-80"
           >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
@@ -71,36 +73,57 @@ export default function ImmobilierPage() {
                   alt={`Secret Garden ${i}`}
                   width={800}
                   height={500}
-                  className="w-full object-cover"
+                  className="w-full h-full object-cover"
                 />
               </SwiperSlide>
             ))}
           </Swiper>
-          <h3 className="text-xl font-semibold mb-2">{tr.secretTitle}</h3>
-          <ul className="text-sm text-gray-700 mb-2">
-            <li>{tr.secretUnit}</li>
-            <li>{tr.secretDelivery}</li>
-          </ul>
-          <p className="mb-4 text-gray-700 text-sm">{tr.secretDesc}</p>
-          <a
-            href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline font-medium"
-          >
-            {tr.secretLink}
-          </a>
+
+          <div className="p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">{tr.secretTitle}</h3>
+
+            {/* Badges Info */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                {tr.secretUnit}
+              </span>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                {tr.secretDelivery}
+              </span>
+            </div>
+
+            <p className="text-gray-600 mb-6 leading-relaxed">{tr.secretDesc}</p>
+
+            {/* Google Drive Preview */}
+            <div className="mb-4">
+              <iframe
+                src="https://drive.google.com/embeddedfolderview?id=1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms#grid"
+                className="w-full h-64 rounded-lg border border-gray-200"
+                allow="autoplay"
+              ></iframe>
+            </div>
+
+            <a
+              href="https://drive.google.com/drive/folders/1gZdOpqLzMXwGsjZjAca4aWiHLic_ahms?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              {tr.secretLink}
+              <span className="text-lg">→</span>
+            </a>
+          </div>
         </div>
 
         {/* Oasis Bay */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
           <Swiper
-            spaceBetween={10}
+            spaceBetween={0}
             slidesPerView={1}
             pagination={{ clickable: true }}
             navigation={true}
             modules={[Pagination, Navigation]}
-            className="mb-4 rounded-lg overflow-hidden"
+            className="h-64 md:h-80"
           >
             {[1, 2, 3, 4].map((i) => (
               <SwiperSlide key={i}>
@@ -109,34 +132,58 @@ export default function ImmobilierPage() {
                   alt={`Oasis Bay ${i}`}
                   width={800}
                   height={500}
-                  className="w-full object-cover"
+                  className="w-full h-full object-cover"
                 />
               </SwiperSlide>
             ))}
           </Swiper>
-          <h3 className="text-xl font-semibold mb-2">{tr.oasisTitle}</h3>
-          <ul className="text-sm text-gray-700 mb-2">
-            <li>{tr.oasisUnit}</li>
-          </ul>
-          <p className="mb-4 text-gray-700 text-sm">{tr.oasisDesc}</p>
-          <a
-            href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline font-medium"
-          >
-            {tr.oasisLink}
-          </a>
+
+          <div className="p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">{tr.oasisTitle}</h3>
+
+            {/* Badges Info */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                {tr.oasisUnit}
+              </span>
+            </div>
+
+            <p className="text-gray-600 mb-6 leading-relaxed">{tr.oasisDesc}</p>
+
+            {/* Google Drive Preview */}
+            <div className="mb-4">
+              <iframe
+                src="https://drive.google.com/embeddedfolderview?id=16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-#grid"
+                className="w-full h-64 rounded-lg border border-gray-200"
+                allow="autoplay"
+              ></iframe>
+            </div>
+
+            <a
+              href="https://drive.google.com/drive/folders/16m6hKxxScNdljVLvq85oZ6HM_I7x8yw-?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              {tr.oasisLink}
+              <span className="text-lg">→</span>
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Contact */}
-      <p className="text-center text-sm text-gray-600 mt-10">
-        {tr.contact}{' '}
-        <a href="mailto:eric.dufort@cerdia.ai" className="text-blue-600 underline">
-          eric.dufort@cerdia.ai
+      {/* Contact Section */}
+      <div className="mt-16 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 text-center">
+        <h3 className="text-2xl font-bold text-gray-900 mb-3">Besoin d'informations?</h3>
+        <p className="text-gray-600 mb-4">{tr.contact}</p>
+        <a
+          href="mailto:eric.dufort@cerdia.ai"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors font-medium"
+        >
+          <span>eric.dufort@cerdia.ai</span>
+          <span className="text-lg">✉️</span>
         </a>
-      </p>
+      </div>
     </main>
   )
 }
