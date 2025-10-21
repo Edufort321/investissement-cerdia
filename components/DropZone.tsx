@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Upload, Camera } from 'lucide-react'
+import { Upload, Camera, Folder } from 'lucide-react'
 
 interface ProcessedFile {
   file: File
@@ -19,6 +19,7 @@ interface DropZoneProps {
   className?: string
   maxSize?: number // en MB
   showCamera?: boolean // Support prise de photo mobile
+  showFolderSelect?: boolean // Support sélection de dossier
   label?: string
 }
 
@@ -29,6 +30,7 @@ export function DropZone({
   className = '',
   maxSize = 10,
   showCamera = false,
+  showFolderSelect = false,
   label = 'Glissez-déposez vos fichiers ici ou'
 }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
@@ -170,6 +172,20 @@ export function DropZone({
         />
       )}
 
+      {showFolderSelect && (
+        <input
+          type="file"
+          // @ts-ignore - webkitdirectory is not in TypeScript types but supported by browsers
+          webkitdirectory=""
+          directory=""
+          multiple
+          onChange={handleFileInput}
+          className="hidden"
+          disabled={isUploading}
+          id="folder-input"
+        />
+      )}
+
       <div className="flex flex-col items-center space-y-3">
         {isUploading ? (
           <>
@@ -207,14 +223,29 @@ export function DropZone({
                   <p>Taille maximale : {maxSize}MB</p>
                 </div>
 
-                {showCamera && (
-                  <label
-                    htmlFor="camera-input"
-                    className="mt-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2"
-                  >
-                    <Camera size={16} />
-                    Prendre une photo
-                  </label>
+                {/* Boutons supplémentaires */}
+                {(showCamera || showFolderSelect) && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {showCamera && (
+                      <label
+                        htmlFor="camera-input"
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2"
+                      >
+                        <Camera size={16} />
+                        Prendre une photo
+                      </label>
+                    )}
+
+                    {showFolderSelect && (
+                      <label
+                        htmlFor="folder-input"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2"
+                      >
+                        <Folder size={16} />
+                        Sélectionner un dossier
+                      </label>
+                    )}
+                  </div>
                 )}
               </>
             )}

@@ -729,6 +729,63 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
   }
 
+  const uploadDocuments = async (files: any[]) => {
+    if (!selectedScenario || files.length === 0) return
+
+    const maxSize = 50 * 1024 * 1024 // 50MB
+    setUploadingFile(true)
+
+    try {
+      for (const processedFile of files) {
+        const file = processedFile.file
+
+        if (file.size > maxSize) {
+          alert(`${file.name}: ${t('scenarioDocuments.fileTooLarge')}`)
+          continue
+        }
+
+        const timestamp = Date.now()
+        const filePath = `${selectedScenario.id}/${timestamp}-${file.name}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('scenario-documents')
+          .upload(filePath, file)
+
+        if (uploadError) {
+          console.error(`Error uploading ${file.name}:`, uploadError)
+          continue
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('scenario-documents')
+          .getPublicUrl(filePath)
+
+        const { error: dbError } = await supabase
+          .from('scenario_documents')
+          .insert([{
+            scenario_id: selectedScenario.id,
+            file_name: file.name,
+            file_url: publicUrl,
+            file_type: file.type,
+            file_size: file.size
+          }])
+
+        if (dbError) {
+          console.error(`Error saving ${file.name} to database:`, dbError)
+        }
+      }
+
+      await loadScenarioDetails(selectedScenario.id)
+      alert(t('scenarioDocuments.uploadSuccess'))
+
+    } catch (error) {
+      console.error('Error uploading documents:', error)
+      alert(t('scenarioDocuments.uploadError'))
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
   const uploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedScenario || !event.target.files || event.target.files.length === 0) return
 
@@ -1586,23 +1643,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Documents */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">{t('scenarios.promoterDocuments')}</h3>
-            {selectedScenario.status === 'draft' && (
-              <label className="px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2">
-                <FileUp size={16} />
-                {uploadingFile ? t('scenarioDocuments.uploading') : t('scenarioDocuments.upload')}
-                <input
-                  type="file"
-                  onChange={uploadDocument}
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx,.pptx"
-                  disabled={uploadingFile}
-                />
-              </label>
-            )}
-          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterDocuments')}</h3>
 
+          {/* Zone de drag & drop pour documents */}
+          {selectedScenario.status === 'draft' && (
+            <div className="mb-6">
+              <DropZone
+                onFilesSelected={uploadDocuments}
+                accept="image/*,.pdf,.xlsx,.docx,.pptx"
+                multiple={true}
+                maxSize={50}
+                showCamera={true}
+                showFolderSelect={true}
+                label="Glissez-déposez vos documents et photos ici ou"
+              />
+            </div>
+          )}
+
+          {/* Liste des documents */}
           {documents.length === 0 ? (
             <p className="text-gray-600 text-sm text-center py-8">{t('scenarioDocuments.noDocuments')}</p>
           ) : (
