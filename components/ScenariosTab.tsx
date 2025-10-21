@@ -1682,6 +1682,289 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </tbody>
                   </table>
                 </div>
+
+                {/* Analyse des revenus locatifs */}
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.rentalIncomeAnalysis')}</h3>
+
+                  {(() => {
+                    // Calculate nightly rate
+                    const baseRent = selectedScenario.promoter_data.monthly_rent || 0
+                    const nightlyRate = selectedScenario.promoter_data.rent_type === 'monthly'
+                      ? baseRent / 30
+                      : baseRent
+                    const managementFeesPercent = selectedScenario.promoter_data.management_fees || 56
+                    const taxRate = selectedScenario.promoter_data.tax_rate || 27
+                    const currency = selectedScenario.promoter_data.rent_currency || 'USD'
+
+                    // Generate occupancy rates from 55% to 85% in 5% increments
+                    const occupancyRates = [55, 60, 65, 70, 75, 80, 85]
+
+                    const analysisData = occupancyRates.map(occupancy => {
+                      const nights = Math.round((365 * occupancy) / 100 * 100) / 100
+                      const annualIncome = nights * nightlyRate
+                      const managementFees = annualIncome * (managementFeesPercent / 100)
+                      const annualRevenue = annualIncome - managementFees
+                      const tax = annualRevenue * (taxRate / 100)
+                      const netIncome = annualRevenue - tax
+
+                      return {
+                        occupancy,
+                        nights,
+                        nightlyRate,
+                        annualIncome,
+                        managementFeesPercent,
+                        managementFees,
+                        annualRevenue,
+                        taxRate,
+                        tax,
+                        netIncome
+                      }
+                    })
+
+                    return (
+                      <table className="w-full text-xs sm:text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 bg-gray-50">
+                            <th className="text-left p-2 font-medium text-gray-700">{t('scenarios.occupancyRate')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.numberOfNights')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.accommodationPrice')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualIncome')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.managementFees')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualRevenue')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.tax')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.netIncome')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysisData.map((data, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="p-2 font-medium text-gray-900">{data.occupancy}%</td>
+                              <td className="p-2 text-right text-gray-900">{data.nights.toFixed(2)}</td>
+                              <td className="p-2 text-right text-gray-900">
+                                {data.nightlyRate.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })}
+                              </td>
+                              <td className="p-2 text-right text-gray-900">
+                                {data.annualIncome.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })}
+                              </td>
+                              <td className="p-2 text-right text-red-600">
+                                {data.managementFeesPercent}% ({data.managementFees.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })})
+                              </td>
+                              <td className="p-2 text-right text-gray-900">
+                                {data.annualRevenue.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })}
+                              </td>
+                              <td className="p-2 text-right text-red-600">
+                                {data.taxRate}% ({data.tax.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })})
+                              </td>
+                              <td className="p-2 text-right font-bold text-green-600">
+                                {data.netIncome.toLocaleString('fr-CA', {
+                                  style: 'currency',
+                                  currency: currency,
+                                  minimumFractionDigits: 2
+                                })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  })()}
+
+                  {/* Simple visualization */}
+                  <div className="mt-6">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3">{t('scenarios.netIncomeComparison')}</h4>
+                    <div className="space-y-2">
+                      {(() => {
+                        const baseRent = selectedScenario.promoter_data.monthly_rent || 0
+                        const nightlyRate = selectedScenario.promoter_data.rent_type === 'monthly'
+                          ? baseRent / 30
+                          : baseRent
+                        const managementFeesPercent = selectedScenario.promoter_data.management_fees || 56
+                        const taxRate = selectedScenario.promoter_data.tax_rate || 27
+                        const occupancyRates = [55, 60, 65, 70, 75, 80, 85]
+
+                        const chartData = occupancyRates.map(occupancy => {
+                          const nights = (365 * occupancy) / 100
+                          const annualIncome = nights * nightlyRate
+                          const managementFees = annualIncome * (managementFeesPercent / 100)
+                          const annualRevenue = annualIncome - managementFees
+                          const tax = annualRevenue * (taxRate / 100)
+                          const netIncome = annualRevenue - tax
+                          return { occupancy, netIncome }
+                        })
+
+                        const maxIncome = Math.max(...chartData.map(d => d.netIncome))
+
+                        return chartData.map((data, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <span className="text-xs font-medium text-gray-700 w-12">{data.occupancy}%</span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                              <div
+                                className="bg-gradient-to-r from-green-500 to-green-600 h-6 rounded-full flex items-center justify-end pr-2"
+                                style={{ width: `${(data.netIncome / maxIncome) * 100}%` }}
+                              >
+                                <span className="text-xs font-bold text-white">
+                                  {data.netIncome.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: selectedScenario.promoter_data.rent_currency || 'USD',
+                                    minimumFractionDigits: 0
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ROI Timeline avec augmentation locative */}
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.roiTimeline')}</h3>
+
+                  {(() => {
+                    const purchasePrice = selectedScenario.purchase_price + selectedScenario.initial_fees
+                    const baseRent = selectedScenario.promoter_data.monthly_rent || 0
+                    const nightlyRate = selectedScenario.promoter_data.rent_type === 'monthly'
+                      ? baseRent / 30
+                      : baseRent
+                    const occupancyRate = selectedScenario.promoter_data.occupancy_rate || 80
+                    const managementFeesPercent = selectedScenario.promoter_data.management_fees || 56
+                    const taxRate = selectedScenario.promoter_data.tax_rate || 27
+                    const annualRentIncrease = selectedScenario.promoter_data.annual_rent_increase || 2
+                    const projectDuration = selectedScenario.promoter_data.project_duration || 10
+                    const currency = selectedScenario.promoter_data.rent_currency || 'USD'
+
+                    let cumulativeIncome = 0
+                    const timelineData = []
+
+                    for (let year = 1; year <= projectDuration; year++) {
+                      // Apply progressive rent increase
+                      const yearlyNightlyRate = nightlyRate * Math.pow(1 + (annualRentIncrease / 100), year - 1)
+                      const nights = (365 * occupancyRate) / 100
+                      const annualIncome = nights * yearlyNightlyRate
+                      const managementFees = annualIncome * (managementFeesPercent / 100)
+                      const annualRevenue = annualIncome - managementFees
+                      const tax = annualRevenue * (taxRate / 100)
+                      const netIncome = annualRevenue - tax
+
+                      cumulativeIncome += netIncome
+                      const roi = ((cumulativeIncome / purchasePrice) * 100)
+
+                      timelineData.push({
+                        year,
+                        nightlyRate: yearlyNightlyRate,
+                        annualIncome,
+                        netIncome,
+                        cumulativeIncome,
+                        roi
+                      })
+                    }
+
+                    return (
+                      <>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                              <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.nightlyRate')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.netIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.cumulativeIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700">ROI</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {timelineData.map((data) => (
+                              <tr key={data.year} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="p-2 font-medium text-gray-900">{data.year}</td>
+                                <td className="p-2 text-right text-gray-900">
+                                  {data.nightlyRate.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: currency,
+                                    minimumFractionDigits: 2
+                                  })}
+                                </td>
+                                <td className="p-2 text-right text-gray-900">
+                                  {data.annualIncome.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: currency,
+                                    minimumFractionDigits: 0
+                                  })}
+                                </td>
+                                <td className="p-2 text-right text-green-600 font-medium">
+                                  {data.netIncome.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: currency,
+                                    minimumFractionDigits: 0
+                                  })}
+                                </td>
+                                <td className="p-2 text-right text-blue-600 font-medium">
+                                  {data.cumulativeIncome.toLocaleString('fr-CA', {
+                                    style: 'currency',
+                                    currency: currency,
+                                    minimumFractionDigits: 0
+                                  })}
+                                </td>
+                                <td className={`p-2 text-right font-bold ${data.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {data.roi.toFixed(2)}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        {/* ROI Progress Visualization */}
+                        <div className="mt-6">
+                          <h4 className="text-sm font-bold text-gray-900 mb-3">{t('scenarios.roiProgress')}</h4>
+                          <div className="space-y-2">
+                            {timelineData.map((data) => {
+                              const maxROI = timelineData[timelineData.length - 1].roi
+                              const widthPercent = maxROI > 0 ? Math.min((data.roi / maxROI) * 100, 100) : 0
+
+                              return (
+                                <div key={data.year} className="flex items-center gap-3">
+                                  <span className="text-xs font-medium text-gray-700 w-16">{t('scenarioResults.year')} {data.year}</span>
+                                  <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                                    <div
+                                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full flex items-center justify-end pr-2"
+                                      style={{ width: `${widthPercent}%` }}
+                                    >
+                                      <span className="text-xs font-bold text-white">
+                                        {data.roi.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
               </>
             )}
           </>
