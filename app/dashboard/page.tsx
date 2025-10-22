@@ -16,11 +16,12 @@ import BankReconciliation from '@/components/BankReconciliation'
 import PaymentSchedule from '@/components/PaymentSchedule'
 import TreasuryAlerts from '@/components/TreasuryAlerts'
 import ProjectManagementDashboard from '@/components/ProjectManagementDashboard'
+import BudgetDashboard from '@/components/BudgetDashboard'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
-type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'tresorerie' | 'gestion_projet' | 'administration'
+type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'administration'
 type TreasurySubTabType = 'dashboard' | 'cash_flow' | 'reconciliation' | 'payments' | 'alerts'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'
 
@@ -178,6 +179,7 @@ export default function DashboardPage() {
     { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar },
     { id: 'tresorerie' as TabType, label: 'Trésorerie', icon: Wallet },
     { id: 'gestion_projet' as TabType, label: 'Gestion Projet', icon: Briefcase },
+    { id: 'budgetisation' as TabType, label: 'Budgétisation', icon: DollarSign },
     { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
   ]
 
@@ -789,6 +791,8 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'gestion_projet' && <ProjectManagementDashboard />}
+
+          {activeTab === 'budgetisation' && <BudgetDashboard />}
 
           {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>
