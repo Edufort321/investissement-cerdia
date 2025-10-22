@@ -2,293 +2,295 @@
 
 import { useState } from 'react'
 import { Book, ChevronDown, ChevronUp, Search, Home, Users, DollarSign, FileText, Settings, Calculator, Calendar, Briefcase, Wallet, TrendingUp, ClipboardList } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface GuideSection {
   id: string
-  title: string
+  titleKey: string
   icon: any
   content: {
-    subtitle: string
-    description: string
-    steps?: string[]
+    subtitleKey: string
+    descriptionKey: string
+    stepKeys?: string[]
   }[]
 }
 
 export default function UserGuide() {
+  const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedSection, setExpandedSection] = useState<string | null>('dashboard')
 
   const guideSections: GuideSection[] = [
     {
       id: 'dashboard',
-      title: 'Tableau de bord',
+      titleKey: 'userGuide.dashboard',
       icon: Home,
       content: [
         {
-          subtitle: 'Vue d\'ensemble',
-          description: 'Le tableau de bord affiche un résumé de vos investissements en temps réel.',
-          steps: [
-            'Total Investisseurs: Somme des apports en CAD',
-            'Investissement Immobilier: Montant investi en USD converti en CAD',
-            'Dépenses Opération: CAPEX + R&D',
-            'Compte Courant: Fonds disponibles calculés automatiquement'
+          subtitleKey: 'userGuide.dashboardOverview',
+          descriptionKey: 'userGuide.dashboardOverviewDesc',
+          stepKeys: [
+            'userGuide.dashboardStep1',
+            'userGuide.dashboardStep2',
+            'userGuide.dashboardStep3',
+            'userGuide.dashboardStep4'
           ]
         },
         {
-          subtitle: 'Taux de change',
-          description: 'Le widget affiche le taux USD→CAD mis à jour quotidiennement depuis la Banque du Canada.',
+          subtitleKey: 'userGuide.exchangeRate',
+          descriptionKey: 'userGuide.exchangeRateDesc',
         },
         {
-          subtitle: 'Propriétés',
-          description: 'Liste de vos propriétés avec progression des paiements et ROI attendu.',
+          subtitleKey: 'userGuide.properties',
+          descriptionKey: 'userGuide.propertiesDesc',
         }
       ]
     },
     {
       id: 'projet',
-      title: 'Gestion de Projets',
+      titleKey: 'userGuide.projectManagement',
       icon: Briefcase,
       content: [
         {
-          subtitle: 'Vue d\'ensemble',
-          description: 'Gère vos projets immobiliers avec suivi des échéances et milestones.',
+          subtitleKey: 'userGuide.projectOverview',
+          descriptionKey: 'userGuide.projectOverviewDesc',
         },
         {
-          subtitle: 'Créer un projet',
-          description: 'Créez un nouveau projet en cliquant sur "Nouveau Projet".',
-          steps: [
-            'Entrez le nom du projet',
-            'Définissez les dates de début et fin',
-            'Ajoutez une description',
-            'Sélectionnez le statut initial'
+          subtitleKey: 'userGuide.createProject',
+          descriptionKey: 'userGuide.createProjectDesc',
+          stepKeys: [
+            'userGuide.createProjectStep1',
+            'userGuide.createProjectStep2',
+            'userGuide.createProjectStep3',
+            'userGuide.createProjectStep4'
           ]
         },
         {
-          subtitle: 'Jalons (Milestones)',
-          description: 'Définissez les étapes clés du projet avec dates et livrables.',
+          subtitleKey: 'userGuide.milestones',
+          descriptionKey: 'userGuide.milestonesDesc',
         },
         {
-          subtitle: 'Risques',
-          description: 'Identifiez et gérez les risques potentiels du projet.',
+          subtitleKey: 'userGuide.risks',
+          descriptionKey: 'userGuide.risksDesc',
         },
         {
-          subtitle: 'Entrepreneurs',
-          description: 'Gérez les contacts et contrats des entrepreneurs impliqués.',
+          subtitleKey: 'userGuide.contractors',
+          descriptionKey: 'userGuide.contractorsDesc',
         }
       ]
     },
     {
       id: 'evaluateur',
-      title: 'Évaluateur / Scénarios',
+      titleKey: 'userGuide.evaluator',
       icon: Calculator,
       content: [
         {
-          subtitle: 'Création de scénarios',
-          description: 'Créez des scénarios d\'investissement pour évaluer la rentabilité.',
-          steps: [
-            'Cliquez sur "Nouveau Scénario"',
-            'Entrez les informations de la propriété',
-            'Définissez le prix d\'achat et frais',
-            'Configurez les données promoteur (loyer, charges, etc.)',
-            'Ajoutez les termes de paiement'
+          subtitleKey: 'userGuide.scenarioCreation',
+          descriptionKey: 'userGuide.scenarioCreationDesc',
+          stepKeys: [
+            'userGuide.scenarioStep1',
+            'userGuide.scenarioStep2',
+            'userGuide.scenarioStep3',
+            'userGuide.scenarioStep4',
+            'userGuide.scenarioStep5'
           ]
         },
         {
-          subtitle: 'Types de scénarios',
-          description: 'Trois types disponibles: Conservateur, Modéré, Optimiste avec projections financières différentes.',
+          subtitleKey: 'userGuide.scenarioTypes',
+          descriptionKey: 'userGuide.scenarioTypesDesc',
         },
         {
-          subtitle: 'Documents',
-          description: 'Téléchargez et gérez les documents liés au scénario (contrats, plans, etc.).',
+          subtitleKey: 'userGuide.documents',
+          descriptionKey: 'userGuide.documentsDesc',
         },
         {
-          subtitle: 'Vote',
-          description: 'Soumettez le scénario au vote des investisseurs pour validation.',
+          subtitleKey: 'userGuide.vote',
+          descriptionKey: 'userGuide.voteDesc',
         },
         {
-          subtitle: 'Réservations (après achat)',
-          description: 'Gérez le calendrier de réservation et les revenus locatifs une fois la propriété achetée.',
+          subtitleKey: 'userGuide.reservationsAfterPurchase',
+          descriptionKey: 'userGuide.reservationsAfterPurchaseDesc',
         }
       ]
     },
     {
       id: 'reservations',
-      title: 'Calendrier de Réservations',
+      titleKey: 'userGuide.reservations',
       icon: Calendar,
       content: [
         {
-          subtitle: 'Vue du calendrier',
-          description: 'Visualisez toutes les réservations pour vos propriétés louées.',
+          subtitleKey: 'userGuide.calendarView',
+          descriptionKey: 'userGuide.calendarViewDesc',
         },
         {
-          subtitle: 'Créer une réservation',
-          description: 'Ajoutez une nouvelle réservation en sélectionnant les dates et la propriété.',
+          subtitleKey: 'userGuide.createReservation',
+          descriptionKey: 'userGuide.createReservationDesc',
         },
         {
-          subtitle: 'Gestion',
-          description: 'Modifiez ou annulez des réservations existantes.',
+          subtitleKey: 'userGuide.management',
+          descriptionKey: 'userGuide.managementDesc',
         }
       ]
     },
     {
       id: 'administration',
-      title: 'Administration',
+      titleKey: 'userGuide.administration',
       icon: Settings,
       content: [
         {
-          subtitle: 'Investisseurs',
-          description: 'Gérez les investisseurs, leurs parts et permissions.',
-          steps: [
-            'Ajouter un investisseur: Entrez nom, email, actions',
-            'Modifier: Cliquez sur l\'icône crayon',
-            'Supprimer: Icône poubelle (avec confirmation)'
+          subtitleKey: 'userGuide.investors',
+          descriptionKey: 'userGuide.investorsDesc',
+          stepKeys: [
+            'userGuide.investorsStep1',
+            'userGuide.investorsStep2',
+            'userGuide.investorsStep3'
           ]
         },
         {
-          subtitle: 'Transactions',
-          description: 'Enregistrez toutes les transactions financières.',
-          steps: [
-            'Types: Investissement, Paiement, Dividende, Autre',
-            'Attachez des justificatifs (factures, reçus)',
-            'Liez aux investisseurs et propriétés'
+          subtitleKey: 'userGuide.transactions',
+          descriptionKey: 'userGuide.transactionsDesc',
+          stepKeys: [
+            'userGuide.transactionsStep1',
+            'userGuide.transactionsStep2',
+            'userGuide.transactionsStep3'
           ]
         },
         {
-          subtitle: 'CAPEX',
-          description: 'Gérez les dépenses en capital (investissement et opération).',
+          subtitleKey: 'userGuide.capex',
+          descriptionKey: 'userGuide.capexDesc',
         },
         {
-          subtitle: 'R&D / Dividendes',
-          description: 'Suivez les dépenses R&D et distributions de dividendes.',
+          subtitleKey: 'userGuide.rdDividends',
+          descriptionKey: 'userGuide.rdDividendsDesc',
         },
         {
-          subtitle: 'Rapports Fiscaux',
-          description: 'Générez des rapports fiscaux pour les autorités.',
+          subtitleKey: 'userGuide.taxReports',
+          descriptionKey: 'userGuide.taxReportsDesc',
         },
         {
-          subtitle: 'Performance ROI',
-          description: 'Analysez le retour sur investissement par propriété et global.',
+          subtitleKey: 'userGuide.roiPerformance',
+          descriptionKey: 'userGuide.roiPerformanceDesc',
         },
         {
-          subtitle: 'Sync Revenus',
-          description: 'Synchronisez les revenus depuis les plateformes de réservation (Booking.com, Airbnb).',
+          subtitleKey: 'userGuide.syncRevenue',
+          descriptionKey: 'userGuide.syncRevenueDesc',
         }
       ]
     },
     {
       id: 'tresorerie',
-      title: 'Trésorerie',
+      titleKey: 'userGuide.treasury',
       icon: Wallet,
       content: [
         {
-          subtitle: 'Vue d\'ensemble',
-          description: 'Tableau de bord financier avec solde actuel, entrées/sorties du mois.',
+          subtitleKey: 'userGuide.treasuryOverview',
+          descriptionKey: 'userGuide.treasuryOverviewDesc',
         },
         {
-          subtitle: 'Prévisions de flux',
-          description: 'Visualisez les flux de trésorerie prévisionnels sur 12 mois.',
+          subtitleKey: 'userGuide.cashFlowForecasts',
+          descriptionKey: 'userGuide.cashFlowForecastsDesc',
         },
         {
-          subtitle: 'Rapprochement bancaire',
-          description: 'Rapprochez vos transactions avec vos relevés bancaires.',
+          subtitleKey: 'userGuide.bankReconciliation',
+          descriptionKey: 'userGuide.bankReconciliationDesc',
         },
         {
-          subtitle: 'Calendrier de paiements',
-          description: 'Gérez les paiements programmés avec alertes d\'échéance.',
+          subtitleKey: 'userGuide.paymentSchedule',
+          descriptionKey: 'userGuide.paymentScheduleDesc',
         },
         {
-          subtitle: 'Alertes',
-          description: 'Configurez des alertes pour solde faible, paiements en retard, etc.',
+          subtitleKey: 'userGuide.alerts',
+          descriptionKey: 'userGuide.alertsDesc',
         }
       ]
     },
     {
       id: 'gestion_projet',
-      title: 'Gestion de Projet (Admin)',
+      titleKey: 'userGuide.projectManagementAdmin',
       icon: ClipboardList,
       content: [
         {
-          subtitle: 'Accès administrateur',
-          description: 'Version administrative avec fonctionnalités avancées de gestion de projet.',
+          subtitleKey: 'userGuide.adminAccess',
+          descriptionKey: 'userGuide.adminAccessDesc',
         },
         {
-          subtitle: 'Timeline',
-          description: 'Vue chronologique des projets avec dépendances.',
+          subtitleKey: 'userGuide.timeline',
+          descriptionKey: 'userGuide.timelineDesc',
         },
         {
-          subtitle: 'Ressources',
-          description: 'Allocation des ressources (budget, personnel, matériel).',
+          subtitleKey: 'userGuide.resources',
+          descriptionKey: 'userGuide.resourcesDesc',
         }
       ]
     },
     {
       id: 'budgetisation',
-      title: 'Budgétisation',
+      titleKey: 'userGuide.budgeting',
       icon: DollarSign,
       content: [
         {
-          subtitle: 'Création de budgets',
-          description: 'Créez des budgets annuels par catégorie.',
-          steps: [
-            'Sélectionnez l\'année fiscale',
-            'Ajoutez des lignes budgétaires (nom, catégorie, montant)',
-            'Définissez les périodes (mensuel, trimestriel, annuel)',
-            'Configurez les seuils d\'alerte'
+          subtitleKey: 'userGuide.budgetCreation',
+          descriptionKey: 'userGuide.budgetCreationDesc',
+          stepKeys: [
+            'userGuide.budgetStep1',
+            'userGuide.budgetStep2',
+            'userGuide.budgetStep3',
+            'userGuide.budgetStep4'
           ]
         },
         {
-          subtitle: 'Suivi de consommation',
-          description: 'Visualisez le % de budget consommé avec indicateurs visuels (vert/orange/rouge).',
+          subtitleKey: 'userGuide.consumptionTracking',
+          descriptionKey: 'userGuide.consumptionTrackingDesc',
         },
         {
-          subtitle: 'Analyse d\'écart',
-          description: 'Comparez prévu vs réalisé pour identifier les dépassements.',
+          subtitleKey: 'userGuide.varianceAnalysis',
+          descriptionKey: 'userGuide.varianceAnalysisDesc',
         },
         {
-          subtitle: 'Approbation',
-          description: 'Workflow d\'approbation pour les modifications de budget.',
+          subtitleKey: 'userGuide.approval',
+          descriptionKey: 'userGuide.approvalDesc',
         }
       ]
     },
     {
       id: 'mode_emploi',
-      title: 'Mode d\'emploi',
+      titleKey: 'userGuide.userManual',
       icon: Book,
       content: [
         {
-          subtitle: 'Guide interactif',
-          description: 'Ce guide que vous consultez actuellement!',
+          subtitleKey: 'userGuide.interactiveGuide',
+          descriptionKey: 'userGuide.interactiveGuideDesc',
         }
       ]
     },
     {
       id: 'bloc_notes',
-      title: 'Bloc-notes',
+      titleKey: 'userGuide.notepad',
       icon: FileText,
       content: [
         {
-          subtitle: 'To-Do Lists',
-          description: 'Créez et gérez vos listes de tâches personnelles.',
-          steps: [
-            'Créez une nouvelle liste',
-            'Ajoutez des tâches',
-            'Cochez les tâches complétées',
-            'Supprimez les tâches obsolètes'
+          subtitleKey: 'userGuide.todoLists',
+          descriptionKey: 'userGuide.todoListsDesc',
+          stepKeys: [
+            'userGuide.todoStep1',
+            'userGuide.todoStep2',
+            'userGuide.todoStep3',
+            'userGuide.todoStep4'
           ]
         },
         {
-          subtitle: 'Notes',
-          description: 'Prenez des notes libres liées à vos projets.',
+          subtitleKey: 'userGuide.notes',
+          descriptionKey: 'userGuide.notesDesc',
         }
       ]
     }
   ]
 
   const filteredSections = guideSections.filter(section =>
-    section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t(section.titleKey).toLowerCase().includes(searchTerm.toLowerCase()) ||
     section.content.some(c =>
-      c.subtitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchTerm.toLowerCase())
+      t(c.subtitleKey).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t(c.descriptionKey).toLowerCase().includes(searchTerm.toLowerCase())
     )
   )
 
@@ -301,8 +303,8 @@ export default function UserGuide() {
             <Book className="text-blue-600" size={24} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Mode d'emploi</h1>
-            <p className="text-gray-600">Guide complet d'utilisation de la plateforme CERDIA</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('userGuide.title')}</h1>
+            <p className="text-gray-600">{t('userGuide.subtitle')}</p>
           </div>
         </div>
 
@@ -311,7 +313,7 @@ export default function UserGuide() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Rechercher dans le guide..."
+            placeholder={t('userGuide.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -335,7 +337,7 @@ export default function UserGuide() {
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Icon className="text-blue-600" size={20} />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">{section.title}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">{t(section.titleKey)}</h2>
                 </div>
                 {isExpanded ? (
                   <ChevronUp className="text-gray-400" size={24} />
@@ -348,16 +350,16 @@ export default function UserGuide() {
                 <div className="p-6 pt-0 space-y-6 border-t border-gray-100">
                   {section.content.map((item, index) => (
                     <div key={index} className="space-y-3">
-                      <h3 className="text-lg font-semibold text-gray-800">{item.subtitle}</h3>
-                      <p className="text-gray-600 leading-relaxed">{item.description}</p>
-                      {item.steps && (
+                      <h3 className="text-lg font-semibold text-gray-800">{t(item.subtitleKey)}</h3>
+                      <p className="text-gray-600 leading-relaxed">{t(item.descriptionKey)}</p>
+                      {item.stepKeys && (
                         <ul className="space-y-2 mt-3">
-                          {item.steps.map((step, stepIndex) => (
+                          {item.stepKeys.map((stepKey, stepIndex) => (
                             <li key={stepIndex} className="flex items-start gap-2">
                               <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
                                 {stepIndex + 1}
                               </span>
-                              <span className="text-gray-700">{step}</span>
+                              <span className="text-gray-700">{t(stepKey)}</span>
                             </li>
                           ))}
                         </ul>
@@ -373,7 +375,7 @@ export default function UserGuide() {
 
       {filteredSections.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Aucun résultat trouvé pour "{searchTerm}"</p>
+          <p className="text-gray-500 text-lg">{t('userGuide.noResults')} "{searchTerm}"</p>
         </div>
       )}
     </div>

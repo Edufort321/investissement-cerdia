@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { ClipboardList, Plus, Trash2, Check, X, Edit2, Save, FileText, CheckSquare, Square } from 'lucide-react'
 
@@ -33,6 +34,7 @@ interface Note {
 
 export default function NotesManager() {
   const { currentUser } = useAuth()
+  const { t } = useLanguage()
   const [activeView, setActiveView] = useState<'todo' | 'notes'>('todo')
 
   // Todo Lists State
@@ -113,7 +115,7 @@ export default function NotesManager() {
   }
 
   const deleteTodoList = async (listId: string) => {
-    if (!confirm('Supprimer cette liste et toutes ses tâches?')) return
+    if (!confirm(t('notes.confirmDeleteList'))) return
 
     try {
       const { error } = await supabase.from('todo_lists').delete().eq('id', listId)
@@ -254,7 +256,7 @@ export default function NotesManager() {
   }
 
   const deleteNote = async (noteId: string) => {
-    if (!confirm('Supprimer cette note?')) return
+    if (!confirm(t('notes.confirmDeleteNote'))) return
 
     try {
       const { error } = await supabase.from('notes').delete().eq('id', noteId)
@@ -280,8 +282,8 @@ export default function NotesManager() {
             <ClipboardList className="text-purple-600" size={24} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Bloc-notes</h1>
-            <p className="text-gray-600">Gérez vos tâches et notes personnelles</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('notes.title')}</h1>
+            <p className="text-gray-600">{t('userGuide.todoListsDesc')}</p>
           </div>
         </div>
 
@@ -297,7 +299,7 @@ export default function NotesManager() {
           >
             <div className="flex items-center gap-2">
               <CheckSquare size={18} />
-              To-Do Lists
+              {t('notes.todoLists')}
             </div>
           </button>
           <button
@@ -310,7 +312,7 @@ export default function NotesManager() {
           >
             <div className="flex items-center gap-2">
               <FileText size={18} />
-              Notes
+              {t('notes.notes')}
             </div>
           </button>
         </div>
@@ -323,7 +325,7 @@ export default function NotesManager() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Mes listes</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('notes.todoLists')}</h2>
                 <button
                   onClick={() => setShowAddList(true)}
                   className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -338,7 +340,7 @@ export default function NotesManager() {
                     type="text"
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
-                    placeholder="Nom de la liste..."
+                    placeholder={t('notes.listNamePlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     onKeyPress={(e) => e.key === 'Enter' && createTodoList()}
                   />
@@ -348,7 +350,7 @@ export default function NotesManager() {
                       className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     >
                       <Check size={16} className="inline mr-1" />
-                      Créer
+                      {t('notes.createList')}
                     </button>
                     <button
                       onClick={() => {
@@ -377,7 +379,7 @@ export default function NotesManager() {
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{list.name}</h3>
                       <p className="text-sm text-gray-500">
-                        {list.tasks.filter(t => !t.completed).length} / {list.tasks.length} tâches
+                        {list.tasks.filter(t => !t.completed).length} / {list.tasks.length} {t('notes.tasksCompleted')}
                       </p>
                     </div>
                     <button
@@ -395,7 +397,7 @@ export default function NotesManager() {
 
               {todoLists.length === 0 && !showAddList && (
                 <p className="text-center text-gray-500 py-8">
-                  Aucune liste. Cliquez sur + pour créer.
+                  {t('notes.noLists')}
                 </p>
               )}
             </div>
@@ -413,7 +415,7 @@ export default function NotesManager() {
                     type="text"
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Nouvelle tâche..."
+                    placeholder={t('notes.taskPlaceholder')}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     onKeyPress={(e) => e.key === 'Enter' && addTask(selectedList.id)}
                   />
@@ -422,7 +424,7 @@ export default function NotesManager() {
                     className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                   >
                     <Plus size={20} />
-                    Ajouter
+                    {t('notes.add')}
                   </button>
                 </div>
 
@@ -462,7 +464,7 @@ export default function NotesManager() {
 
                 {selectedList.tasks.length === 0 && (
                   <p className="text-center text-gray-500 py-12">
-                    Aucune tâche. Ajoutez-en une ci-dessus!
+                    {t('notes.createFirstList')}
                   </p>
                 )}
 
@@ -470,7 +472,7 @@ export default function NotesManager() {
                 {selectedList.tasks.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Progression</span>
+                      <span className="text-sm font-medium text-gray-700">{t('dashboard.progress')}</span>
                       <span className="text-sm text-gray-600">
                         {selectedList.tasks.filter(t => t.completed).length} / {selectedList.tasks.length}
                       </span>
@@ -489,7 +491,7 @@ export default function NotesManager() {
             ) : (
               <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center">
                 <ClipboardList className="mx-auto text-gray-400 mb-4" size={48} />
-                <p className="text-gray-500">Sélectionnez une liste pour voir ses tâches</p>
+                <p className="text-gray-500">{t('notes.createFirstList')}</p>
               </div>
             )}
           </div>
@@ -503,7 +505,7 @@ export default function NotesManager() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Mes notes</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('notes.notes')}</h2>
                 <button
                   onClick={() => {
                     setIsEditingNote(true)
@@ -544,7 +546,7 @@ export default function NotesManager() {
 
               {notes.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
-                  Aucune note. Cliquez sur + pour créer.
+                  {t('notes.noNotes')}
                 </p>
               )}
             </div>
@@ -559,13 +561,13 @@ export default function NotesManager() {
                     type="text"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    placeholder="Titre de la note..."
+                    placeholder={t('notes.noteTitlePlaceholder')}
                     className="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                   <textarea
                     value={noteContent}
                     onChange={(e) => setNoteContent(e.target.value)}
-                    placeholder="Contenu de la note..."
+                    placeholder={t('notes.noteContentPlaceholder')}
                     rows={15}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   />
@@ -575,7 +577,7 @@ export default function NotesManager() {
                       className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                     >
                       <Save size={20} />
-                      Enregistrer
+                      {t('notes.save')}
                     </button>
                     {selectedNote && (
                       <button
@@ -583,7 +585,7 @@ export default function NotesManager() {
                         className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
                       >
                         <Trash2 size={20} />
-                        Supprimer
+                        {t('notes.delete')}
                       </button>
                     )}
                   </div>
@@ -592,7 +594,7 @@ export default function NotesManager() {
             ) : (
               <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center">
                 <FileText className="mx-auto text-gray-400 mb-4" size={48} />
-                <p className="text-gray-500">Sélectionnez une note ou créez-en une nouvelle</p>
+                <p className="text-gray-500">{t('notes.createFirstNote')}</p>
               </div>
             )}
           </div>
