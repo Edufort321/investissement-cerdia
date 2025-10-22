@@ -36,7 +36,7 @@ export default function Navbar() {
   }, [])
 
   return (
-    <header className={`bg-[#c7c7c7] dark:bg-gray-800 shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
+    <header className={`bg-[#c7c7c7] dark:bg-gray-900 shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
       scrolled ? 'py-1' : 'py-2'
     }`}>
       <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -101,7 +101,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobile && mobileMenuOpen && (
-        <div className="lg:hidden bg-[#c7c7c7] dark:bg-gray-800 border-t border-gray-400 dark:border-gray-700">
+        <div className="lg:hidden bg-[#c7c7c7] dark:bg-gray-900 border-t border-gray-400 dark:border-gray-700">
           <nav className="flex flex-col px-4 py-3 gap-2">
             <button
               onClick={toggleTheme}
