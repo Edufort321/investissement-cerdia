@@ -72,7 +72,7 @@ interface Document {
   investor_id: string | null
 }
 
-type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
+type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation'
 
 interface AdministrationTabProps {
   activeSubTab: SubTabType
@@ -405,6 +405,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       investment_type: 'capital',
       status: 'actif',
       join_date: new Date().toISOString().split('T')[0],
+      can_vote: true,
       access_level: 'investor',
       permissions: {
         dashboard: true,

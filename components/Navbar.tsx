@@ -37,9 +37,9 @@ export default function Navbar() {
     <header className={`bg-[#c7c7c7] shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
       scrolled ? 'py-1' : 'py-2'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-        {/* Logo CERDIA responsive */}
-        <Link href="/" className="flex items-center">
+      <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        {/* Logo CERDIA responsive - toujours à gauche */}
+        <Link href="/" className="flex items-center flex-shrink-0">
           <Image
             src="/logo-cerdia3.png"
             alt="Logo officiel Investissement CERDIA"
@@ -52,8 +52,8 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Navigation Desktop */}
-        <nav className="hidden lg:flex gap-2 items-center">
+        {/* Navigation Desktop - toujours à droite */}
+        <nav className="hidden lg:flex gap-2 items-center flex-shrink-0">
           <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
             <LanguageSwitcher />
           </button>

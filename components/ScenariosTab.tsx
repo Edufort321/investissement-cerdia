@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
@@ -141,7 +142,8 @@ interface VoteStatus {
 
 export default function ScenariosTab() {
   const { t } = useLanguage()
-  const { investors, currentUser } = useInvestment()
+  const { investors } = useInvestment()
+  const { currentUser } = useAuth()
   const supabase = createClientComponentClient()
 
   // État
@@ -159,7 +161,7 @@ export default function ScenariosTab() {
   const [editingActualYear, setEditingActualYear] = useState<number | null>(null)
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [detailTab, setDetailTab] = useState<'overview' | 'bookings'>('overview')
+  const [detailTab, setDetailTab] = useState<'overview' | 'bookings' | 'share'>('overview')
 
   // Formulaire création scénario
   const [formData, setFormData] = useState({
@@ -329,6 +331,7 @@ export default function ScenariosTab() {
       // Réinitialiser le formulaire
       setFormData({
         name: '',
+        main_photo_url: '',
         unit_number: '',
         address: '',
         country: '',

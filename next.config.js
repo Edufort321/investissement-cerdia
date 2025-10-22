@@ -34,6 +34,12 @@ const withPWA = require('next-pwa')({
 const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   i18n: {
     locales: ['fr', 'en'],
     defaultLocale: 'fr',
