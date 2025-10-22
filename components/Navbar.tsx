@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Sun, Moon } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Navbar() {
+  const { isDark, toggleTheme } = useTheme()
   const [scrolled, setScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -34,7 +36,7 @@ export default function Navbar() {
   }, [])
 
   return (
-    <header className={`bg-[#c7c7c7] shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
+    <header className={`bg-[#c7c7c7] dark:bg-gray-800 shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
       scrolled ? 'py-1' : 'py-2'
     }`}>
       <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -54,26 +56,33 @@ export default function Navbar() {
 
         {/* Navigation Desktop - toujours à droite */}
         <nav className="hidden lg:flex gap-2 items-center flex-shrink-0">
-          <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+          <button
+            onClick={toggleTheme}
+            className="bg-[#5e5e5e] dark:bg-gray-700 text-white p-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition"
+            title={isDark ? 'Mode jour' : 'Mode sombre'}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-xs sm:text-sm">
             <LanguageSwitcher />
           </button>
           <Link href="/">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-xs sm:text-sm">
               Accueil
             </button>
           </Link>
           <Link href="/vision-cerdia">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-xs sm:text-sm">
               Vision
             </button>
           </Link>
           <Link href="/connexion">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-xs sm:text-sm">
               Connexion
             </button>
           </Link>
           <Link href="/investir">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-xs sm:text-sm">
               Investir
             </button>
           </Link>
@@ -83,7 +92,7 @@ export default function Navbar() {
         {isMobile && (
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 bg-[#5e5e5e] text-white rounded-full hover:bg-[#3e3e3e] transition"
+            className="lg:hidden p-2 bg-[#5e5e5e] dark:bg-gray-700 text-white rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -92,28 +101,35 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobile && mobileMenuOpen && (
-        <div className="lg:hidden bg-[#c7c7c7] border-t border-gray-400">
+        <div className="lg:hidden bg-[#c7c7c7] dark:bg-gray-800 border-t border-gray-400 dark:border-gray-700">
           <nav className="flex flex-col px-4 py-3 gap-2">
-            <button className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm text-center">
+            <button
+              onClick={toggleTheme}
+              className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm flex items-center justify-center gap-2"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              <span>{isDark ? 'Mode jour' : 'Mode sombre'}</span>
+            </button>
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm text-center">
               <LanguageSwitcher />
             </button>
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+              <button className="w-full bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm">
                 Accueil
               </button>
             </Link>
             <Link href="/vision-cerdia" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+              <button className="w-full bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm">
                 Vision
               </button>
             </Link>
             <Link href="/connexion" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+              <button className="w-full bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm">
                 Connexion
               </button>
             </Link>
             <Link href="/investir" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+              <button className="w-full bg-[#5e5e5e] dark:bg-gray-700 text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition text-sm">
                 Investir
               </button>
             </Link>
