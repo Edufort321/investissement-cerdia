@@ -17,12 +17,14 @@ import PaymentSchedule from '@/components/PaymentSchedule'
 import TreasuryAlerts from '@/components/TreasuryAlerts'
 import ProjectManagementDashboard from '@/components/ProjectManagementDashboard'
 import BudgetDashboard from '@/components/BudgetDashboard'
+import UserGuide from '@/components/UserGuide'
+import NotesManager from '@/components/NotesManager'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'mode_emploi' | 'bloc_notes'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -186,7 +188,7 @@ export default function DashboardPage() {
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden overflow-y-auto`}
       >
-        <div className="p-6">
+        <div className="p-6 pb-6 min-h-full flex flex-col">
           {/* Header Sidebar */}
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-bold">{t('nav.dashboard')}</h2>
@@ -214,7 +216,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Navigation Tabs */}
-          <nav className="space-y-2">
+          <nav className="space-y-2 flex-1">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -367,6 +369,32 @@ export default function DashboardPage() {
                       >
                         Budgétisation
                       </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('mode_emploi')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'mode_emploi'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Mode d'emploi
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('bloc_notes')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'bloc_notes'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Bloc-notes
+                      </button>
                     </div>
                   )}
                 </div>
@@ -375,7 +403,7 @@ export default function DashboardPage() {
           </nav>
 
           {/* Logout Button */}
-          <div className="absolute bottom-6 left-6 right-6">
+          <div className="mt-6 pt-6 border-t border-gray-500">
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-600 hover:bg-red-100 hover:text-red-700 transition-all"
@@ -748,7 +776,9 @@ export default function DashboardPage() {
               {adminSubTab === 'tresorerie' && <TreasuryDashboard />}
               {adminSubTab === 'gestion_projet' && <ProjectManagementDashboard />}
               {adminSubTab === 'budgetisation' && <BudgetDashboard />}
-              {!['tresorerie', 'gestion_projet', 'budgetisation'].includes(adminSubTab) && (
+              {adminSubTab === 'mode_emploi' && <UserGuide />}
+              {adminSubTab === 'bloc_notes' && <NotesManager />}
+              {!['tresorerie', 'gestion_projet', 'budgetisation', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab} />
               )}
             </>

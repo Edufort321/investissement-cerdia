@@ -72,7 +72,7 @@ interface Document {
   investor_id: string | null
 }
 
-type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation'
+type SubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'mode_emploi' | 'bloc_notes'
 
 interface AdministrationTabProps {
   activeSubTab: SubTabType
