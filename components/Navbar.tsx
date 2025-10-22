@@ -71,6 +71,11 @@ export default function Navbar() {
               Accueil
             </button>
           </Link>
+          <Link href="/investir">
+            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+              Investir
+            </button>
+          </Link>
           <Link href="/vision-cerdia">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
               Vision
@@ -79,11 +84,6 @@ export default function Navbar() {
           <Link href="/connexion">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
               Connexion
-            </button>
-          </Link>
-          <Link href="/investir">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Investir
             </button>
           </Link>
         </nav>
@@ -118,6 +118,11 @@ export default function Navbar() {
                 Accueil
               </button>
             </Link>
+            <Link href="/investir" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+                Investir
+              </button>
+            </Link>
             <Link href="/vision-cerdia" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
                 Vision
@@ -126,11 +131,6 @@ export default function Navbar() {
             <Link href="/connexion" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
                 Connexion
-              </button>
-            </Link>
-            <Link href="/investir" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
-                Investir
               </button>
             </Link>
           </nav>
