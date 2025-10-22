@@ -1,92 +1,155 @@
 'use client'
 
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { TrendingUp, Shield, Users, ArrowRight, Clock, DollarSign } from 'lucide-react'
 
 export default function PageInvestir() {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr')
+  const { t } = useLanguage()
 
-  const t = {
-    fr: {
-      titre: "💼 Rejoindre l’investissement CERDIA",
-      intro: "Investissement CERDIA ouvre ses portes à une sélection restreinte d’investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l’intelligence artificielle, avec une rentabilité durable à long terme.",
-      p1: "L’entrée dans notre programme d’investissement est conditionnelle à une entrevue avec l’un des fondateurs. Seuls les candidats alignés avec notre vision stratégique et notre rigueur à long terme seront invités à participer.",
-      p2: "L’investissement minimum est de 25 000 $, avec un engagement de 5 ans minimum. Aucun frais de retrait anticipé ne sera permis. Notre approche est conçue pour maximiser la valeur à long terme et la stabilité du capital.",
-      p3: "Chaque investisseur admis bénéficiera d’un accès privilégié aux unités CERDIA, d’un suivi personnalisé, et d’un partage stratégique de la croissance.",
-      bouton: "Devenir investisseur"
+  const features = [
+    {
+      icon: DollarSign,
+      titleKey: 'invest.minInvest',
+      value: '25,000 $',
+      color: 'bg-blue-100 text-blue-600'
     },
-    en: {
-      titre: "💼 Join the CERDIA Investment Program",
-      intro: "Investissement CERDIA is opening its doors to a selective group of investors. Our mission: to build an international rental real estate portfolio powered by AI, with sustainable long-term returns.",
-      p1: "Entry into our investment program is subject to an interview with one of the founders. Only candidates aligned with our strategic vision and long-term discipline will be invited to participate.",
-      p2: "The minimum investment is $25,000, with a minimum commitment of 5 years. Early withdrawals are not permitted. Our approach is designed to maximize long-term value and capital stability.",
-      p3: "Approved investors will benefit from privileged access to CERDIA units, personalized support, and strategic growth sharing.",
-      bouton: "Become an investor"
+    {
+      icon: Clock,
+      titleKey: 'invest.commitment',
+      value: `5 ${t('invest.years')}`,
+      color: 'bg-purple-100 text-purple-600'
+    },
+    {
+      icon: TrendingUp,
+      titleKey: 'invest.returns',
+      value: '10-15%',
+      color: 'bg-green-100 text-green-600'
     }
-  }
-
-  const tr = t[lang]
+  ]
 
   return (
-    <div className="max-w-5xl mx-auto px-6 pt-24 pb-12">
-      {/* Sélecteur de langue uniforme */}
-      <div className="flex justify-end mb-6">
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value as 'fr' | 'en')}
-          className="border px-3 py-1 rounded-md shadow text-sm"
-        >
-          <option value="fr">🇨🇦 Français</option>
-          <option value="en">🇺🇸 English</option>
-        </select>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-12">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+            <Shield size={16} />
+            <span>Programme d'investissement exclusif</span>
+          </div>
 
-      {/* Titre */}
-      <h1 className="text-3xl md:text-4xl font-bold text-center text-blue-900 mb-4">
-        {tr.titre}
-      </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+            {t('invest.title')}
+          </h1>
 
-      {/* Intro */}
-      <p className="text-center text-gray-700 mb-8">{tr.intro}</p>
-
-      {/* Images */}
-      <div className="grid md:grid-cols-2 gap-8 mb-10">
-        <div className="border rounded-lg overflow-hidden">
-          <Image
-            src="/images/secret-garden.jpg"
-            alt="Secret Garden"
-            width={800}
-            height={500}
-            className="w-full h-56 object-cover"
-          />
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            {t('invest.intro')}
+          </p>
         </div>
-        <div className="border rounded-lg overflow-hidden">
-          <Image
-            src="/images/oasis-bay.jpg"
-            alt="Oasis Bay"
-            width={800}
-            height={500}
-            className="w-full h-56 object-cover"
-          />
+
+        {/* Features Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {features.map((feature, index) => {
+            const Icon = feature.icon
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+              >
+                <div className={`w-12 h-12 rounded-lg ${feature.color} flex items-center justify-center mb-4`}>
+                  <Icon size={24} />
+                </div>
+                <h3 className="text-sm font-medium text-gray-600 mb-2">
+                  {t(feature.titleKey)}
+                </h3>
+                <p className="text-2xl font-bold text-gray-900">{feature.value}</p>
+              </div>
+            )
+          })}
         </div>
-      </div>
 
-      {/* Paragraphes */}
-      <div className="text-gray-800 space-y-4 text-justify">
-        <p>{tr.p1}</p>
-        <p>{tr.p2}</p>
-        <p>{tr.p3}</p>
-      </div>
+        {/* Images Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="relative group overflow-hidden rounded-2xl shadow-lg">
+            <Image
+              src="/images/secret-garden.jpg"
+              alt="Secret Garden"
+              width={800}
+              height={500}
+              className="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+              <h3 className="text-white font-semibold text-xl">Secret Garden</h3>
+              <p className="text-white/90 text-sm">République Dominicaine</p>
+            </div>
+          </div>
 
-      {/* Bouton */}
-      <div className="text-center mt-10">
-        <Link
-          href="/investir/candidature"
-          className="bg-blue-700 text-white px-6 py-3 rounded hover:bg-blue-800"
-        >
-          {tr.bouton}
-        </Link>
+          <div className="relative group overflow-hidden rounded-2xl shadow-lg">
+            <Image
+              src="/images/oasis-bay.jpg"
+              alt="Oasis Bay"
+              width={800}
+              height={500}
+              className="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+              <h3 className="text-white font-semibold text-xl">Oasis Bay</h3>
+              <p className="text-white/90 text-sm">République Dominicaine</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 border border-gray-200 mb-12">
+            <div className="space-y-6 text-gray-700 leading-relaxed">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">
+                    1
+                  </div>
+                </div>
+                <p className="text-lg">{t('invest.p1')}</p>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">
+                    2
+                  </div>
+                </div>
+                <p className="text-lg">{t('invest.p2')}</p>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">
+                    3
+                  </div>
+                </div>
+                <p className="text-lg">{t('invest.p3')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="text-center">
+            <Link
+              href="/investir/candidature"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl text-lg font-semibold"
+            >
+              <Users size={24} />
+              {t('invest.button')}
+              <ArrowRight size={20} />
+            </Link>
+
+            <p className="mt-6 text-sm text-gray-500">
+              Processus de sélection rigoureux • Opportunités limitées
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

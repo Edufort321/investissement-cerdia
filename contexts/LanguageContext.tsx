@@ -671,6 +671,37 @@ const translations = {
     'notes.createdOn': 'Créée le',
     'notes.updatedOn': 'Modifiée le',
     'notes.edit': 'Modifier',
+
+    // Investir Page
+    'invest.title': 'Rejoindre l\'investissement CERDIA',
+    'invest.intro': 'Investissement CERDIA ouvre ses portes à une sélection restreinte d\'investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l\'intelligence artificielle, avec une rentabilité durable à long terme.',
+    'invest.p1': 'L\'entrée dans notre programme d\'investissement est conditionnelle à une entrevue avec l\'un des fondateurs. Seuls les candidats alignés avec notre vision stratégique et notre rigueur à long terme seront invités à participer.',
+    'invest.p2': 'L\'investissement minimum est de 25 000 $, avec un engagement de 5 ans minimum. Aucun frais de retrait anticipé ne sera permis. Notre approche est conçue pour maximiser la valeur à long terme et la stabilité du capital.',
+    'invest.p3': 'Chaque investisseur admis bénéficiera d\'un accès privilégié aux unités CERDIA, d\'un suivi personnalisé, et d\'un partage stratégique de la croissance.',
+    'invest.button': 'Devenir investisseur',
+    'invest.minInvest': 'Investissement minimum',
+    'invest.commitment': 'Engagement minimum',
+    'invest.returns': 'Rendement attendu',
+    'invest.years': 'ans',
+
+    // Vision Page
+    'vision.title': 'Vision stratégique CERDIA – 2025 à 2045',
+    'vision.intro': 'Notre vision est simple : bâtir un portefeuille immobilier international intelligent, autofinancé, et hautement rentable, propulsé par une IA propriétaire.',
+    'vision.currentTitle': 'Situation actuelle (mai 2025)',
+    'vision.currentText': 'Trois unités de qualité touristique déjà sécurisées en République dominicaine (Oasis Bay et Secret Garden), pour une valeur totale de 700 000 $ CAD. Aucun financement bancaire – 100 % capital injecté par les fondateurs. Revenus locatifs nets attendus : 80 000 $ CAD/an.',
+    'vision.objective2045Title': 'Objectif 2045',
+    'vision.objective2045Text': 'Atteindre une capitalisation nette entre 12 et 18 millions CAD, grâce à 15 à 25 unités locatives détenues à 100 %, générant un revenu locatif net annuel de plus de 500 000 $ CAD. Aucune dette toxique. Rotation intelligente des actifs. IA autonome (CERDIAIA) à l\'horizon 2030.',
+    'vision.aiTitle': 'Intelligence Artificielle',
+    'vision.aiText': 'CERDIAIA sera intégrée à chaque étape : tarification, gestion, entretien, rapports automatisés, alertes marché, signature de contrats, tableaux IA présidentiels. Objectif : IA autonome complète dès 2030.',
+    'vision.ecommerceTitle': 'Commerce électronique',
+    'vision.ecommerceText': 'Dès 2025, lancement de CERDIA Commerce inc. – produits de voyage professionnels (Amazon FBA). Tous les bénéfices sont réinjectés dans le portefeuille immobilier, assurant une double source de croissance.',
+    'vision.tokenTitle': 'Jeton Allcoin intelligent',
+    'vision.tokenText': 'Jeton numérique hybride avec 3 fonctions : dividendes intelligents, utilité dans l\'écosystème (accès privilégié, location, services), et droit de conversion en actions selon des critères définis. Objectif : accès contrôlé à la propriété intelligente.',
+    'vision.taxTitle': 'Fiscalité optimisée',
+    'vision.taxText': 'Sociétés déclarées dans chaque juridiction (Québec, RD, Mexique). Déclarations légales, utilisation de crédits d\'impôt pour éviter la double imposition. Réinvestissement structuré via conventions intercompagnies.',
+    'vision.projectionsTitle': 'Projections financières (résumé)',
+    'vision.projectionsText': 'De 2025 à 2045 : croissance stable, disciplinée. 10 à 15 unités d\'ici 2035. Objectif net : 250 000 $ à 650 000 $ de revenu locatif net annuel. Option de sortie : revente globale à un fonds privé ou transformation en société de rendement.',
+    'vision.footer': 'Cette vision est un plan réel et discipliné, conçu pour bâtir une richesse durable, avec un contrôle complet par la direction CERDIA.',
   },
   en: {
     // Navigation
@@ -1332,6 +1363,37 @@ const translations = {
     'notes.createdOn': 'Created on',
     'notes.updatedOn': 'Updated on',
     'notes.edit': 'Edit',
+
+    // Investir Page
+    'invest.title': 'Join the CERDIA Investment Program',
+    'invest.intro': 'Investissement CERDIA is opening its doors to a selective group of investors. Our mission: to build an international rental real estate portfolio powered by AI, with sustainable long-term returns.',
+    'invest.p1': 'Entry into our investment program is subject to an interview with one of the founders. Only candidates aligned with our strategic vision and long-term discipline will be invited to participate.',
+    'invest.p2': 'The minimum investment is $25,000, with a minimum commitment of 5 years. Early withdrawals are not permitted. Our approach is designed to maximize long-term value and capital stability.',
+    'invest.p3': 'Approved investors will benefit from privileged access to CERDIA units, personalized support, and strategic growth sharing.',
+    'invest.button': 'Become an investor',
+    'invest.minInvest': 'Minimum Investment',
+    'invest.commitment': 'Minimum Commitment',
+    'invest.returns': 'Expected Returns',
+    'invest.years': 'years',
+
+    // Vision Page
+    'vision.title': 'CERDIA Strategic Vision – 2025 to 2045',
+    'vision.intro': 'Our vision is simple: build a self-financed, high-performance international real estate portfolio powered by proprietary AI.',
+    'vision.currentTitle': 'Current Status (May 2025)',
+    'vision.currentText': 'Three tourism-grade units already secured in the Dominican Republic (Oasis Bay and Secret Garden), worth $700,000 CAD. Fully founder-financed. Net rental revenues expected: $80,000 CAD/year.',
+    'vision.objective2045Title': '2045 Objective',
+    'vision.objective2045Text': 'Reach a net capitalization of $12–18M CAD, with 15–25 fully owned rental units generating $500,000+ CAD in annual net income. No toxic debt. Smart asset rotation. Fully autonomous AI (CERDIAIA) by 2030.',
+    'vision.aiTitle': 'Artificial Intelligence',
+    'vision.aiText': 'CERDIAIA will power all management, pricing, maintenance, reporting, contract automation, and real-time market alerts. Target: full autonomy by 2030.',
+    'vision.ecommerceTitle': 'eCommerce Strategy',
+    'vision.ecommerceText': 'CERDIA Commerce inc. launches in 2025 with professional travel gear (Amazon FBA). All net profits are reinvested into real estate to ensure dual growth.',
+    'vision.tokenTitle': 'Allcoin Smart Token',
+    'vision.tokenText': 'A hybrid digital token offering 3 features: smart dividends, ecosystem utility (privileged access, rentals, services), and equity conversion rights. Goal: controlled access to smart ownership.',
+    'vision.taxTitle': 'Tax Optimization',
+    'vision.taxText': 'Legally registered companies in each jurisdiction (Quebec, DR, Mexico). Income declared locally with credit optimization to prevent double taxation. Structured reinvestment via intercompany agreements.',
+    'vision.projectionsTitle': 'Financial Projections (Summary)',
+    'vision.projectionsText': 'From 2025 to 2045: disciplined growth. 10 to 15 units by 2035. Net target: $250,000 to $650,000 CAD annually. Exit option: full sale to a private fund or transformation into a yield company.',
+    'vision.footer': 'This vision is real, structured, and designed for long-term wealth with full strategic control by CERDIA leadership.',
   }
 }
 
