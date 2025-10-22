@@ -47,30 +47,30 @@ export default function Home() {
   const tr = t[language]
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
         {/* HERO SECTION */}
         <section className="max-w-6xl mx-auto px-6 py-16 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-[#2a2a2a] font-serif mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 font-serif mb-6 leading-tight">
             {tr.title}
           </h1>
-          <p className="text-lg text-[#444] max-w-3xl mx-auto mb-8">
+          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-8">
             {tr.subtitle}
           </p>
           <Link href="/investir">
-            <button className="bg-[#5e5e5e] text-white px-6 py-3 rounded-full text-lg hover:bg-[#3e3e3e] transition">
+            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-6 py-3 rounded-full text-lg hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition">
               {tr.button}
             </button>
           </Link>
         </section>
 
         {/* VISION STRATÉGIQUE SECTION */}
-        <section className="bg-white py-12 px-6 text-center max-w-4xl mx-auto">
-          <h2 className="text-3xl font-semibold text-[#2a2a2a] mb-4">{tr.visionTitle}</h2>
-          <p className="text-[#444] text-lg mb-6">
+        <section className="bg-white dark:bg-gray-800 py-12 px-6 text-center max-w-4xl mx-auto rounded-2xl shadow-md">
+          <h2 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{tr.visionTitle}</h2>
+          <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">
             {tr.visionDesc}
           </p>
           <Link href="/vision-cerdia">
-            <button className="text-black underline hover:text-[#222] font-medium text-sm">
+            <button className="text-gray-900 dark:text-gray-100 underline hover:text-gray-700 dark:hover:text-gray-300 font-medium text-sm">
               {tr.visionCTA} →
             </button>
           </Link>
@@ -79,7 +79,7 @@ export default function Home() {
         {/* IMMOBILIER SECTION - Image + Text */}
         <section className="max-w-7xl mx-auto px-6 py-16">
           <Link href="/immobilier" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
               {/* Image */}
               <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden">
                 <Image
@@ -92,13 +92,13 @@ export default function Home() {
               </div>
               {/* Texte */}
               <div className="p-8 md:p-12">
-                <h2 className="text-3xl md:text-4xl font-bold text-[#2a2a2a] mb-4 font-serif">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
                   {tr.immobilierTitle}
                 </h2>
-                <p className="text-lg text-[#444] mb-6 leading-relaxed">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
                   {tr.immobilierDesc}
                 </p>
-                <span className="inline-flex items-center gap-2 text-[#5e5e5e] font-semibold group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
                   {tr.immobilierCTA}
                   <span className="text-xl">→</span>
                 </span>
@@ -110,16 +110,16 @@ export default function Home() {
         {/* LOCATION SECTION - Text + Image (inversé) */}
         <section className="max-w-7xl mx-auto px-6 py-16">
           <Link href="/location" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
               {/* Texte (à gauche sur desktop) */}
               <div className="p-8 md:p-12 order-2 md:order-1">
-                <h2 className="text-3xl md:text-4xl font-bold text-[#2a2a2a] mb-4 font-serif">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
                   {tr.locationTitle}
                 </h2>
-                <p className="text-lg text-[#444] mb-6 leading-relaxed">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
                   {tr.locationDesc}
                 </p>
-                <span className="inline-flex items-center gap-2 text-[#5e5e5e] font-semibold group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
                   {tr.locationCTA}
                   <span className="text-xl">→</span>
                 </span>
@@ -138,7 +138,7 @@ export default function Home() {
         </section>
 
         {/* FOOTER */}
-        <footer className="bg-black text-white py-6 mt-16">
+        <footer className="bg-gray-900 dark:bg-black text-white py-6 mt-16">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
             <p>&copy; 2025 Investissement CERDIA. {tr.footer}</p>
             <p>{tr.powered}</p>
