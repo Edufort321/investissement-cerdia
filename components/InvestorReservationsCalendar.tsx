@@ -9,6 +9,10 @@ interface Scenario {
   name: string
   unit_number: string
   status: string
+  owner_occupation_days: number
+  management_company_name?: string
+  management_company_contact?: string
+  management_company_email?: string
 }
 
 interface Investor {
@@ -26,6 +30,24 @@ interface Reservation {
   end_date: string
   status: 'confirmed' | 'cancelled' | 'pending'
   notes?: string
+  type?: 'owner' | 'commercial' // Type de réservation
+}
+
+interface CommercialBooking {
+  id: string
+  scenario_id: string
+  guest_name: string
+  start_date: string
+  end_date: string
+  status: string
+}
+
+interface InvestorQuota {
+  investor_id: string
+  investor_name: string
+  total_days_entitled: number
+  total_days_used: number
+  total_days_remaining: number
 }
 
 interface ApiConfig {
@@ -43,6 +65,8 @@ export default function InvestorReservationsCalendar() {
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [investors, setInvestors] = useState<Investor[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [commercialBookings, setCommercialBookings] = useState<CommercialBooking[]>([])
+  const [investorQuotas, setInvestorQuotas] = useState<InvestorQuota[]>([])
   const [filteredScenarios, setFilteredScenarios] = useState<Scenario[]>([])
   const [searchFilter, setSearchFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -51,6 +75,7 @@ export default function InvestorReservationsCalendar() {
   const [isLoading, setIsLoading] = useState(true)
   const [showReservationModal, setShowReservationModal] = useState(false)
   const [showApiConfig, setShowApiConfig] = useState(false)
+  const [showQuotaInfo, setShowQuotaInfo] = useState(false)
   const [selectedCell, setSelectedCell] = useState<{ scenarioId: string, date: Date } | null>(null)
   const [selectedScenarioForApi, setSelectedScenarioForApi] = useState<string | null>(null)
   const [selectedInvestor, setSelectedInvestor] = useState('')
@@ -79,7 +104,7 @@ export default function InvestorReservationsCalendar() {
       // Charger les scénarios (projets purchased uniquement)
       const { data: scenariosData, error: scenariosError } = await supabase
         .from('scenarios')
-        .select('id, name, unit_number, status')
+        .select('id, name, unit_number, status, owner_occupation_days, management_company_name, management_company_contact, management_company_email')
         .eq('status', 'purchased')
         .order('name', { ascending: true })
 
@@ -95,8 +120,14 @@ export default function InvestorReservationsCalendar() {
       if (investorsError) throw investorsError
       setInvestors(investorsData || [])
 
-      // Charger les réservations
+      // Charger les réservations investisseurs
       await loadReservations()
+
+      // Charger les bookings commerciaux
+      await loadCommercialBookings()
+
+      // Charger les quotas investisseurs
+      await loadInvestorQuotas()
 
     } catch (error) {
       console.error('Error loading data:', error)
@@ -128,6 +159,33 @@ export default function InvestorReservationsCalendar() {
     }
   }
 
+  const loadCommercialBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('scenario_bookings')
+        .select('id, scenario_id, guest_name, start_date, end_date, status')
+        .in('status', ['confirmed', 'completed'])
+
+      if (error) throw error
+      setCommercialBookings(data || [])
+    } catch (error) {
+      console.error('Error loading commercial bookings:', error)
+    }
+  }
+
+  const loadInvestorQuotas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('investor_total_rights')
+        .select('*')
+
+      if (error) throw error
+      setInvestorQuotas(data || [])
+    } catch (error) {
+      console.error('Error loading investor quotas:', error)
+    }
+  }
+
   const applyFilters = () => {
     let filtered = [...scenarios]
 
@@ -150,10 +208,14 @@ export default function InvestorReservationsCalendar() {
     const existing = getReservationForDate(scenarioId, date)
 
     if (existing) {
-      // Supprimer la réservation existante
-      handleDeleteReservation(existing.id!)
+      // Ne permettre la suppression que des réservations d'investisseurs
+      if (existing.type === 'owner') {
+        handleDeleteReservation(existing.data.id!)
+      } else {
+        alert('Les réservations commerciales ne peuvent pas être modifiées depuis ce calendrier')
+      }
     } else {
-      // Ouvrir modal pour créer nouvelle réservation
+      // Ouvrir modal pour créer nouvelle réservation investisseur
       setSelectedCell({ scenarioId, date })
       setShowReservationModal(true)
     }
@@ -163,23 +225,56 @@ export default function InvestorReservationsCalendar() {
     if (!selectedCell || !selectedInvestor) return
 
     try {
+      const dateStr = selectedCell.date.toISOString().split('T')[0]
+
+      // Vérifier les quotas avant de créer la réservation
+      const { data: quotaCheck, error: quotaError } = await supabase
+        .rpc('check_investor_can_reserve', {
+          p_investor_id: selectedInvestor,
+          p_scenario_id: selectedCell.scenarioId,
+          p_start_date: dateStr,
+          p_end_date: dateStr
+        })
+
+      if (quotaError) {
+        console.error('Error checking quota:', quotaError)
+        alert('Erreur lors de la vérification des quotas')
+        return
+      }
+
+      // Vérifier si la réservation est autorisée
+      if (quotaCheck && quotaCheck.length > 0) {
+        const check = quotaCheck[0]
+
+        if (!check.can_reserve) {
+          alert(`❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants (cette unité): ${check.days_available_unit}\nJours restants (total): ${check.days_available_total}`)
+          return
+        }
+      }
+
+      // Si tout est OK, créer la réservation
       const { error } = await supabase
         .from('investor_reservations')
         .insert([{
           scenario_id: selectedCell.scenarioId,
           investor_id: selectedInvestor,
-          start_date: selectedCell.date.toISOString().split('T')[0],
-          end_date: selectedCell.date.toISOString().split('T')[0],
+          start_date: dateStr,
+          end_date: dateStr,
           status: 'confirmed',
           reserved_by: selectedInvestor
         }])
 
       if (error) throw error
 
+      // Recharger les données
       await loadReservations()
+      await loadInvestorQuotas()
+
       setShowReservationModal(false)
       setSelectedInvestor('')
       setSelectedCell(null)
+
+      alert('✅ Réservation confirmée!')
     } catch (error) {
       console.error('Error creating reservation:', error)
       alert('Erreur lors de la réservation')
@@ -196,19 +291,41 @@ export default function InvestorReservationsCalendar() {
         .eq('id', reservationId)
 
       if (error) throw error
+
+      // Recharger les données
       await loadReservations()
+      await loadInvestorQuotas()
     } catch (error) {
       console.error('Error deleting reservation:', error)
     }
   }
 
-  const getReservationForDate = (scenarioId: string, date: Date) => {
+  const getReservationForDate = (scenarioId: string, date: Date): { type: 'owner' | 'commercial', data: any } | null => {
     const dateStr = date.toISOString().split('T')[0]
-    return reservations.find(r =>
+
+    // Vérifier d'abord les réservations d'investisseurs (priorité)
+    const ownerReservation = reservations.find(r =>
       r.scenario_id === scenarioId &&
       r.start_date <= dateStr &&
       r.end_date >= dateStr
     )
+
+    if (ownerReservation) {
+      return { type: 'owner', data: ownerReservation }
+    }
+
+    // Sinon vérifier les bookings commerciaux
+    const commercialBooking = commercialBookings.find(b =>
+      b.scenario_id === scenarioId &&
+      b.start_date <= dateStr &&
+      b.end_date >= dateStr
+    )
+
+    if (commercialBooking) {
+      return { type: 'commercial', data: commercialBooking }
+    }
+
+    return null
   }
 
   const getDaysInMonth = () => {
@@ -306,8 +423,81 @@ export default function InvestorReservationsCalendar() {
             <Settings size={16} />
             Config API
           </button>
+
+          <button
+            onClick={() => setShowQuotaInfo(!showQuotaInfo)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Calendar size={16} />
+            {showQuotaInfo ? 'Masquer quotas' : 'Voir quotas'}
+          </button>
         </div>
       </div>
+
+      {/* Panel des quotas investisseurs */}
+      {showQuotaInfo && investorQuotas.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Quotas d'occupation par investisseur ({currentYear})</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Investisseur</th>
+                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours autorisés</th>
+                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours utilisés</th>
+                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours restants</th>
+                  <th className="p-3 text-center text-sm font-semibold text-gray-700">% utilisation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {investorQuotas.map((quota) => {
+                  const utilisationPct = quota.total_days_entitled > 0
+                    ? Math.round((quota.total_days_used / quota.total_days_entitled) * 100)
+                    : 0
+
+                  let statusColor = 'text-green-600'
+                  if (utilisationPct > 80) statusColor = 'text-red-600'
+                  else if (utilisationPct > 50) statusColor = 'text-orange-600'
+
+                  return (
+                    <tr key={quota.investor_id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 font-medium text-gray-900">{quota.investor_name}</td>
+                      <td className="p-3 text-center text-gray-700">{Math.round(quota.total_days_entitled)} jours</td>
+                      <td className="p-3 text-center text-gray-700">{quota.total_days_used} jours</td>
+                      <td className={`p-3 text-center font-semibold ${statusColor}`}>
+                        {Math.round(quota.total_days_remaining)} jours
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${
+                                utilisationPct > 80 ? 'bg-red-600' :
+                                utilisationPct > 50 ? 'bg-orange-600' :
+                                'bg-green-600'
+                              }`}
+                              style={{ width: `${Math.min(utilisationPct, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className={`text-sm font-medium ${statusColor}`}>
+                            {utilisationPct}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Les jours autorisés sont calculés selon le % de parts dans chaque projet.
+              Le quota maximum par unité doit être respecté.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation mois */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
@@ -393,19 +583,35 @@ export default function InvestorReservationsCalendar() {
                       const reservation = getReservationForDate(scenario.id, date)
                       const isWeekend = date.getDay() === 0 || date.getDay() === 6
 
+                      let bgColor = isWeekend ? 'bg-gray-50' : 'bg-white'
+                      let title = 'Cliquer pour réserver'
+                      let displayText = ''
+
+                      if (reservation) {
+                        if (reservation.type === 'owner') {
+                          // Réservation investisseur - couleur par investisseur
+                          bgColor = getInvestorColor(reservation.data.investor_id)
+                          title = `Réservé par ${reservation.data.investor_name} (usage personnel)`
+                          displayText = reservation.data.investor_name?.split(' ')[0] || ''
+                        } else {
+                          // Booking commercial - vert uniforme
+                          bgColor = 'bg-green-100 border-green-300'
+                          title = `Réservé (commercial): ${reservation.data.guest_name}`
+                          displayText = 'COM'
+                        }
+                      }
+
                       return (
                         <td
                           key={day}
                           onClick={() => handleCellClick(scenario.id, day)}
-                          className={`p-0 border border-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${
-                            isWeekend ? 'bg-gray-50' : 'bg-white'
-                          } ${reservation ? getInvestorColor(reservation.investor_id) : ''}`}
-                          title={reservation ? `Réservé par ${reservation.investor_name}` : 'Cliquer pour réserver'}
+                          className={`p-0 border border-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${bgColor}`}
+                          title={title}
                         >
                           <div className="w-full h-10 flex items-center justify-center">
-                            {reservation && (
+                            {displayText && (
                               <span className="text-xs font-medium truncate px-1">
-                                {reservation.investor_name?.split(' ')[0]}
+                                {displayText}
                               </span>
                             )}
                           </div>

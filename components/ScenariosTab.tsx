@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { DropZone } from './DropZone'
 import { BookingsCalendar } from './BookingsCalendar'
+import OccupationStats from './OccupationStats'
+import ShareLinkManager from './ShareLinkManager'
 
 // Types
 interface Scenario {
@@ -1738,6 +1740,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 Calendrier de bookings
               </button>
             )}
+            <button
+              onClick={() => setDetailTab('share')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                detailTab === 'share'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Partager
+            </button>
           </div>
         </div>
 
@@ -2966,14 +2978,36 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Contenu de l'onglet Bookings */}
         {detailTab === 'bookings' && selectedScenario.status === 'purchased' && (
-          <BookingsCalendar
-            scenarioId={selectedScenario.id}
-            currency={selectedScenario.promoter_data.rent_currency}
-            defaultNightlyRate={selectedScenario.promoter_data.rent_type === 'nightly'
-              ? selectedScenario.promoter_data.monthly_rent
-              : Math.round(selectedScenario.promoter_data.monthly_rent / 30)
-            }
-          />
+          <div className="space-y-6">
+            {/* Stats d'occupation */}
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <OccupationStats
+                type="project"
+                id={selectedScenario.id}
+                showDetails={true}
+              />
+            </div>
+
+            {/* Calendrier de bookings */}
+            <BookingsCalendar
+              scenarioId={selectedScenario.id}
+              currency={selectedScenario.promoter_data.rent_currency}
+              defaultNightlyRate={selectedScenario.promoter_data.rent_type === 'nightly'
+                ? selectedScenario.promoter_data.monthly_rent
+                : Math.round(selectedScenario.promoter_data.monthly_rent / 30)
+              }
+            />
+          </div>
+        )}
+
+        {/* Contenu de l'onglet Partage */}
+        {detailTab === 'share' && (
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <ShareLinkManager
+              scenarioId={selectedScenario.id}
+              scenarioName={selectedScenario.name}
+            />
+          </div>
         )}
 
         {/* Section de vote */}

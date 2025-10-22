@@ -66,15 +66,15 @@ COMMENT ON COLUMN scenario_actual_values.notes IS 'Notes et commentaires pour ce
 DO $$
 BEGIN
   RAISE NOTICE '✅ SCRIPT 27: SUIVI VALEURS RÉELLES CRÉÉ';
-  RAISE NOTICE '';
+  RAISE NOTICE ' ';
   RAISE NOTICE 'Table créée:';
   RAISE NOTICE '  - scenario_actual_values: Valeurs réelles par année';
-  RAISE NOTICE '';
+  RAISE NOTICE ' ';
   RAISE NOTICE 'Fonctionnalités:';
   RAISE NOTICE '  - Stockage valeurs réelles année par année';
   RAISE NOTICE '  - Comparaison avec projections du scénario';
   RAISE NOTICE '  - Contrainte unique par scénario/année';
   RAISE NOTICE '  - Trigger auto-update de updated_at';
-  RAISE NOTICE '';
+  RAISE NOTICE ' ';
   RAISE NOTICE '✓ Prêt pour saisie valeurs réelles vs projections';
 END $$;

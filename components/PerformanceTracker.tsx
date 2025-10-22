@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import OccupationStats from './OccupationStats'
 
 interface PropertyPerformance {
   property_id: string
@@ -30,6 +31,7 @@ export default function PerformanceTracker() {
   const [performances, setPerformances] = useState<PropertyPerformance[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [expandedOccupation, setExpandedOccupation] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPerformances()
@@ -311,8 +313,33 @@ export default function PerformanceTracker() {
                     </div>
                   )}
 
+                  {/* Occupation Stats Section */}
+                  <div className="pt-2 sm:pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => setExpandedOccupation(expandedOccupation === perf.property_id ? null : perf.property_id)}
+                      className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <span>{language === 'fr' ? 'Taux d\'occupation' : 'Occupation Rates'}</span>
+                      {expandedOccupation === perf.property_id ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
+                    </button>
+
+                    {expandedOccupation === perf.property_id && (
+                      <div className="mt-3">
+                        <OccupationStats
+                          type="project"
+                          id={perf.property_id}
+                          showDetails={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   {/* Time Info */}
-                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1 min-w-0">
+                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1 min-w-0 pt-2">
                     <Clock size={10} className="sm:w-3 sm:h-3 flex-shrink-0" />
                     <span className="truncate min-w-0">
                       {Math.floor(perf.months_since_reservation)} {language === 'fr' ? 'mois' : 'months'}

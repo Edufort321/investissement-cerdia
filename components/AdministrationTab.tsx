@@ -8,6 +8,8 @@ import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, Trending
 import TransactionAttachments from './TransactionAttachments'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
+import OccupationStats from './OccupationStats'
+import BookingRevenueSync from './BookingRevenueSync'
 
 interface InvestorFormData {
   user_id: string
@@ -110,6 +112,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState(false)
   const [expandedInvestorHistory, setExpandedInvestorHistory] = useState<string | null>(null)
+  const [expandedOccupationStats, setExpandedOccupationStats] = useState<string | null>(null)
 
   // Share settings state
   const [editingNominalValue, setEditingNominalValue] = useState(false)
@@ -1108,6 +1111,31 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           Aucun investissement enregistré
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Occupation Stats Section */}
+                <div className="pt-2 sm:pt-3 border-t border-gray-100 mt-2 sm:mt-3">
+                  <button
+                    onClick={() => setExpandedOccupationStats(expandedOccupationStats === investor.id ? null : investor.id)}
+                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <span>Taux d'occupation personnel</span>
+                    {expandedOccupationStats === investor.id ? (
+                      <ChevronUp size={16} />
+                    ) : (
+                      <ChevronDown size={16} />
+                    )}
+                  </button>
+
+                  {expandedOccupationStats === investor.id && (
+                    <div className="mt-3">
+                      <OccupationStats
+                        type="investor"
+                        id={investor.id}
+                        showDetails={false}
+                      />
                     </div>
                   )}
                 </div>
@@ -2393,6 +2421,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {activeSubTab === 'rd_dividendes' && renderRdDividendesTab()}
       {activeSubTab === 'rapports_fiscaux' && <TaxReports />}
       {activeSubTab === 'performance' && <PerformanceTracker />}
+      {activeSubTab === 'sync_revenues' && <BookingRevenueSync />}
     </div>
   )
 }

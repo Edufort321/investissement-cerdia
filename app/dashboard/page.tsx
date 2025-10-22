@@ -15,7 +15,7 @@ import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -307,6 +307,19 @@ export default function DashboardPage() {
                         }`}
                       >
                         Performance ROI
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('sync_revenues')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'sync_revenues'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Sync Revenus
                       </button>
                     </div>
                   )}
