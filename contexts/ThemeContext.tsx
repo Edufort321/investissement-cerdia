@@ -48,11 +48,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     isDark: theme === 'dark'
   }
 
-  // Prevent flash of unstyled content
-  if (!mounted) {
-    return <>{children}</>
-  }
-
   return (
     <ThemeContext.Provider value={value}>
       {children}
