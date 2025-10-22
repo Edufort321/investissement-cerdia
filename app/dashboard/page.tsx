@@ -5,16 +5,23 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import ScenariosTab from '@/components/ScenariosTab'
 import InvestorReservationsCalendar from '@/components/InvestorReservationsCalendar'
+import TreasuryDashboard from '@/components/TreasuryDashboard'
+import CashFlowForecast from '@/components/CashFlowForecast'
+import BankReconciliation from '@/components/BankReconciliation'
+import PaymentSchedule from '@/components/PaymentSchedule'
+import TreasuryAlerts from '@/components/TreasuryAlerts'
+import ProjectManagementDashboard from '@/components/ProjectManagementDashboard'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
-type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
+type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'tresorerie' | 'gestion_projet' | 'administration'
+type TreasurySubTabType = 'dashboard' | 'cash_flow' | 'reconciliation' | 'payments' | 'alerts'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'
 
 export default function DashboardPage() {
@@ -24,6 +31,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
+  const [treasurySubTab, setTreasurySubTab] = useState<TreasurySubTabType>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
@@ -168,6 +176,8 @@ export default function DashboardPage() {
     { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban },
     { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator },
     { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar },
+    { id: 'tresorerie' as TabType, label: 'Trésorerie', icon: Wallet },
+    { id: 'gestion_projet' as TabType, label: 'Gestion Projet', icon: Briefcase },
     { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
   ]
 
@@ -215,7 +225,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => {
                       setActiveTab(tab.id)
-                      if (isMobile && tab.id !== 'administration') setSidebarOpen(false)
+                      if (isMobile && tab.id !== 'administration' && tab.id !== 'tresorerie') setSidebarOpen(false)
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
                       activeTab === tab.id
@@ -226,6 +236,77 @@ export default function DashboardPage() {
                     <Icon size={20} />
                     <span className="font-medium">{tab.label}</span>
                   </button>
+
+                  {/* Sous-onglets Trésorerie */}
+                  {tab.id === 'tresorerie' && activeTab === 'tresorerie' && (
+                    <div className="mt-2 ml-4 space-y-1">
+                      <button
+                        onClick={() => {
+                          setTreasurySubTab('dashboard')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          treasurySubTab === 'dashboard'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Vue d'ensemble
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTreasurySubTab('cash_flow')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          treasurySubTab === 'cash_flow'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Prévisions de flux
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTreasurySubTab('reconciliation')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          treasurySubTab === 'reconciliation'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Rapprochement
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTreasurySubTab('payments')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          treasurySubTab === 'payments'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Calendrier paiements
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTreasurySubTab('alerts')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          treasurySubTab === 'alerts'
+                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Alertes
+                      </button>
+                    </div>
+                  )}
 
                   {/* Sous-onglets Administration */}
                   {tab.id === 'administration' && activeTab === 'administration' && (
@@ -696,6 +777,18 @@ export default function DashboardPage() {
               <InvestorReservationsCalendar />
             </div>
           )}
+
+          {activeTab === 'tresorerie' && (
+            <div>
+              {treasurySubTab === 'dashboard' && <TreasuryDashboard />}
+              {treasurySubTab === 'cash_flow' && <CashFlowForecast />}
+              {treasurySubTab === 'reconciliation' && <BankReconciliation />}
+              {treasurySubTab === 'payments' && <PaymentSchedule />}
+              {treasurySubTab === 'alerts' && <TreasuryAlerts />}
+            </div>
+          )}
+
+          {activeTab === 'gestion_projet' && <ProjectManagementDashboard />}
 
           {activeTab === 'administration' && <AdministrationTab activeSubTab={adminSubTab} />}
         </div>
