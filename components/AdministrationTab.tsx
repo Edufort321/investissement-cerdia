@@ -1270,7 +1270,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <TrendingUp className="text-green-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-900">
-            {totalIn.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+            {totalIn.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
 
@@ -1280,7 +1280,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <TrendingDown className="text-red-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-900">
-            {totalOut.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+            {totalOut.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
 
@@ -1290,7 +1290,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <DollarSign className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={20} />
           </div>
           <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-            {balance.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+            {balance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
       </div>
@@ -1737,7 +1737,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           ['investissement', 'dividende'].includes(transaction.type) ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {getTypeIcon(transaction.type)}
-                          {transaction.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                          {transaction.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
