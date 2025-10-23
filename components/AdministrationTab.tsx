@@ -53,6 +53,7 @@ interface TransactionFormData {
   source_amount: number | null
   exchange_rate: number
   source_country: string | null
+  bank_fees: number // Frais bancaires/conversion
   foreign_tax_paid: number
   foreign_tax_rate: number
   tax_credit_claimable: number
@@ -167,6 +168,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     source_amount: null,
     exchange_rate: 1.0,
     source_country: null,
+    bank_fees: 0,
     foreign_tax_paid: 0,
     foreign_tax_rate: 0,
     tax_credit_claimable: 0,
@@ -1542,7 +1544,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <input
                     type="number"
                     value={transactionFormData.source_amount || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_amount: e.target.value ? parseFloat(e.target.value) : null })}
+                    onChange={(e) => {
+                      const sourceAmount = e.target.value ? parseFloat(e.target.value) : null
+                      setTransactionFormData({ ...transactionFormData, source_amount: sourceAmount })
+
+                      // Calculer automatiquement le taux de change
+                      if (sourceAmount && transactionFormData.amount > 0) {
+                        const rate = transactionFormData.amount / sourceAmount
+                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
+                      }
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     min="0"
                     step="0.01"
@@ -1551,16 +1562,40 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux de change</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Frais bancaires/conversion (CAD $)</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.bank_fees || ''}
+                    onChange={(e) => {
+                      const bankFees = e.target.value ? parseFloat(e.target.value) : 0
+                      setTransactionFormData({ ...transactionFormData, bank_fees: bankFees })
+
+                      // Recalculer le taux avec les frais
+                      if (transactionFormData.source_amount && transactionFormData.source_amount > 0) {
+                        const amountMinusFees = transactionFormData.amount - bankFees
+                        const rate = amountMinusFees / transactionFormData.source_amount
+                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux de change (calculé auto)</label>
                   <input
                     type="number"
                     value={transactionFormData.exchange_rate}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, exchange_rate: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
                     min="0"
                     step="0.0001"
                     placeholder="1.0000"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Se calcule automatiquement ou modifiable manuellement</p>
                 </div>
 
                 <div>
