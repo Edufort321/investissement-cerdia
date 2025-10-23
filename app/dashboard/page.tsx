@@ -181,10 +181,10 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex transition-colors duration-300">
       {/* Sidebar gauche */}
       <aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#c7c7c7] text-black transition-all duration-300 z-40 ${
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#c7c7c7] dark:bg-gray-800 text-black dark:text-gray-100 transition-all duration-300 z-40 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden overflow-y-auto`}
       >
@@ -203,14 +203,14 @@ export default function DashboardPage() {
           </div>
 
           {/* User Info */}
-          <div className="mb-8 pb-6 border-b border-gray-500">
+          <div className="mb-8 pb-6 border-b border-gray-500 dark:border-gray-600">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#5e5e5e] text-white rounded-full flex items-center justify-center text-lg font-semibold">
+              <div className="w-12 h-12 bg-[#5e5e5e] dark:bg-gray-700 text-white rounded-full flex items-center justify-center text-lg font-semibold">
                 {currentUser.firstName.charAt(0)}{currentUser.lastName.charAt(0)}
               </div>
               <div>
                 <p className="font-semibold">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-sm text-gray-700">{currentUser.role === 'admin' ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{currentUser.role === 'admin' ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
               </div>
             </div>
           </div>
@@ -228,8 +228,8 @@ export default function DashboardPage() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
                       activeTab === tab.id
-                        ? 'bg-[#5e5e5e] text-white'
-                        : 'text-black hover:bg-[#3e3e3e] hover:text-white'
+                        ? 'bg-[#5e5e5e] dark:bg-gray-700 text-white'
+                        : 'text-black dark:text-gray-100 hover:bg-[#3e3e3e] dark:hover:bg-gray-700 hover:text-white'
                     }`}
                   >
                     <Icon size={20} />
@@ -246,8 +246,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'investisseurs'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Investisseurs
@@ -259,8 +259,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'transactions'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Transactions
@@ -272,8 +272,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'capex'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         CAPEX
@@ -285,8 +285,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'rd_dividendes'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         R&D / Dividendes
@@ -298,8 +298,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'rapports_fiscaux'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Rapports Fiscaux
@@ -311,8 +311,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'performance'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Performance ROI
@@ -324,8 +324,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'sync_revenues'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Sync Revenus
@@ -337,8 +337,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'tresorerie'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Trésorerie
@@ -350,8 +350,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'gestion_projet'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Gestion Projet
@@ -363,8 +363,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'budgetisation'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Budgétisation
@@ -376,8 +376,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'mode_emploi'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Mode d'emploi
@@ -389,8 +389,8 @@ export default function DashboardPage() {
                         }}
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'bloc_notes'
-                            ? 'bg-gray-200 text-[#5e5e5e] font-medium'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         Bloc-notes
@@ -403,10 +403,10 @@ export default function DashboardPage() {
           </nav>
 
           {/* Logout Button */}
-          <div className="mt-6 pt-6 border-t border-gray-500">
+          <div className="mt-6 pt-6 border-t border-gray-500 dark:border-gray-600">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-600 hover:bg-red-100 hover:text-red-700 transition-all"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 transition-all"
             >
               <LogOut size={20} />
               <span className="font-medium">{t('nav.logout')}</span>
