@@ -432,7 +432,7 @@ export default function DashboardPage() {
           {activeTab === 'dashboard' && (
             <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 mt-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('dashboard.overview')}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard.overview')}</h2>
                 {loading && (
                   <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin"></div>
@@ -444,28 +444,28 @@ export default function DashboardPage() {
               {/* KPIs Cards - Flux de Trésorerie */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 {/* 1. Total Investisseurs (CAD) */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.totalInvestors')}</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
                       <Users className="text-blue-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {totalInvestisseurs.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.cadContributions')} ({investors.length} {investors.length > 1 ? t('dashboard.investors') : t('dashboard.investor')})</p>
                 </div>
 
                 {/* 2. Investissement Immobilier (CAD) */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.realEstateInvestment')}</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
                       <Building2 className="text-purple-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {totalInvestissementImmobilierCAD.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
@@ -474,28 +474,28 @@ export default function DashboardPage() {
                 </div>
 
                 {/* 3. Dépenses Opération (CAD) */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.operationalExpenses')}</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
                       <TrendingDown className="text-orange-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {totalDepensesOperation.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.capexRnD')}</p>
                 </div>
 
                 {/* 4. Compte Courant (CAD) */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.currentAccount')}</h3>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
                       <DollarSign className="text-green-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {compteCurrentCalcule.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.availableFunds')}</p>
@@ -511,7 +511,7 @@ export default function DashboardPage() {
               {/* Section Propriétés */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 {/* Liste des Propriétés */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                     <Building2 size={18} className="text-purple-600" />
                     {t('dashboard.realEstatePortfolio')}
@@ -533,10 +533,10 @@ export default function DashboardPage() {
                         const progress = (paidFromTransactions / property.total_cost) * 100
 
                         return (
-                          <div key={property.id} className="border border-gray-200 rounded-lg p-4">
+                          <div key={property.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                             <div className="flex items-start justify-between mb-2">
                               <div>
-                                <h4 className="font-semibold text-gray-900">{property.name}</h4>
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">{property.name}</h4>
                                 <p className="text-sm text-gray-600">{property.location}</p>
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -585,7 +585,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Répartition des Investisseurs */}
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                     <Users size={18} className="text-blue-600" />
                     {t('dashboard.investorBreakdown')}
@@ -604,12 +604,12 @@ export default function DashboardPage() {
                               {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{investor.first_name} {investor.last_name}</p>
+                              <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
                               <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-gray-900">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">
                               {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
                             <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} {t('dashboard.shares')}</p>
@@ -659,7 +659,7 @@ export default function DashboardPage() {
 
                             {/* Informations du paiement */}
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 truncate">{payment.property_name}</p>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{payment.property_name}</p>
                               <p className="text-xs sm:text-sm text-gray-600">{payment.term_label}</p>
                             </div>
 
@@ -677,7 +677,7 @@ export default function DashboardPage() {
 
                             {/* Montants */}
                             <div className="text-right">
-                              <p className="font-bold text-gray-900">
+                              <p className="font-bold text-gray-900 dark:text-gray-100">
                                 {payment.amount.toLocaleString('fr-CA', {
                                   style: 'currency',
                                   currency: payment.currency,
@@ -701,7 +701,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Note sur le taux de change */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <p className="text-xs text-gray-600 flex items-center gap-1">
                       <Clock size={12} />
                       Taux de change USD→CAD: {exchangeRate.toFixed(4)} (mis à jour quotidiennement)
@@ -766,7 +766,7 @@ export default function DashboardPage() {
 
           {activeTab === 'reservations' && (
             <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-6">Calendrier de réservations</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Calendrier de réservations</h1>
               <InvestorReservationsCalendar />
             </div>
           )}
