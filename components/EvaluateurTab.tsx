@@ -7,6 +7,7 @@ import { Calculator, TrendingUp, DollarSign, Home, FileText, Download } from 'lu
 interface ProjectData {
   // Prix et frais initiaux
   purchasePrice: number
+  currency: 'USD' | 'CAD' // Devise du prix d'achat
   initialFees: number
 
   // Projections marché
@@ -58,6 +59,7 @@ export default function EvaluateurTab() {
 
   const [projectData, setProjectData] = useState<ProjectData>({
     purchasePrice: 0,
+    currency: 'USD',
     initialFees: 0,
     annualAppreciation: 5,
     occupancyRate: 80,
@@ -319,14 +321,26 @@ ${concernsText}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Prix et frais */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Prix d'achat ($)</label>
-            <input
-              type="number"
-              value={projectData.purchasePrice || ''}
-              onChange={(e) => setProjectData({...projectData, purchasePrice: parseFloat(e.target.value) || 0})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-              placeholder="250000"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Prix d'achat ({projectData.currency === 'USD' ? '$' : 'CAD $'})
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={projectData.purchasePrice || ''}
+                onChange={(e) => setProjectData({...projectData, purchasePrice: parseFloat(e.target.value) || 0})}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                placeholder="250000"
+              />
+              <select
+                value={projectData.currency}
+                onChange={(e) => setProjectData({...projectData, currency: e.target.value as 'USD' | 'CAD'})}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white font-medium"
+              >
+                <option value="USD">USD</option>
+                <option value="CAD">CAD</option>
+              </select>
+            </div>
           </div>
 
           <div>
