@@ -419,16 +419,16 @@ export default function DashboardPage() {
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-20 left-4 z-30 p-3 bg-[#5e5e5e] dark:bg-gray-700 text-white rounded-full shadow-lg hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition-colors"
+          className="fixed top-24 left-4 z-30 p-3 bg-[#5e5e5e] dark:bg-gray-700 text-white rounded-full shadow-lg hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition-colors"
         >
           <Menu size={24} />
         </button>
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} pt-32`}>
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} pt-32 overflow-x-hidden`}>
         {/* Content Area */}
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto overflow-x-hidden">
           {activeTab === 'dashboard' && (
             <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 mt-6">

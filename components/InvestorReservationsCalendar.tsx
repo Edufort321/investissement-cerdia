@@ -440,7 +440,7 @@ export default function InvestorReservationsCalendar() {
       {showQuotaInfo && investorQuotas.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Quotas d'occupation par investisseur ({currentYear})</h3>
-          <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600">
@@ -540,7 +540,7 @@ export default function InvestorReservationsCalendar() {
 
       {/* Calendrier multi-lignes */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
