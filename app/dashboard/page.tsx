@@ -595,7 +595,7 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-3">
                       {investorStats
-                        .filter(investor => investor.calculated_total_invested > 0 || investor.total_shares > 0)
+                        .filter(investor => investor.calculated_total_invested > 0)
                         .sort((a, b) => b.calculated_total_invested - a.calculated_total_invested)
                         .map((investor) => (
                         <div key={investor.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
