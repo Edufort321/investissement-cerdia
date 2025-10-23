@@ -213,17 +213,43 @@ export default function ScenariosTab() {
   }, [selectedScenario])
 
   const loadScenarios = async () => {
+    console.log('🔵 [SCENARIOS] Chargement des scénarios...')
     try {
-      const { data, error } = await supabase
+      // Timeout de 10 secondes pour éviter les blocages infinis
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn('⚠️ [SCENARIOS] Timeout lors du chargement des scénarios')
+          resolve(null)
+        }, 10000)
+      })
+
+      const dataPromise = supabase
         .from('scenarios')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      const result = await Promise.race([dataPromise, timeoutPromise])
+
+      if (!result) {
+        console.error('🔴 [SCENARIOS] Timeout - scénarios non chargés')
+        setScenarios([])
+        return
+      }
+
+      const { data, error } = result as any
+
+      if (error) {
+        console.error('🔴 [SCENARIOS] Erreur lors du chargement:', error)
+        throw error
+      }
+
+      console.log('✅ [SCENARIOS] Scénarios chargés:', data?.length || 0)
       setScenarios(data || [])
     } catch (error) {
-      console.error('Error loading scenarios:', error)
+      console.error('🔴 [SCENARIOS] Exception:', error)
+      setScenarios([])
     } finally {
+      console.log('✅ [SCENARIOS] Chargement terminé')
       setLoading(false)
     }
   }
@@ -295,8 +321,17 @@ export default function ScenariosTab() {
       return
     }
 
+    console.log('🔵 [SCENARIOS] Création du scénario:', formData.name)
     try {
-      const { data, error } = await supabase
+      // Timeout de 15 secondes pour l'enregistrement
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn('⚠️ [SCENARIOS] Timeout lors de la création du scénario')
+          resolve(null)
+        }, 15000)
+      })
+
+      const insertPromise = supabase
         .from('scenarios')
         .insert([{
           name: formData.name,
@@ -322,7 +357,22 @@ export default function ScenariosTab() {
         .select()
         .single()
 
-      if (error) throw error
+      const result = await Promise.race([insertPromise, timeoutPromise])
+
+      if (!result) {
+        console.error('🔴 [SCENARIOS] Timeout - scénario non créé')
+        alert('Timeout: Le scénario n\'a pas pu être enregistré. Vérifiez votre connexion.')
+        return
+      }
+
+      const { data, error } = result as any
+
+      if (error) {
+        console.error('🔴 [SCENARIOS] Erreur lors de la création:', error)
+        throw error
+      }
+
+      console.log('✅ [SCENARIOS] Scénario créé avec succès:', data.id)
 
       setScenarios([data, ...scenarios])
       setSelectedScenario(data)
