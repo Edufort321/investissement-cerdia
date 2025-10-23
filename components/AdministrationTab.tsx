@@ -18,6 +18,7 @@ interface InvestorFormData {
   email: string
   phone: string
   username: string
+  password: string // Mot de passe généré automatiquement
   action_class: string
   total_shares: number
   share_value: number
@@ -133,6 +134,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     email: '',
     phone: '',
     username: '',
+    password: '',
     action_class: 'A',
     total_shares: 0,
     share_value: 1000,
@@ -200,6 +202,28 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   // ==========================================
+  // PASSWORD GENERATOR
+  // ==========================================
+
+  const generatePassword = (firstName: string, lastName: string): string => {
+    // Génère 3 chiffres aléatoires (100-999)
+    const randomNumbers = Math.floor(100 + Math.random() * 900)
+
+    // Première lettre du prénom (majuscule)
+    const firstInitial = firstName.charAt(0).toUpperCase()
+
+    // 3 premières lettres du nom (minuscules)
+    const lastInitials = lastName.substring(0, 3).toLowerCase()
+
+    // 2 caractères spéciaux fixes
+    const specialChars = '!$'
+
+    // Format: [3 chiffres][1 lettre prénom][3 lettres nom][2 caractères]
+    // Exemple: 321Eduf!$
+    return `${randomNumbers}${firstInitial}${lastInitials}${specialChars}`
+  }
+
+  // ==========================================
   // INVESTOR HANDLERS
   // ==========================================
 
@@ -243,6 +267,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       email: investor.email,
       phone: investor.phone,
       username: investor.username,
+      password: '', // Ne pas afficher le mot de passe en mode édition
       action_class: investor.action_class,
       total_shares: investor.total_shares,
       share_value: investor.share_value,
@@ -398,6 +423,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       email: '',
       phone: '',
       username: '',
+      password: '',
       action_class: 'A',
       total_shares: 0,
       share_value: 1000,
@@ -751,6 +777,45 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 />
               </div>
 
+              {/* Mot de passe généré automatiquement */}
+              {!editingInvestorId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mot de passe *
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Format: 3 chiffres + 1 lettre prénom + 3 lettres nom + 2 caractères)
+                    </span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={investorFormData.password}
+                      onChange={(e) => setInvestorFormData({ ...investorFormData, password: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent font-mono"
+                      placeholder="Ex: 321Eduf!$"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (investorFormData.first_name && investorFormData.last_name) {
+                          const generatedPassword = generatePassword(investorFormData.first_name, investorFormData.last_name)
+                          setInvestorFormData({ ...investorFormData, password: generatedPassword })
+                        } else {
+                          alert('Veuillez d\'abord remplir le prénom et le nom')
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      Générer
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ℹ️ Ce mot de passe sera utilisé pour créer le compte Supabase Auth
+                  </p>
+                </div>
+              )}
+
               {/* Informations d'investissement */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Classe de parts *</label>
@@ -767,16 +832,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Total parts *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total parts
+                  <span className="text-xs text-gray-500 ml-2">(Calculé automatiquement depuis les transactions)</span>
+                </label>
                 <input
                   type="number"
                   value={investorFormData.total_shares}
-                  onChange={(e) => setInvestorFormData({ ...investorFormData, total_shares: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="1"
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ Ce champ est calculé automatiquement à partir des transactions
+                </p>
               </div>
 
               <div>
@@ -793,16 +863,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Total investi (CAD $) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total investi (CAD $)
+                  <span className="text-xs text-gray-500 ml-2">(Calculé automatiquement depuis les transactions)</span>
+                </label>
                 <input
                   type="number"
                   value={investorFormData.total_invested}
-                  onChange={(e) => setInvestorFormData({ ...investorFormData, total_invested: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="0.01"
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ Ce champ est calculé automatiquement à partir des transactions
+                </p>
               </div>
 
               <div>
