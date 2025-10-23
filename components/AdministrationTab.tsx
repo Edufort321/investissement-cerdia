@@ -250,6 +250,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const handleInvestorSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('🔷 [handleInvestorSubmit] Début de soumission du formulaire')
+    console.log('🔷 [handleInvestorSubmit] Mode:', editingInvestorId ? 'ÉDITION' : 'AJOUT')
+
     const nominalValue = shareSettings?.nominal_share_value || 1000
     const totalInvested = investorFormData.total_invested
     const currentValue = investorFormData.total_shares * nominalValue
@@ -272,12 +275,20 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         delete dataToSubmit.password
       }
 
+      console.log('🔷 [handleInvestorSubmit] Données de modification (password masqué):', {
+        ...dataToSubmit,
+        password: dataToSubmit.password ? '***' : undefined
+      })
+
       const result = await updateInvestor(editingInvestorId, dataToSubmit)
       if (result.success) {
+        console.log('✅ [handleInvestorSubmit] Investisseur modifié avec succès')
         setEditingInvestorId(null)
         resetInvestorForm()
+        alert('✅ Investisseur modifié avec succès!')
       } else {
-        alert('Erreur lors de la modification: ' + result.error)
+        console.error('❌ [handleInvestorSubmit] Échec de la modification:', result.error)
+        alert(`❌ Erreur lors de la modification:\n\n${result.error}\n\nConsultez la console (F12) pour plus de détails.`)
       }
     } else {
       // Mode ajout : garder le password pour créer le compte Auth
@@ -291,12 +302,32 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         percentage_ownership: ownershipPercentage
       }
 
+      console.log('🔷 [handleInvestorSubmit] Données d\'ajout (password masqué):', {
+        ...dataToSubmit,
+        password: dataToSubmit.password ? '***' : undefined
+      })
+
+      if (!dataToSubmit.email) {
+        console.error('❌ [handleInvestorSubmit] Email manquant')
+        alert('❌ L\'email est obligatoire pour créer un investisseur')
+        return
+      }
+
+      if (!dataToSubmit.password) {
+        console.error('❌ [handleInvestorSubmit] Mot de passe manquant')
+        alert('❌ Le mot de passe est obligatoire pour créer un investisseur.\n\nUtilisez le bouton "Générer un mot de passe".')
+        return
+      }
+
       const result = await addInvestor(dataToSubmit)
       if (result.success) {
+        console.log('✅ [handleInvestorSubmit] Investisseur créé avec succès')
         setShowAddInvestorForm(false)
         resetInvestorForm()
+        alert(`✅ Investisseur créé avec succès!\n\nEmail: ${dataToSubmit.email}\n\nL'investisseur peut maintenant se connecter avec son email et mot de passe.`)
       } else {
-        alert('Erreur lors de l\'ajout: ' + result.error)
+        console.error('❌ [handleInvestorSubmit] Échec de la création:', result.error)
+        alert(`❌ Erreur lors de la création de l'investisseur:\n\n${result.error}\n\n⚠️ IMPORTANT: Consultez la console du navigateur (appuyez sur F12) pour voir les logs détaillés et identifier le problème.`)
       }
     }
   }

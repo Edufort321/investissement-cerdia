@@ -277,45 +277,89 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Add Investor
   const addInvestor = useCallback(async (investor: Partial<Investor> & { password?: string }) => {
     try {
+      console.log('🟢 [addInvestor] Début de création investisseur')
+      console.log('🟢 [addInvestor] Données:', {
+        email: investor.email,
+        first_name: investor.first_name,
+        last_name: investor.last_name,
+        hasPassword: !!investor.password
+      })
+
       let authUserId = investor.user_id || null
 
       // Si un mot de passe est fourni, créer le compte Supabase Auth via l'API
       if (investor.password && investor.email) {
+        console.log('🟡 [addInvestor] Appel API create-auth...')
+
+        const apiPayload = {
+          email: investor.email,
+          password: investor.password,
+          firstName: investor.first_name,
+          lastName: investor.last_name
+        }
+        console.log('🟡 [addInvestor] Payload API:', { ...apiPayload, password: '***' })
+
         const response = await fetch('/api/investors/create-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: investor.email,
-            password: investor.password,
-            firstName: investor.first_name,
-            lastName: investor.last_name
-          })
+          body: JSON.stringify(apiPayload)
         })
 
-        const result = await response.json()
+        console.log('🟡 [addInvestor] Status HTTP de la réponse:', response.status, response.statusText)
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Erreur création compte Auth')
+        const result = await response.json()
+        console.log('🟡 [addInvestor] Réponse API complète:', result)
+
+        if (!response.ok) {
+          console.error('❌ [addInvestor] Erreur HTTP de l\'API:', response.status, result)
+          throw new Error(result.error || `Erreur HTTP ${response.status}: ${response.statusText}`)
+        }
+
+        if (!result.success) {
+          console.error('❌ [addInvestor] L\'API a retourné success=false:', result)
+          throw new Error(result.error || 'L\'API a indiqué un échec sans message d\'erreur')
+        }
+
+        if (!result.user_id) {
+          console.error('❌ [addInvestor] Aucun user_id retourné par l\'API:', result)
+          throw new Error('L\'API n\'a pas retourné de user_id. Le compte Auth n\'a peut-être pas été créé.')
         }
 
         authUserId = result.user_id
+        console.log('✅ [addInvestor] Compte Auth créé avec succès! user_id:', authUserId)
+      } else {
+        console.log('⚪ [addInvestor] Pas de mot de passe fourni, pas de création de compte Auth')
       }
 
       // Retirer le password avant d'insérer dans la table investors
       const { password, ...investorData } = investor
 
+      console.log('🔵 [addInvestor] Insertion dans la table investors avec user_id:', authUserId)
+
       // Insérer dans la table investors avec le user_id du compte Auth
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('investors')
         .insert([{
           ...investorData,
           user_id: authUserId
         }])
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ [addInvestor] Erreur lors de l\'insertion dans investors:', error)
+        throw error
+      }
+
+      console.log('✅ [addInvestor] Investisseur inséré avec succès dans la DB:', data)
+
       await fetchInvestors()
+      console.log('✅ [addInvestor] Liste des investisseurs rafraîchie')
+
       return { success: true }
     } catch (error: any) {
+      console.error('❌ [addInvestor] ERREUR FINALE:', error)
+      console.error('❌ [addInvestor] Message d\'erreur:', error.message)
+      console.error('❌ [addInvestor] Stack trace:', error.stack)
       return { success: false, error: error.message }
     }
   }, [fetchInvestors])
