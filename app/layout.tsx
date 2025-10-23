@@ -15,12 +15,13 @@ export const metadata = {
   formatDetection: {
     telephone: false,
   },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: '#5e5e5e',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

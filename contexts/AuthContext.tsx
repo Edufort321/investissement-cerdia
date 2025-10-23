@@ -141,15 +141,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Connexion
   const login = useCallback(
     async (email: string, password: string) => {
+      console.log('🔵 [AUTH] Login démarré pour:', email)
       setLoading(true)
 
       try {
+        console.log('🔵 [AUTH] Appel à Supabase signInWithPassword...')
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
 
+        console.log('🔵 [AUTH] Réponse Supabase reçue:', { data: !!data, error: !!error })
+
         if (error) {
+          console.error('🔴 [AUTH] Erreur Supabase:', error)
           setLoading(false)
           return {
             success: false,
@@ -160,17 +165,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (data.user) {
+          console.log('🔵 [AUTH] Utilisateur authentifié, chargement des données investisseur...')
           const investorData = await loadInvestorData(data.user.id)
+          console.log('🔵 [AUTH] Données investisseur chargées:', !!investorData)
           const user = createUserObject(data.user, investorData)
           setCurrentUser(user)
           setSupabaseUser(data.user)
           setLoading(false)
+          console.log('✅ [AUTH] Login réussi')
           return { success: true }
         }
 
+        console.error('🔴 [AUTH] Aucun utilisateur dans la réponse')
         setLoading(false)
         return { success: false, error: 'Une erreur est survenue' }
       } catch (error: any) {
+        console.error('🔴 [AUTH] Exception pendant le login:', error)
         setLoading(false)
         return {
           success: false,
