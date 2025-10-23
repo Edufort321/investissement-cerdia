@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Sinon, vérifier si l'email existe déjà dans Auth
     console.log('🔵 [upsert-auth] Vérification si l\'email existe déjà dans Auth...')
 
-    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+    const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (listError) {
       console.error('❌ [upsert-auth] Erreur lors de la récupération de la liste des utilisateurs:', listError)
@@ -119,9 +119,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔵 [upsert-auth] Nombre total d\'utilisateurs Auth:', existingUsers.users.length)
+    const existingUsers = data?.users || []
+    console.log('🔵 [upsert-auth] Nombre total d\'utilisateurs Auth:', existingUsers.length)
 
-    const existingUser = existingUsers.users.find(u => u.email === email)
+    const existingUser = existingUsers.find((u: any) => u.email === email)
 
     if (existingUser) {
       console.log('🟡 [upsert-auth] Utilisateur existant trouvé! user_id:', existingUser.id)
