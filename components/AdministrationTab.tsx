@@ -490,6 +490,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       source_amount: transaction.source_amount || null,
       exchange_rate: transaction.exchange_rate || 1.0,
       source_country: transaction.source_country || null,
+      bank_fees: transaction.bank_fees || 0,
       foreign_tax_paid: transaction.foreign_tax_paid || 0,
       foreign_tax_rate: transaction.foreign_tax_rate || 0,
       tax_credit_claimable: transaction.tax_credit_claimable || 0,
