@@ -528,6 +528,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       source_amount: null,
       exchange_rate: 1.0,
       source_country: null,
+      bank_fees: 0,
       foreign_tax_paid: 0,
       foreign_tax_rate: 0,
       tax_credit_claimable: 0,
