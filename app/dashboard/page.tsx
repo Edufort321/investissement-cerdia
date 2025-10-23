@@ -749,7 +749,7 @@ export default function DashboardPage() {
                         }`}>
                           {transaction.amount >= 0 ? '+' : ''}{transaction.amount.toLocaleString('fr-CA', {
                             style: 'currency',
-                            currency: 'USD'
+                            currency: 'CAD'
                           })}
                         </span>
                       </div>
