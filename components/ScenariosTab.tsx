@@ -1079,14 +1079,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               {/* Photo principale à gauche */}
               <div className="w-full md:w-64 flex-shrink-0">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Photo principale</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Photo principale</label>
                 {formData.main_photo_url ? (
                   <div className="relative group">
-                    <img
-                      src={formData.main_photo_url}
-                      alt="Photo principale"
-                      className="w-full h-48 object-cover rounded-lg shadow-md"
-                    />
+                    <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
+                      <img
+                        src={formData.main_photo_url}
+                        alt="Photo principale"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
                     <button
                       onClick={() => setFormData({...formData, main_photo_url: ''})}
                       className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
