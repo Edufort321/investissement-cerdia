@@ -390,11 +390,11 @@ export default function InvestorReservationsCalendar() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* En-tête avec filtres */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-full sm:min-w-[200px]">
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
@@ -402,7 +402,7 @@ export default function InvestorReservationsCalendar() {
                 placeholder="Filtrer par nom ou unité..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
               />
             </div>
           </div>
@@ -410,7 +410,7 @@ export default function InvestorReservationsCalendar() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
           >
             <option value="all">Tous les statuts</option>
             <option value="purchased">Achetés</option>
@@ -418,35 +418,37 @@ export default function InvestorReservationsCalendar() {
 
           <button
             onClick={() => setShowApiConfig(true)}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <Settings size={16} />
-            Config API
+            <span className="hidden sm:inline">Config API</span>
+            <span className="sm:hidden">API</span>
           </button>
 
           <button
             onClick={() => setShowQuotaInfo(!showQuotaInfo)}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <Calendar size={16} />
-            {showQuotaInfo ? 'Masquer quotas' : 'Voir quotas'}
+            <span className="hidden sm:inline">{showQuotaInfo ? 'Masquer quotas' : 'Voir quotas'}</span>
+            <span className="sm:hidden">Quotas</span>
           </button>
         </div>
       </div>
 
       {/* Panel des quotas investisseurs */}
       {showQuotaInfo && investorQuotas.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Quotas d'occupation par investisseur ({currentYear})</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Quotas d'occupation par investisseur ({currentYear})</h3>
+          <div className="overflow-x-auto -mx-3 sm:mx-0">
+            <table className="w-full min-w-[600px]">
               <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Investisseur</th>
-                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours autorisés</th>
-                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours utilisés</th>
-                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Jours restants</th>
-                  <th className="p-3 text-center text-sm font-semibold text-gray-700">% utilisation</th>
+                <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600">
+                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Investisseur</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Autorisés</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Utilisés</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Restants</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">% util.</th>
                 </tr>
               </thead>
               <tbody>
@@ -455,21 +457,21 @@ export default function InvestorReservationsCalendar() {
                     ? Math.round((quota.total_days_used / quota.total_days_entitled) * 100)
                     : 0
 
-                  let statusColor = 'text-green-600'
-                  if (utilisationPct > 80) statusColor = 'text-red-600'
-                  else if (utilisationPct > 50) statusColor = 'text-orange-600'
+                  let statusColor = 'text-green-600 dark:text-green-400'
+                  if (utilisationPct > 80) statusColor = 'text-red-600 dark:text-red-400'
+                  else if (utilisationPct > 50) statusColor = 'text-orange-600 dark:text-orange-400'
 
                   return (
-                    <tr key={quota.investor_id} className="border-b hover:bg-gray-50">
-                      <td className="p-3 font-medium text-gray-900">{quota.investor_name}</td>
-                      <td className="p-3 text-center text-gray-700">{Math.round(quota.total_days_entitled)} jours</td>
-                      <td className="p-3 text-center text-gray-700">{quota.total_days_used} jours</td>
-                      <td className={`p-3 text-center font-semibold ${statusColor}`}>
-                        {Math.round(quota.total_days_remaining)} jours
+                    <tr key={quota.investor_id} className="border-b dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="p-2 sm:p-3 font-medium text-gray-900 dark:text-gray-100 text-xs sm:text-sm">{quota.investor_name}</td>
+                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{Math.round(quota.total_days_entitled)} j</td>
+                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{quota.total_days_used} j</td>
+                      <td className={`p-2 sm:p-3 text-center font-semibold text-xs sm:text-sm ${statusColor}`}>
+                        {Math.round(quota.total_days_remaining)} j
                       </td>
-                      <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <td className="p-2 sm:p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 sm:gap-2">
+                          <div className="w-16 sm:w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                             <div
                               className={`h-full ${
                                 utilisationPct > 80 ? 'bg-red-600' :
@@ -479,7 +481,7 @@ export default function InvestorReservationsCalendar() {
                               style={{ width: `${Math.min(utilisationPct, 100)}%` }}
                             ></div>
                           </div>
-                          <span className={`text-sm font-medium ${statusColor}`}>
+                          <span className={`text-xs sm:text-sm font-medium ${statusColor}`}>
                             {utilisationPct}%
                           </span>
                         </div>
@@ -490,8 +492,8 @@ export default function InvestorReservationsCalendar() {
               </tbody>
             </table>
           </div>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
               <strong>Note:</strong> Les jours autorisés sont calculés selon le % de parts dans chaque projet.
               Le quota maximum par unité doit être respecté.
             </p>
@@ -500,8 +502,8 @@ export default function InvestorReservationsCalendar() {
       )}
 
       {/* Navigation mois */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => {
               if (currentMonth === 0) {
@@ -511,11 +513,12 @@ export default function InvestorReservationsCalendar() {
                 setCurrentMonth(currentMonth - 1)
               }
             }}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+            className="px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 rounded-lg text-xs sm:text-sm font-medium"
           >
-            ← Mois précédent
+            <span className="hidden sm:inline">← Mois précédent</span>
+            <span className="sm:hidden">←</span>
           </button>
-          <h3 className="text-xl font-bold text-gray-900">
+          <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 text-center">
             {monthNames[currentMonth]} {currentYear}
           </h3>
           <button
@@ -527,34 +530,35 @@ export default function InvestorReservationsCalendar() {
                 setCurrentMonth(currentMonth + 1)
               }
             }}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+            className="px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 rounded-lg text-xs sm:text-sm font-medium"
           >
-            Mois suivant →
+            <span className="hidden sm:inline">Mois suivant →</span>
+            <span className="sm:hidden">→</span>
           </button>
         </div>
       </div>
 
       {/* Calendrier multi-lignes */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full min-w-[800px]">
             <thead>
-              <tr className="bg-gray-50 border-b-2 border-gray-300">
-                <th className="sticky left-0 z-10 bg-gray-50 p-3 text-left font-semibold text-gray-700 border-r-2 border-gray-300 min-w-[200px]">
-                  Projet
+              <tr className="bg-gray-50 dark:bg-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 text-left font-semibold text-gray-700 dark:text-gray-200 border-r-2 border-gray-300 dark:border-gray-600 min-w-[120px] sm:min-w-[200px]">
+                  <span className="text-xs sm:text-sm">Projet</span>
                 </th>
                 {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((day, i) => (
-                  <th key={i} className="p-2 text-center text-xs font-semibold text-gray-600" colSpan={Math.ceil(daysInMonth / 7)}>
+                  <th key={i} className="p-1 sm:p-2 text-center text-[10px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300" colSpan={Math.ceil(daysInMonth / 7)}>
                     {day}
                   </th>
                 ))}
               </tr>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="sticky left-0 z-10 bg-gray-50 border-r-2 border-gray-300"></th>
+              <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700 border-r-2 border-gray-300 dark:border-gray-600"></th>
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1
                   return (
-                    <th key={day} className="p-1 text-center text-xs text-gray-500 min-w-[40px]">
+                    <th key={day} className="p-0.5 sm:p-1 text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 min-w-[32px] sm:min-w-[40px]">
                       {day}
                     </th>
                   )
@@ -564,17 +568,17 @@ export default function InvestorReservationsCalendar() {
             <tbody>
               {filteredScenarios.length === 0 ? (
                 <tr>
-                  <td colSpan={daysInMonth + 1} className="p-8 text-center text-gray-500">
+                  <td colSpan={daysInMonth + 1} className="p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
                     Aucun projet trouvé
                   </td>
                 </tr>
               ) : (
                 filteredScenarios.map(scenario => (
-                  <tr key={scenario.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="sticky left-0 z-10 bg-white p-3 border-r-2 border-gray-200 font-medium text-gray-900">
+                  <tr key={scenario.id} className="border-b border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 p-2 sm:p-3 border-r-2 border-gray-200 dark:border-gray-600 font-medium text-gray-900 dark:text-gray-100">
                       <div>
-                        <div className="font-semibold">{scenario.name}</div>
-                        <div className="text-xs text-gray-600">Unité {scenario.unit_number}</div>
+                        <div className="font-semibold text-xs sm:text-sm truncate">{scenario.name}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Unité {scenario.unit_number}</div>
                       </div>
                     </td>
                     {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -583,7 +587,7 @@ export default function InvestorReservationsCalendar() {
                       const reservation = getReservationForDate(scenario.id, date)
                       const isWeekend = date.getDay() === 0 || date.getDay() === 6
 
-                      let bgColor = isWeekend ? 'bg-gray-50' : 'bg-white'
+                      let bgColor = isWeekend ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800'
                       let title = 'Cliquer pour réserver'
                       let displayText = ''
 
@@ -595,7 +599,7 @@ export default function InvestorReservationsCalendar() {
                           displayText = reservation.data.investor_name?.split(' ')[0] || ''
                         } else {
                           // Booking commercial - vert uniforme
-                          bgColor = 'bg-green-100 border-green-300'
+                          bgColor = 'bg-green-100 border-green-300 dark:bg-green-900/40 dark:border-green-700'
                           title = `Réservé (commercial): ${reservation.data.guest_name}`
                           displayText = 'COM'
                         }
@@ -605,12 +609,12 @@ export default function InvestorReservationsCalendar() {
                         <td
                           key={day}
                           onClick={() => handleCellClick(scenario.id, day)}
-                          className={`p-0 border border-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${bgColor}`}
+                          className={`p-0 border border-gray-200 dark:border-gray-600 cursor-pointer hover:ring-2 hover:ring-blue-400 dark:hover:ring-blue-500 transition-all ${bgColor}`}
                           title={title}
                         >
-                          <div className="w-full h-10 flex items-center justify-center">
+                          <div className="w-full h-8 sm:h-10 flex items-center justify-center">
                             {displayText && (
-                              <span className="text-xs font-medium truncate px-1">
+                              <span className="text-[10px] sm:text-xs font-medium truncate px-0.5 sm:px-1">
                                 {displayText}
                               </span>
                             )}
@@ -627,13 +631,13 @@ export default function InvestorReservationsCalendar() {
       </div>
 
       {/* Légende */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-        <h4 className="font-semibold text-gray-900 mb-3">Légende des investisseurs</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-sm sm:text-base">Légende des investisseurs</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           {investors.map((investor, index) => (
             <div key={investor.id} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded border-2 ${getInvestorColor(investor.id)}`}></div>
-              <span className="text-sm text-gray-700">{investor.name}</span>
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 flex-shrink-0 ${getInvestorColor(investor.id)}`}></div>
+              <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">{investor.name}</span>
             </div>
           ))}
         </div>
@@ -641,16 +645,16 @@ export default function InvestorReservationsCalendar() {
 
       {/* Modal réservation rapide */}
       {showReservationModal && selectedCell && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Réserver</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Réserver</h3>
               <button
                 onClick={() => {
                   setShowReservationModal(false)
                   setSelectedInvestor('')
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <X size={24} />
               </button>
@@ -658,22 +662,22 @@ export default function InvestorReservationsCalendar() {
 
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  Date: <strong>{selectedCell.date.toLocaleDateString('fr-CA')}</strong>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Date: <strong className="dark:text-gray-200">{selectedCell.date.toLocaleDateString('fr-CA')}</strong>
                 </p>
-                <p className="text-sm text-gray-600">
-                  Projet: <strong>{scenarios.find(s => s.id === selectedCell.scenarioId)?.name}</strong>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Projet: <strong className="dark:text-gray-200">{scenarios.find(s => s.id === selectedCell.scenarioId)?.name}</strong>
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Sélectionner l'investisseur *
                 </label>
                 <select
                   value={selectedInvestor}
                   onChange={(e) => setSelectedInvestor(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   required
                 >
                   <option value="">-- Choisir un investisseur --</option>
@@ -685,20 +689,20 @@ export default function InvestorReservationsCalendar() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-4">
                 <button
                   onClick={() => {
                     setShowReservationModal(false)
                     setSelectedInvestor('')
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleQuickReserve}
                   disabled={!selectedInvestor}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:bg-gray-400 flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center justify-center gap-2"
                 >
                   <Check size={16} />
                   Confirmer
@@ -711,13 +715,13 @@ export default function InvestorReservationsCalendar() {
 
       {/* Modal configuration API */}
       {showApiConfig && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Configuration API Gestion Locative</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Configuration API Gestion Locative</h3>
               <button
                 onClick={() => setShowApiConfig(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 flex-shrink-0"
               >
                 <X size={24} />
               </button>
@@ -725,13 +729,13 @@ export default function InvestorReservationsCalendar() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Projet *
                 </label>
                 <select
                   value={selectedScenarioForApi || ''}
                   onChange={(e) => setSelectedScenarioForApi(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                 >
                   <option value="">-- Sélectionner un projet --</option>
                   {scenarios.map(scenario => (
@@ -743,13 +747,13 @@ export default function InvestorReservationsCalendar() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Fournisseur
                 </label>
                 <select
                   value={apiConfig.provider}
                   onChange={(e) => setApiConfig({...apiConfig, provider: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                 >
                   <option value="">-- Choisir --</option>
                   <option value="Guesty">Guesty</option>
@@ -761,53 +765,53 @@ export default function InvestorReservationsCalendar() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   API Endpoint
                 </label>
                 <input
                   type="url"
                   value={apiConfig.api_endpoint}
                   onChange={(e) => setApiConfig({...apiConfig, api_endpoint: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   placeholder="https://api.example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   API Key
                 </label>
                 <input
                   type="password"
                   value={apiConfig.api_key}
                   onChange={(e) => setApiConfig({...apiConfig, api_key: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   placeholder="Votre clé API"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   API Secret
                 </label>
                 <input
                   type="password"
                   value={apiConfig.api_secret}
                   onChange={(e) => setApiConfig({...apiConfig, api_secret: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   placeholder="Votre secret API"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Property ID
                 </label>
                 <input
                   type="text"
                   value={apiConfig.property_id}
                   onChange={(e) => setApiConfig({...apiConfig, property_id: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   placeholder="ID de la propriété dans le système"
                 />
               </div>
@@ -818,24 +822,24 @@ export default function InvestorReservationsCalendar() {
                   id="auto-sync"
                   checked={apiConfig.auto_sync}
                   onChange={(e) => setApiConfig({...apiConfig, auto_sync: e.target.checked})}
-                  className="rounded"
+                  className="rounded dark:bg-gray-700 dark:border-gray-600"
                 />
-                <label htmlFor="auto-sync" className="text-sm text-gray-700">
+                <label htmlFor="auto-sync" className="text-sm text-gray-700 dark:text-gray-300">
                   Activer la synchronisation automatique
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-4 border-t dark:border-gray-700">
                 <button
                   onClick={() => setShowApiConfig(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSaveApiConfig}
                   disabled={!selectedScenarioForApi}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:bg-gray-400"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600"
                 >
                   Sauvegarder
                 </button>
