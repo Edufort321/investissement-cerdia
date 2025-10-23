@@ -64,21 +64,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Charger les données de l'investisseur depuis la table investors
   const loadInvestorData = useCallback(async (userId: string): Promise<Investor | null> => {
+    console.log('🔵 [AUTH] Chargement des données investisseur pour userId:', userId)
     try {
-      const { data, error } = await supabase
+      // Timeout de 10 secondes pour éviter les blocages infinis
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn('⚠️ [AUTH] Timeout lors du chargement des données investisseur')
+          resolve(null)
+        }, 10000)
+      })
+
+      const dataPromise = supabase
         .from('investors')
         .select('*')
         .eq('user_id', userId)
         .single()
 
-      if (error) {
-        console.error('Error loading investor data:', error)
+      const result = await Promise.race([dataPromise, timeoutPromise])
+
+      if (!result) {
+        console.error('🔴 [AUTH] Timeout - données investisseur non chargées')
         return null
       }
 
+      const { data, error } = result as any
+
+      if (error) {
+        console.error('🔴 [AUTH] Erreur lors du chargement des données investisseur:', error)
+        return null
+      }
+
+      console.log('✅ [AUTH] Données investisseur chargées avec succès')
       return data as Investor
     } catch (error) {
-      console.error('Error loading investor data:', error)
+      console.error('🔴 [AUTH] Exception lors du chargement des données investisseur:', error)
       return null
     }
   }, [])
@@ -121,16 +140,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Charger la session initiale
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔵 [AUTH] Session initiale:', session ? 'Connecté' : 'Non connecté')
       if (session?.user) {
         setSupabaseUser(session.user)
-        loadInvestorData(session.user.id).then(investorData => {
-          const user = createUserObject(session.user, investorData)
-          setCurrentUser(user)
-          setLoading(false)
-        })
+        loadInvestorData(session.user.id)
+          .then(investorData => {
+            const user = createUserObject(session.user, investorData)
+            setCurrentUser(user)
+          })
+          .catch(error => {
+            console.error('🔴 [AUTH] Erreur lors du chargement initial:', error)
+          })
+          .finally(() => {
+            console.log('✅ [AUTH] Chargement initial terminé')
+            setLoading(false)
+          })
       } else {
         setLoading(false)
       }
+    }).catch(error => {
+      console.error('🔴 [AUTH] Erreur getSession:', error)
+      setLoading(false)
     })
 
     return () => {
