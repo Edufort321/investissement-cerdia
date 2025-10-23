@@ -275,11 +275,42 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   }, [])
 
   // Add Investor
-  const addInvestor = useCallback(async (investor: Partial<Investor>) => {
+  const addInvestor = useCallback(async (investor: Partial<Investor> & { password?: string }) => {
     try {
+      let authUserId = investor.user_id || null
+
+      // Si un mot de passe est fourni, créer le compte Supabase Auth via l'API
+      if (investor.password && investor.email) {
+        const response = await fetch('/api/investors/create-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: investor.email,
+            password: investor.password,
+            firstName: investor.first_name,
+            lastName: investor.last_name
+          })
+        })
+
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Erreur création compte Auth')
+        }
+
+        authUserId = result.user_id
+      }
+
+      // Retirer le password avant d'insérer dans la table investors
+      const { password, ...investorData } = investor
+
+      // Insérer dans la table investors avec le user_id du compte Auth
       const { error } = await supabase
         .from('investors')
-        .insert([investor])
+        .insert([{
+          ...investorData,
+          user_id: authUserId
+        }])
 
       if (error) throw error
       await fetchInvestors()
@@ -290,11 +321,32 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   }, [fetchInvestors])
 
   // Update Investor
-  const updateInvestor = useCallback(async (id: string, updates: Partial<Investor>) => {
+  const updateInvestor = useCallback(async (id: string, updates: Partial<Investor> & { password?: string }) => {
     try {
+      // Si un nouveau mot de passe est fourni et qu'il y a un user_id, réinitialiser le mot de passe Auth via l'API
+      if (updates.password && updates.user_id) {
+        const response = await fetch('/api/investors/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: updates.user_id,
+            password: updates.password
+          })
+        })
+
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Erreur réinitialisation mot de passe')
+        }
+      }
+
+      // Retirer le password avant de mettre à jour la table investors
+      const { password, ...investorData } = updates
+
       const { error } = await supabase
         .from('investors')
-        .update(updates)
+        .update(investorData)
         .eq('id', id)
 
       if (error) throw error

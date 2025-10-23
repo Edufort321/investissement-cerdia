@@ -141,11 +141,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     total_invested: 0,
     current_value: 0,
     percentage_ownership: 0,
-    investment_type: 'capital',
+    investment_type: 'part',
     status: 'actif',
     join_date: new Date().toISOString().split('T')[0],
     can_vote: true,
-    access_level: 'investor',
+    access_level: 'investisseur',
     permissions: {
       dashboard: true,
       projet: false,
@@ -224,22 +224,54 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   // ==========================================
+  // OWNERSHIP PERCENTAGE CALCULATOR
+  // ==========================================
+
+  const calculateOwnershipPercentage = (currentShares: number): number => {
+    // Calculer le total de parts de tous les investisseurs (sauf celui en cours d'édition)
+    const otherInvestorsTotalShares = investors
+      .filter(inv => inv.id !== editingInvestorId)
+      .reduce((sum, inv) => sum + (inv.total_shares || 0), 0)
+
+    // Total incluant l'investisseur actuel
+    const totalShares = otherInvestorsTotalShares + currentShares
+
+    // Si le total est 0, retourner 0
+    if (totalShares === 0) return 0
+
+    // Calculer le pourcentage
+    return (currentShares / totalShares) * 100
+  }
+
+  // ==========================================
   // INVESTOR HANDLERS
   // ==========================================
 
   const handleInvestorSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const nominalValue = shareSettings?.nominal_share_value || 1000
     const totalInvested = investorFormData.total_invested
-    const currentValue = investorFormData.total_shares * investorFormData.share_value
-
-    const dataToSubmit = {
-      ...investorFormData,
-      current_value: currentValue,
-      total_invested: totalInvested
-    }
+    const currentValue = investorFormData.total_shares * nominalValue
+    const ownershipPercentage = calculateOwnershipPercentage(investorFormData.total_shares)
 
     if (editingInvestorId) {
+      // Mode édition : garder le password seulement s'il est renseigné (pour réinitialisation)
+      const dataToSubmit = {
+        ...investorFormData,
+        user_id: investorFormData.user_id || null,
+        action_class: investorFormData.action_class || 'A',
+        share_value: nominalValue,
+        current_value: currentValue,
+        total_invested: totalInvested,
+        percentage_ownership: ownershipPercentage
+      }
+
+      // Si le password est vide, le retirer du dataToSubmit
+      if (!dataToSubmit.password) {
+        delete dataToSubmit.password
+      }
+
       const result = await updateInvestor(editingInvestorId, dataToSubmit)
       if (result.success) {
         setEditingInvestorId(null)
@@ -248,6 +280,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         alert('Erreur lors de la modification: ' + result.error)
       }
     } else {
+      // Mode ajout : garder le password pour créer le compte Auth
+      const dataToSubmit = {
+        ...investorFormData,
+        user_id: investorFormData.user_id || null,
+        action_class: investorFormData.action_class || 'A',
+        share_value: nominalValue,
+        current_value: currentValue,
+        total_invested: totalInvested,
+        percentage_ownership: ownershipPercentage
+      }
+
       const result = await addInvestor(dataToSubmit)
       if (result.success) {
         setShowAddInvestorForm(false)
@@ -426,7 +469,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       password: '',
       action_class: 'A',
       total_shares: 0,
-      share_value: 1000,
+      share_value: shareSettings?.nominal_share_value || 1000,
       total_invested: 0,
       current_value: 0,
       percentage_ownership: 0,
@@ -434,7 +477,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       status: 'actif',
       join_date: new Date().toISOString().split('T')[0],
       can_vote: true,
-      access_level: 'investor',
+      access_level: 'investisseur',
       permissions: {
         dashboard: true,
         projet: false,
@@ -443,6 +486,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     })
     setShowAddInvestorForm(false)
     setEditingInvestorId(null)
+  }
+
+  const handleToggleAddInvestor = () => {
+    if (!showAddInvestorForm) {
+      // Ouverture du formulaire : réinitialiser les champs
+      resetInvestorForm()
+      setShowAddInvestorForm(true)
+    } else {
+      // Fermeture du formulaire
+      setShowAddInvestorForm(false)
+      setEditingInvestorId(null)
+    }
   }
 
   // ==========================================
@@ -706,7 +761,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
         </div>
         <button
-          onClick={() => setShowAddInvestorForm(!showAddInvestorForm)}
+          onClick={handleToggleAddInvestor}
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
         >
           {showAddInvestorForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
@@ -778,59 +833,45 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               {/* Mot de passe généré automatiquement */}
-              {!editingInvestorId && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mot de passe *
-                    <span className="text-xs text-gray-500 ml-2">
-                      (Format: 3 chiffres + 1 lettre prénom + 3 lettres nom + 2 caractères)
-                    </span>
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={investorFormData.password}
-                      onChange={(e) => setInvestorFormData({ ...investorFormData, password: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent font-mono"
-                      placeholder="Ex: 321Eduf!$"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (investorFormData.first_name && investorFormData.last_name) {
-                          const generatedPassword = generatePassword(investorFormData.first_name, investorFormData.last_name)
-                          setInvestorFormData({ ...investorFormData, password: generatedPassword })
-                        } else {
-                          alert('Veuillez d\'abord remplir le prénom et le nom')
-                        }
-                      }}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Générer
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    ℹ️ Ce mot de passe sera utilisé pour créer le compte Supabase Auth
-                  </p>
-                </div>
-              )}
-
-              {/* Informations d'investissement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Classe de parts *</label>
-                <select
-                  value={investorFormData.action_class}
-                  onChange={(e) => setInvestorFormData({ ...investorFormData, action_class: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                  required
-                >
-                  <option value="A">Classe A</option>
-                  <option value="B">Classe B</option>
-                  <option value="C">Classe C</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mot de passe {!editingInvestorId && '*'}
+                  <span className="text-xs text-gray-500 ml-2">
+                    (Format: 3 chiffres + 1 lettre prénom + 3 lettres nom + 2 caractères)
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={investorFormData.password}
+                    onChange={(e) => setInvestorFormData({ ...investorFormData, password: e.target.value })}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent font-mono"
+                    placeholder="Cliquez sur 'Générer'"
+                    required={!editingInvestorId}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (investorFormData.first_name && investorFormData.last_name) {
+                        const generatedPassword = generatePassword(investorFormData.first_name, investorFormData.last_name)
+                        setInvestorFormData({ ...investorFormData, password: generatedPassword })
+                      } else {
+                        alert('Veuillez d\'abord remplir le prénom et le nom')
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Générer
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ {editingInvestorId
+                    ? 'Générez un nouveau mot de passe pour réinitialiser l\'accès de cet investisseur'
+                    : 'Ce mot de passe sera utilisé pour créer le compte Supabase Auth'}
+                </p>
               </div>
 
+              {/* Informations d'investissement */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Total parts
@@ -850,16 +891,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Valeur par part (CAD $) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Valeur par part (CAD $)
+                  <span className="text-xs text-gray-500 ml-2">(Défini par la valeur nominale globale)</span>
+                </label>
                 <input
                   type="number"
-                  value={investorFormData.share_value}
-                  onChange={(e) => setInvestorFormData({ ...investorFormData, share_value: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  value={shareSettings?.nominal_share_value || investorFormData.share_value}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="0.01"
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ Modifiez la valeur via l'onglet "Valeur Nominale (Prix de vente)" en haut de la page
+                </p>
               </div>
 
               <div>
@@ -881,17 +927,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">% de propriété *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  % de propriété
+                  <span className="text-xs text-gray-500 ml-2">(Calculé automatiquement)</span>
+                </label>
                 <input
                   type="number"
-                  value={investorFormData.percentage_ownership}
-                  onChange={(e) => setInvestorFormData({ ...investorFormData, percentage_ownership: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  value={calculateOwnershipPercentage(investorFormData.total_shares).toFixed(2)}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   max="100"
                   step="0.01"
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ Ce champ est calculé automatiquement à partir du ratio de parts de l'investisseur versus le total du groupe
+                </p>
               </div>
 
               <div>
@@ -902,8 +953,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="capital">Capital</option>
-                  <option value="dette">Dette</option>
+                  <option value="part">Part (Société à commandite)</option>
+                  <option value="immobilier">Immobilier</option>
+                  <option value="actions">Actions</option>
                   <option value="mixte">Mixte</option>
                 </select>
               </div>
@@ -941,7 +993,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="investor">Investisseur</option>
+                  <option value="investisseur">Investisseur</option>
                   <option value="admin">Administrateur</option>
                 </select>
               </div>
@@ -1029,7 +1081,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Aucun investisseur</h3>
           <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Commencez par ajouter votre premier investisseur</p>
           <button
-            onClick={() => setShowAddInvestorForm(true)}
+            onClick={handleToggleAddInvestor}
             className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 sm:px-6 py-2 rounded-full transition-colors text-sm sm:text-base"
           >
             Ajouter un investisseur
@@ -1118,7 +1170,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div className="pt-1.5 sm:pt-2 border-t border-gray-100">
-                  <div className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Classe {investor.action_class} • {investor.investment_type}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Type: {investor.investment_type}</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 truncate">
                     Accès: {investor.access_level === 'admin' ? 'Administrateur' : 'Investisseur'}
                   </div>
