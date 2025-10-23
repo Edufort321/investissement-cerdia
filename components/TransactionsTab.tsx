@@ -257,14 +257,21 @@ export default function TransactionsTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Montant ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Montant ($) *</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  min="0"
-                  step="0.01"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/,/g, '.')
+                    const parsed = parseFloat(value)
+                    if (value === '' || value === '0' || !isNaN(parsed)) {
+                      setFormData({ ...formData, amount: isNaN(parsed) ? 0 : parsed })
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: 2921.78 ou 2921,78"
+                  pattern="[0-9]+([.,][0-9]{1,2})?"
                   required
                 />
               </div>
