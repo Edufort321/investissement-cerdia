@@ -419,7 +419,7 @@ export default function DashboardPage() {
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-24 left-4 z-50 p-3 bg-[#5e5e5e] text-white rounded-full shadow-lg hover:bg-[#3e3e3e] transition-colors"
+          className="fixed top-20 left-4 z-30 p-3 bg-[#5e5e5e] dark:bg-gray-700 text-white rounded-full shadow-lg hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition-colors"
         >
           <Menu size={24} />
         </button>
