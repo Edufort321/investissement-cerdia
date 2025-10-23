@@ -287,9 +287,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
       let authUserId = investor.user_id || null
 
-      // Si un mot de passe est fourni, créer le compte Supabase Auth via l'API
+      // Si un mot de passe est fourni, créer ou mettre à jour le compte Supabase Auth via l'API
       if (investor.password && investor.email) {
-        console.log('🟡 [addInvestor] Appel API create-auth...')
+        console.log('🟡 [addInvestor] Appel API upsert-auth (création ou mise à jour)...')
 
         const apiPayload = {
           email: investor.email,
@@ -299,7 +299,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         }
         console.log('🟡 [addInvestor] Payload API:', { ...apiPayload, password: '***' })
 
-        const response = await fetch('/api/investors/create-auth', {
+        const response = await fetch('/api/investors/upsert-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiPayload)
@@ -326,9 +326,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         }
 
         authUserId = result.user_id
-        console.log('✅ [addInvestor] Compte Auth créé avec succès! user_id:', authUserId)
+
+        if (result.existed) {
+          console.log('✅ [addInvestor] Compte Auth existant trouvé et mis à jour! user_id:', authUserId)
+        } else {
+          console.log('✅ [addInvestor] Nouveau compte Auth créé avec succès! user_id:', authUserId)
+        }
       } else {
-        console.log('⚪ [addInvestor] Pas de mot de passe fourni, pas de création de compte Auth')
+        console.log('⚪ [addInvestor] Pas de mot de passe fourni, pas de création/mise à jour de compte Auth')
       }
 
       // Retirer le password avant d'insérer dans la table investors
@@ -367,36 +372,98 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Update Investor
   const updateInvestor = useCallback(async (id: string, updates: Partial<Investor> & { password?: string }) => {
     try {
-      // Si un nouveau mot de passe est fourni et qu'il y a un user_id, réinitialiser le mot de passe Auth via l'API
-      if (updates.password && updates.user_id) {
-        const response = await fetch('/api/investors/reset-password', {
+      console.log('🟢 [updateInvestor] Début de mise à jour investisseur:', id)
+      console.log('🟢 [updateInvestor] Données:', {
+        email: updates.email,
+        first_name: updates.first_name,
+        last_name: updates.last_name,
+        hasPassword: !!updates.password,
+        hasUserId: !!updates.user_id
+      })
+
+      // Si un mot de passe ou email est modifié, utiliser l'API upsert-auth
+      if ((updates.password || updates.email) && updates.user_id) {
+        console.log('🟡 [updateInvestor] Appel API upsert-auth pour mise à jour du compte Auth...')
+
+        const apiPayload = {
+          user_id: updates.user_id,
+          email: updates.email,
+          password: updates.password,
+          firstName: updates.first_name,
+          lastName: updates.last_name
+        }
+        console.log('🟡 [updateInvestor] Payload API:', {
+          ...apiPayload,
+          password: apiPayload.password ? '***' : undefined
+        })
+
+        const response = await fetch('/api/investors/upsert-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: updates.user_id,
-            password: updates.password
-          })
+          body: JSON.stringify(apiPayload)
+        })
+
+        const result = await response.json()
+        console.log('🟡 [updateInvestor] Réponse API:', result)
+
+        if (!response.ok || !result.success) {
+          console.error('❌ [updateInvestor] Erreur API:', result)
+          throw new Error(result.error || 'Erreur lors de la mise à jour du compte Auth')
+        }
+
+        console.log('✅ [updateInvestor] Compte Auth mis à jour (email et/ou password)')
+      } else if ((updates.password || updates.email) && !updates.user_id) {
+        console.log('⚠️ [updateInvestor] Pas de user_id pour mettre à jour le compte Auth')
+        console.log('⚠️ [updateInvestor] Tentative de création/liaison du compte Auth...')
+
+        // Si pas de user_id mais qu'on veut mettre à jour l'auth, essayer de créer/lier
+        const apiPayload = {
+          email: updates.email,
+          password: updates.password,
+          firstName: updates.first_name,
+          lastName: updates.last_name
+        }
+
+        const response = await fetch('/api/investors/upsert-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(apiPayload)
         })
 
         const result = await response.json()
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Erreur réinitialisation mot de passe')
+        if (response.ok && result.success && result.user_id) {
+          console.log('✅ [updateInvestor] Compte Auth trouvé/créé, user_id:', result.user_id)
+          updates.user_id = result.user_id
+        } else {
+          console.error('❌ [updateInvestor] Impossible de créer/lier le compte Auth:', result)
         }
       }
 
       // Retirer le password avant de mettre à jour la table investors
       const { password, ...investorData } = updates
 
+      console.log('🔵 [updateInvestor] Mise à jour de la table investors')
+
       const { error } = await supabase
         .from('investors')
         .update(investorData)
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ [updateInvestor] Erreur lors de la mise à jour dans investors:', error)
+        throw error
+      }
+
+      console.log('✅ [updateInvestor] Investisseur mis à jour avec succès dans la DB')
+
       await fetchInvestors()
+      console.log('✅ [updateInvestor] Liste des investisseurs rafraîchie')
+
       return { success: true }
     } catch (error: any) {
+      console.error('❌ [updateInvestor] ERREUR FINALE:', error)
+      console.error('❌ [updateInvestor] Message d\'erreur:', error.message)
       return { success: false, error: error.message }
     }
   }, [fetchInvestors])
