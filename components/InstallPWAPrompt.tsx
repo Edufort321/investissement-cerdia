@@ -12,8 +12,15 @@ export default function InstallPWAPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
+    // Détecter iOS
+    const checkIsIOS = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase()
+      return /iphone|ipad|ipod/.test(userAgent)
+    }
+
     // Vérifier si l'app est déjà installée
     const checkIfInstalled = () => {
       // Mode standalone = app installée
@@ -34,6 +41,17 @@ export default function InstallPWAPrompt() {
 
     if (checkIfInstalled() || promptDismissed === 'true') {
       return
+    }
+
+    const isiOS = checkIsIOS()
+    setIsIOS(isiOS)
+
+    // Sur iOS, afficher le prompt manuel après 3 secondes
+    if (isiOS) {
+      const timer = setTimeout(() => {
+        setShowPrompt(true)
+      }, 3000)
+      return () => clearTimeout(timer)
     }
 
     // Écouter l'événement beforeinstallprompt
@@ -88,8 +106,13 @@ export default function InstallPWAPrompt() {
     localStorage.setItem('pwa-prompt-dismissed', 'true')
   }
 
-  // Ne rien afficher si déjà installé ou si le prompt n'est pas disponible
-  if (isInstalled || !showPrompt || !deferredPrompt) {
+  // Ne rien afficher si déjà installé
+  if (isInstalled || !showPrompt) {
+    return null
+  }
+
+  // Ne rien afficher sur Android si pas de prompt disponible
+  if (!isIOS && !deferredPrompt) {
     return null
   }
 
@@ -120,22 +143,41 @@ export default function InstallPWAPrompt() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleInstallClick}
-            className="flex-1 bg-white text-blue-600 hover:bg-blue-50 font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Download size={18} />
-            Installer l'app
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="px-4 py-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
-          >
-            Plus tard
-          </button>
-        </div>
+        {/* Actions - Différent pour iOS et Android */}
+        {isIOS ? (
+          <div className="space-y-3">
+            <p className="text-white/90 text-sm font-medium">
+              Pour installer sur iOS:
+            </p>
+            <ol className="text-white/90 text-xs space-y-2 list-decimal list-inside">
+              <li>Appuyez sur l'icône <span className="inline-flex items-center justify-center w-5 h-5 bg-white/20 rounded mx-1">📤</span> (Partager) en bas de Safari</li>
+              <li>Faites défiler et sélectionnez "Sur l'écran d'accueil"</li>
+              <li>Appuyez sur "Ajouter"</li>
+            </ol>
+            <button
+              onClick={handleDismiss}
+              className="w-full mt-2 px-4 py-2.5 text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
+            >
+              J'ai compris
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={handleInstallClick}
+              className="flex-1 bg-white text-blue-600 hover:bg-blue-50 font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Download size={18} />
+              Installer l'app
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="px-4 py-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+            >
+              Plus tard
+            </button>
+          </div>
+        )}
 
         {/* Features */}
         <div className="mt-3 pt-3 border-t border-white/20">
