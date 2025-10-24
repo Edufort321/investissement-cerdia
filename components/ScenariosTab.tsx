@@ -691,7 +691,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     try {
       // Créer la propriété
       const propertyData = {
-        name: selectedScenario.name,
+        name: getFullName(selectedScenario.name, selectedScenario.unit_number),
         location: selectedScenario.address || t('scenarios.toBeDefinedLocation'),
         status: 'reservation',
         total_cost: selectedScenario.purchase_price + selectedScenario.initial_fees,
@@ -998,6 +998,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
   }
 
+  // Helper pour afficher le nom complet avec # d'unité
+  const getFullName = (name: string, unitNumber?: string) => {
+    if (unitNumber && unitNumber.trim() !== '') {
+      return `${name} ${unitNumber}`
+    }
+    return name
+  }
+
   const getStatusBadge = (status: Scenario['status']) => {
     const badges = {
       draft: { bg: 'bg-gray-100', text: 'text-gray-700', label: t('scenarioStatus.draft'), icon: FileText },
@@ -1065,7 +1073,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-900">{scenario.name}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">{getFullName(scenario.name, scenario.unit_number)}</h3>
                       {getStatusBadge(scenario.status)}
                       {/* Afficher le taux d'acceptation si en vote ou en attente de transfert */}
                       {(scenario.status === 'pending_vote' || scenario.status === 'pending_transfer') && scenario.total_votes !== undefined && (
@@ -1714,7 +1722,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{selectedScenario.name}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{getFullName(selectedScenario.name, selectedScenario.unit_number)}</h2>
             <div className="flex items-center gap-2 mt-2">
               {getStatusBadge(selectedScenario.status)}
             </div>
@@ -3079,7 +3087,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <ShareLinkManager
               scenarioId={selectedScenario.id}
-              scenarioName={selectedScenario.name}
+              scenarioName={getFullName(selectedScenario.name, selectedScenario.unit_number)}
             />
           </div>
         )}
