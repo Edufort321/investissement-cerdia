@@ -24,6 +24,8 @@ BEGIN
     -- Scenario results
     DROP POLICY IF EXISTS "Authenticated users can view scenario results" ON scenario_results;
     DROP POLICY IF EXISTS "Authenticated users can create scenario results" ON scenario_results;
+    DROP POLICY IF EXISTS "Authenticated users can update scenario results" ON scenario_results;
+    DROP POLICY IF EXISTS "Authenticated users can delete scenario results" ON scenario_results;
 
     -- Scenario votes
     DROP POLICY IF EXISTS "Authenticated users can view scenario votes" ON scenario_votes;
