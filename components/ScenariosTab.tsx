@@ -749,7 +749,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
     const scenarioName = getFullName(selectedScenario.name, selectedScenario.unit_number)
 
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le scénario "${scenarioName}" ?\n\nCette action est irréversible.`)) {
+    // Avertissement spécial si le scénario a été converti en projet
+    let confirmMessage = `Êtes-vous sûr de vouloir supprimer le scénario "${scenarioName}" ?\n\nCette action est irréversible.`
+
+    if (selectedScenario.status === 'purchased' && selectedScenario.converted_property_id) {
+      confirmMessage = `⚠️ ATTENTION: Ce scénario a été converti en projet!\n\nSupprimer ce scénario "${scenarioName}" ne supprimera PAS le projet associé.\nVous devrez supprimer le projet manuellement dans l'onglet Projets si nécessaire.\n\nVoulez-vous continuer?`
+    }
+
+    if (!confirm(confirmMessage)) {
       return
     }
 
@@ -1903,7 +1910,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             )}
 
             {/* Bouton Supprimer (brouillon ou admin) */}
-            {(selectedScenario.status === 'draft' || currentInvestor?.access_level === 'admin') && selectedScenario.status !== 'purchased' && (
+            {(selectedScenario.status === 'draft' || currentInvestor?.access_level === 'admin') && (
               <button
                 onClick={deleteScenario}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
