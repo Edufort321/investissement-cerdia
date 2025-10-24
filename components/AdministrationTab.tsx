@@ -589,23 +589,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       description: transaction.description,
       investor_id: transaction.investor_id,
       property_id: transaction.property_id,
-      payment_schedule_id: transaction.payment_schedule_id || undefined,
+      payment_schedule_id: transaction.payment_schedule_id || null,
       category: transaction.category,
       payment_method: transaction.payment_method,
       reference_number: transaction.reference_number || '',
       status: transaction.status,
       // International tax fields
       source_currency: transaction.source_currency || 'CAD',
-      source_amount: transaction.source_amount || undefined,
+      source_amount: transaction.source_amount || null,
       exchange_rate: transaction.exchange_rate || 1.0,
-      source_country: transaction.source_country || undefined,
+      source_country: transaction.source_country || null,
       bank_fees: transaction.bank_fees || 0,
       foreign_tax_paid: transaction.foreign_tax_paid || 0,
       foreign_tax_rate: transaction.foreign_tax_rate || 0,
       tax_credit_claimable: transaction.tax_credit_claimable || 0,
-      fiscal_category: transaction.fiscal_category || undefined,
-      vendor_name: transaction.vendor_name || undefined,
-      accountant_notes: transaction.accountant_notes || undefined
+      fiscal_category: transaction.fiscal_category || null,
+      vendor_name: transaction.vendor_name || null,
+      accountant_notes: transaction.accountant_notes || null
     })
     setShowAddTransactionForm(true)
   }
@@ -1589,7 +1589,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <label className="block text-sm font-medium text-gray-700 mb-2">Investisseur</label>
                 <select
                   value={transactionFormData.investor_id || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, investor_id: e.target.value || undefined })}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, investor_id: e.target.value || null })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">Aucun</option>
@@ -1605,7 +1605,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <label className="block text-sm font-medium text-gray-700 mb-2">Propriété</label>
                 <select
                   value={transactionFormData.property_id || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || undefined, payment_schedule_id: null })}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || null, payment_schedule_id: null })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">Aucune</option>
@@ -1626,7 +1626,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </label>
                   <select
                     value={transactionFormData.payment_schedule_id || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || undefined })}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">Aucun paiement lié</option>
@@ -1760,7 +1760,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <input
                     type="text"
                     value={transactionFormData.source_country || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_country: e.target.value || undefined })}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_country: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="Ex: République Dominicaine"
                   />
@@ -1795,7 +1795,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie fiscale</label>
                   <select
                     value={transactionFormData.fiscal_category || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || undefined })}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">Aucune</option>
@@ -1815,7 +1815,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <input
                     type="text"
                     value={transactionFormData.vendor_name || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, vendor_name: e.target.value || undefined })}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, vendor_name: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="Nom du fournisseur"
                   />
@@ -1838,7 +1838,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes comptable</label>
                   <textarea
                     value={transactionFormData.accountant_notes || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, accountant_notes: e.target.value || undefined })}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, accountant_notes: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     rows={2}
                     placeholder="Notes pour le comptable..."
@@ -1996,7 +1996,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           .single()
 
         if (monthlyError && monthlyError.code !== 'PGRST116') throw monthlyError
-        setCompteCourant(monthlyData || undefined)
+        setCompteCourant(monthlyData || null)
 
         // Récupérer la vue par projet
         const { data: projectData, error: projectError } = await supabase
