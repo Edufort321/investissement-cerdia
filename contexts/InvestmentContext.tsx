@@ -15,6 +15,7 @@ interface Property {
   paid_amount: number
   reservation_date: string
   expected_roi: number
+  main_photo_url?: string
   // Payment schedule fields
   currency?: string
   payment_schedule_type?: string

@@ -56,6 +56,7 @@ export interface Property {
   description?: string
   address?: string
   units?: number
+  main_photo_url?: string
 }
 
 // Investisseur
