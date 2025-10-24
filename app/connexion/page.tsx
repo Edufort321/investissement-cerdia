@@ -13,6 +13,7 @@ export default function ConnexionPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,6 +30,12 @@ export default function ConnexionPage() {
     if (!result.success) {
       setError(result.error || 'Erreur de connexion')
     } else {
+      // Stocker la durée de session selon "Se souvenir de moi"
+      const sessionDuration = rememberMe ? 24 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000 // 24h ou 2h
+      const expiresAt = Date.now() + sessionDuration
+      localStorage.setItem('cerdia_session_expires', expiresAt.toString())
+      localStorage.setItem('cerdia_remember_me', rememberMe.toString())
+
       router.push('/dashboard')
     }
   }
@@ -113,6 +120,21 @@ export default function ConnexionPage() {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+              </div>
+
+              {/* Checkbox Se souvenir de moi */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-[#5e5e5e] bg-white border-gray-300 rounded focus:ring-[#5e5e5e] focus:ring-2"
+                />
+                <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Se souvenir de moi pendant 24 heures
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">(sinon 2h)</span>
+                </label>
               </div>
 
               {/* Bouton de connexion - Même style que le header */}

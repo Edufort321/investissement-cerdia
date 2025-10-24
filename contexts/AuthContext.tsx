@@ -146,6 +146,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔵 [AUTH] Session initiale:', session ? 'Connecté' : 'Non connecté')
       if (session?.user) {
+        // Vérifier l'expiration de session (24h ou 2h selon "Se souvenir de moi")
+        const sessionExpires = localStorage.getItem('cerdia_session_expires')
+        if (sessionExpires) {
+          const expiresAt = parseInt(sessionExpires, 10)
+          const now = Date.now()
+
+          if (now > expiresAt) {
+            console.log('⏰ [AUTH] Session expirée, déconnexion automatique')
+            supabase.auth.signOut()
+            localStorage.removeItem('cerdia_session_expires')
+            localStorage.removeItem('cerdia_remember_me')
+            setLoading(false)
+            return
+          }
+
+          const remainingHours = Math.round((expiresAt - now) / (1000 * 60 * 60))
+          console.log(`✅ [AUTH] Session valide, expire dans ~${remainingHours}h`)
+        }
+
         setSupabaseUser(session.user)
         loadInvestorData(session.user.id)
           .then(investorData => {
@@ -229,6 +248,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setLoading(true)
     await supabase.auth.signOut()
+    // Nettoyer les timestamps de session
+    localStorage.removeItem('cerdia_session_expires')
+    localStorage.removeItem('cerdia_remember_me')
     setCurrentUser(null)
     setSupabaseUser(null)
     setLoading(false)
