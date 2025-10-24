@@ -255,7 +255,7 @@ export default function BankReconciliation() {
 
       if (bankDesc && txDesc) {
         const words = txDesc.split(' ')
-        const matchingWords = words.filter(word =>
+        const matchingWords = words.filter((word: string) =>
           word.length > 3 && bankDesc.includes(word)
         )
 
