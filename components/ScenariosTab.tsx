@@ -479,7 +479,8 @@ export default function ScenariosTab() {
           tax_rate: 27,
           annual_rent_increase: 2
         },
-        payment_terms: []
+        payment_terms: [],
+        recurring_fees: []
       })
 
       alert(t('scenarios.created'))
