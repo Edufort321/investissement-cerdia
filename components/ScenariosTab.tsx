@@ -250,11 +250,13 @@ export default function ScenariosTab() {
     }
 
     if (scenario.transaction_fees.type === 'percentage') {
-      const transactionAmount = scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
+      const percentage = scenario.transaction_fees.percentage ?? 0
+      const transactionAmount = scenario.purchase_price * (percentage / 100)
       return baseAmount + transactionAmount
     } else {
       // fixed_amount
-      return baseAmount + scenario.transaction_fees.fixed_amount
+      const fixedAmount = scenario.transaction_fees.fixed_amount ?? 0
+      return baseAmount + fixedAmount
     }
   }
 
@@ -266,9 +268,11 @@ export default function ScenariosTab() {
     }
 
     if (scenario.transaction_fees.type === 'percentage') {
-      return scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
+      const percentage = scenario.transaction_fees.percentage ?? 0
+      return scenario.purchase_price * (percentage / 100)
     } else {
-      return scenario.transaction_fees.fixed_amount
+      const fixedAmount = scenario.transaction_fees.fixed_amount ?? 0
+      return fixedAmount
     }
   }
 
