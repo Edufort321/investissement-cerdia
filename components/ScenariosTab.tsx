@@ -235,6 +235,11 @@ export default function ScenariosTab() {
   const calculateTotalCost = (scenario: Scenario): number => {
     const baseAmount = scenario.purchase_price + scenario.initial_fees
 
+    // Vérifier si transaction_fees existe (pour les anciens scénarios)
+    if (!scenario.transaction_fees) {
+      return baseAmount
+    }
+
     if (scenario.transaction_fees.type === 'percentage') {
       const transactionAmount = scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
       return baseAmount + transactionAmount
@@ -246,6 +251,11 @@ export default function ScenariosTab() {
 
   // Helper: Calculer seulement le montant des frais de transaction
   const calculateTransactionFeesAmount = (scenario: Scenario): number => {
+    // Vérifier si transaction_fees existe (pour les anciens scénarios)
+    if (!scenario.transaction_fees) {
+      return 0
+    }
+
     if (scenario.transaction_fees.type === 'percentage') {
       return scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
     } else {
