@@ -1,17 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
-
-interface InvestorSuggestion {
-  email: string
-  fullName: string
-  username: string
-}
 
 export default function ConnexionPage() {
   const { login, loading } = useAuth()
@@ -21,51 +14,6 @@ export default function ConnexionPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [investors, setInvestors] = useState<InvestorSuggestion[]>([])
-
-  // Charger la liste des investisseurs au montage
-  useEffect(() => {
-    async function loadInvestors() {
-      try {
-        const { data, error } = await supabase
-          .from('investors')
-          .select('email, first_name, last_name, username')
-          .eq('status', 'actif')
-
-        if (error) {
-          console.error('Error loading investors:', error)
-          return
-        }
-
-        if (data) {
-          const suggestions: InvestorSuggestion[] = data.map((inv: any) => ({
-            email: inv.email,
-            fullName: `${inv.first_name} ${inv.last_name}`,
-            username: inv.username,
-          }))
-          setInvestors(suggestions)
-        }
-      } catch (error) {
-        console.error('Error loading investors:', error)
-      }
-    }
-
-    loadInvestors()
-  }, [])
-
-  // Filtrer les investisseurs en fonction de l'entrée
-  const filteredInvestors = investors.filter(
-    inv =>
-      inv.fullName.toLowerCase().includes(email.toLowerCase()) ||
-      inv.username.toLowerCase().includes(email.toLowerCase()) ||
-      inv.email.toLowerCase().includes(email.toLowerCase())
-  )
-
-  const handleSelectInvestor = (selectedEmail: string, fullName: string) => {
-    setEmail(selectedEmail)
-    setShowSuggestions(false)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,43 +70,22 @@ export default function ConnexionPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email avec autocomplétion par nom */}
-              <div className="relative">
+              {/* Email - ⚠️ SÉCURITÉ: Pas d'autocomplete pour éviter énumération users */}
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <Mail size={16} className="inline mr-2" />
-                  Email ou Nom
+                  Email
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    setShowSuggestions(true)
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="Commencez à taper votre nom ou email..."
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre.email@exemple.com"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent text-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                   autoFocus
-                  autoComplete="off"
+                  autoComplete="email"
                   required
                 />
-                {/* Liste déroulante d'autocomplétion */}
-                {showSuggestions && filteredInvestors.length > 0 && email && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {filteredInvestors.map((inv, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => handleSelectInvestor(inv.email, inv.fullName)}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
-                      >
-                        <div className="font-medium text-gray-900 dark:text-white">{inv.fullName}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{inv.email}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Mot de passe */}

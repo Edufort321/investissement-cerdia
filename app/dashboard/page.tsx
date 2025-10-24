@@ -20,11 +20,15 @@ import BudgetDashboard from '@/components/BudgetDashboard'
 import UserGuide from '@/components/UserGuide'
 import NotesManager from '@/components/NotesManager'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
+import SharePriceWidget from '@/components/SharePriceWidget'
+import PropertyValuationManager from '@/components/PropertyValuationManager'
+import SharePriceCalculator from '@/components/SharePriceCalculator'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
+import CorporateBookTab from '@/components/CorporateBookTab'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'mode_emploi' | 'bloc_notes'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -197,7 +201,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex transition-colors duration-300">
       {/* Sidebar gauche */}
       <aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#c7c7c7] dark:bg-gray-800 text-black dark:text-gray-100 transition-all duration-300 z-40 ${
+        className={`fixed left-0 top-20 h-[calc(100vh-5rem)] bg-[#c7c7c7] dark:bg-gray-800 text-black dark:text-gray-100 transition-all duration-300 z-40 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden overflow-y-auto`}
       >
@@ -208,9 +212,9 @@ export default function DashboardPage() {
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 hover:bg-gray-400 rounded-lg transition-colors"
+                className="p-1 hover:bg-gray-400 rounded-lg transition-colors"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             )}
           </div>
@@ -384,6 +388,45 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={() => {
+                          setAdminSubTab('evaluations')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'evaluations'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        Évaluations
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('prix_parts')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'prix_parts'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        Prix des parts
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('livre_entreprise')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'livre_entreprise'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        Livre d'entreprise
+                      </button>
+                      <button
+                        onClick={() => {
                           setAdminSubTab('mode_emploi')
                           if (isMobile) setSidebarOpen(false)
                         }}
@@ -439,7 +482,7 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} pt-32 overflow-x-hidden`}>
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${sidebarOpen && isMobile ? 'pt-[calc(100vh-4rem)]' : 'pt-32'} overflow-x-hidden`}>
         {/* Content Area */}
         <div className="p-4 sm:p-6 max-w-7xl mx-auto overflow-x-hidden">
           {activeTab === 'dashboard' && (
@@ -516,8 +559,9 @@ export default function DashboardPage() {
 
               </div>
 
-              {/* Taux de change USD→CAD */}
-              <div className="mb-6 sm:mb-8">
+              {/* Widget Prix des Parts et Taux de change */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <SharePriceWidget />
                 <ExchangeRateWidget />
               </div>
 
@@ -789,9 +833,24 @@ export default function DashboardPage() {
               {adminSubTab === 'tresorerie' && <TreasuryDashboard />}
               {adminSubTab === 'gestion_projet' && <ProjectManagementDashboard />}
               {adminSubTab === 'budgetisation' && <BudgetDashboard />}
+              {adminSubTab === 'evaluations' && (
+                <div className="p-6">
+                  <PropertyValuationManager />
+                </div>
+              )}
+              {adminSubTab === 'prix_parts' && (
+                <div className="p-6">
+                  <SharePriceCalculator />
+                </div>
+              )}
+              {adminSubTab === 'livre_entreprise' && (
+                <div className="p-6">
+                  <CorporateBookTab />
+                </div>
+              )}
               {adminSubTab === 'mode_emploi' && <UserGuide />}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
-              {!['tresorerie', 'gestion_projet', 'budgetisation', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
+              {!['tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab} />
               )}
             </>

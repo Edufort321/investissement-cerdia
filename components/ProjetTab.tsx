@@ -5,6 +5,7 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
+import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import { supabase } from '@/lib/supabase'
 
@@ -50,6 +51,8 @@ export default function ProjetTab() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
   const [showTransactionsPropertyId, setShowTransactionsPropertyId] = useState<string | null>(null)
   const [showAttachmentsPropertyId, setShowAttachmentsPropertyId] = useState<string | null>(null)
+  const [showScenarioDataPropertyId, setShowScenarioDataPropertyId] = useState<string | null>(null)
+  const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
   const [scenarios, setScenarios] = useState<any[]>([])
@@ -1205,6 +1208,196 @@ export default function ProjetTab() {
                   </div>
                 </div>
 
+                {/* Complete Scenario Data Section (Collapsible) */}
+                {originScenario && (
+                  <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                    <button
+                      onClick={() => setShowScenarioDataPropertyId(showScenarioDataPropertyId === property.id ? null : property.id)}
+                      className="w-full text-left flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Calculator size={16} />
+                        Données complètes du scénario d'origine
+                      </span>
+                      <span className="text-gray-400">{showScenarioDataPropertyId === property.id ? '▼' : '▶'}</span>
+                    </button>
+
+                    {showScenarioDataPropertyId === property.id && (
+                      <div className="mt-3 space-y-4">
+                        {/* Promoter Data */}
+                        {originScenario.promoter_data && Object.keys(originScenario.promoter_data).length > 0 && (
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">📊 Données du promoteur</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              {originScenario.promoter_data.monthly_rent && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Loyer mensuel</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.promoter_data.annual_appreciation && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Appréciation annuelle</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.promoter_data.annual_appreciation}%
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.promoter_data.occupancy_rate && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Taux d'occupation</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.promoter_data.occupancy_rate}%
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.promoter_data.management_fees && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Frais de gestion</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.promoter_data.management_fees}%
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.promoter_data.project_duration && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Durée du projet</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.promoter_data.project_duration} ans
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Three Scenarios */}
+                        {scenarioData && scenarioData.length > 0 && (
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">📈 Scénarios de projection</h4>
+                            <div className="space-y-3">
+                              {['conservative', 'moderate', 'optimistic'].map(type => {
+                                const scenario = scenarioData.find(s => s.scenario_type === type)
+                                if (!scenario) return null
+
+                                const typeLabels: {[key: string]: {label: string, color: string, bg: string}} = {
+                                  conservative: { label: '🔵 Conservateur', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-300' },
+                                  moderate: { label: '🟢 Modéré', color: 'text-green-700', bg: 'bg-green-50 border-green-300' },
+                                  optimistic: { label: '🟡 Optimiste', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-300' }
+                                }
+
+                                return (
+                                  <div key={type} className={`p-3 rounded-lg border ${typeLabels[type].bg}`}>
+                                    <div className={`text-sm font-bold ${typeLabels[type].color} mb-2`}>
+                                      {typeLabels[type].label}
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                      <div className="bg-white p-2 rounded">
+                                        <div className="text-xs text-gray-600">ROI moyen</div>
+                                        <div className="text-sm font-bold text-gray-900">
+                                          {scenario.summary.avg_annual_return?.toFixed(1)}%
+                                        </div>
+                                      </div>
+                                      <div className="bg-white p-2 rounded">
+                                        <div className="text-xs text-gray-600">Break-even</div>
+                                        <div className="text-sm font-bold text-gray-900">
+                                          Année {scenario.summary.break_even_year || 'N/A'}
+                                        </div>
+                                      </div>
+                                      <div className="bg-white p-2 rounded">
+                                        <div className="text-xs text-gray-600">Valeur finale</div>
+                                        <div className="text-sm font-bold text-gray-900">
+                                          {scenario.summary.final_property_value?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                        </div>
+                                      </div>
+                                      <div className="bg-white p-2 rounded">
+                                        <div className="text-xs text-gray-600">Revenu net total</div>
+                                        <div className="text-sm font-bold text-gray-900">
+                                          {scenario.summary.total_net_income?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Payment Terms */}
+                        {originScenario.payment_terms && originScenario.payment_terms.length > 0 && (
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">💰 Termes de paiement originaux</h4>
+                            <div className="space-y-2">
+                              {originScenario.payment_terms.map((term: any, index: number) => (
+                                <div key={index} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between">
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">{term.label}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {term.amount_type === 'percentage'
+                                        ? `${term.percentage}% du prix d'achat`
+                                        : term.fixed_amount?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-sm font-bold text-gray-900">
+                                      {term.amount_type === 'percentage'
+                                        ? ((originScenario.purchase_price * term.percentage) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                        : term.fixed_amount?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      Échéance: {new Date(term.due_date).toLocaleDateString('fr-CA')}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Financing Data */}
+                        {originScenario.payment_type === 'financed' && (
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">🏦 Financement</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              <div className="bg-white p-2 rounded border border-gray-200">
+                                <div className="text-xs text-gray-600">Type</div>
+                                <div className="text-sm font-bold text-gray-900">Financé</div>
+                              </div>
+                              {originScenario.down_payment && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Mise de fonds</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.down_payment}%
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.interest_rate && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Taux d'intérêt</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.interest_rate}%
+                                  </div>
+                                </div>
+                              )}
+                              {originScenario.loan_duration && (
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600">Durée du prêt</div>
+                                  <div className="text-sm font-bold text-gray-900">
+                                    {originScenario.loan_duration} ans
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Footer Actions */}
                 <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
                   <button
@@ -1213,6 +1406,13 @@ export default function ProjetTab() {
                   >
                     <FileImage size={16} />
                     Pièces jointes
+                  </button>
+                  <button
+                    onClick={() => setShowPerformancePropertyId(showPerformancePropertyId === property.id ? null : property.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <TrendingUp size={16} />
+                    Performance & ROI
                   </button>
                   <button
                     onClick={() => handleEdit(property)}
@@ -1263,6 +1463,48 @@ export default function ProjetTab() {
           </div>
         </div>
       )}
+
+      {/* Performance Analysis Modal */}
+      {showPerformancePropertyId && (() => {
+        const property = properties.find(p => p.id === showPerformancePropertyId)
+        const originScenario = property?.origin_scenario_id
+          ? scenarios.find(s => s.id === property.origin_scenario_id)
+          : null
+        const scenarioData = scenarioResults.filter(r => r.scenario_id === property?.origin_scenario_id)
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-7xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Performance & ROI</h3>
+                  <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
+                </div>
+                <button
+                  onClick={() => setShowPerformancePropertyId(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+                {property && (
+                  <PropertyPerformanceAnalysis
+                    propertyId={property.id}
+                    propertyName={property.name}
+                    totalCost={property.total_cost}
+                    currency={property.currency || 'USD'}
+                    originScenario={originScenario}
+                    scenarioResults={scenarioData}
+                    transactions={transactions}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )

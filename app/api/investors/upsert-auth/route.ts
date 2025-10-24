@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       // Mettre à jour l'email si fourni
       if (email) {
         updateData.email = email
-        updateData.email_confirm = true
+        updateData.email_confirm = false // ⚠️ SÉCURITÉ: L'utilisateur doit confirmer le nouvel email
       }
 
       // Mettre à jour le mot de passe si fourni
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: true,
+        email_confirm: false, // ⚠️ SÉCURITÉ: L'utilisateur doit confirmer son email
         user_metadata: {
           first_name: firstName,
           last_name: lastName

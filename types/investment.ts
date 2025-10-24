@@ -57,6 +57,12 @@ export interface Property {
   address?: string
   units?: number
   main_photo_url?: string
+  recurring_fees?: Array<{
+    label: string
+    amount: number
+    frequency: 'monthly' | 'annual'
+    currency: 'USD' | 'CAD'
+  }>
 }
 
 // Investisseur

@@ -38,6 +38,7 @@ interface Scenario {
   completion_year?: number
   promoter_data: PromoterData
   payment_terms: PaymentTerm[]
+  recurring_fees?: RecurringFee[] // Frais récurrents (HOA, entretien, etc.)
   status: 'draft' | 'pending_vote' | 'pending_transfer' | 'approved' | 'rejected' | 'purchased'
   created_by: string
   created_at: string
@@ -76,6 +77,13 @@ interface PaymentTerm {
   percentage?: number
   fixed_amount?: number
   due_date: string
+}
+
+interface RecurringFee {
+  label: string // "HOA Fees", "Entretien pelouse", "Piscine"
+  amount: number
+  frequency: 'monthly' | 'annual'
+  currency: 'USD' | 'CAD'
 }
 
 interface ActualValue {
@@ -206,7 +214,8 @@ export default function ScenariosTab() {
       tax_rate: 27, // Taux par défaut 27%
       annual_rent_increase: 2 // Augmentation locative 2%
     },
-    payment_terms: [] as PaymentTerm[]
+    payment_terms: [] as PaymentTerm[],
+    recurring_fees: [] as RecurringFee[]
   })
 
   // Charger le taux de change au montage
@@ -403,6 +412,7 @@ export default function ScenariosTab() {
           completion_year: formData.construction_status === 'completed' ? formData.completion_year : null,
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
+          recurring_fees: formData.recurring_fees || [],
           status: 'draft',
           created_by: currentUser.investorData?.id
         }])
@@ -795,7 +805,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         paid_amount: 0,
         expected_roi: scenarioResults.find(r => r.scenario_type === 'moderate')?.summary.avg_annual_return || 0,
         reservation_date: new Date().toISOString(),
-        main_photo_url: selectedScenario.main_photo_url || null
+        main_photo_url: selectedScenario.main_photo_url || null,
+        recurring_fees: selectedScenario.recurring_fees || []
       }
 
       const { data: property, error: propError } = await supabase
@@ -854,6 +865,99 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         }
       } else {
         console.warn('⚠️ [CONVERSION] Pas de payment_terms définis dans le scénario')
+      }
+
+      // Transférer les pièces jointes du scénario vers la propriété
+      console.log('🔵 [CONVERSION] Début du transfert des pièces jointes...')
+
+      try {
+        // Lister tous les fichiers du scénario
+        const { data: scenarioFiles, error: listError } = await supabase.storage
+          .from('scenario-documents')
+          .list(selectedScenario.id, {
+            limit: 100,
+            offset: 0,
+            sortBy: { column: 'name', order: 'asc' }
+          })
+
+        if (listError) {
+          console.warn('⚠️ [CONVERSION] Erreur lors de la liste des fichiers:', listError)
+        } else if (scenarioFiles && scenarioFiles.length > 0) {
+          console.log(`🔵 [CONVERSION] ${scenarioFiles.length} fichier(s) trouvé(s) dans le scénario`)
+
+          let copiedCount = 0
+          let errorCount = 0
+
+          for (const file of scenarioFiles) {
+            try {
+              // Ignorer les dossiers
+              if (file.id === null) continue
+
+              const sourcePath = `${selectedScenario.id}/${file.name}`
+              const destPath = `${property.id}/${file.name}`
+
+              console.log(`🔵 [CONVERSION] Copie: ${sourcePath} → ${destPath}`)
+
+              // Télécharger le fichier depuis le scénario
+              const { data: fileData, error: downloadError } = await supabase.storage
+                .from('scenario-documents')
+                .download(sourcePath)
+
+              if (downloadError) {
+                console.error(`❌ [CONVERSION] Erreur téléchargement ${file.name}:`, downloadError)
+                errorCount++
+                continue
+              }
+
+              // Upload vers le bucket de la propriété
+              const { error: uploadError } = await supabase.storage
+                .from('property-attachments')
+                .upload(destPath, fileData, {
+                  contentType: file.metadata?.mimetype || 'application/octet-stream',
+                  upsert: false
+                })
+
+              if (uploadError) {
+                console.error(`❌ [CONVERSION] Erreur upload ${file.name}:`, uploadError)
+                errorCount++
+                continue
+              }
+
+              // Créer l'entrée dans property_attachments
+              const { error: dbError } = await supabase
+                .from('property_attachments')
+                .insert({
+                  property_id: property.id,
+                  file_name: file.name,
+                  file_type: file.metadata?.mimetype || 'application/octet-stream',
+                  storage_path: destPath,
+                  file_size: file.metadata?.size || 0,
+                  description: `Transféré depuis scénario: ${selectedScenario.name}`,
+                  attachment_category: file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? 'photo' : 'document'
+                })
+
+              if (dbError) {
+                console.error(`❌ [CONVERSION] Erreur DB ${file.name}:`, dbError)
+                errorCount++
+                continue
+              }
+
+              copiedCount++
+              console.log(`✅ [CONVERSION] Fichier copié: ${file.name}`)
+
+            } catch (fileError) {
+              console.error(`❌ [CONVERSION] Erreur fichier ${file.name}:`, fileError)
+              errorCount++
+            }
+          }
+
+          console.log(`✅ [CONVERSION] Transfert terminé: ${copiedCount} réussi(s), ${errorCount} erreur(s)`)
+        } else {
+          console.log('ℹ️ [CONVERSION] Aucune pièce jointe à transférer')
+        }
+      } catch (transferError) {
+        console.error('❌ [CONVERSION] Erreur globale transfert pièces jointes:', transferError)
+        // On ne bloque pas la conversion même si le transfert échoue
       }
 
       // Mettre à jour le scénario
@@ -1828,6 +1932,159 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section Frais Récurrents */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Frais récurrents</h3>
+                <p className="text-xs text-gray-600 mt-1">HOA, entretien pelouse, piscine, etc.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    recurring_fees: [
+                      ...(formData.recurring_fees || []),
+                      {
+                        label: '',
+                        amount: 0,
+                        frequency: 'monthly',
+                        currency: 'USD'
+                      }
+                    ]
+                  })
+                }}
+                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+              >
+                <Plus size={16} />
+                Ajouter frais
+              </button>
+            </div>
+
+            {!formData.recurring_fees || formData.recurring_fees.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">Aucun frais récurrent ajouté</p>
+            ) : (
+              <div className="space-y-3">
+                {formData.recurring_fees.map((fee, index) => (
+                  <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Type de frais</label>
+                        <input
+                          type="text"
+                          value={fee.label}
+                          onChange={(e) => {
+                            const newFees = [...(formData.recurring_fees || [])]
+                            newFees[index].label = e.target.value
+                            setFormData({...formData, recurring_fees: newFees})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="HOA, Pelouse, Piscine..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Montant</label>
+                        <input
+                          type="number"
+                          value={fee.amount || ''}
+                          onChange={(e) => {
+                            const newFees = [...(formData.recurring_fees || [])]
+                            newFees[index].amount = parseFloat(e.target.value) || 0
+                            setFormData({...formData, recurring_fees: newFees})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="150"
+                          step="10"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Fréquence</label>
+                        <select
+                          value={fee.frequency}
+                          onChange={(e) => {
+                            const newFees = [...(formData.recurring_fees || [])]
+                            newFees[index].frequency = e.target.value as 'monthly' | 'annual'
+                            setFormData({...formData, recurring_fees: newFees})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="monthly">Mensuel</option>
+                          <option value="annual">Annuel</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
+                        <div className="flex gap-2">
+                          <select
+                            value={fee.currency}
+                            onChange={(e) => {
+                              const newFees = [...(formData.recurring_fees || [])]
+                              newFees[index].currency = e.target.value as 'USD' | 'CAD'
+                              setFormData({...formData, recurring_fees: newFees})
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          >
+                            <option value="USD">USD</option>
+                            <option value="CAD">CAD</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newFees = (formData.recurring_fees || []).filter((_, i) => i !== index)
+                              setFormData({...formData, recurring_fees: newFees})
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Afficher équivalent mensuel si annuel */}
+                    {fee.frequency === 'annual' && fee.amount > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        Équivalent mensuel: {(fee.amount / 12).toLocaleString('fr-CA', { style: 'currency', currency: fee.currency })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Total des frais récurrents */}
+                {formData.recurring_fees && formData.recurring_fees.length > 0 && (
+                  <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                    <div className="text-sm font-semibold text-green-900">
+                      Total frais récurrents (mensuel):
+                      {' '}
+                      {formData.recurring_fees
+                        .reduce((total, fee) => {
+                          const monthlyAmount = fee.frequency === 'annual' ? fee.amount / 12 : fee.amount
+                          return total + monthlyAmount
+                        }, 0)
+                        .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                      {' USD/mois'}
+                    </div>
+                    <div className="text-xs text-green-700 mt-1">
+                      Total annuel:
+                      {' '}
+                      {formData.recurring_fees
+                        .reduce((total, fee) => {
+                          const annualAmount = fee.frequency === 'monthly' ? fee.amount * 12 : fee.amount
+                          return total + annualAmount
+                        }, 0)
+                        .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                      {' USD/an'}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
