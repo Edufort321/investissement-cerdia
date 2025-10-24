@@ -683,6 +683,32 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
   }
 
+  const deleteScenario = async () => {
+    if (!selectedScenario) return
+
+    const scenarioName = getFullName(selectedScenario.name, selectedScenario.unit_number)
+
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le scénario "${scenarioName}" ?\n\nCette action est irréversible.`)) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('scenarios')
+        .delete()
+        .eq('id', selectedScenario.id)
+
+      if (error) throw error
+
+      alert(`Scénario "${scenarioName}" supprimé avec succès`)
+      setActiveView('list')
+      await loadScenarios()
+    } catch (error) {
+      console.error('Error deleting scenario:', error)
+      alert('Erreur lors de la suppression du scénario')
+    }
+  }
+
   const markAsPurchased = async () => {
     if (!selectedScenario || selectedScenario.status !== 'approved') {
       alert(t('scenarioConvert.mustBeApproved'))
@@ -1804,6 +1830,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               >
                 <ShoppingCart size={16} />
                 {t('scenarios.markAsPurchased')}
+              </button>
+            )}
+
+            {/* Bouton Supprimer (brouillon ou admin) */}
+            {(selectedScenario.status === 'draft' || currentInvestor?.access_level === 'admin') && selectedScenario.status !== 'purchased' && (
+              <button
+                onClick={deleteScenario}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Supprimer
               </button>
             )}
 
