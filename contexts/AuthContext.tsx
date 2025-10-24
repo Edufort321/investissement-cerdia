@@ -67,8 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🔵 [AUTH] Chargement des données investisseur pour userId:', userId)
     try {
       // Timeout de 10 secondes pour éviter les blocages infinis
+      let timeoutId: NodeJS.Timeout
       const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           console.warn('⚠️ [AUTH] Timeout lors du chargement des données investisseur')
           resolve(null)
         }, 10000)
@@ -81,6 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       const result = await Promise.race([dataPromise, timeoutPromise])
+
+      // Annuler le timeout si les données ont été chargées
+      clearTimeout(timeoutId!)
 
       if (!result) {
         console.error('🔴 [AUTH] Timeout - données investisseur non chargées')
