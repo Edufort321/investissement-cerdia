@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
@@ -144,7 +144,6 @@ export default function ScenariosTab() {
   const { t } = useLanguage()
   const { investors } = useInvestment()
   const { currentUser } = useAuth()
-  const supabase = createClientComponentClient()
 
   // État
   const [scenarios, setScenarios] = useState<Scenario[]>([])
