@@ -710,26 +710,30 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
       // Créer les termes de paiement si définis
       if (selectedScenario.payment_terms && selectedScenario.payment_terms.length > 0) {
-        const termsToInsert = selectedScenario.payment_terms.map(term => {
-          const amount = term.amount_type === 'percentage'
-            ? (selectedScenario.purchase_price * (term.percentage || 0) / 100)
-            : (term.fixed_amount || 0)
+        const termsToInsert = selectedScenario.payment_terms
+          .filter(term => term.due_date && term.due_date.trim() !== '') // Ignorer les termes sans date
+          .map(term => {
+            const amount = term.amount_type === 'percentage'
+              ? (selectedScenario.purchase_price * (term.percentage || 0) / 100)
+              : (term.fixed_amount || 0)
 
-          return {
-            property_id: property.id,
-            term_label: term.label,
-            amount,
-            currency: 'USD',
-            due_date: term.due_date,
-            status: 'pending'
-          }
-        })
+            return {
+              property_id: property.id,
+              term_label: term.label,
+              amount,
+              currency: 'USD',
+              due_date: term.due_date,
+              status: 'pending'
+            }
+          })
 
-        const { error: termsError } = await supabase
-          .from('payment_schedules')
-          .insert(termsToInsert)
+        if (termsToInsert.length > 0) {
+          const { error: termsError } = await supabase
+            .from('payment_schedules')
+            .insert(termsToInsert)
 
-        if (termsError) throw termsError
+          if (termsError) throw termsError
+        }
       }
 
       // Mettre à jour le scénario
