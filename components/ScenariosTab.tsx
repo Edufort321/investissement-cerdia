@@ -3367,7 +3367,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     const currency = selectedScenario.promoter_data.rent_currency || 'USD'
 
                     let cumulativeIncome = 0
-                    const timelineData = []
+                    const timelineData: Array<{
+                      year: number
+                      nightlyRate: number
+                      annualIncome: number
+                      netIncome: number
+                      cumulativeIncome: number
+                      roi: number
+                    }> = []
 
                     for (let year = 1; year <= projectDuration; year++) {
                       // Apply progressive rent increase
