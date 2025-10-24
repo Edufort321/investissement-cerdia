@@ -73,6 +73,7 @@ Exécuter **TOUS** les scripts SQL nécessaires dans le bon ordre pour avoir une
 43. 🆕 43-add-pending-transfer-status.sql
 44. 🆕 44-add-deduct-initial-from-first-term.sql
 45. 🆕 45-add-main-photo-to-properties.sql
+46. 🆕 48-fix-payment-schedules-rls.sql ⭐ IMPORTANT
 ```
 
 ---
@@ -81,16 +82,19 @@ Exécuter **TOUS** les scripts SQL nécessaires dans le bon ordre pour avoir une
 
 ### Option A: Tout exécuter d'un coup (NOUVEAU)
 
-Si tu as déjà exécuté les scripts 1-40, tu peux simplement exécuter ces **6 nouveaux scripts**:
+Si tu as déjà exécuté les scripts 1-40, tu peux simplement exécuter ces **8 nouveaux scripts**:
 
 ```
-✅ Script 47 (buckets automatiques)
+✅ Script 47 (buckets automatiques) ⭐ NOUVEAU
+✅ Script 7  (policies documents)
+✅ Script 17 (policies property/transaction-attachments)
 ✅ Script 21 (policies scénarios)
 ✅ Script 41 (types investissement)
 ✅ Script 42 (RLS scénarios)
 ✅ Script 43 (statut pending_transfer)
 ✅ Script 44 (déduction acompte)
 ✅ Script 45 (photo propriétés)
+✅ Script 48 (RLS payment_schedules) ⭐ CRITIQUE - Fix conversion
 ```
 
 ### Option B: Installation complète depuis zéro
