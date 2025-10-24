@@ -219,6 +219,28 @@ export default function ScenariosTab() {
     }
   }, [selectedScenario])
 
+  // Helper: Calculer le coût total avec frais de transaction
+  const calculateTotalCost = (scenario: Scenario): number => {
+    const baseAmount = scenario.purchase_price + scenario.initial_fees
+
+    if (scenario.transaction_fees.type === 'percentage') {
+      const transactionAmount = scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
+      return baseAmount + transactionAmount
+    } else {
+      // fixed_amount
+      return baseAmount + scenario.transaction_fees.fixed_amount
+    }
+  }
+
+  // Helper: Calculer seulement le montant des frais de transaction
+  const calculateTransactionFeesAmount = (scenario: Scenario): number => {
+    if (scenario.transaction_fees.type === 'percentage') {
+      return scenario.purchase_price * (scenario.transaction_fees.percentage / 100)
+    } else {
+      return scenario.transaction_fees.fixed_amount
+    }
+  }
+
   const loadScenarios = async () => {
     console.log('🔵 [SCENARIOS] Chargement des scénarios...')
     try {
@@ -497,7 +519,7 @@ export default function ScenariosTab() {
     const adjustedOccupancy = pd.occupancy_rate * occupancyMultiplier
     const adjustedRent = pd.monthly_rent * rentMultiplier
 
-    const totalInvestment = scenario.purchase_price + scenario.initial_fees
+    const totalInvestment = calculateTotalCost(scenario)
     const initialCash = totalInvestment
 
     const yearlyData: YearData[] = []
@@ -724,7 +746,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         name: getFullName(selectedScenario.name, selectedScenario.unit_number),
         location: selectedScenario.address || t('scenarios.toBeDefinedLocation'),
         status: 'reservation',
-        total_cost: selectedScenario.purchase_price + selectedScenario.initial_fees,
+        total_cost: calculateTotalCost(selectedScenario),
         paid_amount: 0,
         expected_roi: scenarioResults.find(r => r.scenario_type === 'moderate')?.summary.avg_annual_return || 0,
         reservation_date: new Date().toISOString()
@@ -1132,8 +1154,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       <div>
                         <p className="text-xs text-gray-600">{t('projects.totalCost')}</p>
                         <p className="text-sm font-bold text-gray-900">
-                          {(scenario.purchase_price + scenario.initial_fees).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                          {calculateTotalCost(scenario).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
+                        {calculateTransactionFeesAmount(scenario) > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            (dont {calculateTransactionFeesAmount(scenario).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })} frais)
+                          </p>
+                        )}
                       </div>
                       <div>
                         <p className="text-xs text-gray-600">
@@ -2989,7 +3016,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.roiTimeline')}</h3>
 
                   {(() => {
-                    const purchasePrice = selectedScenario.purchase_price + selectedScenario.initial_fees
+                    const purchasePrice = calculateTotalCost(selectedScenario)
                     const baseRent = selectedScenario.promoter_data.monthly_rent || 0
                     const nightlyRate = selectedScenario.promoter_data.rent_type === 'monthly'
                       ? baseRent / 30

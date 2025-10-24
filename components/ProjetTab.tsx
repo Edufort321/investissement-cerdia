@@ -807,6 +807,138 @@ export default function ProjetTab() {
                     </div>
                   )}
 
+                  {/* Budget Comparison: Planned vs Actual */}
+                  {originScenario && (
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Calculator size={14} className="text-blue-700" />
+                        <div className="text-xs font-bold text-blue-900">Bilan budgétaire: Prévu vs Réel</div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Planned cost from scenario */}
+                        <div className="bg-white p-2 rounded border border-blue-200">
+                          <div className="text-xs text-gray-600 mb-1">Prix prévu (scénario)</div>
+                          <div className="text-base font-bold text-gray-900">
+                            {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Selon scénario d'origine</div>
+                        </div>
+
+                        {/* Actual cost from transactions */}
+                        <div className="bg-white p-2 rounded border border-blue-200">
+                          <div className="text-xs text-gray-600 mb-1">Prix réel payé</div>
+                          <div className="text-base font-bold text-gray-900">
+                            {totalPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {((totalPaidUSD / property.total_cost) * 100).toFixed(1)}% du budget prévu
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Variance */}
+                      {totalPaidUSD > 0 && (
+                        <div className={`mt-2 p-2 rounded text-xs ${
+                          totalPaidUSD <= property.total_cost
+                            ? 'bg-green-100 text-green-800 border border-green-300'
+                            : 'bg-red-100 text-red-800 border border-red-300'
+                        }`}>
+                          <span className="font-medium">Écart: </span>
+                          {totalPaidUSD <= property.total_cost ? (
+                            <>
+                              Économie de {(property.total_cost - totalPaidUSD).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              ({(((property.total_cost - totalPaidUSD) / property.total_cost) * 100).toFixed(1)}%)
+                            </>
+                          ) : (
+                            <>
+                              Dépassement de {(totalPaidUSD - property.total_cost).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              ({(((totalPaidUSD - property.total_cost) / property.total_cost) * 100).toFixed(1)}%)
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Payment Timeline Graph: Planned vs Actual */}
+                      {propertyPayments.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <div className="text-xs font-medium text-blue-900 mb-2">Échéancier: Prévu vs Réel</div>
+                          <div className="space-y-2">
+                            {propertyPayments.map((payment) => {
+                              // Get actual paid amount for this payment
+                              const paymentTransactions = transactions.filter(tx => tx.payment_schedule_id === payment.id)
+                              const actualPaidUSD = paymentTransactions
+                                .filter(tx => tx.source_currency === 'USD' && tx.source_amount)
+                                .reduce((sum, tx) => sum + (tx.source_amount || 0), 0)
+
+                              const plannedAmount = payment.amount
+                              const actualAmount = actualPaidUSD
+                              const maxAmount = Math.max(plannedAmount, actualAmount)
+
+                              return (
+                                <div key={payment.id} className="space-y-1">
+                                  <div className="text-xs text-gray-700 font-medium">{payment.term_label}</div>
+
+                                  {/* Planned bar */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-16 text-xs text-gray-600">Prévu</div>
+                                    <div className="flex-1 bg-gray-200 rounded-full h-4 relative overflow-hidden">
+                                      <div
+                                        className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-1"
+                                        style={{ width: `${maxAmount > 0 ? (plannedAmount / maxAmount) * 100 : 0}%` }}
+                                      >
+                                        <span className="text-xs text-white font-medium">
+                                          {plannedAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Actual bar */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-16 text-xs text-gray-600">Réel</div>
+                                    <div className="flex-1 bg-gray-200 rounded-full h-4 relative overflow-hidden">
+                                      {actualAmount > 0 ? (
+                                        <div
+                                          className={`h-full rounded-full flex items-center justify-end pr-1 ${
+                                            actualAmount <= plannedAmount ? 'bg-green-500' : 'bg-red-500'
+                                          }`}
+                                          style={{ width: `${maxAmount > 0 ? (actualAmount / maxAmount) * 100 : 0}%` }}
+                                        >
+                                          <span className="text-xs text-white font-medium">
+                                            {actualAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-gray-400 pl-2 flex items-center h-full">Non payé</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* Legend */}
+                          <div className="mt-3 flex gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                              <span className="text-gray-600">Prévu</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 bg-green-500 rounded"></div>
+                              <span className="text-gray-600">Réel (conforme)</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 bg-red-500 rounded"></div>
+                              <span className="text-gray-600">Réel (dépassement)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Payment Alerts */}
                   {(pendingPayments > 0 || overduePayments > 0) && (
                     <div className="flex gap-2">
