@@ -400,6 +400,7 @@ export default function ScenariosTab() {
         company_name: '',
         purchase_price: 0,
         initial_fees: 0,
+        deduct_initial_from_first_term: false,
         transaction_fees: {
           type: 'percentage',
           percentage: 0,
@@ -1135,7 +1136,9 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">{t('scenarios.monthlyRent').replace(' ($)', '')}</p>
+                        <p className="text-xs text-gray-600">
+                          {scenario.promoter_data.rent_type === 'nightly' ? t('scenarios.nightly') : t('scenarios.monthly')} revenu
+                        </p>
                         <p className="text-sm font-bold text-gray-900">
                           {scenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
