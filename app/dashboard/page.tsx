@@ -46,22 +46,29 @@ export default function DashboardPage() {
     loadExchangeRate()
   }, [])
 
-  // Fonction helper pour calculer le flag de couleur selon proximité échéance
-  const getColorFlag = (dueDate: string): { color: string; emoji: string; label: string } => {
+  // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
+  const getColorFlag = (dueDate: string, status: string): { color: string; emoji: string; label: string } => {
+    // Si payé, toujours vert
+    if (status === 'paid') {
+      return { color: 'green', emoji: '🟢', label: 'Payé' }
+    }
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const due = new Date(dueDate)
     due.setHours(0, 0, 0, 0)
     const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
+    // Pour les paiements en attente (pending)
     if (daysUntil < 0) {
+      // En retard
       return { color: 'red', emoji: '🔴', label: t('dashboard.overdue') }
-    } else if (daysUntil <= 5) {
-      return { color: 'orange', emoji: '🟠', label: t('dashboard.urgent') }
-    } else if (daysUntil <= 10) {
-      return { color: 'yellow', emoji: '🟡', label: t('dashboard.soon') }
+    } else if (daysUntil <= 7) {
+      // À venir bientôt (7 jours ou moins)
+      return { color: 'orange', emoji: '🟡', label: t('dashboard.urgent') }
     } else {
-      return { color: 'green', emoji: '🟢', label: t('dashboard.upcoming') }
+      // Futur (plus de 7 jours)
+      return { color: 'gray', emoji: '⚪', label: t('dashboard.upcoming') }
     }
   }
 
@@ -123,9 +130,8 @@ export default function DashboardPage() {
   // Transactions récentes (5 dernières)
   const recentTransactions = transactions.slice(0, 5)
 
-  // Paiements à venir (pending/overdue uniquement, triés par date)
+  // Tous les paiements (triés par date)
   const upcomingPayments = paymentSchedules
-    .filter(payment => payment.status === 'pending' || payment.status === 'overdue')
     .map(payment => {
       const property = properties.find(p => p.id === payment.property_id)
       const today = new Date()
@@ -133,7 +139,7 @@ export default function DashboardPage() {
       const due = new Date(payment.due_date)
       due.setHours(0, 0, 0, 0)
       const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      const flag = getColorFlag(payment.due_date)
+      const flag = getColorFlag(payment.due_date, payment.status)
       const amountInCAD = payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
 
       return {
@@ -145,7 +151,14 @@ export default function DashboardPage() {
         amount_in_cad: amountInCAD
       }
     })
-    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+    .sort((a, b) => {
+      // Trier: en retard d'abord, puis par date
+      if (a.color_flag.color === 'red' && b.color_flag.color !== 'red') return -1
+      if (a.color_flag.color !== 'red' && b.color_flag.color === 'red') return 1
+      if (a.color_flag.color === 'orange' && b.color_flag.color === 'gray') return -1
+      if (a.color_flag.color === 'gray' && b.color_flag.color === 'orange') return 1
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+    })
 
   // Calculer les statistiques réelles des investisseurs depuis les transactions
   const investorStats = investors.map(investor => {
@@ -621,22 +634,22 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Paiements à venir */}
+              {/* Calendrier des paiements */}
               {upcomingPayments.length > 0 && (
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                    <AlertCircle size={18} className="text-orange-600" />
-                    {t('dashboard.upcomingPayments')}
+                    <Calendar size={18} className="text-blue-600" />
+                    Calendrier des paiements
                     <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">
-                      {upcomingPayments.length} {upcomingPayments.length > 1 ? t('dashboard.payments') : t('dashboard.payment')} {t('dashboard.pending')}
+                      {upcomingPayments.filter(p => p.status === 'pending' || p.status === 'overdue').length} en attente • {upcomingPayments.filter(p => p.status === 'paid').length} payé(s)
                     </span>
                   </h3>
                   <div className="space-y-3">
                     {upcomingPayments.map((payment) => {
                       const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
                                           payment.color_flag.color === 'orange' ? 'bg-orange-50 border-orange-200' :
-                                          payment.color_flag.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
-                                          'bg-green-50 border-green-200'
+                                          payment.color_flag.color === 'green' ? 'bg-green-50 border-green-200' :
+                                          'bg-gray-50 border-gray-200'
 
                       return (
                         <div key={payment.id} className={`border rounded-lg p-3 sm:p-4 ${bgColorClass}`}>

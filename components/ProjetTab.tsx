@@ -225,14 +225,48 @@ export default function ProjetTab() {
     )
   }
 
-  const getPaymentStatusIcon = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <CheckCircle className="text-green-600" size={16} />
-      case 'overdue':
-        return <AlertCircle className="text-red-600" size={16} />
-      default:
-        return <Clock className="text-gray-400" size={16} />
+  const getPaymentStatusFlag = (dueDate: string, status: string): { emoji: string; label: string; bgClass: string; textClass: string } => {
+    // Si payé, toujours vert
+    if (status === 'paid') {
+      return {
+        emoji: '🟢',
+        label: 'Payé',
+        bgClass: 'bg-green-50 border-green-200',
+        textClass: 'text-green-700'
+      }
+    }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(dueDate)
+    due.setHours(0, 0, 0, 0)
+    const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    // Pour les paiements en attente (pending)
+    if (daysUntil < 0) {
+      // En retard
+      return {
+        emoji: '🔴',
+        label: `En retard (${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''})`,
+        bgClass: 'bg-red-50 border-red-200',
+        textClass: 'text-red-700'
+      }
+    } else if (daysUntil <= 7) {
+      // À venir bientôt (7 jours ou moins)
+      return {
+        emoji: '🟡',
+        label: daysUntil === 0 ? "Aujourd'hui" : `Dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}`,
+        bgClass: 'bg-orange-50 border-orange-200',
+        textClass: 'text-orange-700'
+      }
+    } else {
+      // Futur (plus de 7 jours)
+      return {
+        emoji: '⚪',
+        label: `Dans ${daysUntil} jours`,
+        bgClass: 'bg-gray-50 border-gray-200',
+        textClass: 'text-gray-700'
+      }
     }
   }
 
@@ -843,15 +877,23 @@ export default function ProjetTab() {
                               ? actualPaidCAD
                               : payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
 
+                            // Obtenir le flag de statut
+                            const statusFlag = getPaymentStatusFlag(payment.due_date, payment.status)
+
                             return (
-                              <div key={payment.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                {/* Header with status and label */}
+                              <div key={payment.id} className={`p-3 rounded-lg border ${statusFlag.bgClass}`}>
+                                {/* Header with status flag and label */}
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2">
-                                    {getPaymentStatusIcon(payment.status)}
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {payment.term_label}
-                                    </span>
+                                    <span className="text-2xl">{statusFlag.emoji}</span>
+                                    <div>
+                                      <span className="text-sm font-medium text-gray-900">
+                                        {payment.term_label}
+                                      </span>
+                                      <div className={`text-xs font-medium ${statusFlag.textClass}`}>
+                                        {statusFlag.label}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
 
