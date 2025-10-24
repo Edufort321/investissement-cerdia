@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 import Navbar from '../components/Navbar'
+import PWAWarning from '../components/PWAWarning'
 import { Providers } from '../components/Providers'
 import Script from 'next/script'
 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
         <Providers>
+          <PWAWarning />
           <Navbar />
           <main>
             {children}
