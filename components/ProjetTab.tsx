@@ -701,6 +701,17 @@ export default function ProjetTab() {
                   </div>
                 </div>
 
+                {/* Main Photo */}
+                {property.main_photo_url && (
+                  <div className="relative w-full h-48 sm:h-64 overflow-hidden bg-gray-100">
+                    <img
+                      src={property.main_photo_url}
+                      alt={property.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
                 {/* Body */}
                 <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                   {/* Progression */}

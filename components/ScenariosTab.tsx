@@ -777,7 +777,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         total_cost: calculateTotalCost(selectedScenario),
         paid_amount: 0,
         expected_roi: scenarioResults.find(r => r.scenario_type === 'moderate')?.summary.avg_annual_return || 0,
-        reservation_date: new Date().toISOString()
+        reservation_date: new Date().toISOString(),
+        main_photo_url: selectedScenario.main_photo_url || null
       }
 
       const { data: property, error: propError } = await supabase
