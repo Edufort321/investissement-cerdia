@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
@@ -168,6 +169,7 @@ export default function ScenariosTab() {
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [detailTab, setDetailTab] = useState<'overview' | 'bookings' | 'share'>('overview')
+  const [exchangeRate, setExchangeRate] = useState<number>(1.35) // Taux USD→CAD
 
   // Formulaire création scénario
   const [formData, setFormData] = useState({
@@ -206,6 +208,16 @@ export default function ScenariosTab() {
     },
     payment_terms: [] as PaymentTerm[]
   })
+
+  // Charger le taux de change au montage
+  useEffect(() => {
+    const loadExchangeRate = async () => {
+      const rate = await getCurrentExchangeRate('USD', 'CAD')
+      setExchangeRate(rate)
+      console.log('🔵 [SCENARIOS] Taux de change chargé:', rate)
+    }
+    loadExchangeRate()
+  }, [])
 
   // Charger les scénarios
   useEffect(() => {
@@ -459,10 +471,10 @@ export default function ScenariosTab() {
     setAnalyzing(true)
 
     try {
-      // Calculer les 3 scénarios
-      const conservative = calculateScenario(selectedScenario, 'conservative')
-      const moderate = calculateScenario(selectedScenario, 'moderate')
-      const optimistic = calculateScenario(selectedScenario, 'optimistic')
+      // Calculer les 3 scénarios avec le taux de change actuel
+      const conservative = calculateScenario(selectedScenario, 'conservative', exchangeRate)
+      const moderate = calculateScenario(selectedScenario, 'moderate', exchangeRate)
+      const optimistic = calculateScenario(selectedScenario, 'optimistic', exchangeRate)
 
       // Sauvegarder dans la base de données
       const resultsToInsert = [conservative, moderate, optimistic].map(result => ({
@@ -498,7 +510,7 @@ export default function ScenariosTab() {
     }
   }
 
-  const calculateScenario = (scenario: Scenario, type: 'conservative' | 'moderate' | 'optimistic'): ScenarioResult => {
+  const calculateScenario = (scenario: Scenario, type: 'conservative' | 'moderate' | 'optimistic', currentExchangeRate: number): ScenarioResult => {
     // Ajustements selon le scénario
     let appreciationMultiplier = 1
     let occupancyMultiplier = 1
@@ -519,28 +531,44 @@ export default function ScenariosTab() {
     const adjustedOccupancy = pd.occupancy_rate * occupancyMultiplier
     const adjustedRent = pd.monthly_rent * rentMultiplier
 
-    const totalInvestment = calculateTotalCost(scenario)
-    const initialCash = totalInvestment
+    // Calculs des taux de change
+    // Taux actuel pour l'investissement initial
+    const currentRate = currentExchangeRate
+    // Taux futur avec +5% de risque pour les revenus
+    const futureRate = currentRate * 1.05
+
+    console.log(`🔵 [SCENARIOS] Taux actuel: ${currentRate}, Taux futur (+5%): ${futureRate}`)
+
+    // Investissement initial en USD converti en CAD
+    const totalInvestmentUSD = calculateTotalCost(scenario)
+    const initialCashCAD = totalInvestmentUSD * currentRate
 
     const yearlyData: YearData[] = []
-    let cumulativeCashflow = -initialCash
+    let cumulativeCashflow = -initialCashCAD
 
     for (let year = 1; year <= pd.project_duration; year++) {
-      const propertyValue = totalInvestment * Math.pow(1 + adjustedAppreciation / 100, year)
-      const annualRent = adjustedRent * 12 * (adjustedOccupancy / 100)
-      const managementFees = annualRent * (pd.management_fees / 100)
-      const netIncome = annualRent - managementFees
+      // Valeur de la propriété en USD, puis convertie en CAD avec le taux futur
+      const propertyValueUSD = totalInvestmentUSD * Math.pow(1 + adjustedAppreciation / 100, year)
+      const propertyValueCAD = propertyValueUSD * futureRate
 
-      cumulativeCashflow += netIncome
+      // Revenus locatifs en USD, convertis en CAD avec le taux futur
+      const annualRentUSD = adjustedRent * 12 * (adjustedOccupancy / 100)
+      const annualRentCAD = annualRentUSD * futureRate
 
-      const roi = initialCash > 0 ? ((propertyValue - initialCash + cumulativeCashflow) / initialCash * 100) : 0
+      // Frais de gestion et revenu net en CAD
+      const managementFeesCAD = annualRentCAD * (pd.management_fees / 100)
+      const netIncomeCAD = annualRentCAD - managementFeesCAD
+
+      cumulativeCashflow += netIncomeCAD
+
+      const roi = initialCashCAD > 0 ? ((propertyValueCAD - initialCashCAD + cumulativeCashflow) / initialCashCAD * 100) : 0
 
       yearlyData.push({
         year,
-        property_value: propertyValue,
-        rental_income: annualRent,
-        management_fees: managementFees,
-        net_income: netIncome,
+        property_value: propertyValueCAD,
+        rental_income: annualRentCAD,
+        management_fees: managementFeesCAD,
+        net_income: netIncomeCAD,
         cumulative_cashflow: cumulativeCashflow,
         roi
       })
@@ -548,7 +576,7 @@ export default function ScenariosTab() {
 
     const finalYear = yearlyData[yearlyData.length - 1]
     const totalNetIncome = yearlyData.reduce((sum, y) => sum + y.net_income, 0)
-    const totalReturn = ((finalYear.property_value - initialCash + totalNetIncome) / initialCash) * 100
+    const totalReturn = ((finalYear.property_value - initialCashCAD + totalNetIncome) / initialCashCAD) * 100
     const avgAnnualReturn = totalReturn / pd.project_duration
     const breakEvenYear = yearlyData.findIndex(y => y.cumulative_cashflow > 0) + 1
 
@@ -2021,6 +2049,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
             {activeResult && (
               <>
+                {/* Note sur les taux de change */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign size={16} className="text-blue-700" />
+                    <div className="text-sm font-bold text-blue-900">Projections en dollars canadiens (CAD)</div>
+                  </div>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <p>• <strong>Investissement initial:</strong> Converti au taux actuel USD→CAD: {exchangeRate.toFixed(4)}</p>
+                    <p>• <strong>Revenus futurs:</strong> Convertis avec un taux ajusté (+5% risque change): {(exchangeRate * 1.05).toFixed(4)}</p>
+                    <p className="text-blue-600 mt-2 italic">Les projections reflètent le risque de fluctuation du taux de change sur la durée du projet</p>
+                  </div>
+                </div>
+
                 {/* Métriques clés */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
@@ -2052,7 +2093,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       {t('scenarioResults.finalValue')}
                     </div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {activeResult.summary.final_property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                      {activeResult.summary.final_property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
 
@@ -2095,19 +2136,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         <tr key={data.year} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-2 font-medium text-gray-900">{data.year}</td>
                           <td className="p-2 text-right text-gray-900">
-                            {data.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            {data.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className="p-2 text-right text-gray-900">
-                            {data.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            {data.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className="p-2 text-right text-red-600">
-                            -{data.management_fees.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            -{data.management_fees.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className={`p-2 text-right font-medium ${data.net_income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {data.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            {data.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className={`p-2 text-right font-medium ${data.cumulative_cashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {data.cumulative_cashflow.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                            {data.cumulative_cashflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className={`p-2 text-right font-bold ${data.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {data.roi.toFixed(1)}%
@@ -2169,13 +2210,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                               {/* PROJECTION */}
                               <td className="p-2 text-right text-gray-700 text-xs">
-                                {projected.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                {projected.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
                               <td className="p-2 text-right text-gray-700 text-xs">
-                                {projected.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                {projected.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
                               <td className="p-2 text-right text-gray-700 text-xs border-r-2 border-gray-300">
-                                {projected.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                {projected.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
 
                               {/* VALEURS RÉELLES */}
@@ -2241,7 +2282,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                       : 'text-gray-400'
                                   }`}>
                                     {actual?.property_value
-                                      ? actual.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      ? actual.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
                                       : '—'
                                     }
                                   </td>
@@ -2251,7 +2292,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                       : 'text-gray-400'
                                   }`}>
                                     {actual?.rental_income
-                                      ? actual.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      ? actual.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
                                       : '—'
                                     }
                                   </td>
@@ -2261,7 +2302,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                       : 'text-gray-400'
                                   }`}>
                                     {actual?.net_income
-                                      ? actual.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                                      ? actual.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
                                       : '—'
                                     }
                                     {actual && (
