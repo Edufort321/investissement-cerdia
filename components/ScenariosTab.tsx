@@ -352,7 +352,7 @@ export default function ScenariosTab() {
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           status: 'draft',
-          created_by: currentUser.id
+          created_by: currentUser.investorData?.id
         }])
         .select()
         .single()
