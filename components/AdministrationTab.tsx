@@ -260,19 +260,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
     if (editingInvestorId) {
       // Mode édition : garder le password seulement s'il est renseigné (pour réinitialisation)
+      const { password, ...baseData } = investorFormData
       const dataToSubmit = {
-        ...investorFormData,
+        ...baseData,
+        ...(password ? { password } : {}), // Inclure password seulement si présent
         user_id: investorFormData.user_id || null,
         action_class: investorFormData.action_class || 'A',
         share_value: nominalValue,
         current_value: currentValue,
         total_invested: totalInvested,
         percentage_ownership: ownershipPercentage
-      }
-
-      // Si le password est vide, le retirer du dataToSubmit
-      if (!dataToSubmit.password) {
-        delete dataToSubmit.password
       }
 
       console.log('🔷 [handleInvestorSubmit] Données de modification (password masqué):', {
