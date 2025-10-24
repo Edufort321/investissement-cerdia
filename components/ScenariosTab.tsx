@@ -807,6 +807,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       if (propError) throw propError
 
       // Créer les termes de paiement si définis
+      console.log('🔵 [CONVERSION] Payment terms du scénario:', selectedScenario.payment_terms)
+
       if (selectedScenario.payment_terms && selectedScenario.payment_terms.length > 0) {
         const termsToInsert = selectedScenario.payment_terms
           .filter(term => term.due_date && term.due_date.trim() !== '') // Ignorer les termes sans date
@@ -830,13 +832,28 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             }
           })
 
+        console.log('🔵 [CONVERSION] Termes filtrés (avec dates):', termsToInsert.length)
+        console.log('🔵 [CONVERSION] Termes à insérer:', termsToInsert)
+
         if (termsToInsert.length > 0) {
-          const { error: termsError } = await supabase
+          console.log('🔵 [CONVERSION] Insertion de', termsToInsert.length, 'termes de paiement...')
+
+          const { data: insertedTerms, error: termsError } = await supabase
             .from('payment_schedules')
             .insert(termsToInsert)
+            .select()
 
-          if (termsError) throw termsError
+          if (termsError) {
+            console.error('❌ [CONVERSION] Erreur insertion payment_schedules:', termsError)
+            throw termsError
+          }
+
+          console.log('✅ [CONVERSION] Payment schedules créés:', insertedTerms)
+        } else {
+          console.warn('⚠️ [CONVERSION] Aucun terme avec date valide à insérer')
         }
+      } else {
+        console.warn('⚠️ [CONVERSION] Pas de payment_terms définis dans le scénario')
       }
 
       // Mettre à jour le scénario
