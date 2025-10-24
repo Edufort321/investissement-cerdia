@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createInvestorSchema, formatZodErrors } from '@/lib/validation'
 
 // Vérifier que les variables d'environnement sont définies
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -28,18 +29,24 @@ export async function POST(request: NextRequest) {
     console.log('🔵 [create-auth] API called')
 
     const body = await request.json()
-    const { email, password, firstName, lastName } = body
 
-    console.log('🔵 [create-auth] Request data:', { email, firstName, lastName, hasPassword: !!password })
+    // ⚠️ SÉCURITÉ: Validation Zod stricte
+    const validation = createInvestorSchema.safeParse(body)
 
-    // Validation
-    if (!email || !password || !firstName || !lastName) {
-      console.error('❌ [create-auth] Missing required fields')
+    if (!validation.success) {
+      console.error('❌ [create-auth] Validation failed:', validation.error)
       return NextResponse.json(
-        { error: 'Missing required fields: email, password, firstName, lastName' },
+        {
+          error: 'Validation échouée',
+          details: formatZodErrors(validation.error)
+        },
         { status: 400 }
       )
     }
+
+    const { email, password, firstName, lastName } = validation.data
+
+    console.log('🔵 [create-auth] Request data:', { email, firstName, lastName, hasPassword: !!password })
 
     // Vérifier que la clé service est disponible
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
