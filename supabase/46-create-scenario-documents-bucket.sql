@@ -1,8 +1,11 @@
 -- =====================================================
 -- SCRIPT 46: CRÉATION DU BUCKET SCENARIO-DOCUMENTS
 --
--- Ce script crée le bucket de stockage pour les photos
--- et documents des scénarios.
+-- ⚠️ DÉPRÉCIÉ: Utilisez le script 47 à la place!
+--
+-- Ce script crée uniquement le bucket scenario-documents.
+-- Pour créer TOUS les buckets automatiquement (recommandé),
+-- utilisez le script 47-create-all-storage-buckets.sql
 --
 -- Date: 2025-01-24
 -- Auteur: System Migration
