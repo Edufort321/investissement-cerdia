@@ -890,6 +890,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         fetchInvestorInvestments(),
         fetchInvestorSummaries(),
       ]).finally(() => setLoading(false))
+    } else {
+      // Si non authentifié, arrêter le loading
+      setLoading(false)
     }
   }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
 
