@@ -16,6 +16,7 @@ interface Property {
   reservation_date: string
   expected_roi: number
   main_photo_url?: string
+  origin_scenario_id?: string  // Link to originating scenario
   // Payment schedule fields
   currency?: string
   payment_schedule_type?: string
