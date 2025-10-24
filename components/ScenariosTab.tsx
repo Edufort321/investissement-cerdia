@@ -307,7 +307,7 @@ export default function ScenariosTab() {
         .from('scenario_documents')
         .select('*')
         .eq('scenario_id', scenarioId)
-        .order('uploaded_at', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (docsError) throw docsError
       setDocuments(docsData || [])
@@ -692,14 +692,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       // Créer la propriété
       const propertyData = {
         name: selectedScenario.name,
-        location: t('scenarios.toBeDefinedLocation'),
-        status: 'active',
+        location: selectedScenario.address || t('scenarios.toBeDefinedLocation'),
+        status: 'reservation',
         total_cost: selectedScenario.purchase_price + selectedScenario.initial_fees,
         paid_amount: 0,
-        currency: 'USD',
         expected_roi: scenarioResults.find(r => r.scenario_type === 'moderate')?.summary.avg_annual_return || 0,
-        property_type: 'residential',
-        acquisition_date: new Date().toISOString().split('T')[0]
+        reservation_date: new Date().toISOString()
       }
 
       const { data: property, error: propError } = await supabase
