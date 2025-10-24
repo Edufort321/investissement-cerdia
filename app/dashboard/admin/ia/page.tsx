@@ -13,8 +13,6 @@ interface Message {
 }
 
 export default function AdminIACerdiaPage() {
-  const supabase = createClientComponentClient<Database>()
-
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([{
     type: 'ia',
