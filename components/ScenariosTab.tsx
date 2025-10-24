@@ -36,11 +36,17 @@ interface Scenario {
   completion_year?: number
   promoter_data: PromoterData
   payment_terms: PaymentTerm[]
-  status: 'draft' | 'pending_vote' | 'approved' | 'rejected' | 'purchased'
+  status: 'draft' | 'pending_vote' | 'pending_transfer' | 'approved' | 'rejected' | 'purchased'
   created_by: string
   created_at: string
   converted_property_id?: string
   converted_at?: string
+  // Stats de vote (depuis scenarios_with_votes)
+  total_votes?: number
+  approve_votes?: number
+  reject_votes?: number
+  approval_percentage?: number
+  is_approved?: boolean
 }
 
 interface PromoterData {
@@ -223,7 +229,7 @@ export default function ScenariosTab() {
       })
 
       const dataPromise = supabase
-        .from('scenarios')
+        .from('scenarios_with_votes')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -994,6 +1000,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     const badges = {
       draft: { bg: 'bg-gray-100', text: 'text-gray-700', label: t('scenarioStatus.draft'), icon: FileText },
       pending_vote: { bg: 'bg-blue-100', text: 'text-blue-700', label: t('scenarioStatus.pending_vote'), icon: Vote },
+      pending_transfer: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En attente de transfert', icon: TrendingUp },
       approved: { bg: 'bg-green-100', text: 'text-green-700', label: t('scenarioStatus.approved'), icon: CheckCircle },
       rejected: { bg: 'bg-red-100', text: 'text-red-700', label: t('scenarioStatus.rejected'), icon: XCircle },
       purchased: { bg: 'bg-purple-100', text: 'text-purple-700', label: t('scenarioStatus.purchased'), icon: ShoppingCart }
@@ -1055,9 +1062,20 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               <div key={scenario.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-bold text-gray-900">{scenario.name}</h3>
                       {getStatusBadge(scenario.status)}
+                      {/* Afficher le taux d'acceptation si en vote ou en attente de transfert */}
+                      {(scenario.status === 'pending_vote' || scenario.status === 'pending_transfer') && scenario.total_votes !== undefined && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
+                            {scenario.approval_percentage?.toFixed(0)}% acceptation
+                          </span>
+                          <span className="text-gray-600">
+                            ({scenario.total_votes} votes)
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       <div>
