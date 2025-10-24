@@ -1930,9 +1930,9 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
 
                     {/* Afficher le montant calculé si pourcentage */}
-                    {term.amount_type === 'percentage' && term.percentage > 0 && formData.purchase_price > 0 && (
+                    {term.amount_type === 'percentage' && (term.percentage ?? 0) > 0 && formData.purchase_price > 0 && (
                       <div className="mt-2 text-xs text-gray-600">
-                        {t('scenarios.calculatedAmount')}: {((formData.purchase_price * term.percentage) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                        {t('scenarios.calculatedAmount')}: {((formData.purchase_price * (term.percentage ?? 0)) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                       </div>
                     )}
                   </div>
