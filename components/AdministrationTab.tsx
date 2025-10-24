@@ -1161,7 +1161,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   )}
                   <div className="flex items-center text-gray-600 gap-1.5 sm:gap-2">
                     <Calendar size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                    <span className="truncate">Membre depuis {new Date(investor.join_date).toLocaleDateString('fr-CA')}</span>
+                    <span className="truncate">Membre depuis {investor.join_date}</span>
                   </div>
                 </div>
               </div>
