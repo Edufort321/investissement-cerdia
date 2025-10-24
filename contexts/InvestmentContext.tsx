@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
 import type { InvestorInvestment, ShareSettings, InvestorSummary } from '@/types/shares'
@@ -211,6 +211,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   const [shareSettings, setShareSettings] = useState<ShareSettings | null>(null)
   const [investorSummaries, setInvestorSummaries] = useState<InvestorSummary[]>([])
   const [loading, setLoading] = useState(false)
+
+  // Ref pour ne charger qu'une seule fois
+  const hasLoadedRef = useRef(false)
 
   // Fetch Investors
   const fetchInvestors = useCallback(async () => {
@@ -876,9 +879,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [shareSettings])
 
-  // Load all data when authenticated
+  // Load all data when authenticated (une seule fois)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
       setLoading(true)
       Promise.all([
         fetchInvestors(),
@@ -890,8 +894,9 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         fetchInvestorInvestments(),
         fetchInvestorSummaries(),
       ]).finally(() => setLoading(false))
-    } else {
-      // Si non authentifié, arrêter le loading
+    } else if (!isAuthenticated) {
+      // Si non authentifié, réinitialiser
+      hasLoadedRef.current = false
       setLoading(false)
     }
   }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
