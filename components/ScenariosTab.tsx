@@ -30,6 +30,7 @@ interface Scenario {
   company_name: string
   purchase_price: number
   initial_fees: number
+  deduct_initial_from_first_term: boolean // Déduire l'acompte du premier terme?
   transaction_fees: TransactionFees
   construction_status: 'in_progress' | 'completed'
   delivery_date?: string
@@ -182,6 +183,7 @@ export default function ScenariosTab() {
     company_name: '',
     purchase_price: 0,
     initial_fees: 0,
+    deduct_initial_from_first_term: false,
     transaction_fees: {
       type: 'percentage' as 'percentage' | 'fixed_amount',
       percentage: 0,
@@ -350,6 +352,7 @@ export default function ScenariosTab() {
           company_name: formData.company_name,
           purchase_price: formData.purchase_price,
           initial_fees: formData.initial_fees,
+          deduct_initial_from_first_term: formData.deduct_initial_from_first_term,
           transaction_fees: formData.transaction_fees,
           construction_status: formData.construction_status,
           delivery_date: formData.construction_status === 'in_progress' ? formData.delivery_date : null,
@@ -712,10 +715,15 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       if (selectedScenario.payment_terms && selectedScenario.payment_terms.length > 0) {
         const termsToInsert = selectedScenario.payment_terms
           .filter(term => term.due_date && term.due_date.trim() !== '') // Ignorer les termes sans date
-          .map(term => {
-            const amount = term.amount_type === 'percentage'
+          .map((term, index) => {
+            let amount = term.amount_type === 'percentage'
               ? (selectedScenario.purchase_price * (term.percentage || 0) / 100)
               : (term.fixed_amount || 0)
+
+            // Déduire l'acompte initial du premier terme si l'option est activée
+            if (index === 0 && selectedScenario.deduct_initial_from_first_term && selectedScenario.initial_fees > 0) {
+              amount = amount - selectedScenario.initial_fees
+            }
 
             return {
               property_id: property.id,
@@ -1311,6 +1319,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="15000"
                 />
+                {formData.initial_fees > 0 && (
+                  <label className="flex items-center gap-2 mt-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.deduct_initial_from_first_term || false}
+                      onChange={(e) => setFormData({...formData, deduct_initial_from_first_term: e.target.checked})}
+                      className="rounded border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                    />
+                    <span>Déduire du premier terme de paiement</span>
+                  </label>
+                )}
               </div>
             </div>
 
