@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import {
   Card,
   CardContent,
@@ -89,7 +89,6 @@ interface FormData {
 }
 
 export default function ProjectTimeline() {
-  const supabase = createClientComponentClient()
 
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenario, setSelectedScenario] = useState<string>('')

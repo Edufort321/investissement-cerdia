@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 
 interface PropertyFormData {
   name: string
@@ -55,7 +55,6 @@ export default function ProjetTab() {
   const [scenarios, setScenarios] = useState<any[]>([])
   const [scenarioResults, setScenarioResults] = useState<any[]>([])
 
-  const supabase = createClientComponentClient()
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',

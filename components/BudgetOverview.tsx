@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -55,7 +55,6 @@ interface CategoryPerformance {
 }
 
 export default function BudgetOverview() {
-  const supabase = createClientComponentClient()
   const [budgets, setBudgets] = useState<BudgetSummary[]>([])
   const [selectedBudget, setSelectedBudget] = useState<string>('')
   const [budgetDetails, setBudgetDetails] = useState<BudgetSummary | null>(null)

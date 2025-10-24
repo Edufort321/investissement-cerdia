@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import {
   Card,
   CardContent,
@@ -87,7 +87,6 @@ interface TreasuryPosition {
 }
 
 export default function PaymentSchedule() {
-  const supabase = createClientComponentClient()
 
   const [payments, setPayments] = useState<PaymentObligation[]>([])
   const [scenarios, setScenarios] = useState<Scenario[]>([])

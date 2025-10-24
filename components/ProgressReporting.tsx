@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +31,6 @@ interface ProjectProgress {
 }
 
 export default function ProgressReporting() {
-  const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<ProjectProgress[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [projectDetails, setProjectDetails] = useState<ProjectProgress | null>(null)

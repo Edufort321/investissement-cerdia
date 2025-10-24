@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import {
   Card,
   CardContent,
@@ -83,7 +83,6 @@ const defaultConfig: AlertConfig = {
 }
 
 export default function TreasuryAlerts() {
-  const supabase = createClientComponentClient()
 
   const [alerts, setAlerts] = useState<TreasuryAlert[]>([])
   const [showActive, setShowActive] = useState(true)

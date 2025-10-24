@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +29,6 @@ interface Risk {
 }
 
 export default function RiskRegister() {
-  const supabase = createClientComponentClient()
   const [scenarios, setScenarios] = useState<any[]>([])
   const [selectedScenario, setSelectedScenario] = useState('')
   const [risks, setRisks] = useState<Risk[]>([])
