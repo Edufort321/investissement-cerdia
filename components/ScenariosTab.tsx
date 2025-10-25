@@ -1062,6 +1062,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     const maxSize = 50 * 1024 * 1024 // 50MB
     setUploadingFile(true)
 
+    // Fonction pour normaliser les noms de fichiers (supprimer accents, caractères spéciaux)
+    const sanitizeFileName = (fileName: string): string => {
+      // Séparer nom et extension
+      const lastDot = fileName.lastIndexOf('.')
+      const name = lastDot > 0 ? fileName.substring(0, lastDot) : fileName
+      const ext = lastDot > 0 ? fileName.substring(lastDot) : ''
+
+      // Normaliser le nom (supprimer accents)
+      const normalized = name
+        .normalize('NFD') // Décomposer les caractères accentués
+        .replace(/[\u0300-\u036f]/g, '') // Supprimer les diacritiques
+        .replace(/\s+/g, '-') // Remplacer espaces par tirets
+        .replace(/[^a-zA-Z0-9._-]/g, '') // Supprimer caractères spéciaux
+        .toLowerCase() // Tout en minuscules
+
+      return normalized + ext.toLowerCase()
+    }
+
     try {
       for (const processedFile of files) {
         const file = processedFile.file
@@ -1072,7 +1090,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         }
 
         const timestamp = Date.now()
-        const filePath = `${selectedScenario.id}/${timestamp}-${file.name}`
+        const sanitizedName = sanitizeFileName(file.name)
+        const filePath = `${selectedScenario.id}/${timestamp}-${sanitizedName}`
 
         const { error: uploadError } = await supabase.storage
           .from('scenario-documents')
