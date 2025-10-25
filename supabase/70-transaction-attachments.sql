@@ -21,7 +21,7 @@ COMMENT ON COLUMN transactions.attachment_url IS 'URL publique pour télécharge
 COMMENT ON COLUMN transactions.attachment_storage_path IS 'Chemin dans Supabase Storage';
 COMMENT ON COLUMN transactions.attachment_mime_type IS 'Type MIME du fichier (image/pdf/etc)';
 COMMENT ON COLUMN transactions.attachment_size IS 'Taille du fichier en octets';
-COMMENT ON COLUMN transactions.attachment_uploaded_at IS 'Date d\'upload de la pièce jointe';
+COMMENT ON COLUMN transactions.attachment_uploaded_at IS 'Date d''upload de la pièce jointe';
 
 -- 2. Créer index pour recherche rapide
 -- =====================================================
