@@ -5,7 +5,6 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
-import TransactionAttachments from './TransactionAttachments'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
@@ -61,6 +60,13 @@ interface TransactionFormData {
   fiscal_category: string | null
   vendor_name: string | null
   accountant_notes: string | null
+  // Attachment fields (single file per transaction)
+  attachment_name?: string | null
+  attachment_url?: string | null
+  attachment_storage_path?: string | null
+  attachment_mime_type?: string | null
+  attachment_size?: number | null
+  attachment_uploaded_at?: string | null
 }
 
 interface Document {
@@ -126,6 +132,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
 
   const [investorFormData, setInvestorFormData] = useState<InvestorFormData>({
     user_id: '',
@@ -535,48 +543,110 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const handleTransactionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const dataToSubmit = {
-      ...transactionFormData,
-      investor_id: transactionFormData.investor_id || undefined,
-      property_id: transactionFormData.property_id || undefined,
-      payment_schedule_id: transactionFormData.payment_schedule_id || undefined
-    }
+    try {
+      setUploadingAttachment(true)
 
-    if (editingTransactionId) {
-      const result = await updateTransaction(editingTransactionId, dataToSubmit)
-      if (result.success) {
-        setEditingTransactionId(null)
-        resetTransactionForm()
-      } else {
-        alert('Erreur lors de la modification: ' + result.error)
-      }
-    } else {
-      const result = await addTransaction(dataToSubmit)
-      if (result.success) {
-        // Si c'est un investissement avec un investisseur, créer l'entrée dans investor_investments
-        if (dataToSubmit.type === 'investissement' && dataToSubmit.investor_id && shareSettings) {
-          const investmentData = {
-            investor_id: dataToSubmit.investor_id,
-            investment_date: dataToSubmit.date,
-            amount_invested: dataToSubmit.amount,
-            currency: dataToSubmit.source_currency || 'CAD',
-            payment_method: dataToSubmit.payment_method || '',
-            reference_number: dataToSubmit.reference_number || '',
-            notes: dataToSubmit.description || '',
-          }
+      let attachmentData: {
+        attachment_name?: string
+        attachment_url?: string
+        attachment_storage_path?: string
+        attachment_mime_type?: string
+        attachment_size?: number
+        attachment_uploaded_at?: string
+      } = {}
 
-          const investmentResult = await addInvestment(investmentData)
-          if (!investmentResult.success) {
-            console.error('Erreur lors de la création de l\'investissement:', investmentResult.error)
-            alert('Transaction créée mais erreur lors de la création des parts: ' + investmentResult.error)
-          }
+      // Upload file to Supabase Storage if a file is selected
+      if (selectedFile) {
+        const year = new Date(transactionFormData.date).getFullYear()
+        const investorId = transactionFormData.investor_id || 'shared'
+
+        // Generate unique filename with transaction context
+        const fileExt = selectedFile.name.split('.').pop()
+        const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+        const timestamp = Date.now()
+        const storagePath = `${investorId}/${year}/${timestamp}-${cleanFileName}`
+
+        console.log('📤 Uploading file to:', storagePath)
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('transaction-attachments')
+          .upload(storagePath, selectedFile, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (uploadError) {
+          console.error('❌ Upload error:', uploadError)
+          throw new Error(`Erreur d'upload: ${uploadError.message}`)
         }
 
-        setShowAddTransactionForm(false)
-        resetTransactionForm()
-      } else {
-        alert('Erreur lors de l\'ajout: ' + result.error)
+        // Get public URL (will need signing for private buckets)
+        const { data: { publicUrl } } = supabase.storage
+          .from('transaction-attachments')
+          .getPublicUrl(storagePath)
+
+        attachmentData = {
+          attachment_name: selectedFile.name,
+          attachment_url: publicUrl,
+          attachment_storage_path: storagePath,
+          attachment_mime_type: selectedFile.type,
+          attachment_size: selectedFile.size,
+          attachment_uploaded_at: new Date().toISOString()
+        }
+
+        console.log('✅ File uploaded successfully')
       }
+
+      const dataToSubmit = {
+        ...transactionFormData,
+        ...attachmentData,
+        investor_id: transactionFormData.investor_id || undefined,
+        property_id: transactionFormData.property_id || undefined,
+        payment_schedule_id: transactionFormData.payment_schedule_id || undefined
+      }
+
+      if (editingTransactionId) {
+        const result = await updateTransaction(editingTransactionId, dataToSubmit)
+        if (result.success) {
+          setEditingTransactionId(null)
+          resetTransactionForm()
+        } else {
+          alert('Erreur lors de la modification: ' + result.error)
+        }
+      } else {
+        const result = await addTransaction(dataToSubmit)
+        if (result.success) {
+          // Si c'est un investissement avec un investisseur, créer l'entrée dans investor_investments
+          if (dataToSubmit.type === 'investissement' && dataToSubmit.investor_id && shareSettings) {
+            const investmentData = {
+              investor_id: dataToSubmit.investor_id,
+              investment_date: dataToSubmit.date,
+              amount_invested: dataToSubmit.amount,
+              currency: dataToSubmit.source_currency || 'CAD',
+              payment_method: dataToSubmit.payment_method || '',
+              reference_number: dataToSubmit.reference_number || '',
+              notes: dataToSubmit.description || '',
+            }
+
+            const investmentResult = await addInvestment(investmentData)
+            if (!investmentResult.success) {
+              console.error('Erreur lors de la création de l\'investissement:', investmentResult.error)
+              alert('Transaction créée mais erreur lors de la création des parts: ' + investmentResult.error)
+            }
+          }
+
+          setShowAddTransactionForm(false)
+          resetTransactionForm()
+        } else {
+          alert('Erreur lors de l\'ajout: ' + result.error)
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error in handleTransactionSubmit:', error)
+      alert('Erreur: ' + error.message)
+    } finally {
+      setUploadingAttachment(false)
     }
   }
 
@@ -605,7 +675,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       tax_credit_claimable: transaction.tax_credit_claimable || 0,
       fiscal_category: transaction.fiscal_category || null,
       vendor_name: transaction.vendor_name || null,
-      accountant_notes: transaction.accountant_notes || null
+      accountant_notes: transaction.accountant_notes || null,
+      // Attachment fields
+      attachment_name: transaction.attachment_name || null,
+      attachment_url: transaction.attachment_url || null,
+      attachment_storage_path: transaction.attachment_storage_path || null,
+      attachment_mime_type: transaction.attachment_mime_type || null,
+      attachment_size: transaction.attachment_size || null,
+      attachment_uploaded_at: transaction.attachment_uploaded_at || null
     })
     setShowAddTransactionForm(true)
   }
@@ -643,8 +720,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       tax_credit_claimable: 0,
       fiscal_category: null,
       vendor_name: null,
-      accountant_notes: null
+      accountant_notes: null,
+      // Attachment fields
+      attachment_name: null,
+      attachment_url: null,
+      attachment_storage_path: null,
+      attachment_mime_type: null,
+      attachment_size: null,
+      attachment_uploaded_at: null
     })
+    setSelectedFile(null)
     setShowAddTransactionForm(false)
     setEditingTransactionId(null)
   }
@@ -1847,20 +1932,125 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
             </div>
 
-            {/* Section Pièces Jointes - Seulement lors de l'édition */}
-            {editingTransactionId && (
-              <div className="pt-4 border-t border-gray-200">
-                <TransactionAttachments transactionId={editingTransactionId} />
+            {/* Section Pièce Jointe */}
+            <div className="pt-4 border-t border-gray-200">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Upload size={18} />
+                Pièce Jointe (Facture, Reçu, Photo)
+              </h4>
+
+              {/* Existing attachment display (when editing) */}
+              {transactionFormData.attachment_storage_path && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <FileText size={20} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{transactionFormData.attachment_name}</p>
+                        <p className="text-sm text-gray-600">
+                          {transactionFormData.attachment_size
+                            ? `${(transactionFormData.attachment_size / 1024).toFixed(2)} KB`
+                            : 'N/A'}
+                          {' • '}
+                          {transactionFormData.attachment_uploaded_at
+                            ? new Date(transactionFormData.attachment_uploaded_at).toLocaleDateString('fr-CA')
+                            : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Supprimer la pièce jointe actuelle ?')) {
+                          setTransactionFormData({
+                            ...transactionFormData,
+                            attachment_name: null,
+                            attachment_url: null,
+                            attachment_storage_path: null,
+                            attachment_mime_type: null,
+                            attachment_size: null,
+                            attachment_uploaded_at: null
+                          })
+                        }
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer la pièce jointe"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* File upload input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  {transactionFormData.attachment_storage_path
+                    ? 'Remplacer la pièce jointe (optionnel)'
+                    : 'Ajouter une pièce jointe (optionnel)'}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        // Validate file size (10 MB max)
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert('Fichier trop volumineux. Maximum 10 MB.')
+                          e.target.value = ''
+                          return
+                        }
+                        // Validate file type
+                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+                        if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+                          alert('Type de fichier non autorisé. Formats acceptés: Images, PDF, Word.')
+                          e.target.value = ''
+                          return
+                        }
+                        setSelectedFile(file)
+                      }
+                    }}
+                    accept="image/*,application/pdf,.doc,.docx"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#5e5e5e] file:text-white hover:file:bg-[#3e3e3e] file:cursor-pointer"
+                  />
+                  {selectedFile && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Annuler la sélection"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+                {selectedFile && (
+                  <p className="text-sm text-green-600 flex items-center gap-2">
+                    ✓ Fichier sélectionné: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Formats acceptés: Images (JPG, PNG, GIF), PDF, Word • Taille max: 10 MB
+                </p>
               </div>
-            )}
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploadingAttachment}
                 className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
-                {loading ? 'Enregistrement...' : editingTransactionId ? 'Modifier' : 'Ajouter'}
+                {uploadingAttachment
+                  ? 'Upload en cours...'
+                  : loading
+                  ? 'Enregistrement...'
+                  : editingTransactionId
+                  ? 'Modifier'
+                  : 'Ajouter'}
               </button>
               <button
                 type="button"
