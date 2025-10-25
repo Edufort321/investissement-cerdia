@@ -30,7 +30,9 @@ interface Scenario {
   broker_email: string
   company_name: string
   purchase_price: number
+  purchase_currency?: 'USD' | 'CAD' // Devise du prix d'achat
   initial_fees: number
+  initial_fees_distribution?: 'equal' | 'first_payment' // Répartition des frais initiaux
   deduct_initial_from_first_term: boolean // Déduire l'acompte du premier terme?
   transaction_fees: TransactionFees
   construction_status: 'in_progress' | 'completed'
@@ -192,7 +194,9 @@ export default function ScenariosTab() {
     broker_email: '',
     company_name: '',
     purchase_price: 0,
+    purchase_currency: 'USD' as 'USD' | 'CAD',
     initial_fees: 0,
+    initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment',
     deduct_initial_from_first_term: false,
     transaction_fees: {
       type: 'percentage' as 'percentage' | 'fixed_amount',
@@ -408,7 +412,9 @@ export default function ScenariosTab() {
           broker_email: formData.broker_email,
           company_name: formData.company_name,
           purchase_price: formData.purchase_price,
+          purchase_currency: formData.purchase_currency,
           initial_fees: formData.initial_fees,
+          initial_fees_distribution: formData.initial_fees_distribution,
           deduct_initial_from_first_term: formData.deduct_initial_from_first_term,
           transaction_fees: formData.transaction_fees,
           construction_status: formData.construction_status,
@@ -457,7 +463,9 @@ export default function ScenariosTab() {
         broker_email: '',
         company_name: '',
         purchase_price: 0,
+        purchase_currency: 'USD' as 'USD' | 'CAD',
         initial_fees: 0,
+        initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment',
         deduct_initial_from_first_term: false,
         transaction_fees: {
           type: 'percentage',
@@ -1529,13 +1537,23 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.purchasePrice')} *</label>
-                <input
-                  type="number"
-                  value={formData.purchase_price || ''}
-                  onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="250000"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={formData.purchase_price || ''}
+                    onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    placeholder="250000"
+                  />
+                  <select
+                    value={formData.purchase_currency}
+                    onChange={(e) => setFormData({...formData, purchase_currency: e.target.value as 'USD' | 'CAD'})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  >
+                    <option value="USD">USD $</option>
+                    <option value="CAD">CAD $</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -1548,15 +1566,31 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   placeholder="15000"
                 />
                 {formData.initial_fees > 0 && (
-                  <label className="flex items-center gap-2 mt-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={formData.deduct_initial_from_first_term || false}
-                      onChange={(e) => setFormData({...formData, deduct_initial_from_first_term: e.target.checked})}
-                      className="rounded border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
-                    />
-                    <span>Déduire du premier terme de paiement</span>
-                  </label>
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm font-medium text-gray-700">Répartition des frais initiaux:</p>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="initial_fees_distribution"
+                        value="first_payment"
+                        checked={formData.initial_fees_distribution === 'first_payment'}
+                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment'})}
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                      />
+                      <span>Appliquer au premier paiement</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="initial_fees_distribution"
+                        value="equal"
+                        checked={formData.initial_fees_distribution === 'equal'}
+                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment'})}
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                      />
+                      <span>Répartir également sur tous les termes</span>
+                    </label>
+                  </div>
                 )}
               </div>
             </div>
