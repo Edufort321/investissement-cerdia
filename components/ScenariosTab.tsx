@@ -2308,7 +2308,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterDocuments')}</h3>
 
           {/* Zone de drag & drop pour documents */}
-          {selectedScenario.status === 'draft' && (
+          {selectedScenario.status !== 'purchased' && (
             <div className="mb-6">
               <DropZone
                 onFilesSelected={uploadDocuments}
@@ -2345,7 +2345,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     >
                       <Eye size={16} />
                     </a>
-                    {selectedScenario.status === 'draft' && (
+                    {selectedScenario.status !== 'purchased' && (
                       <button
                         onClick={() => deleteDocument(doc.id, `${selectedScenario.id}/${doc.file_name}`)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
