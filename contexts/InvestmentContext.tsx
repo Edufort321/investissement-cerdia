@@ -63,6 +63,13 @@ interface Transaction {
   status: string
   created_at: string
   updated_at: string
+  // Attachment fields (pièces jointes)
+  attachment_name?: string | null
+  attachment_url?: string | null
+  attachment_storage_path?: string | null
+  attachment_mime_type?: string | null
+  attachment_size?: number | null
+  attachment_uploaded_at?: string | null
   // International tax fields
   payment_schedule_id: string | null
   source_currency: string | null
