@@ -31,6 +31,7 @@ interface Scenario {
   company_name: string
   purchase_price: number
   purchase_currency?: 'USD' | 'CAD' // Devise du prix d'achat
+  exchange_rate_at_creation?: number // Taux de change USD→CAD à la création
   initial_fees: number
   initial_fees_distribution?: 'equal' | 'first_payment' // Répartition des frais initiaux
   deduct_initial_from_first_term: boolean // Déduire l'acompte du premier terme?
@@ -413,6 +414,7 @@ export default function ScenariosTab() {
           company_name: formData.company_name,
           purchase_price: formData.purchase_price,
           purchase_currency: formData.purchase_currency,
+          exchange_rate_at_creation: exchangeRate,
           initial_fees: formData.initial_fees,
           initial_fees_distribution: formData.initial_fees_distribution,
           deduct_initial_from_first_term: formData.deduct_initial_from_first_term,
@@ -809,6 +811,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     if (!confirm(t('scenarioConvert.confirmConversion'))) return
 
     try {
+      // Récupérer le taux de change actuel (temps réel) pour la conversion
+      const currentExchangeRate = await getCurrentExchangeRate('USD', 'CAD')
+      console.log('🔵 [CONVERSION] Taux de change actuel:', currentExchangeRate)
+
       // Créer la propriété
       const propertyData = {
         name: getFullName(selectedScenario.name, selectedScenario.unit_number),
@@ -850,9 +856,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               property_id: property.id,
               term_label: term.label,
               amount,
-              currency: 'USD',
+              currency: selectedScenario.purchase_currency || 'USD',
+              exchange_rate_used: currentExchangeRate, // Taux actuel lors de la conversion
               due_date: term.due_date,
-              status: 'pending'
+              status: 'pending',
+              term_number: index + 1
             }
           })
 
@@ -1554,6 +1562,18 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     <option value="CAD">CAD $</option>
                   </select>
                 </div>
+                {formData.purchase_price > 0 && formData.purchase_currency === 'USD' && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    ≈ {(formData.purchase_price * exchangeRate).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                    <span className="text-xs ml-1">(taux: {exchangeRate.toFixed(4)})</span>
+                  </p>
+                )}
+                {formData.purchase_price > 0 && formData.purchase_currency === 'CAD' && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    ≈ {(formData.purchase_price / exchangeRate).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    <span className="text-xs ml-1">(taux: {exchangeRate.toFixed(4)})</span>
+                  </p>
+                )}
               </div>
 
               <div>
