@@ -91,7 +91,16 @@ export function DropZone({
           const type = accept.split('/')[0]
           return file.type.startsWith(type)
         }
-        return accept.split(',').some(type => file.type === type.trim())
+        // Vérifier par extension ET par MIME type
+        return accept.split(',').some(type => {
+          const acceptType = type.trim()
+          // Si c'est une extension (commence par .)
+          if (acceptType.startsWith('.')) {
+            return file.name.toLowerCase().endsWith(acceptType.toLowerCase())
+          }
+          // Sinon c'est un MIME type
+          return file.type === acceptType
+        })
       })
 
       // Vérifier la taille
