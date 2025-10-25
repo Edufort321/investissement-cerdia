@@ -84,6 +84,8 @@ export function DropZone({
     try {
       // Filtrer les fichiers selon le type accepté
       const filteredFiles = files.filter(file => {
+        console.log(`🔍 Fichier: ${file.name}, Type MIME: "${file.type}", Taille: ${file.size}`)
+
         if (accept === 'image/*') {
           return file.type.startsWith('image/')
         }
@@ -92,15 +94,22 @@ export function DropZone({
           return file.type.startsWith(type)
         }
         // Vérifier par extension ET par MIME type
-        return accept.split(',').some(type => {
+        const isAccepted = accept.split(',').some(type => {
           const acceptType = type.trim()
           // Si c'est une extension (commence par .)
           if (acceptType.startsWith('.')) {
-            return file.name.toLowerCase().endsWith(acceptType.toLowerCase())
+            const matches = file.name.toLowerCase().endsWith(acceptType.toLowerCase())
+            console.log(`  ✓ Extension ${acceptType}: ${matches}`)
+            return matches
           }
           // Sinon c'est un MIME type
-          return file.type === acceptType
+          const matches = file.type === acceptType
+          console.log(`  ✓ MIME type ${acceptType}: ${matches}`)
+          return matches
         })
+
+        console.log(`  → Résultat: ${isAccepted ? '✅ ACCEPTÉ' : '❌ REJETÉ'}`)
+        return isAccepted
       })
 
       // Vérifier la taille
