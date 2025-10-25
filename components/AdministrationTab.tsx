@@ -2086,6 +2086,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pièce jointe</th>
                   <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -2131,6 +2132,40 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           {transaction.status === 'complete' ? 'Complété' :
                            transaction.status === 'en_attente' ? 'En attente' : 'Annulé'}
                         </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
+                        {transaction.attachment_storage_path ? (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { data, error } = await supabase.storage
+                                  .from('transaction-attachments')
+                                  .download(transaction.attachment_storage_path!)
+
+                                if (error) throw error
+
+                                // Create blob URL and download
+                                const url = URL.createObjectURL(data)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = transaction.attachment_name || 'fichier'
+                                document.body.appendChild(a)
+                                a.click()
+                                document.body.removeChild(a)
+                                URL.revokeObjectURL(url)
+                              } catch (error: any) {
+                                alert('Erreur lors du téléchargement: ' + error.message)
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                            title={`Télécharger: ${transaction.attachment_name}`}
+                          >
+                            <FileText size={16} />
+                            <Download size={14} />
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-1 sm:gap-2">
