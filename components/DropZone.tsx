@@ -86,25 +86,33 @@ export function DropZone({
       const filteredFiles = files.filter(file => {
         console.log(`🔍 Fichier: ${file.name}, Type MIME: "${file.type}", Taille: ${file.size}`)
 
+        // Cas spécial: accept = "image/*" uniquement
         if (accept === 'image/*') {
           return file.type.startsWith('image/')
         }
-        if (accept.includes('/*')) {
-          const type = accept.split('/')[0]
-          return file.type.startsWith(type)
-        }
-        // Vérifier par extension ET par MIME type
-        const isAccepted = accept.split(',').some(type => {
-          const acceptType = type.trim()
-          // Si c'est une extension (commence par .)
-          if (acceptType.startsWith('.')) {
-            const matches = file.name.toLowerCase().endsWith(acceptType.toLowerCase())
-            console.log(`  ✓ Extension ${acceptType}: ${matches}`)
+
+        // Vérifier chaque type accepté séparément
+        const isAccepted = accept.split(',').some(acceptType => {
+          const trimmedType = acceptType.trim()
+
+          // Wildcard (ex: "image/*", "video/*")
+          if (trimmedType.includes('/*')) {
+            const baseType = trimmedType.split('/')[0]
+            const matches = file.type.startsWith(baseType + '/')
+            console.log(`  ✓ Wildcard ${trimmedType}: ${matches}`)
             return matches
           }
-          // Sinon c'est un MIME type
-          const matches = file.type === acceptType
-          console.log(`  ✓ MIME type ${acceptType}: ${matches}`)
+
+          // Extension (commence par .)
+          if (trimmedType.startsWith('.')) {
+            const matches = file.name.toLowerCase().endsWith(trimmedType.toLowerCase())
+            console.log(`  ✓ Extension ${trimmedType}: ${matches}`)
+            return matches
+          }
+
+          // MIME type exact
+          const matches = file.type === trimmedType
+          console.log(`  ✓ MIME type ${trimmedType}: ${matches}`)
           return matches
         })
 
