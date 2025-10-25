@@ -6,28 +6,26 @@
 
 -- 1. Créer le bucket (via Dashboard Supabase ou API)
 -- =====================================================
-
-/*
-IMPORTANT: Ce bucket doit être créé via le Dashboard Supabase:
-
-1. Aller dans Storage
-2. Créer un nouveau bucket:
-   - Nom: transaction-attachments
-   - Public: false (accès contrôlé par policies)
-   - Allowed MIME types: image/*, application/pdf, application/vnd.*, application/msword*
-   - Max file size: 10 MB
-
-Ou via SQL (si supporté):
-
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'transaction-attachments',
-  'transaction-attachments',
-  false,
-  10485760,  -- 10 MB
-  ARRAY['image/*', 'application/pdf', 'application/vnd.*', 'application/msword*']::text[]
-) ON CONFLICT (id) DO NOTHING;
-*/
+--
+-- IMPORTANT: Ce bucket doit être créé via le Dashboard Supabase:
+--
+-- 1. Aller dans Storage
+-- 2. Créer un nouveau bucket:
+--    - Nom: transaction-attachments
+--    - Public: false (accès contrôlé par policies)
+--    - Allowed MIME types: image/*, application/pdf, application/vnd.*, application/msword*
+--    - Max file size: 10 MB
+--
+-- Ou via SQL (si supporté):
+--
+-- INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+-- VALUES (
+--   'transaction-attachments',
+--   'transaction-attachments',
+--   false,
+--   10485760,  -- 10 MB
+--   ARRAY['image/*', 'application/pdf', 'application/vnd.*', 'application/msword*']::text[]
+-- ) ON CONFLICT (id) DO NOTHING;
 
 -- 2. Helper functions pour vérification
 -- =====================================================
@@ -205,28 +203,26 @@ CREATE TRIGGER trigger_cleanup_transaction_attachment
 -- =====================================================
 -- 📋 STRUCTURE DES CHEMINS
 -- =====================================================
-
-/*
-Structure recommandée des chemins:
-
-transaction-attachments/
-├── {investor_id}/
-│   ├── {year}/
-│   │   ├── {transaction_id}-{filename}.pdf
-│   │   ├── {transaction_id}-{filename}.jpg
-│   │   └── ...
-│   └── ...
-└── shared/  (pour documents administratifs)
-
-Exemple:
-transaction-attachments/550e8400-e29b-41d4-a716-446655440000/2025/abc123-facture-electricite.pdf
-
-Avantages:
-- Organisation par investisseur
-- Organisation par année
-- Nom prévisible avec ID transaction
-- Facile à nettoyer/archiver
-*/
+--
+-- Structure recommandée des chemins:
+--
+-- transaction-attachments/
+-- ├── {investor_id}/
+-- │   ├── {year}/
+-- │   │   ├── {transaction_id}-{filename}.pdf
+-- │   │   ├── {transaction_id}-{filename}.jpg
+-- │   │   └── ...
+-- │   └── ...
+-- └── shared/  (pour documents administratifs)
+--
+-- Exemple:
+-- transaction-attachments/550e8400-e29b-41d4-a716-446655440000/2025/abc123-facture-electricite.pdf
+--
+-- Avantages:
+-- - Organisation par investisseur
+-- - Organisation par année
+-- - Nom prévisible avec ID transaction
+-- - Facile à nettoyer/archiver
 
 -- =====================================================
 -- 📊 STATISTIQUES BUCKET
