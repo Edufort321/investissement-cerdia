@@ -94,7 +94,6 @@ SELECT
   t.type,
   t.amount,
   t.description,
-  t.status,
   i.first_name || ' ' || i.last_name as created_by,
   CURRENT_DATE - t.date::DATE as days_since_transaction
 FROM transactions t
