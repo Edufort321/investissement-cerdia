@@ -3683,6 +3683,104 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                   </g>
                                 ))}
 
+                                {/* 🆕 LIGNE DE BREAK-EVEN (Cashflow = 0) */}
+                                {(() => {
+                                  // Calculer la position Y pour cashflow = 0
+                                  const zeroY = 100 - ((0 - minValue + padding) / (maxValue - minValue + 2 * padding) * 100)
+                                  const breakEvenYear = activeResult.summary.break_even_year
+
+                                  // Position X du break-even
+                                  let breakEvenX = 0
+                                  if (breakEvenYear > 0 && breakEvenYear <= activeResult.yearly_data.length) {
+                                    breakEvenX = ((breakEvenYear - 1) / (activeResult.yearly_data.length - 1)) * 100
+                                  }
+
+                                  return (
+                                    <>
+                                      {/* Ligne horizontale à 0$ (Break-even) */}
+                                      <line
+                                        x1="0%"
+                                        y1={`${zeroY}%`}
+                                        x2="100%"
+                                        y2={`${zeroY}%`}
+                                        stroke="#ef4444"
+                                        strokeWidth="2"
+                                        strokeDasharray="8,4"
+                                      />
+
+                                      {/* Label "Break-even: 0$" */}
+                                      <text
+                                        x="95%"
+                                        y={`${zeroY}%`}
+                                        dy="-8"
+                                        textAnchor="end"
+                                        fontSize="11"
+                                        fill="#ef4444"
+                                        fontWeight="bold"
+                                      >
+                                        ⚖️ Break-even: 0$
+                                      </text>
+
+                                      {/* Zone négative (sous 0$) */}
+                                      <rect
+                                        x="0%"
+                                        y={`${zeroY}%`}
+                                        width="100%"
+                                        height={`${100 - zeroY}%`}
+                                        fill="#fee2e2"
+                                        opacity="0.3"
+                                      />
+
+                                      {/* Zone positive (au-dessus de 0$) */}
+                                      <rect
+                                        x="0%"
+                                        y="0%"
+                                        width="100%"
+                                        height={`${zeroY}%`}
+                                        fill="#dcfce7"
+                                        opacity="0.2"
+                                      />
+
+                                      {/* Ligne verticale à l'année du break-even */}
+                                      {breakEvenYear > 0 && breakEvenYear <= activeResult.yearly_data.length && (
+                                        <>
+                                          <line
+                                            x1={`${breakEvenX}%`}
+                                            y1="0%"
+                                            x2={`${breakEvenX}%`}
+                                            y2="100%"
+                                            stroke="#10b981"
+                                            strokeWidth="2"
+                                            strokeDasharray="6,3"
+                                          />
+
+                                          {/* Label année de break-even */}
+                                          <text
+                                            x={`${breakEvenX}%`}
+                                            y="5%"
+                                            textAnchor="middle"
+                                            fontSize="11"
+                                            fill="#10b981"
+                                            fontWeight="bold"
+                                          >
+                                            🎯 Année {breakEvenYear}
+                                          </text>
+                                          <text
+                                            x={`${breakEvenX}%`}
+                                            y="10%"
+                                            textAnchor="middle"
+                                            fontSize="10"
+                                            fill="#10b981"
+                                            fontWeight="600"
+                                          >
+                                            Investissement récupéré
+                                          </text>
+                                        </>
+                                      )}
+                                    </>
+                                  )
+                                })()}
+
                                 {/* Ligne des projections */}
                                 <polyline
                                   points={activeResult.yearly_data.map((d, i) => {
@@ -3766,7 +3864,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             )
                           })()}
                         </div>
-                        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                        <div className="flex items-center justify-center gap-4 mt-2 text-xs flex-wrap">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-blue-500"></div>
                             <span className="text-gray-600">Projection</span>
@@ -3774,6 +3872,18 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
                             <span className="text-gray-600">Réel</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-0.5 bg-red-500 border-dashed border-t-2 border-red-500"></div>
+                            <span className="text-gray-600">Break-even (0$)</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-red-100 border border-red-300"></div>
+                            <span className="text-gray-600">Zone négative</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-green-100 border border-green-300"></div>
+                            <span className="text-gray-600">Zone positive</span>
                           </div>
                         </div>
                       </div>
