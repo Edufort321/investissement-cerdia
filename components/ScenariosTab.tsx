@@ -2628,6 +2628,141 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </div>
         </div>
 
+        {/* Formulaire éditable - Informations du projet */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
+
+            {/* Photo principale et nom du projet */}
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              {/* Photo principale à gauche */}
+              <div className="w-full md:w-64 flex-shrink-0">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Photo principale</label>
+                {formData.main_photo_url ? (
+                  <div className="relative group">
+                    <div className="w-full h-48 bg-gray-100 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
+                      <img
+                        src={formData.main_photo_url}
+                        alt="Photo principale"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setFormData({...formData, main_photo_url: ''})}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-48">
+                    <DropZone
+                      onFilesSelected={uploadMainPhoto}
+                      accept="image/*"
+                      multiple={false}
+                      maxSize={10}
+                      label="Photo du projet"
+                      className="h-full"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Nom du projet à droite */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.name')} *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Villa Punta Cana - Phase 2"
+                />
+              </div>
+            </div>
+
+            {/* Autres champs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.unitNumber')}</label>
+                <input
+                  type="text"
+                  value={formData.unit_number}
+                  onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: 305"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.address')}</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Avenida Barceló, Bávaro"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.country')}</label>
+                <input
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => setFormData({...formData, country: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: République Dominicaine"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.stateRegion')}</label>
+                <input
+                  type="text"
+                  value={formData.state_region}
+                  onChange={(e) => setFormData({...formData, state_region: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Punta Cana"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.promoterName')}</label>
+                <input
+                  type="text"
+                  value={formData.promoter_name}
+                  onChange={(e) => setFormData({...formData, promoter_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Groupe Punta Cana"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerName')}</label>
+                <input
+                  type="text"
+                  value={formData.broker_name}
+                  onChange={(e) => setFormData({...formData, broker_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Jean Tremblay"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.companyName')}</label>
+                <input
+                  type="text"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: Immobilier XYZ Inc."
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Onglets de navigation */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
           <div className="flex gap-2">
