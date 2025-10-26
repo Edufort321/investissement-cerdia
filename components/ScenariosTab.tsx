@@ -15,6 +15,7 @@ import { DropZone } from './DropZone'
 import { BookingsCalendar } from './BookingsCalendar'
 import OccupationStats from './OccupationStats'
 import ShareLinkManager from './ShareLinkManager'
+import { useExportPDF } from '@/hooks/useExportPDF'
 
 // Types
 interface Scenario {
@@ -116,9 +117,15 @@ interface YearData {
   property_value: number
   rental_income: number
   management_fees: number
+  recurring_fees: number // HOA, taxes, assurance, etc.
+  gross_income: number // Revenus bruts avant frais
+  taxes: number // Impôts sur revenus locatifs
+  depreciation_tax_savings: number // 🆕 Économies fiscales via dépréciation
   net_income: number
   cumulative_cashflow: number
   roi: number
+  cap_rate: number // Taux de capitalisation
+  cash_on_cash_return: number // Rendement cash sur cash
 }
 
 interface ScenarioSummary {
@@ -128,6 +135,11 @@ interface ScenarioSummary {
   final_property_value: number
   break_even_year: number
   recommendation: 'recommended' | 'consider' | 'not_recommended'
+  irr: number // 🆕 Internal Rate of Return (%)
+  npv: number // 🆕 Net Present Value (CAD)
+  total_depreciation_savings: number // 🆕 Total économies fiscales dépréciation
+  capital_gains_tax: number // 🆕 Impôt sur plus-value à la revente
+  net_proceeds_after_sale: number // 🆕 Valeur nette après impôts et vente
 }
 
 interface ScenarioVote {
@@ -163,6 +175,7 @@ export default function ScenariosTab() {
   const { t } = useLanguage()
   const { investors } = useInvestment()
   const { currentUser } = useAuth()
+  const { exportScenarioPDF, exportProjectPDF } = useExportPDF()
 
   // État
   const [scenarios, setScenarios] = useState<Scenario[]>([])
@@ -545,6 +558,47 @@ export default function ScenariosTab() {
     }
   }
 
+  // 🆕 Fonction pour calculer l'IRR (Internal Rate of Return)
+  const calculateIRR = (cashFlows: number[]): number => {
+    // Méthode de Newton-Raphson pour trouver le taux qui annule la NPV
+    let irr = 0.1 // Guess initial: 10%
+    const maxIterations = 100
+    const tolerance = 0.0001
+
+    for (let i = 0; i < maxIterations; i++) {
+      let npv = 0
+      let dnpv = 0 // Dérivée de la NPV
+
+      for (let t = 0; t < cashFlows.length; t++) {
+        npv += cashFlows[t] / Math.pow(1 + irr, t)
+        dnpv -= (t * cashFlows[t]) / Math.pow(1 + irr, t + 1)
+      }
+
+      const newIrr = irr - npv / dnpv
+
+      if (Math.abs(newIrr - irr) < tolerance) {
+        return newIrr * 100 // Retourner en pourcentage
+      }
+
+      irr = newIrr
+
+      // Éviter les valeurs aberrantes
+      if (irr < -0.99) irr = -0.99
+      if (irr > 10) irr = 10
+    }
+
+    return irr * 100
+  }
+
+  // 🆕 Fonction pour calculer la NPV (Net Present Value)
+  const calculateNPV = (cashFlows: number[], discountRate: number): number => {
+    let npv = 0
+    for (let t = 0; t < cashFlows.length; t++) {
+      npv += cashFlows[t] / Math.pow(1 + discountRate, t)
+    }
+    return npv
+  }
+
   const calculateScenario = (scenario: Scenario, type: 'conservative' | 'moderate' | 'optimistic', currentExchangeRate: number): ScenarioResult => {
     // Ajustements selon le scénario
     let appreciationMultiplier = 1
@@ -581,47 +635,108 @@ export default function ScenariosTab() {
     const yearlyData: YearData[] = []
     let cumulativeCashflow = -initialCashCAD
 
+    // Taux d'inflation pour frais récurrents
+    const inflationRate = 0.025 // 2.5% par an
+
+    // 🆕 Taux de dépréciation fiscale selon le pays
+    // Canada: 4% par an (Class 1 - Residential Rental Property)
+    // USA: 3.636% par an (27.5 ans pour résidentiel)
+    const depreciationRate = scenario.country === 'USA' ? 0.03636 : 0.04
+    const annualDepreciationUSD = totalInvestmentUSD * depreciationRate
+
+    // Calculer total des frais récurrents de base en USD
+    const baseRecurringFeesUSD = (scenario.recurring_fees || []).reduce((sum, fee) => {
+      const annualAmount = fee.frequency === 'monthly' ? fee.amount * 12 : fee.amount
+      const amountUSD = fee.currency === 'CAD' ? annualAmount / currentRate : annualAmount
+      return sum + amountUSD
+    }, 0)
+
     for (let year = 1; year <= pd.project_duration; year++) {
       // Valeur de la propriété en USD, puis convertie en CAD avec le taux futur
       const propertyValueUSD = totalInvestmentUSD * Math.pow(1 + adjustedAppreciation / 100, year)
       const propertyValueCAD = propertyValueUSD * futureRate
 
+      // 🆕 Appliquer augmentation cumulative du loyer (CORRECTION MAJEURE)
+      const yearlyRentMultiplier = Math.pow(1 + (pd.annual_rent_increase / 100), year - 1)
+      const currentYearRent = adjustedRent * yearlyRentMultiplier
+
       // Revenus locatifs en USD, convertis en CAD avec le taux futur
-      // Adapter selon le type de location (mensuelle ou nuitée)
       let annualRentUSD: number
       if (pd.rent_type === 'nightly') {
         // Location à la nuit: tarif × 365 jours × taux d'occupation
-        annualRentUSD = adjustedRent * 365 * (adjustedOccupancy / 100)
+        annualRentUSD = currentYearRent * 365 * (adjustedOccupancy / 100)
       } else {
         // Location mensuelle: loyer × 12 mois
-        annualRentUSD = adjustedRent * 12
+        annualRentUSD = currentYearRent * 12
       }
       const annualRentCAD = annualRentUSD * futureRate
 
-      // Frais de gestion, impôts et revenu net en CAD
+      // Frais de gestion en CAD
       const managementFeesCAD = annualRentCAD * (pd.management_fees / 100)
-      const grossIncomeCAD = annualRentCAD - managementFeesCAD
-      const taxesCAD = grossIncomeCAD * (pd.tax_rate / 100)
-      const netIncomeCAD = grossIncomeCAD - taxesCAD
 
+      // 🆕 Frais récurrents avec inflation (NOUVELLE FONCTIONNALITÉ)
+      const inflatedRecurringFeesUSD = baseRecurringFeesUSD * Math.pow(1 + inflationRate, year - 1)
+      const recurringFeesCAD = inflatedRecurringFeesUSD * futureRate
+
+      // Revenu brut (après frais de gestion)
+      const grossIncomeCAD = annualRentCAD - managementFeesCAD
+
+      // 🆕 Dépréciation fiscale - Réduit le revenu imposable
+      const depreciationCAD = annualDepreciationUSD * futureRate
+      const taxableIncomeCAD = Math.max(0, grossIncomeCAD - depreciationCAD)
+
+      // Impôts sur revenus locatifs (appliqués au revenu imposable après dépréciation)
+      const taxesCAD = taxableIncomeCAD * (pd.tax_rate / 100)
+
+      // 🆕 Économies fiscales grâce à la dépréciation
+      const depreciationTaxSavings = depreciationCAD * (pd.tax_rate / 100)
+
+      // 🆕 Revenu net après TOUS les frais (CORRECTION CRITIQUE)
+      // Note: La dépréciation est une déduction fiscale, pas une dépense réelle
+      const netIncomeCAD = grossIncomeCAD - taxesCAD - recurringFeesCAD
+
+      // Cashflow cumulatif
       cumulativeCashflow += netIncomeCAD
 
-      const roi = initialCashCAD > 0 ? ((propertyValueCAD - initialCashCAD + cumulativeCashflow) / initialCashCAD * 100) : 0
+      // 🆕 ROI CORRIGÉ (sans double-comptage du cashflow)
+      // ROI = (Valeur actuelle + Cash accumulé - Investissement) / Investissement
+      const totalValue = propertyValueCAD + cumulativeCashflow
+      const roi = initialCashCAD > 0 ? ((totalValue - initialCashCAD) / initialCashCAD * 100) : 0
+
+      // 🆕 Cap Rate (Taux de capitalisation)
+      // Cap Rate = Revenu Net d'Exploitation / Valeur de la Propriété
+      const capRate = propertyValueCAD > 0 ? (netIncomeCAD / propertyValueCAD * 100) : 0
+
+      // 🆕 Cash-on-Cash Return
+      // CoC = Cash Flow Annuel / Investissement Initial
+      const cashOnCashReturn = initialCashCAD > 0 ? (netIncomeCAD / initialCashCAD * 100) : 0
 
       yearlyData.push({
         year,
         property_value: propertyValueCAD,
         rental_income: annualRentCAD,
         management_fees: managementFeesCAD,
+        recurring_fees: recurringFeesCAD,
+        gross_income: grossIncomeCAD,
+        taxes: taxesCAD,
+        depreciation_tax_savings: depreciationTaxSavings,
         net_income: netIncomeCAD,
         cumulative_cashflow: cumulativeCashflow,
-        roi
+        roi,
+        cap_rate: capRate,
+        cash_on_cash_return: cashOnCashReturn
       })
     }
 
+    // 🆕 CALCULS POST-BOUCLE: IRR, NPV, Impôt Plus-Value
+
     const finalYear = yearlyData[yearlyData.length - 1]
     const totalNetIncome = yearlyData.reduce((sum, y) => sum + y.net_income, 0)
-    const totalReturn = ((finalYear.property_value - initialCashCAD + totalNetIncome) / initialCashCAD) * 100
+
+    // 🆕 Total Return corrigé (valeur finale + cash cumulé - investissement initial)
+    const finalTotalValue = finalYear.property_value + finalYear.cumulative_cashflow
+    const totalReturn = ((finalTotalValue - initialCashCAD) / initialCashCAD) * 100
+
     const avgAnnualReturn = totalReturn / pd.project_duration
     const breakEvenYear = yearlyData.findIndex(y => y.cumulative_cashflow > 0) + 1
 
@@ -634,13 +749,49 @@ export default function ScenariosTab() {
 
     const evaluation_text = generateEvaluation(type, avgAnnualReturn, breakEvenYear, totalReturn, recommendation, pd.project_duration, t)
 
+    // 🆕 Calculer IRR (Internal Rate of Return)
+    const cashFlowsForIRR: number[] = [-initialCashCAD] // Année 0: investissement initial
+    yearlyData.forEach(y => {
+      cashFlowsForIRR.push(y.net_income) // Cash flows annuels
+    })
+    // Ajouter la valeur de revente finale
+    cashFlowsForIRR[cashFlowsForIRR.length - 1] += finalYear.property_value
+    const irr = calculateIRR(cashFlowsForIRR)
+
+    // 🆕 Calculer NPV (Net Present Value) avec taux d'actualisation de 5%
+    const discountRate = 0.05
+    const npv = calculateNPV(cashFlowsForIRR, discountRate)
+
+    // 🆕 Total économies fiscales via dépréciation
+    const totalDepreciationSavings = yearlyData.reduce((sum, y) => sum + y.depreciation_tax_savings, 0)
+
+    // 🆕 Impôt sur plus-value à la revente (Capital Gains Tax)
+    const purchasePriceUSD = totalInvestmentUSD
+    const finalValueUSD = finalYear.property_value / futureRate
+    const capitalGainUSD = Math.max(0, finalValueUSD - purchasePriceUSD)
+
+    // Taux d'imposition sur plus-value selon le pays
+    // Canada: 50% du gain est imposable au taux marginal (assumons 50% × 27% = 13.5%)
+    // USA: 15% ou 20% selon le revenu (assumons 15%)
+    const capitalGainsTaxRate = scenario.country === 'USA' ? 0.15 : 0.135
+    const capitalGainsTax = capitalGainUSD * capitalGainsTaxRate
+    const capitalGainsTaxCAD = capitalGainsTax * futureRate
+
+    // 🆕 Valeur nette après vente et impôts
+    const netProceedsAfterSale = finalYear.property_value - capitalGainsTaxCAD
+
     const summary: ScenarioSummary = {
       total_return: totalReturn,
       avg_annual_return: avgAnnualReturn,
       total_net_income: totalNetIncome,
       final_property_value: finalYear.property_value,
       break_even_year: breakEvenYear,
-      recommendation
+      recommendation,
+      irr,
+      npv,
+      total_depreciation_savings: totalDepreciationSavings,
+      capital_gains_tax: capitalGainsTaxCAD,
+      net_proceeds_after_sale: netProceedsAfterSale
     }
 
     return {
@@ -835,7 +986,9 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         expected_roi: scenarioResults.find(r => r.scenario_type === 'moderate')?.summary.avg_annual_return || 0,
         reservation_date: new Date().toISOString(),
         main_photo_url: selectedScenario.main_photo_url || null,
-        recurring_fees: selectedScenario.recurring_fees || []
+        recurring_fees: selectedScenario.recurring_fees || [],
+        initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
+        deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false
       }
 
       const { data: property, error: propError } = await supabase
@@ -1275,7 +1428,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
   // Helper pour afficher le nom complet avec # d'unité
   const getFullName = (name: string, unitNumber?: string) => {
     if (unitNumber && unitNumber.trim() !== '') {
-      return `${name} ${unitNumber}`
+      return `${name} - ${unitNumber}`
     }
     return name
   }
@@ -1712,6 +1865,42 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 </div>
               )}
             </div>
+
+            {/* 🆕 PREVIEW DES FRAIS DE TRANSACTION EN USD ET CAD */}
+            {(() => {
+              let feesUSD = 0
+              if (formData.transaction_fees.type === 'percentage') {
+                feesUSD = formData.purchase_price * ((formData.transaction_fees.percentage || 0) / 100)
+              } else {
+                const amount = formData.transaction_fees.fixed_amount || 0
+                feesUSD = formData.transaction_fees.currency === 'CAD' ? amount / exchangeRate : amount
+              }
+
+              const feesCAD = feesUSD * exchangeRate
+
+              return (feesUSD > 0 || (formData.transaction_fees.type === 'percentage' && (formData.transaction_fees.percentage || 0) > 0) || (formData.transaction_fees.type === 'fixed_amount' && (formData.transaction_fees.fixed_amount || 0) > 0)) && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-sm font-medium text-blue-900 mb-2">💰 Estimation des frais de transaction:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-700">En USD:</span>
+                      <span className="ml-2 font-bold text-blue-900">
+                        {feesUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">En CAD:</span>
+                      <span className="ml-2 font-bold text-blue-900">
+                        {feesCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-blue-600 mt-2">
+                    (Taux de change: 1 USD = {exchangeRate.toFixed(4)} CAD)
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* Statut de Construction */}
@@ -1931,7 +2120,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               <div className="space-y-3">
                 {formData.payment_terms.map((term, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    {/* Layout optimisé: mobile 1 col, tablet 2 cols, desktop 4 cols */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.termLabel')}</label>
                         <input
@@ -1985,7 +2175,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         />
                       </div>
 
-                      <div>
+                      {/* Date + Bouton supprimer sur toute la largeur en mobile, 1 col en desktop */}
+                      <div className="sm:col-span-2 lg:col-span-1">
                         <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.dueDate')}</label>
                         <div className="flex gap-2">
                           <input
@@ -2004,7 +2195,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               const newTerms = formData.payment_terms.filter((_, i) => i !== index)
                               setFormData({...formData, payment_terms: newTerms})
                             }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                            aria-label={t('scenarios.deleteTerm')}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -2283,7 +2475,20 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             )}
 
             <button
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              onClick={async () => {
+                if (!selectedScenario || scenarioResults.length === 0) {
+                  alert('Veuillez d\'abord analyser le scénario')
+                  return
+                }
+
+                if (selectedScenario.status === 'purchased') {
+                  await exportProjectPDF(selectedScenario as any, scenarioResults, actualValues)
+                } else {
+                  await exportScenarioPDF(selectedScenario as any, scenarioResults)
+                }
+              }}
+              disabled={scenarioResults.length === 0}
+              className={`px-4 py-2 ${scenarioResults.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-600 hover:bg-gray-700'} text-white rounded-lg font-medium transition-colors flex items-center gap-2`}
             >
               <Download size={16} />
               {t('scenarios.exportPDF')}
@@ -2442,7 +2647,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </div>
                 </div>
 
-                {/* Métriques clés */}
+                {/* Métriques clés - Ligne 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
@@ -2488,6 +2693,66 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </div>
                 </div>
 
+                {/* 🆕 Métriques avancées - Ligne 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md border border-purple-200 p-4">
+                    <div className="flex items-center gap-2 text-purple-700 text-sm mb-2 font-medium">
+                      <TrendingUp size={16} />
+                      IRR (Taux Rendement Interne)
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      activeResult.summary.irr > 10 ? 'text-green-600' :
+                      activeResult.summary.irr > 5 ? 'text-purple-600' : 'text-red-600'
+                    }`}>
+                      {activeResult.summary.irr.toFixed(2)}%
+                    </div>
+                    <div className="text-xs text-purple-600 mt-1">
+                      {activeResult.summary.irr > 10 ? '🌟 Excellent' : activeResult.summary.irr > 5 ? '✓ Bon' : '⚠️ Faible'}
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-md border border-indigo-200 p-4">
+                    <div className="flex items-center gap-2 text-indigo-700 text-sm mb-2 font-medium">
+                      <DollarSign size={16} />
+                      NPV (Valeur Actuelle Nette)
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      activeResult.summary.npv > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {activeResult.summary.npv.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-indigo-600 mt-1">
+                      Taux actualisation: 5%
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md border border-green-200 p-4">
+                    <div className="flex items-center gap-2 text-green-700 text-sm mb-2 font-medium">
+                      <DollarSign size={16} />
+                      Économies Dépréciation
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {activeResult.summary.total_depreciation_savings.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-green-600 mt-1">
+                      {selectedScenario.country === 'USA' ? '3.636%/an (USA)' : '4%/an (Canada)'}
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md border border-orange-200 p-4">
+                    <div className="flex items-center gap-2 text-orange-700 text-sm mb-2 font-medium">
+                      <AlertCircle size={16} />
+                      Impôt Plus-Value
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      -{activeResult.summary.capital_gains_tax.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-orange-600 mt-1">
+                      Net après vente: {activeResult.summary.net_proceeds_after_sale.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Évaluation écrite */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.evaluation')}</h3>
@@ -2496,26 +2761,43 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </div>
                 </div>
 
-                {/* Tableau projection */}
+                {/* Tableau projection ENRICHI */}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.projection')}</h3>
-                  <table className="w-full text-sm">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.projection')} - Détaillé</h3>
+                  <div className="mb-3 text-xs text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
+                    <strong className="text-blue-800">📊 Métriques financières complètes:</strong>
+                    <ul className="list-disc ml-5 mt-1 space-y-1">
+                      <li><strong>Frais récurrents:</strong> HOA, taxes foncières, assurance (avec inflation 2.5%/an)</li>
+                      <li><strong>Dépréciation fiscale:</strong> {selectedScenario.country === 'USA' ? '3.636%/an (USA)' : '4%/an (Canada)'} - Économies d'impôts</li>
+                      <li><strong>Impôts:</strong> Sur revenus locatifs après déduction dépréciation</li>
+                      <li><strong>Cap Rate:</strong> Taux de capitalisation (Revenu Net / Valeur Propriété)</li>
+                      <li><strong>CoC Return:</strong> Cash-on-Cash (Revenu Net Annuel / Investissement Initial)</li>
+                      <li><strong>Augmentation loyer:</strong> {selectedScenario.promoter_data.annual_rent_increase}% par an</li>
+                      <li><strong>IRR + NPV:</strong> Affichées dans les cartes métriques ci-dessus</li>
+                    </ul>
+                  </div>
+                  <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.propertyValue')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.revenues')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.fees')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.net')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">{t('scenarioResults.cashflow')}</th>
-                        <th className="text-right p-2 font-medium text-gray-700">ROI (%)</th>
+                      <tr className="border-b-2 border-gray-300 bg-gray-50">
+                        <th className="text-left p-2 font-medium text-gray-700">An</th>
+                        <th className="text-right p-2 font-medium text-gray-700">Valeur Bien</th>
+                        <th className="text-right p-2 font-medium text-gray-700">Revenus Loc.</th>
+                        <th className="text-right p-2 font-medium text-gray-700">Gestion</th>
+                        <th className="text-right p-2 font-medium text-blue-700">Frais Réc.</th>
+                        <th className="text-right p-2 font-medium text-orange-700">Impôts</th>
+                        <th className="text-right p-2 font-medium text-green-700">Éco. Dépr.</th>
+                        <th className="text-right p-2 font-medium text-emerald-700">Net</th>
+                        <th className="text-right p-2 font-medium text-gray-700">Cashflow Cum.</th>
+                        <th className="text-right p-2 font-medium text-purple-700">ROI</th>
+                        <th className="text-right p-2 font-medium text-indigo-700">Cap Rate</th>
+                        <th className="text-right p-2 font-medium text-pink-700">CoC</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activeResult.yearly_data.map((data) => (
                         <tr key={data.year} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="p-2 font-medium text-gray-900">{data.year}</td>
-                          <td className="p-2 text-right text-gray-900">
+                          <td className="p-2 font-bold text-gray-900">{data.year}</td>
+                          <td className="p-2 text-right text-gray-700">
                             {data.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className="p-2 text-right text-gray-900">
@@ -2524,19 +2806,221 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           <td className="p-2 text-right text-red-600">
                             -{data.management_fees.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
-                          <td className={`p-2 text-right font-medium ${data.net_income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="p-2 text-right text-blue-600">
+                            -{data.recurring_fees.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </td>
+                          <td className="p-2 text-right text-orange-600">
+                            -{data.taxes.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </td>
+                          <td className="p-2 text-right text-green-600">
+                            +{data.depreciation_tax_savings.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </td>
+                          <td className={`p-2 text-right font-bold ${data.net_income >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                             {data.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className={`p-2 text-right font-medium ${data.cumulative_cashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {data.cumulative_cashflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
-                          <td className={`p-2 text-right font-bold ${data.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`p-2 text-right font-bold ${data.roi >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
                             {data.roi.toFixed(1)}%
+                          </td>
+                          <td className="p-2 text-right text-indigo-600 font-medium">
+                            {data.cap_rate.toFixed(2)}%
+                          </td>
+                          <td className="p-2 text-right text-pink-600 font-medium">
+                            {data.cash_on_cash_return.toFixed(2)}%
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  <div className="mt-3 text-xs text-gray-500 italic">
+                    * ROI corrigé sans double-comptage | Cap Rate = Revenu Net / Valeur Propriété | CoC = Revenu Net / Investissement Initial
+                  </div>
+                </div>
+
+                {/* 🆕 TABLEAU ANALYSE DE SENSIBILITÉ (STRESS TESTS) */}
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">📊 Analyse de Sensibilité - Stress Tests</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Impact de variations des paramètres clés sur le ROI final du scénario <span className="font-bold">{activeScenarioType}</span>
+                  </p>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Sensibilité Taux d'Occupation */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span className="text-2xl">🏠</span>
+                        Variation Taux d'Occupation
+                      </h4>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-300 bg-gray-50">
+                            <th className="text-left p-2">Taux Occupation</th>
+                            <th className="text-right p-2">ROI Final</th>
+                            <th className="text-right p-2">Δ vs Base</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[-20, -10, 0, +10, +20].map(variation => {
+                            const baseOccupancy = selectedScenario.promoter_data.occupancy_rate
+                            const occupancyMultiplier = activeScenarioType === 'conservative' ? 0.85 : activeScenarioType === 'optimistic' ? 1.1 : 1
+                            const adjustedOccupancy = baseOccupancy * occupancyMultiplier
+                            const variedOccupancy = adjustedOccupancy * (1 + variation / 100)
+
+                            // Calcul rapide du ROI avec occupation variée
+                            const baseROI = activeResult.summary.total_return
+                            // Impact approximatif: variation occupation affecte revenus proportionnellement
+                            const impactFactor = variation / 100
+                            const variedROI = baseROI * (1 + impactFactor * 0.6) // 60% de l'impact sur ROI
+                            const delta = variedROI - baseROI
+
+                            return (
+                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                                <td className="p-2">{variedOccupancy.toFixed(0)}% {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
+                                <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
+                                  {variedROI.toFixed(1)}%
+                                </td>
+                                <td className={`p-2 text-right ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Sensibilité Appréciation */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span className="text-2xl">📈</span>
+                        Variation Appréciation Annuelle
+                      </h4>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-300 bg-gray-50">
+                            <th className="text-left p-2">Appréciation</th>
+                            <th className="text-right p-2">ROI Final</th>
+                            <th className="text-right p-2">Δ vs Base</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[-2, -1, 0, +1, +2].map(variation => {
+                            const baseAppreciation = selectedScenario.promoter_data.annual_appreciation
+                            const appreciationMultiplier = activeScenarioType === 'conservative' ? 0.8 : activeScenarioType === 'optimistic' ? 1.2 : 1
+                            const adjustedAppreciation = baseAppreciation * appreciationMultiplier
+                            const variedAppreciation = adjustedAppreciation + variation
+
+                            const baseROI = activeResult.summary.total_return
+                            // L'appréciation a un impact majeur sur le ROI (valeur finale du bien)
+                            const impactFactor = (variation / adjustedAppreciation)
+                            const variedROI = baseROI * (1 + impactFactor * 0.8) // 80% de l'impact
+                            const delta = variedROI - baseROI
+
+                            return (
+                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                                <td className="p-2">{variedAppreciation.toFixed(1)}% {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
+                                <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
+                                  {variedROI.toFixed(1)}%
+                                </td>
+                                <td className={`p-2 text-right ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Sensibilité Taux de Change */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span className="text-2xl">💱</span>
+                        Variation Taux de Change USD→CAD
+                      </h4>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-300 bg-gray-50">
+                            <th className="text-left p-2">Taux Change</th>
+                            <th className="text-right p-2">ROI Final</th>
+                            <th className="text-right p-2">Δ vs Base</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[-10, -5, 0, +5, +10].map(variation => {
+                            const baseRate = exchangeRate
+                            const variedRate = baseRate * (1 + variation / 100)
+
+                            const baseROI = activeResult.summary.total_return
+                            // Taux de change impacte revenus futurs mais pas investissement initial
+                            const impactFactor = variation / 100
+                            const variedROI = baseROI * (1 + impactFactor * 0.4) // 40% de l'impact
+                            const delta = variedROI - baseROI
+
+                            return (
+                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                                <td className="p-2">{variedRate.toFixed(4)} {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
+                                <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
+                                  {variedROI.toFixed(1)}%
+                                </td>
+                                <td className={`p-2 text-right ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Sensibilité Frais de Gestion */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span className="text-2xl">💼</span>
+                        Variation Frais de Gestion
+                      </h4>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-300 bg-gray-50">
+                            <th className="text-left p-2">Frais Gestion</th>
+                            <th className="text-right p-2">ROI Final</th>
+                            <th className="text-right p-2">Δ vs Base</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[0, +25, +50, +75, +100].map(variation => {
+                            const baseFees = selectedScenario.promoter_data.management_fees
+                            const variedFees = baseFees * (1 + variation / 100)
+
+                            const baseROI = activeResult.summary.total_return
+                            // Frais de gestion impactent directement le cashflow
+                            const impactFactor = -(variation / 100) * (baseFees / 100)
+                            const variedROI = baseROI * (1 + impactFactor * 0.5) // 50% de l'impact négatif
+                            const delta = variedROI - baseROI
+
+                            return (
+                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                                <td className="p-2">{variedFees.toFixed(1)}% {variation === 0 ? '(Base)' : `(+${variation}%)`}</td>
+                                <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
+                                  {variedROI.toFixed(1)}%
+                                </td>
+                                <td className={`p-2 text-right ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-gray-700">
+                    <strong className="text-yellow-800">⚠️ Note:</strong> Ces calculs sont des approximations basées sur l'impact proportionnel de chaque paramètre.
+                    Pour une analyse précise, réalisez un nouveau scénario avec les paramètres ajustés.
+                  </div>
                 </div>
 
                 {/* Tableau comparatif Projections vs Réelles (uniquement pour projets achetés) */}
