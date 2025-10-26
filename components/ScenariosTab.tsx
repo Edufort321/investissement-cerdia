@@ -1496,7 +1496,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </div>
         ) : (
           <div className="space-y-4">
-            {scenarios.map(scenario => (
+            {scenarios.map(scenario => {
+              // Debug: Afficher le unit_number dans la console
+              console.log(`[DEBUG] Scénario "${scenario.name}": unit_number = "${scenario.unit_number}"`, typeof scenario.unit_number)
+
+              return (
               <div key={scenario.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -1564,7 +1568,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </button>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
