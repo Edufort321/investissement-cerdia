@@ -46,11 +46,17 @@ interface ScenarioResult {
   scenario_type: string
   yearly_data: any[]
   summary: {
-    total_investment: number
-    total_revenue: number
+    total_return: number
+    avg_annual_return: number
     total_net_income: number
-    cumulative_cashflow: number
-    final_roi: number
+    final_property_value: number
+    break_even_year: number
+    recommendation: 'recommended' | 'consider' | 'not_recommended'
+    irr: number
+    npv: number
+    total_depreciation_savings: number
+    capital_gains_tax: number
+    net_proceeds_after_sale: number
   }
 }
 
@@ -144,15 +150,23 @@ export function useExportPDF() {
 
       // Résumé du scénario
       yPos += 10
+      const finalCashflow = result.yearly_data[result.yearly_data.length - 1]?.cumulative_cashflow || 0
+
       doc.autoTable({
         startY: yPos,
         head: [['Métrique', 'Valeur']],
         body: [
-          ['Investissement total', formatCurrency(result.summary.total_investment, scenario.promoter_data.rent_currency)],
-          ['Revenus totaux', formatCurrency(result.summary.total_revenue, scenario.promoter_data.rent_currency)],
-          ['Revenus nets totaux', formatCurrency(result.summary.total_net_income, scenario.promoter_data.rent_currency)],
-          ['Cashflow cumulé', formatCurrency(result.summary.cumulative_cashflow, scenario.promoter_data.rent_currency)],
-          ['ROI final', `${result.summary.final_roi.toFixed(2)}%`]
+          ['Valeur finale propriété', formatCurrency(result.summary.final_property_value, 'CAD')],
+          ['Revenus nets totaux', formatCurrency(result.summary.total_net_income, 'CAD')],
+          ['Cashflow cumulé final', formatCurrency(finalCashflow, 'CAD')],
+          ['Retour total', `${result.summary.total_return.toFixed(2)}%`],
+          ['Rendement annuel moyen', `${result.summary.avg_annual_return.toFixed(2)}%`],
+          ['Break-even', `Année ${result.summary.break_even_year}`],
+          ['IRR', `${result.summary.irr.toFixed(2)}%`],
+          ['NPV', formatCurrency(result.summary.npv, 'CAD')],
+          ['Économies dépréciation', formatCurrency(result.summary.total_depreciation_savings, 'CAD')],
+          ['Impôt plus-value', formatCurrency(result.summary.capital_gains_tax, 'CAD')],
+          ['Valeur nette après vente', formatCurrency(result.summary.net_proceeds_after_sale, 'CAD')]
         ],
         theme: 'grid',
         headStyles: { fillColor: [59, 130, 246] },
