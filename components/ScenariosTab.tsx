@@ -2715,13 +2715,29 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
-                      <FileText size={16} />
-                      {t('scenarioResults.breakEven')}
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow-md border-2 border-emerald-300 p-4">
+                    <div className="flex items-center gap-2 text-emerald-700 text-sm mb-2 font-semibold">
+                      <TrendingUp size={16} />
+                      💰 {t('scenarioResults.investmentRecovered')}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {t('scenarioResults.year')} {activeResult.summary.break_even_year}
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-emerald-700">
+                          {t('scenarioResults.year')} {activeResult.summary.break_even_year}
+                        </span>
+                        <span className="text-sm text-emerald-600">
+                          ({activeResult.summary.break_even_year * 12} {t('scenarioResults.months')})
+                        </span>
+                      </div>
+                      <div className="text-xs text-emerald-600 border-t border-emerald-200 pt-2">
+                        📊 {t('scenarioResults.totalInvested')}: {(() => {
+                          const totalCost = calculateTotalCost(selectedScenario)
+                          return totalCost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
+                        })()}
+                      </div>
+                      <div className="text-xs font-semibold text-emerald-700">
+                        ✓ {t('scenarioResults.loanPaidOff')}
+                      </div>
                     </div>
                   </div>
                 </div>
