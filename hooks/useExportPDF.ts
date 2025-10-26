@@ -3,15 +3,16 @@ import autoTable from 'jspdf-autotable'
 
 interface ScenarioData {
   name: string
-  unit_number: string
-  address: string
-  country: string
-  state_region: string
-  promoter_name: string
+  unit_number?: string
+  address?: string
+  country?: string
+  state_region?: string
+  promoter_name?: string
   broker_name?: string
   company_name?: string
   purchase_price: number
   description?: string
+  purchase_currency?: 'USD' | 'CAD'
   promoter_data: {
     monthly_rent: number
     rent_type: 'monthly' | 'nightly'
@@ -88,26 +89,24 @@ export function useExportPDF() {
     // Charger le logo
     const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
 
-    // Ajouter le logo en haut à gauche
+    // Ajouter le logo en haut à gauche (taille réduite et proportions corrigées)
     if (logoBase64) {
       try {
-        doc.addImage(logoBase64, 'PNG', 15, 10, 40, 15)
+        doc.addImage(logoBase64, 'PNG', 15, 10, 35, 12)
       } catch (error) {
         console.error('Error adding logo:', error)
       }
     }
 
     // Titre principal à droite du logo
-    doc.setFontSize(22)
+    doc.setFontSize(20)
     doc.setTextColor(94, 94, 94)
-    doc.setFont('helvetica', 'bold')
-    doc.text(title, 200, 18, { align: 'right' })
+    doc.text(title, 200, 17, { align: 'right' })
 
     // Sous-titre
-    doc.setFontSize(14)
+    doc.setFontSize(12)
     doc.setTextColor(120, 120, 120)
-    doc.setFont('helvetica', 'normal')
-    doc.text(subtitle, 200, 25, { align: 'right' })
+    doc.text(subtitle, 200, 24, { align: 'right' })
 
     // Ligne de séparation
     doc.setDrawColor(94, 94, 94)
@@ -131,9 +130,8 @@ export function useExportPDF() {
       // Texte du pied de page
       doc.setFontSize(8)
       doc.setTextColor(120, 120, 120)
-      doc.setFont('helvetica', 'normal')
       doc.text(
-        'CERDIA Investissement - Rapport généré automatiquement',
+        'CERDIA Investissement - Rapport genere automatiquement',
         105,
         285,
         { align: 'center' }
@@ -145,7 +143,7 @@ export function useExportPDF() {
         { align: 'center' }
       )
       doc.text(
-        `Généré le ${new Date().toLocaleDateString('fr-CA', {
+        `Genere le ${new Date().toLocaleDateString('fr-CA', {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
@@ -174,25 +172,19 @@ export function useExportPDF() {
     yPos += 7
     doc.setFontSize(10)
     doc.setTextColor(60, 60, 60)
-    doc.setFont('helvetica', 'bold')
     doc.text('TYPE DE DOCUMENT:', 20, yPos)
-    doc.setFont('helvetica', 'normal')
     doc.text('Analyse d\'investissement immobilier', 70, yPos)
 
     yPos += 6
-    doc.setFont('helvetica', 'bold')
     doc.text('STATUT:', 20, yPos)
-    doc.setFont('helvetica', 'normal')
-    const statusText = scenario.status === 'purchased' ? 'ACHETÉ' :
-                       scenario.status === 'approved' ? 'APPROUVÉ' :
+    const statusText = scenario.status === 'purchased' ? 'ACHETE' :
+                       scenario.status === 'approved' ? 'APPROUVE' :
                        scenario.status === 'pending_vote' ? 'EN VOTE' : 'BROUILLON'
     doc.text(statusText, 70, yPos)
 
     yPos += 6
-    doc.setFont('helvetica', 'bold')
     doc.text('DATE DE LIVRAISON:', 20, yPos)
-    doc.setFont('helvetica', 'normal')
-    doc.text(scenario.delivery_date || 'Non définie', 70, yPos)
+    doc.text(scenario.delivery_date || 'Non definie', 70, yPos)
 
     yPos += 15
 
@@ -200,13 +192,11 @@ export function useExportPDF() {
     if (scenario.description && scenario.description.trim()) {
       doc.setFontSize(14)
       doc.setTextColor(94, 94, 94)
-      doc.setFont('helvetica', 'bold')
       doc.text('DESCRIPTION DU PROJET', 15, yPos)
 
       yPos += 7
       doc.setFontSize(10)
       doc.setTextColor(60, 60, 60)
-      doc.setFont('helvetica', 'normal')
 
       // Découper la description en lignes
       const descLines = doc.splitTextToSize(scenario.description, 180)
@@ -217,21 +207,27 @@ export function useExportPDF() {
     // Section: Informations du projet
     doc.setFontSize(14)
     doc.setTextColor(94, 94, 94)
-    doc.setFont('helvetica', 'bold')
     doc.text('INFORMATIONS DU PROJET', 15, yPos)
     yPos += 5
 
+    // Construire l'adresse complète en gérant les valeurs manquantes
+    const addressParts = [scenario.address, scenario.state_region, scenario.country].filter(Boolean)
+    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'N/A'
+
+    // Déterminer la devise d'affichage
+    const displayCurrency = scenario.purchase_currency || scenario.promoter_data.rent_currency || 'USD'
+
     autoTable(doc, {
       startY: yPos,
-      head: [['Propriété', 'Valeur']],
+      head: [['Propriete', 'Valeur']],
       body: [
-        ['Nom du projet', scenario.name],
-        ['Unité', scenario.unit_number || 'N/A'],
-        ['Adresse', `${scenario.address}, ${scenario.state_region}, ${scenario.country}`],
+        ['Nom du projet', scenario.name || 'N/A'],
+        ['Unite', scenario.unit_number || 'N/A'],
+        ['Adresse', fullAddress],
         ['Promoteur', scenario.promoter_name || 'N/A'],
         ['Courtier', scenario.broker_name || 'N/A'],
         ['Compagnie', scenario.company_name || 'N/A'],
-        ['Prix d\'achat', formatCurrency(scenario.purchase_price, scenario.promoter_data.rent_currency)]
+        ['Prix d\'achat', formatCurrency(scenario.purchase_price, displayCurrency)]
       ],
       theme: 'striped',
       headStyles: {
@@ -254,21 +250,20 @@ export function useExportPDF() {
     yPos = (doc as any).lastAutoTable.finalY + 15
     doc.setFontSize(14)
     doc.setTextColor(94, 94, 94)
-    doc.setFont('helvetica', 'bold')
-    doc.text('PARAMÈTRES FINANCIERS', 15, yPos)
+    doc.text('PARAMETRES FINANCIERS', 15, yPos)
     yPos += 5
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Paramètre', 'Valeur']],
+      head: [['Parametre', 'Valeur']],
       body: [
         ['Type de loyer', scenario.promoter_data.rent_type === 'monthly' ? 'Mensuel' : 'Journalier'],
         ['Loyer ' + (scenario.promoter_data.rent_type === 'monthly' ? 'mensuel' : 'journalier'),
          formatCurrency(scenario.promoter_data.monthly_rent, scenario.promoter_data.rent_currency)],
-        ['Appréciation annuelle', `${scenario.promoter_data.annual_appreciation}%`],
+        ['Appreciation annuelle', `${scenario.promoter_data.annual_appreciation}%`],
         ['Taux d\'occupation', `${scenario.promoter_data.occupancy_rate}%`],
         ['Frais de gestion', `${scenario.promoter_data.management_fees}%`],
-        ['Durée du projet', `${scenario.promoter_data.project_duration} ans`],
+        ['Duree du projet', `${scenario.promoter_data.project_duration} ans`],
         ['Taux d\'imposition', `${scenario.promoter_data.tax_rate}%`],
         ['Augmentation locative annuelle', `${scenario.promoter_data.annual_rent_increase}%`]
       ],
@@ -307,10 +302,9 @@ export function useExportPDF() {
 
       doc.setFontSize(12)
       doc.setTextColor(255, 255, 255)
-      doc.setFont('helvetica', 'bold')
-      const recText = result.summary.recommendation === 'recommended' ? '✓ PROJET RECOMMANDÉ' :
-                     result.summary.recommendation === 'consider' ? '⚠ PROJET À CONSIDÉRER' :
-                     '✗ PROJET NON RECOMMANDÉ'
+      const recText = result.summary.recommendation === 'recommended' ? 'PROJET RECOMMANDE' :
+                     result.summary.recommendation === 'consider' ? 'PROJET A CONSIDERER' :
+                     'PROJET NON RECOMMANDE'
       doc.text(recText, 105, yPos + 8, { align: 'center' })
 
       yPos += 20
@@ -320,19 +314,19 @@ export function useExportPDF() {
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Métrique clé', 'Valeur']],
+        head: [['Metrique cle', 'Valeur']],
         body: [
           ['Valeur finale du bien', formatCurrency(result.summary.final_property_value, 'CAD')],
           ['Revenus nets totaux', formatCurrency(result.summary.total_net_income, 'CAD')],
-          ['Cashflow cumulé final', formatCurrency(finalCashflow, 'CAD')],
+          ['Cashflow cumule final', formatCurrency(finalCashflow, 'CAD')],
           ['Retour sur investissement total', `${result.summary.total_return.toFixed(2)}%`],
           ['Rendement annuel moyen', `${result.summary.avg_annual_return.toFixed(2)}%`],
-          ['Année de break-even', `Année ${result.summary.break_even_year}`],
+          ['Annee de break-even', `Annee ${result.summary.break_even_year}`],
           ['Taux de rendement interne (IRR)', `${result.summary.irr.toFixed(2)}%`],
           ['Valeur actuelle nette (VAN)', formatCurrency(result.summary.npv, 'CAD')],
-          ['Économies de dépréciation', formatCurrency(result.summary.total_depreciation_savings, 'CAD')],
-          ['Impôt sur la plus-value', formatCurrency(result.summary.capital_gains_tax, 'CAD')],
-          ['Liquidité nette après vente', formatCurrency(result.summary.net_proceeds_after_sale, 'CAD')]
+          ['Economies de depreciation', formatCurrency(result.summary.total_depreciation_savings, 'CAD')],
+          ['Impot sur la plus-value', formatCurrency(result.summary.capital_gains_tax, 'CAD')],
+          ['Liquidite nette apres vente', formatCurrency(result.summary.net_proceeds_after_sale, 'CAD')]
         ],
         theme: 'grid',
         headStyles: {
@@ -357,12 +351,11 @@ export function useExportPDF() {
 
       doc.setFontSize(12)
       doc.setTextColor(94, 94, 94)
-      doc.setFont('helvetica', 'bold')
-      doc.text('PROJECTION ANNUELLE DÉTAILLÉE', 15, yPos)
+      doc.text('PROJECTION ANNUELLE DETAILLEE', 15, yPos)
       yPos += 5
 
       const yearlyBody = result.yearly_data.map(year => [
-        `Année ${year.year}`,
+        `Annee ${year.year}`,
         formatCurrency(year.property_value, scenario.promoter_data.rent_currency),
         formatCurrency(year.rental_income, scenario.promoter_data.rent_currency),
         formatCurrency(year.net_income, scenario.promoter_data.rent_currency),
@@ -372,7 +365,7 @@ export function useExportPDF() {
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Année', 'Valeur du bien', 'Revenus locatifs', 'Revenus nets', 'Cashflow cumulé', 'ROI']],
+        head: [['Annee', 'Valeur du bien', 'Revenus locatifs', 'Revenus nets', 'Cashflow cumule', 'ROI']],
         body: yearlyBody,
         theme: 'striped',
         headStyles: {
@@ -429,8 +422,7 @@ export function useExportPDF() {
 
     doc.setFontSize(12)
     doc.setTextColor(22, 163, 74)
-    doc.setFont('helvetica', 'bold')
-    doc.text('✓ PROJET ACHETÉ - SUIVI DES PERFORMANCES', 105, yPos + 8, { align: 'center' })
+    doc.text('PROJET ACHETE - SUIVI DES PERFORMANCES', 105, yPos + 8, { align: 'center' })
 
     yPos += 20
 
@@ -438,36 +430,37 @@ export function useExportPDF() {
     if (scenario.description && scenario.description.trim()) {
       doc.setFontSize(14)
       doc.setTextColor(94, 94, 94)
-      doc.setFont('helvetica', 'bold')
       doc.text('DESCRIPTION DU PROJET', 15, yPos)
 
       yPos += 7
       doc.setFontSize(10)
       doc.setTextColor(60, 60, 60)
-      doc.setFont('helvetica', 'normal')
 
       const descLines = doc.splitTextToSize(scenario.description, 180)
       doc.text(descLines, 15, yPos)
       yPos += (descLines.length * 5) + 10
     }
 
+    // Construire l'adresse complète
+    const addressParts2 = [scenario.address, scenario.state_region, scenario.country].filter(Boolean)
+    const fullAddress2 = addressParts2.length > 0 ? addressParts2.join(', ') : 'N/A'
+
     // Informations du projet
     doc.setFontSize(14)
     doc.setTextColor(94, 94, 94)
-    doc.setFont('helvetica', 'bold')
     doc.text('INFORMATIONS DU PROJET', 15, yPos)
     yPos += 5
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Propriété', 'Valeur']],
+      head: [['Propriete', 'Valeur']],
       body: [
-        ['Nom du projet', scenario.name],
-        ['Unité', scenario.unit_number || 'N/A'],
-        ['Adresse', `${scenario.address}, ${scenario.state_region}, ${scenario.country}`],
+        ['Nom du projet', scenario.name || 'N/A'],
+        ['Unite', scenario.unit_number || 'N/A'],
+        ['Adresse', fullAddress2],
         ['Promoteur', scenario.promoter_name || 'N/A'],
         ['Prix d\'achat', formatCurrency(scenario.purchase_price, scenario.promoter_data.rent_currency)],
-        ['Date de livraison', scenario.delivery_date || 'Non définie']
+        ['Date de livraison', scenario.delivery_date || 'Non definie']
       ],
       theme: 'striped',
       headStyles: {
@@ -513,7 +506,7 @@ export function useExportPDF() {
 
         autoTable(doc, {
           startY: yPos,
-          head: [['Année', 'Revenus projetés', 'Revenus réels', 'Écart (%)', 'Taux d\'occupation']],
+          head: [['Annee', 'Revenus projetes', 'Revenus reels', 'Ecart (%)', 'Taux d\'occupation']],
           body: comparisonBody,
           theme: 'grid',
           headStyles: {
