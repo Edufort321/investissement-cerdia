@@ -2205,11 +2205,44 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
 
                     {/* Afficher le montant calculé si pourcentage */}
-                    {term.amount_type === 'percentage' && (term.percentage ?? 0) > 0 && formData.purchase_price > 0 && (
-                      <div className="mt-2 text-xs text-gray-600">
-                        {t('scenarios.calculatedAmount')}: {((formData.purchase_price * (term.percentage ?? 0)) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
-                      </div>
-                    )}
+                    {term.amount_type === 'percentage' && (term.percentage ?? 0) > 0 && formData.purchase_price > 0 && (() => {
+                      const baseAmount = (formData.purchase_price * (term.percentage ?? 0)) / 100
+                      let deduction = 0
+                      let deductionLabel = ''
+
+                      // Appliquer déduction selon l'option choisie
+                      if (formData.initial_fees > 0) {
+                        if (formData.initial_fees_distribution === 'first_payment' && index === 0) {
+                          // Premier paiement: déduire tous les frais initiaux
+                          deduction = formData.initial_fees
+                          deductionLabel = 'Frais initiaux déduits'
+                        } else if (formData.initial_fees_distribution === 'equal' && formData.payment_terms.length > 0) {
+                          // Répartition égale: déduire la portion
+                          deduction = formData.initial_fees / formData.payment_terms.length
+                          deductionLabel = `Frais initiaux (${formData.payment_terms.length} termes)`
+                        }
+                      }
+
+                      const netAmount = baseAmount - deduction
+
+                      return (
+                        <div className="mt-2 text-xs space-y-1">
+                          <div className="text-gray-600">
+                            {t('scenarios.calculatedAmount')}: {baseAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                          </div>
+                          {deduction > 0 && (
+                            <>
+                              <div className="text-orange-600">
+                                − {deductionLabel}: {deduction.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              </div>
+                              <div className="font-semibold text-green-700">
+                                = Montant net: {netAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>
