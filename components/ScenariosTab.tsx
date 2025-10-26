@@ -587,12 +587,22 @@ export default function ScenariosTab() {
       const propertyValueCAD = propertyValueUSD * futureRate
 
       // Revenus locatifs en USD, convertis en CAD avec le taux futur
-      const annualRentUSD = adjustedRent * 12 * (adjustedOccupancy / 100)
+      // Adapter selon le type de location (mensuelle ou nuitée)
+      let annualRentUSD: number
+      if (pd.rent_type === 'nightly') {
+        // Location à la nuit: tarif × 365 jours × taux d'occupation
+        annualRentUSD = adjustedRent * 365 * (adjustedOccupancy / 100)
+      } else {
+        // Location mensuelle: loyer × 12 mois
+        annualRentUSD = adjustedRent * 12
+      }
       const annualRentCAD = annualRentUSD * futureRate
 
-      // Frais de gestion et revenu net en CAD
+      // Frais de gestion, impôts et revenu net en CAD
       const managementFeesCAD = annualRentCAD * (pd.management_fees / 100)
-      const netIncomeCAD = annualRentCAD - managementFeesCAD
+      const grossIncomeCAD = annualRentCAD - managementFeesCAD
+      const taxesCAD = grossIncomeCAD * (pd.tax_rate / 100)
+      const netIncomeCAD = grossIncomeCAD - taxesCAD
 
       cumulativeCashflow += netIncomeCAD
 
