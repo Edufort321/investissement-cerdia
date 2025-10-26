@@ -1209,6 +1209,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       if (updateError) throw updateError
 
       setSelectedScenario({...selectedScenario, main_photo_url: publicUrl})
+      setFormData({...formData, main_photo_url: publicUrl})
       alert('Photo principale uploadée avec succès!')
 
     } catch (error) {
