@@ -1502,7 +1502,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-bold text-gray-900">{scenario.name}</h3>
-                      {scenario.unit_number && scenario.unit_number.trim() !== '' && (
+                      {scenario.unit_number?.trim() && (
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                           #{scenario.unit_number}
                         </span>
