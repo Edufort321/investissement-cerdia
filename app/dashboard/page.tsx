@@ -189,13 +189,26 @@ export default function DashboardPage() {
     )
   }
 
-  const tabs = [
-    { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard },
-    { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban },
-    { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator },
-    { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar },
-    { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings },
+  // Filtrer les onglets selon les permissions de l'utilisateur
+  const allTabs = [
+    { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard, permission: 'dashboard' },
+    { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban, permission: 'projet' },
+    { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator, permission: null }, // Toujours visible
+    { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar, permission: null }, // Toujours visible
+    { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings, permission: 'administration' },
   ]
+
+  const tabs = allTabs.filter(tab => {
+    // Si pas de permission requise, toujours visible
+    if (!tab.permission) return true
+
+    // Si admin, accès à tout
+    if (currentUser?.investorData?.access_level === 'admin') return true
+
+    // Sinon vérifier la permission spécifique
+    const permissions = currentUser?.investorData?.permissions as any
+    return permissions?.[tab.permission] === true
+  })
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex transition-colors duration-300">
@@ -828,7 +841,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'administration' && (
+          {activeTab === 'administration' && (currentUser?.investorData?.access_level === 'admin' || currentUser?.investorData?.permissions?.administration === true) && (
             <>
               {adminSubTab === 'tresorerie' && <TreasuryDashboard />}
               {adminSubTab === 'gestion_projet' && <ProjectManagementDashboard />}
