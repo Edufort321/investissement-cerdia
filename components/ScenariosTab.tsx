@@ -9,7 +9,7 @@ import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
-  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X
+  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X, Save
 } from 'lucide-react'
 import { DropZone } from './DropZone'
 import { BookingsCalendar } from './BookingsCalendar'
@@ -255,6 +255,47 @@ export default function ScenariosTab() {
   useEffect(() => {
     if (selectedScenario) {
       loadScenarioDetails(selectedScenario.id)
+
+      // Charger les données du scénario dans le formulaire pour permettre la modification
+      setFormData({
+        name: selectedScenario.name || '',
+        main_photo_url: selectedScenario.main_photo_url || '',
+        unit_number: selectedScenario.unit_number || '',
+        address: selectedScenario.address || '',
+        country: selectedScenario.country || '',
+        state_region: selectedScenario.state_region || '',
+        promoter_name: selectedScenario.promoter_name || '',
+        broker_name: selectedScenario.broker_name || '',
+        broker_email: selectedScenario.broker_email || '',
+        company_name: selectedScenario.company_name || '',
+        purchase_price: selectedScenario.purchase_price || 0,
+        purchase_currency: selectedScenario.purchase_currency || 'USD',
+        initial_fees: selectedScenario.initial_fees || 0,
+        initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
+        deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false,
+        transaction_fees: selectedScenario.transaction_fees || {
+          type: 'percentage',
+          percentage: 0,
+          fixed_amount: 0,
+          currency: 'USD'
+        },
+        construction_status: selectedScenario.construction_status || 'in_progress',
+        delivery_date: selectedScenario.delivery_date || '',
+        completion_year: selectedScenario.completion_year || new Date().getFullYear(),
+        promoter_data: selectedScenario.promoter_data || {
+          monthly_rent: 0,
+          rent_type: 'monthly',
+          rent_currency: 'USD',
+          annual_appreciation: 5,
+          occupancy_rate: 80,
+          management_fees: 10,
+          project_duration: 10,
+          tax_rate: 0,
+          annual_rent_increase: 2
+        },
+        payment_terms: selectedScenario.payment_terms || [],
+        recurring_fees: selectedScenario.recurring_fees || []
+      })
     }
   }, [selectedScenario])
 
@@ -510,6 +551,49 @@ export default function ScenariosTab() {
     } catch (error) {
       console.error('Error creating scenario:', error)
       alert(t('scenarios.createError'))
+    }
+  }
+
+  const updateScenario = async () => {
+    if (!selectedScenario) return
+
+    try {
+      const { error } = await supabase
+        .from('scenarios')
+        .update({
+          name: formData.name,
+          unit_number: formData.unit_number,
+          address: formData.address,
+          country: formData.country,
+          state_region: formData.state_region,
+          promoter_name: formData.promoter_name,
+          broker_name: formData.broker_name,
+          broker_email: formData.broker_email,
+          company_name: formData.company_name,
+          purchase_price: formData.purchase_price,
+          purchase_currency: formData.purchase_currency,
+          initial_fees: formData.initial_fees,
+          delivery_date: formData.delivery_date,
+          completion_year: formData.completion_year,
+          construction_status: formData.construction_status,
+        })
+        .eq('id', selectedScenario.id)
+
+      if (error) throw error
+
+      alert('Modifications sauvegardées avec succès!')
+
+      // Recharger les scénarios pour afficher les modifications
+      await loadScenarios()
+
+      // Mettre à jour le scénario sélectionné
+      const updatedScenario = scenarios.find(s => s.id === selectedScenario.id)
+      if (updatedScenario) {
+        setSelectedScenario(updatedScenario)
+      }
+    } catch (error) {
+      console.error('Error updating scenario:', error)
+      alert('Erreur lors de la sauvegarde des modifications')
     }
   }
 
@@ -1496,11 +1580,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </div>
         ) : (
           <div className="space-y-4">
-            {scenarios.map(scenario => {
-              // Debug: Afficher le unit_number dans la console
-              console.log(`[DEBUG] Scénario "${scenario.name}": unit_number = "${scenario.unit_number}"`, typeof scenario.unit_number)
-
-              return (
+            {scenarios.map(scenario => (
               <div key={scenario.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -1568,8 +1648,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </button>
                 </div>
               </div>
-              )
-            })}
+            ))}
           </div>
         )}
       </div>
@@ -2506,6 +2585,15 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 {t('scenarios.markAsPurchased')}
               </button>
             )}
+
+            {/* Bouton Sauvegarder les modifications (toujours visible) */}
+            <button
+              onClick={updateScenario}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <Save size={16} />
+              Sauvegarder les modifications
+            </button>
 
             {/* Bouton Supprimer (brouillon ou admin) */}
             {(selectedScenario.status === 'draft' || currentInvestor?.access_level === 'admin') && (
