@@ -81,6 +81,7 @@ interface PaymentTerm {
   percentage?: number
   fixed_amount?: number
   due_date: string
+  notes?: string // Notes particulières du contrat (ex: conditions de paiement)
 }
 
 interface RecurringFee {
@@ -2355,6 +2356,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         </div>
                       )
                     })()}
+
+                    {/* Champ Notes particulières */}
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Notes particulières du contrat
+                      </label>
+                      <textarea
+                        value={term.notes || ''}
+                        onChange={(e) => {
+                          const newTerms = [...formData.payment_terms]
+                          newTerms[index].notes = e.target.value
+                          setFormData({...formData, payment_terms: newTerms})
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent resize-y"
+                        placeholder="Ex: à payer dans les 10 jours après notification que l'unité est prête pour la livraison"
+                        rows={2}
+                      />
+                    </div>
                   </div>
                 ))}
 
