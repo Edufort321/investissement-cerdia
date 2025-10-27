@@ -92,8 +92,8 @@ export function useExportPDF() {
     // Ajouter le logo en haut à gauche avec ratio correct pour éviter l'écrasement
     if (logoBase64) {
       try {
-        // Dimensions avec ratio 2.5:1 pour un logo plus équilibré
-        doc.addImage(logoBase64, 'PNG', 15, 10, 30, 12)
+        // Dimensions réduites avec ratio 3:1 pour un logo horizontal équilibré
+        doc.addImage(logoBase64, 'PNG', 15, 10, 24, 8)
       } catch (error) {
         console.error('Error adding logo:', error)
       }
