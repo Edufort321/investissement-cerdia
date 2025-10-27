@@ -2335,17 +2335,27 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                 {/* Résumé des termes de paiement */}
                 {formData.payment_terms.length > 0 && formData.purchase_price > 0 && (() => {
+                  // Détecter si on utilise des pourcentages ou des montants fixes
+                  const hasPercentages = formData.payment_terms.some(term => term.amount_type === 'percentage')
+                  const hasFixedAmounts = formData.payment_terms.some(term => term.amount_type === 'fixed')
+
                   // Calculer les pourcentages et montants
                   const percentages = formData.payment_terms.map(term =>
                     term.amount_type === 'percentage' ? (term.percentage || 0) : 0
                   )
-                  const amounts = formData.payment_terms.map((term, index) => {
-                    let amount = 0
+
+                  // Montants AVANT déduction des frais initiaux (pour le calcul du total)
+                  const amountsBeforeDeduction = formData.payment_terms.map(term => {
                     if (term.amount_type === 'percentage') {
-                      amount = (formData.purchase_price * (term.percentage || 0)) / 100
+                      return (formData.purchase_price * (term.percentage || 0)) / 100
                     } else {
-                      amount = term.fixed_amount || 0
+                      return term.fixed_amount || 0
                     }
+                  })
+
+                  // Montants APRÈS déduction des frais initiaux (pour l'affichage)
+                  const amountsAfterDeduction = formData.payment_terms.map((term, index) => {
+                    let amount = amountsBeforeDeduction[index]
 
                     // Appliquer déduction si nécessaire
                     if (formData.initial_fees > 0) {
@@ -2360,28 +2370,47 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   })
 
                   const totalPercentage = percentages.reduce((sum, p) => sum + p, 0)
-                  // Le total à payer est le prix d'achat, pas la somme des montants après déduction des frais initiaux
-                  const totalAmount = formData.purchase_price
+
+                  // Calculer le total à payer
+                  let totalAmount
+                  if (hasFixedAmounts && !hasPercentages) {
+                    // Si tous sont en montants fixes, le total est la somme des montants AVANT déduction
+                    totalAmount = amountsBeforeDeduction.reduce((sum, a) => sum + a, 0)
+                  } else {
+                    // Si on utilise des pourcentages, le total est le prix d'achat
+                    totalAmount = formData.purchase_price
+                  }
+
                   const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
 
                   return (
                     <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <h4 className="text-sm font-bold text-blue-900 mb-2">📊 Résumé des paiements</h4>
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-700 font-medium">Répartition :</span>
-                          <span className="text-gray-900 font-mono">{percentageDisplay}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-700 font-medium">Total pourcentages :</span>
-                          <span className={`font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                            {totalPercentage}% {totalPercentage === 100 ? '✓' : '⚠️'}
-                          </span>
-                        </div>
+                        {hasPercentages && (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-gray-700 font-medium">Répartition :</span>
+                              <span className="text-gray-900 font-mono">{percentageDisplay}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-700 font-medium">Total pourcentages :</span>
+                              <span className={`font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                {totalPercentage}% {totalPercentage === 100 ? '✓' : '⚠️'}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        {hasFixedAmounts && !hasPercentages && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-700 font-medium">Type :</span>
+                            <span className="text-gray-900 font-mono">Montants fixes</span>
+                          </div>
+                        )}
                         <div className="flex justify-between border-t border-blue-300 pt-2">
                           <span className="text-gray-700 font-medium">Montants :</span>
                           <span className="text-gray-900 font-mono">
-                            {amounts.map(a => a.toLocaleString('fr-CA', {
+                            {amountsAfterDeduction.map(a => a.toLocaleString('fr-CA', {
                               style: 'currency',
                               currency: 'USD',
                               minimumFractionDigits: 0
