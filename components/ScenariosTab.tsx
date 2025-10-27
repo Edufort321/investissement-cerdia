@@ -2335,6 +2335,88 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     })()}
                   </div>
                 ))}
+
+                {/* Résumé des termes de paiement */}
+                {formData.payment_terms.length > 0 && formData.purchase_price > 0 && (() => {
+                  // Calculer les pourcentages et montants
+                  const percentages = formData.payment_terms.map(term =>
+                    term.amount_type === 'percentage' ? (term.percentage || 0) : 0
+                  )
+                  const amounts = formData.payment_terms.map((term, index) => {
+                    let amount = 0
+                    if (term.amount_type === 'percentage') {
+                      amount = (formData.purchase_price * (term.percentage || 0)) / 100
+                    } else {
+                      amount = term.fixed_amount || 0
+                    }
+
+                    // Appliquer déduction si nécessaire
+                    if (formData.initial_fees > 0) {
+                      if (formData.initial_fees_distribution === 'first_payment' && index === 0) {
+                        amount -= formData.initial_fees
+                      } else if (formData.initial_fees_distribution === 'equal') {
+                        amount -= formData.initial_fees / formData.payment_terms.length
+                      }
+                    }
+
+                    return amount
+                  })
+
+                  const totalPercentage = percentages.reduce((sum, p) => sum + p, 0)
+                  const totalAmount = amounts.reduce((sum, a) => sum + a, 0)
+                  const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
+
+                  return (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="text-sm font-bold text-blue-900 mb-2">📊 Résumé des paiements</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-700 font-medium">Répartition :</span>
+                          <span className="text-gray-900 font-mono">{percentageDisplay}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-700 font-medium">Total pourcentages :</span>
+                          <span className={`font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                            {totalPercentage}% {totalPercentage === 100 ? '✓' : '⚠️'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-blue-300 pt-2">
+                          <span className="text-gray-700 font-medium">Montants :</span>
+                          <span className="text-gray-900 font-mono">
+                            {amounts.map(a => a.toLocaleString('fr-CA', {
+                              style: 'currency',
+                              currency: 'USD',
+                              minimumFractionDigits: 0
+                            })).join(' / ')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-blue-300 pt-2">
+                          <span className="text-gray-700 font-bold">Total à payer :</span>
+                          <span className="text-blue-900 font-bold text-base">
+                            {totalAmount.toLocaleString('fr-CA', {
+                              style: 'currency',
+                              currency: 'USD',
+                              minimumFractionDigits: 0
+                            })}
+                          </span>
+                        </div>
+                        {formData.initial_fees > 0 && (
+                          <div className="text-xs text-gray-600 mt-2 italic">
+                            * Les frais initiaux de {formData.initial_fees.toLocaleString('fr-CA', {
+                              style: 'currency',
+                              currency: 'USD',
+                              minimumFractionDigits: 0
+                            })} ont été déduits {
+                              formData.initial_fees_distribution === 'first_payment'
+                                ? 'du premier paiement'
+                                : 'également de chaque paiement'
+                            }
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>
