@@ -89,11 +89,11 @@ export function useExportPDF() {
     // Charger le logo
     const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
 
-    // Ajouter le logo en haut à gauche (taille réduite pour éviter l'écrasement)
+    // Ajouter le logo en haut à gauche avec ratio correct pour éviter l'écrasement
     if (logoBase64) {
       try {
-        // Dimensions réduites avec ratio correct pour éviter l'écrasement
-        doc.addImage(logoBase64, 'PNG', 15, 10, 24, 8)
+        // Dimensions avec ratio 2.5:1 pour un logo plus équilibré
+        doc.addImage(logoBase64, 'PNG', 15, 10, 30, 12)
       } catch (error) {
         console.error('Error adding logo:', error)
       }
@@ -154,6 +154,114 @@ export function useExportPDF() {
         { align: 'right' }
       )
     }
+  }
+
+  // Fonction pour dessiner un graphique linéaire
+  const drawLineChart = (
+    doc: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    data: number[],
+    color: number[],
+    title: string,
+    yAxisLabel: string
+  ) => {
+    // Cadre du graphique
+    doc.setDrawColor(200, 200, 200)
+    doc.setLineWidth(0.5)
+    doc.rect(x, y, width, height, 'S')
+
+    // Titre
+    doc.setFontSize(10)
+    doc.setTextColor(60, 60, 60)
+    doc.text(title, x + width / 2, y - 3, { align: 'center' })
+
+    // Trouver min/max pour l'échelle
+    const maxValue = Math.max(...data)
+    const minValue = Math.min(...data, 0)
+    const range = maxValue - minValue
+
+    if (range === 0) return
+
+    // Dessiner les axes
+    doc.setDrawColor(150, 150, 150)
+    doc.line(x, y + height, x + width, y + height) // Axe X
+    doc.line(x, y, x, y + height) // Axe Y
+
+    // Dessiner la ligne
+    doc.setDrawColor(color[0], color[1], color[2])
+    doc.setLineWidth(2)
+
+    const pointSpacing = width / (data.length - 1)
+    for (let i = 0; i < data.length - 1; i++) {
+      const x1 = x + i * pointSpacing
+      const y1 = y + height - ((data[i] - minValue) / range) * height
+      const x2 = x + (i + 1) * pointSpacing
+      const y2 = y + height - ((data[i + 1] - minValue) / range) * height
+      doc.line(x1, y1, x2, y2)
+    }
+
+    // Points sur la ligne
+    doc.setFillColor(color[0], color[1], color[2])
+    data.forEach((value, i) => {
+      const px = x + i * pointSpacing
+      const py = y + height - ((value - minValue) / range) * height
+      doc.circle(px, py, 1, 'F')
+    })
+
+    // Label Y-axis
+    doc.setFontSize(7)
+    doc.setTextColor(120, 120, 120)
+    doc.text(yAxisLabel, x - 2, y + height / 2, { align: 'right', angle: 90 })
+  }
+
+  // Fonction pour dessiner un graphique en barres comparatif
+  const drawComparisonBarChart = (
+    doc: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    scenarios: { label: string; value: number; color: number[] }[],
+    title: string
+  ) => {
+    // Titre
+    doc.setFontSize(10)
+    doc.setTextColor(60, 60, 60)
+    doc.text(title, x + width / 2, y - 3, { align: 'center' })
+
+    // Cadre
+    doc.setDrawColor(200, 200, 200)
+    doc.setLineWidth(0.5)
+    doc.rect(x, y, width, height, 'S')
+
+    // Trouver la valeur max
+    const maxValue = Math.max(...scenarios.map(s => s.value))
+    if (maxValue === 0) return
+
+    const barWidth = width / scenarios.length * 0.7
+    const spacing = width / scenarios.length
+
+    scenarios.forEach((scenario, i) => {
+      const barHeight = (scenario.value / maxValue) * height * 0.9
+      const barX = x + i * spacing + spacing / 2 - barWidth / 2
+      const barY = y + height - barHeight
+
+      // Dessiner la barre
+      doc.setFillColor(scenario.color[0], scenario.color[1], scenario.color[2])
+      doc.rect(barX, barY, barWidth, barHeight, 'F')
+
+      // Label
+      doc.setFontSize(7)
+      doc.setTextColor(60, 60, 60)
+      doc.text(scenario.label, barX + barWidth / 2, y + height + 4, { align: 'center' })
+
+      // Valeur au-dessus de la barre
+      doc.setFontSize(7)
+      doc.text(`${scenario.value.toFixed(1)}%`, barX + barWidth / 2, barY - 2, { align: 'center' })
+    })
   }
 
   // Export d'un scénario complet
@@ -347,9 +455,45 @@ export function useExportPDF() {
         margin: { left: 15, right: 15 }
       })
 
-      // Tableau annuel détaillé
+      // Graphiques de projection
       yPos = (doc as any).lastAutoTable.finalY + 15
 
+      // Définir la couleur selon le type de scénario
+      const scenarioColor = result.scenario_type === 'conservative' ? [34, 197, 94] :
+                           result.scenario_type === 'moderate' ? [59, 130, 246] :
+                           [239, 68, 68]
+
+      // Graphique 1: Évolution du Cashflow Cumulé
+      const cashflowData = result.yearly_data.map(y => y.cumulative_cashflow / 1000) // En milliers
+      drawLineChart(
+        doc,
+        15,
+        yPos,
+        85,
+        50,
+        cashflowData,
+        scenarioColor,
+        'Evolution du Cashflow Cumule',
+        'Milliers $'
+      )
+
+      // Graphique 2: Évolution de la Valeur de la Propriété
+      const propertyValueData = result.yearly_data.map(y => y.property_value / 1000) // En milliers
+      drawLineChart(
+        doc,
+        110,
+        yPos,
+        85,
+        50,
+        propertyValueData,
+        scenarioColor,
+        'Evolution de la Valeur du Bien',
+        'Milliers $'
+      )
+
+      yPos += 60
+
+      // Tableau annuel détaillé
       doc.setFontSize(12)
       doc.setTextColor(94, 94, 94)
       doc.text('PROJECTION ANNUELLE DETAILLEE', 15, yPos)
@@ -394,6 +538,112 @@ export function useExportPDF() {
         margin: { left: 15, right: 15 }
       })
     }
+
+    // Page de comparaison finale
+    doc.addPage()
+    yPos = await addHeader(doc, 'COMPARAISON DES SCENARIOS', scenario.name)
+    yPos += 15
+
+    // Titre
+    doc.setFontSize(14)
+    doc.setTextColor(94, 94, 94)
+    doc.text('ANALYSE COMPARATIVE DES 3 SCENARIOS', 105, yPos, { align: 'center' })
+    yPos += 15
+
+    // Graphique comparatif: ROI Moyen Annuel
+    const roiComparison = results.map(r => ({
+      label: r.scenario_type === 'conservative' ? 'Conserv.' :
+             r.scenario_type === 'moderate' ? 'Modere' : 'Eleve',
+      value: r.summary.avg_annual_return,
+      color: r.scenario_type === 'conservative' ? [34, 197, 94] :
+             r.scenario_type === 'moderate' ? [59, 130, 246] :
+             [239, 68, 68]
+    }))
+
+    drawComparisonBarChart(
+      doc,
+      15,
+      yPos,
+      180,
+      50,
+      roiComparison,
+      'Rendement Annuel Moyen (%)'
+    )
+
+    yPos += 65
+
+    // Graphique comparatif: Retour Total
+    const totalReturnComparison = results.map(r => ({
+      label: r.scenario_type === 'conservative' ? 'Conserv.' :
+             r.scenario_type === 'moderate' ? 'Modere' : 'Eleve',
+      value: r.summary.total_return,
+      color: r.scenario_type === 'conservative' ? [34, 197, 94] :
+             r.scenario_type === 'moderate' ? [59, 130, 246] :
+             [239, 68, 68]
+    }))
+
+    drawComparisonBarChart(
+      doc,
+      15,
+      yPos,
+      180,
+      50,
+      totalReturnComparison,
+      'Retour sur Investissement Total (%)'
+    )
+
+    yPos += 65
+
+    // Tableau récapitulatif
+    doc.setFontSize(12)
+    doc.setTextColor(94, 94, 94)
+    doc.text('TABLEAU RECAPITULATIF', 15, yPos)
+    yPos += 5
+
+    const comparisonBody = results.map(r => [
+      r.scenario_type === 'conservative' ? 'Conservateur' :
+      r.scenario_type === 'moderate' ? 'Modere' :
+      'Eleve',
+      formatCurrency(r.summary.final_property_value, 'CAD'),
+      formatCurrency(r.summary.total_net_income, 'CAD'),
+      `${r.summary.avg_annual_return.toFixed(2)}%`,
+      `${r.summary.total_return.toFixed(2)}%`,
+      `Annee ${r.summary.break_even_year}`,
+      r.summary.recommendation === 'recommended' ? 'Recommande' :
+      r.summary.recommendation === 'consider' ? 'A considerer' :
+      'Non recommande'
+    ])
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Scenario', 'Valeur finale', 'Revenus nets', 'ROI moyen', 'ROI total', 'Break-even', 'Recommandation']],
+      body: comparisonBody,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [94, 94, 94],
+        fontSize: 9,
+        fontStyle: 'bold',
+        textColor: [255, 255, 255],
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', halign: 'center' },
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right', fontStyle: 'bold' },
+        4: { halign: 'right', fontStyle: 'bold' },
+        5: { halign: 'center' },
+        6: { halign: 'center', fontStyle: 'bold' }
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251]
+      },
+      margin: { left: 15, right: 15 }
+    })
 
     // Ajouter les pieds de page
     addFooter(doc)
