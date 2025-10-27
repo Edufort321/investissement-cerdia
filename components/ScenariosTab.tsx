@@ -9,7 +9,7 @@ import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import {
   Calculator, TrendingUp, DollarSign, Home, FileText, Upload,
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
-  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X, Save
+  FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X, Save, Edit
 } from 'lucide-react'
 import { DropZone } from './DropZone'
 import { BookingsCalendar } from './BookingsCalendar'
