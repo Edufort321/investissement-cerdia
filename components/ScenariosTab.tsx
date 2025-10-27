@@ -2351,7 +2351,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 {formData.payment_terms.length > 0 && formData.purchase_price > 0 && (() => {
                   // Détecter si on utilise des pourcentages ou des montants fixes
                   const hasPercentages = formData.payment_terms.some(term => term.amount_type === 'percentage')
-                  const hasFixedAmounts = formData.payment_terms.some(term => term.amount_type === 'fixed')
+                  const hasFixedAmounts = formData.payment_terms.some(term => term.amount_type === 'fixed_amount')
 
                   // Calculer les pourcentages et montants
                   const percentages = formData.payment_terms.map(term =>
