@@ -151,6 +151,32 @@ ON CONFLICT (id) DO UPDATE SET
   ];
 
 -- =====================================================
+-- BUCKET 5: voyage-photos (PRIVÉ)
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'voyage-photos',
+  'voyage-photos',
+  false, -- Private bucket
+  5242880, -- 5 MB en bytes (photos de voyage)
+  ARRAY[
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf'
+  ]
+)
+ON CONFLICT (id) DO UPDATE SET
+  file_size_limit = 5242880,
+  allowed_mime_types = ARRAY[
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf'
+  ];
+
+-- =====================================================
 -- VÉRIFICATION ET CONFIRMATION
 -- =====================================================
 
@@ -166,7 +192,7 @@ SELECT
   array_length(allowed_mime_types, 1) AS "Types de fichiers autorisés",
   created_at AS "Créé le"
 FROM storage.buckets
-WHERE id IN ('documents', 'scenario-documents', 'property-attachments', 'transaction-attachments')
+WHERE id IN ('documents', 'scenario-documents', 'property-attachments', 'transaction-attachments', 'voyage-photos')
 ORDER BY id;
 
 -- =====================================================
@@ -198,11 +224,17 @@ BEGIN
   RAISE NOTICE '   - Limite: 50 MB';
   RAISE NOTICE '   - Types: Images, PDF, Office';
   RAISE NOTICE '';
+  RAISE NOTICE '5️⃣  voyage-photos (PRIVÉ)';
+  RAISE NOTICE '   - Photos de voyage Mon Voyage CERDIA';
+  RAISE NOTICE '   - Limite: 5 MB';
+  RAISE NOTICE '   - Types: Images (JPEG, PNG, WebP), PDF';
+  RAISE NOTICE '';
   RAISE NOTICE '✅ Tous les buckets sont prêts à être utilisés!';
   RAISE NOTICE '';
   RAISE NOTICE '⚠️  RAPPEL: Les policies RLS doivent aussi être exécutées:';
   RAISE NOTICE '   - Script 7: policies pour documents';
   RAISE NOTICE '   - Script 17: policies pour property/transaction-attachments';
   RAISE NOTICE '   - Script 21: policies pour scenario-documents';
+  RAISE NOTICE '   - Migrations Mon Voyage: policies pour voyage-photos';
   RAISE NOTICE '';
 END $$;
