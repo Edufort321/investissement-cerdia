@@ -2364,7 +2364,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   })
 
                   const totalPercentage = percentages.reduce((sum, p) => sum + p, 0)
-                  const totalAmount = amounts.reduce((sum, a) => sum + a, 0)
+                  // Le total à payer est le prix d'achat, pas la somme des montants après déduction des frais initiaux
+                  const totalAmount = formData.purchase_price
                   const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
 
                   return (
