@@ -598,8 +598,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         console.log('✅ File uploaded successfully')
       }
 
+      // Convertir toutes les valeurs numériques en nombres
       const dataToSubmit = {
         ...transactionFormData,
+        // Convertir les valeurs qui peuvent être des strings en nombres
+        amount: typeof transactionFormData.amount === 'string' ? parseFloat(transactionFormData.amount) || 0 : transactionFormData.amount,
+        source_amount: typeof transactionFormData.source_amount === 'string' ? (transactionFormData.source_amount ? parseFloat(transactionFormData.source_amount) : null) : transactionFormData.source_amount,
+        exchange_rate: typeof transactionFormData.exchange_rate === 'string' ? parseFloat(transactionFormData.exchange_rate) || 1 : transactionFormData.exchange_rate,
+        bank_fees: typeof transactionFormData.bank_fees === 'string' ? parseFloat(transactionFormData.bank_fees) || 0 : transactionFormData.bank_fees,
+        foreign_tax_paid: typeof transactionFormData.foreign_tax_paid === 'string' ? parseFloat(transactionFormData.foreign_tax_paid) || 0 : transactionFormData.foreign_tax_paid,
+        foreign_tax_rate: typeof transactionFormData.foreign_tax_rate === 'string' ? parseFloat(transactionFormData.foreign_tax_rate) || 0 : transactionFormData.foreign_tax_rate,
         ...attachmentData,
         investor_id: transactionFormData.investor_id || undefined,
         property_id: transactionFormData.property_id || undefined,
