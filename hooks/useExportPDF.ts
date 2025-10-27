@@ -93,7 +93,7 @@ export function useExportPDF() {
     if (logoBase64) {
       try {
         // Dimensions réduites avec ratio correct pour éviter l'écrasement
-        doc.addImage(logoBase64, 'PNG', 15, 10, 30, 10)
+        doc.addImage(logoBase64, 'PNG', 15, 10, 24, 8)
       } catch (error) {
         console.error('Error adding logo:', error)
       }

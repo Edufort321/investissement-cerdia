@@ -194,6 +194,7 @@ export default function ScenariosTab() {
   const [uploadingFile, setUploadingFile] = useState(false)
   const [detailTab, setDetailTab] = useState<'overview' | 'bookings' | 'share'>('overview')
   const [exchangeRate, setExchangeRate] = useState<number>(1.35) // Taux USD→CAD
+  const [showEditForm, setShowEditForm] = useState(false) // Toggle pour afficher le formulaire de modification
 
   // Formulaire création scénario
   const [formData, setFormData] = useState({
@@ -2677,6 +2678,15 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               Sauvegarder les modifications
             </button>
 
+            {/* Bouton Modifier */}
+            <button
+              onClick={() => setShowEditForm(!showEditForm)}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <Edit size={16} />
+              {showEditForm ? 'Masquer formulaire' : 'Modifier'}
+            </button>
+
             {/* Bouton Supprimer (brouillon ou admin) */}
             {(selectedScenario.status === 'draft' || currentInvestor?.access_level === 'admin') && (
               <button
@@ -2711,6 +2721,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         </div>
 
         {/* Formulaire éditable - Informations du projet */}
+        {showEditForm && (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
@@ -2844,6 +2855,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             </div>
           </div>
         </div>
+        )}
 
         {/* Onglets de navigation */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
