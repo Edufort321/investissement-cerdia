@@ -44,6 +44,7 @@ interface TransactionFormData {
   investor_id: string | null
   property_id: string | null
   payment_schedule_id: string | null // Lien vers paiement programmé
+  payment_completion_status: 'full' | 'partial' | null // Si paiement complet ou partiel
   category: string
   payment_method: string
   reference_number: string
@@ -169,6 +170,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     investor_id: null,
     property_id: null,
     payment_schedule_id: null,
+    payment_completion_status: null,
     category: 'capital',
     payment_method: 'virement',
     reference_number: '',
@@ -668,6 +670,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       investor_id: transaction.investor_id,
       property_id: transaction.property_id,
       payment_schedule_id: transaction.payment_schedule_id || null,
+      payment_completion_status: transaction.payment_completion_status || null,
       category: transaction.category,
       payment_method: transaction.payment_method,
       reference_number: transaction.reference_number || '',
@@ -713,6 +716,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       investor_id: null,
       property_id: null,
       payment_schedule_id: null,
+      payment_completion_status: null,
       category: 'capital',
       payment_method: 'virement',
       reference_number: '',
@@ -1723,40 +1727,63 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Paiement lié (optionnel, si propriété sélectionnée) */}
               {transactionFormData.property_id && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Paiement lié (optionnel)
-                    <span className="ml-1 text-xs text-gray-500">- Le paiement sera marqué comme "payé" automatiquement</span>
-                  </label>
-                  <select
-                    value={transactionFormData.payment_schedule_id || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                  >
-                    <option value="">Aucun paiement lié</option>
-                    {paymentSchedules
-                      .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue'))
-                      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-                      .map(payment => {
-                        const dueDate = new Date(payment.due_date)
-                        const today = new Date()
-                        const isOverdue = dueDate < today
-                        return (
-                          <option key={payment.id} value={payment.id}>
-                            {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
-                            {' '}({dueDate.toLocaleDateString('fr-CA')})
-                            {isOverdue ? ' 🔴 EN RETARD' : ''}
-                          </option>
-                        )
-                      })
-                    }
-                  </select>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Paiement lié (optionnel)
+                    </label>
+                    <select
+                      value={transactionFormData.payment_schedule_id || ''}
+                      onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null, payment_completion_status: e.target.value ? 'full' : null })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    >
+                      <option value="">Aucun paiement lié</option>
+                      {paymentSchedules
+                        .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue'))
+                        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+                        .map(payment => {
+                          const dueDate = new Date(payment.due_date)
+                          const today = new Date()
+                          const isOverdue = dueDate < today
+                          return (
+                            <option key={payment.id} value={payment.id}>
+                              {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
+                              {' '}({dueDate.toLocaleDateString('fr-CA')})
+                              {isOverdue ? ' 🔴 EN RETARD' : ''}
+                            </option>
+                          )
+                        })
+                      }
+                    </select>
+                  </div>
+
+                  {/* Statut du paiement lié */}
                   {transactionFormData.payment_schedule_id && (
-                    <p className="mt-1 text-xs text-blue-600">
-                      ✓ Ce paiement sera automatiquement marqué comme "payé" lors de l'enregistrement de la transaction.
-                    </p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Statut du paiement
+                      </label>
+                      <select
+                        value={transactionFormData.payment_completion_status || 'full'}
+                        onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_completion_status: e.target.value as 'full' | 'partial' })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                      >
+                        <option value="full">✅ Paiement complet - Le paiement sera marqué comme "payé"</option>
+                        <option value="partial">⚠️ Paiement partiel - Le paiement restera "en attente"</option>
+                      </select>
+                      {transactionFormData.payment_completion_status === 'full' && (
+                        <p className="mt-1 text-xs text-green-600">
+                          ✓ Ce paiement sera automatiquement marqué comme "payé" lors de l'enregistrement de la transaction.
+                        </p>
+                      )}
+                      {transactionFormData.payment_completion_status === 'partial' && (
+                        <p className="mt-1 text-xs text-orange-600">
+                          ⚠️ Ce paiement restera en attente. Vous pourrez créer une autre transaction pour compléter le paiement.
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               <div className="sm:col-span-2">
