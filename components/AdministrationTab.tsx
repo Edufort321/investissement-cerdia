@@ -1618,14 +1618,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={transactionFormData.amount || ''}
+                  value={transactionFormData.amount}
                   onChange={(e) => {
-                    const value = e.target.value.replace(',', '.')
+                    let value = e.target.value.replace(',', '.')
                     // Permet les nombres avec point décimal, y compris pendant la saisie
-                    if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                      const numValue = value === '' || value === '.' ? 0 : parseFloat(value)
-                      setTransactionFormData({ ...transactionFormData, amount: isNaN(numValue) ? 0 : numValue })
+                    if (value === '' || value === '.' || value === '-' || /^-?\d*\.?\d*$/.test(value)) {
+                      setTransactionFormData({ ...transactionFormData, amount: value as any })
                     }
+                  }}
+                  onBlur={(e) => {
+                    // Convertir en nombre propre au blur
+                    const numValue = parseFloat(e.target.value) || 0
+                    setTransactionFormData({ ...transactionFormData, amount: numValue })
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="0.00"
@@ -1793,18 +1797,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={transactionFormData.source_amount || ''}
+                    value={transactionFormData.source_amount ?? ''}
                     onChange={(e) => {
-                      const value = e.target.value.replace(',', '.')
+                      let value = e.target.value.replace(',', '.')
                       if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        const sourceAmount = value === '' || value === '.' ? null : parseFloat(value)
-                        setTransactionFormData({ ...transactionFormData, source_amount: sourceAmount })
+                        setTransactionFormData({ ...transactionFormData, source_amount: value === '' ? null : value as any })
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const sourceAmount = e.target.value ? parseFloat(e.target.value) : null
+                      setTransactionFormData({ ...transactionFormData, source_amount: sourceAmount })
 
-                        // Calculer automatiquement le taux de change
-                        if (sourceAmount && transactionFormData.amount > 0) {
-                          const rate = transactionFormData.amount / sourceAmount
-                          setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
-                        }
+                      // Calculer automatiquement le taux de change
+                      if (sourceAmount && typeof transactionFormData.amount === 'number' && transactionFormData.amount > 0) {
+                        const rate = transactionFormData.amount / sourceAmount
+                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
                       }
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
@@ -1817,19 +1824,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={transactionFormData.bank_fees || ''}
+                    value={transactionFormData.bank_fees}
                     onChange={(e) => {
-                      const value = e.target.value.replace(',', '.')
+                      let value = e.target.value.replace(',', '.')
                       if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        const bankFees = value === '' || value === '.' ? 0 : parseFloat(value)
-                        setTransactionFormData({ ...transactionFormData, bank_fees: bankFees })
+                        setTransactionFormData({ ...transactionFormData, bank_fees: value === '' ? 0 : value as any })
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const bankFees = parseFloat(e.target.value) || 0
+                      setTransactionFormData({ ...transactionFormData, bank_fees: bankFees })
 
-                        // Recalculer le taux avec les frais
-                        if (transactionFormData.source_amount && transactionFormData.source_amount > 0) {
-                          const amountMinusFees = transactionFormData.amount - bankFees
-                          const rate = amountMinusFees / transactionFormData.source_amount
-                          setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
-                        }
+                      // Recalculer le taux avec les frais
+                      if (typeof transactionFormData.source_amount === 'number' && transactionFormData.source_amount > 0) {
+                        const amount = typeof transactionFormData.amount === 'number' ? transactionFormData.amount : parseFloat(transactionFormData.amount as any) || 0
+                        const amountMinusFees = amount - bankFees
+                        const rate = amountMinusFees / transactionFormData.source_amount
+                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
                       }
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
@@ -1844,11 +1855,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     inputMode="decimal"
                     value={transactionFormData.exchange_rate}
                     onChange={(e) => {
-                      const value = e.target.value.replace(',', '.')
+                      let value = e.target.value.replace(',', '.')
                       if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        const numValue = value === '' || value === '.' ? 1 : parseFloat(value)
-                        setTransactionFormData({ ...transactionFormData, exchange_rate: isNaN(numValue) ? 1 : numValue })
+                        setTransactionFormData({ ...transactionFormData, exchange_rate: value === '' ? 1 : value as any })
                       }
+                    }}
+                    onBlur={(e) => {
+                      const numValue = parseFloat(e.target.value) || 1
+                      setTransactionFormData({ ...transactionFormData, exchange_rate: numValue })
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
                     placeholder="1.0000"
@@ -1874,11 +1888,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     inputMode="decimal"
                     value={transactionFormData.foreign_tax_paid}
                     onChange={(e) => {
-                      const value = e.target.value.replace(',', '.')
+                      let value = e.target.value.replace(',', '.')
                       if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        const numValue = value === '' || value === '.' ? 0 : parseFloat(value)
-                        setTransactionFormData({ ...transactionFormData, foreign_tax_paid: isNaN(numValue) ? 0 : numValue })
+                        setTransactionFormData({ ...transactionFormData, foreign_tax_paid: value === '' ? 0 : value as any })
                       }
+                    }}
+                    onBlur={(e) => {
+                      const numValue = parseFloat(e.target.value) || 0
+                      setTransactionFormData({ ...transactionFormData, foreign_tax_paid: numValue })
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="0.00"
@@ -1892,11 +1909,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     inputMode="decimal"
                     value={transactionFormData.foreign_tax_rate}
                     onChange={(e) => {
-                      const value = e.target.value.replace(',', '.')
+                      let value = e.target.value.replace(',', '.')
                       if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        const numValue = value === '' || value === '.' ? 0 : parseFloat(value)
-                        setTransactionFormData({ ...transactionFormData, foreign_tax_rate: isNaN(numValue) ? 0 : numValue })
+                        setTransactionFormData({ ...transactionFormData, foreign_tax_rate: value === '' ? 0 : value as any })
                       }
+                    }}
+                    onBlur={(e) => {
+                      const numValue = parseFloat(e.target.value) || 0
+                      setTransactionFormData({ ...transactionFormData, foreign_tax_rate: numValue })
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="0.00"
