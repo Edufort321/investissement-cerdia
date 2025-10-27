@@ -84,9 +84,9 @@ interface PaymentTerm {
 }
 
 interface RecurringFee {
-  label: string // "HOA Fees", "Entretien pelouse", "Piscine"
+  label: string // "HOA Fees", "Entretien pelouse", "Piscine", "Ameublement"
   amount: number
-  frequency: 'monthly' | 'annual'
+  frequency: 'monthly' | 'annual' | 'one-time' // Ajout de 'one-time' pour paiement unique
   currency: 'USD' | 'CAD'
 }
 
@@ -716,7 +716,17 @@ export default function ScenariosTab() {
 
     // Investissement initial en USD converti en CAD
     const totalInvestmentUSD = calculateTotalCost(scenario)
-    const initialCashCAD = totalInvestmentUSD * currentRate
+
+    // Calculer total des frais uniques en USD
+    const oneTimeFeesUSD = (scenario.recurring_fees || []).reduce((sum, fee) => {
+      if (fee.frequency !== 'one-time') return sum
+      const amountUSD = fee.currency === 'CAD' ? fee.amount / currentRate : fee.amount
+      return sum + amountUSD
+    }, 0)
+
+    // Ajouter les frais uniques au coût total
+    const totalInvestmentWithOneTimeFeesUSD = totalInvestmentUSD + oneTimeFeesUSD
+    const initialCashCAD = totalInvestmentWithOneTimeFeesUSD * currentRate
 
     const yearlyData: YearData[] = []
     let cumulativeCashflow = -initialCashCAD
@@ -728,10 +738,14 @@ export default function ScenariosTab() {
     // Canada: 4% par an (Class 1 - Residential Rental Property)
     // USA: 3.636% par an (27.5 ans pour résidentiel)
     const depreciationRate = scenario.country === 'USA' ? 0.03636 : 0.04
-    const annualDepreciationUSD = totalInvestmentUSD * depreciationRate
+    // Inclure les frais uniques (ex: ameublement) dans la base de dépréciation
+    const annualDepreciationUSD = totalInvestmentWithOneTimeFeesUSD * depreciationRate
 
-    // Calculer total des frais récurrents de base en USD
+    // Calculer total des frais récurrents de base en USD (exclure les paiements uniques)
     const baseRecurringFeesUSD = (scenario.recurring_fees || []).reduce((sum, fee) => {
+      // Les paiements uniques ne sont pas des frais récurrents annuels
+      if (fee.frequency === 'one-time') return sum
+
       const annualAmount = fee.frequency === 'monthly' ? fee.amount * 12 : fee.amount
       const amountUSD = fee.currency === 'CAD' ? annualAmount / currentRate : annualAmount
       return sum + amountUSD
@@ -2522,13 +2536,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           value={fee.frequency}
                           onChange={(e) => {
                             const newFees = [...(formData.recurring_fees || [])]
-                            newFees[index].frequency = e.target.value as 'monthly' | 'annual'
+                            newFees[index].frequency = e.target.value as 'monthly' | 'annual' | 'one-time'
                             setFormData({...formData, recurring_fees: newFees})
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         >
                           <option value="monthly">Mensuel</option>
                           <option value="annual">Annuel</option>
+                          <option value="one-time">Paiement unique</option>
                         </select>
                       </div>
 
@@ -2571,32 +2586,56 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 ))}
 
                 {/* Total des frais récurrents */}
-                {formData.recurring_fees && formData.recurring_fees.length > 0 && (
-                  <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-                    <div className="text-sm font-semibold text-green-900">
-                      Total frais récurrents (mensuel):
-                      {' '}
-                      {formData.recurring_fees
-                        .reduce((total, fee) => {
-                          const monthlyAmount = fee.frequency === 'annual' ? fee.amount / 12 : fee.amount
-                          return total + monthlyAmount
-                        }, 0)
-                        .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
-                      {' USD/mois'}
-                    </div>
-                    <div className="text-xs text-green-700 mt-1">
-                      Total annuel:
-                      {' '}
-                      {formData.recurring_fees
-                        .reduce((total, fee) => {
-                          const annualAmount = fee.frequency === 'monthly' ? fee.amount * 12 : fee.amount
-                          return total + annualAmount
-                        }, 0)
-                        .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
-                      {' USD/an'}
-                    </div>
-                  </div>
-                )}
+                {formData.recurring_fees && formData.recurring_fees.length > 0 && (() => {
+                  const recurringFees = formData.recurring_fees.filter(f => f.frequency !== 'one-time')
+                  const oneTimeFees = formData.recurring_fees.filter(f => f.frequency === 'one-time')
+
+                  return (
+                    <>
+                      {recurringFees.length > 0 && (
+                        <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                          <div className="text-sm font-semibold text-green-900">
+                            Total frais récurrents (mensuel):
+                            {' '}
+                            {recurringFees
+                              .reduce((total, fee) => {
+                                const monthlyAmount = fee.frequency === 'annual' ? fee.amount / 12 : fee.amount
+                                return total + monthlyAmount
+                              }, 0)
+                              .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                            {' USD/mois'}
+                          </div>
+                          <div className="text-xs text-green-700 mt-1">
+                            Total annuel:
+                            {' '}
+                            {recurringFees
+                              .reduce((total, fee) => {
+                                const annualAmount = fee.frequency === 'monthly' ? fee.amount * 12 : fee.amount
+                                return total + annualAmount
+                              }, 0)
+                              .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                            {' USD/an'}
+                          </div>
+                        </div>
+                      )}
+
+                      {oneTimeFees.length > 0 && (
+                        <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                          <div className="text-sm font-semibold text-blue-900">
+                            Total frais uniques:
+                            {' '}
+                            {oneTimeFees
+                              .reduce((total, fee) => total + fee.amount, 0)
+                              .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
+                          </div>
+                          <div className="text-xs text-blue-700 mt-1">
+                            {oneTimeFees.map(f => f.label).join(', ')}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             )}
           </div>
