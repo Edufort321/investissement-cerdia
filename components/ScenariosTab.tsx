@@ -302,7 +302,8 @@ export default function ScenariosTab() {
 
   // Helper: Calculer le coût total avec frais de transaction
   const calculateTotalCost = (scenario: Scenario): number => {
-    const baseAmount = scenario.purchase_price + scenario.initial_fees
+    // Le prix d'achat est le montant de base, les frais initiaux ne doivent pas être ajoutés au coût total
+    const baseAmount = scenario.purchase_price
 
     // Vérifier si transaction_fees existe (pour les anciens scénarios)
     if (!scenario.transaction_fees) {
@@ -1586,12 +1587,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-900">{scenario.name}</h3>
-                      {scenario.unit_number?.trim() && (
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                          #{scenario.unit_number}
-                        </span>
-                      )}
+                      <h3 className="text-lg font-bold text-gray-900">{getFullName(scenario.name, scenario.unit_number)}</h3>
                       {getStatusBadge(scenario.status)}
                       {/* Afficher le taux d'acceptation si en vote ou en attente de transfert */}
                       {(scenario.status === 'pending_vote' || scenario.status === 'pending_transfer') && scenario.total_votes !== undefined && (
