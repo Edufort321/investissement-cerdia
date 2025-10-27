@@ -34,7 +34,7 @@ interface Scenario {
   purchase_currency?: 'USD' | 'CAD' // Devise du prix d'achat
   exchange_rate_at_creation?: number // Taux de change USD→CAD à la création
   initial_fees: number
-  initial_fees_distribution?: 'equal' | 'first_payment' // Répartition des frais initiaux
+  initial_fees_distribution?: 'equal' | 'first_payment' | 'add_to_total' // Répartition des frais initiaux
   deduct_initial_from_first_term: boolean // Déduire l'acompte du premier terme?
   transaction_fees: TransactionFees
   construction_status: 'in_progress' | 'completed'
@@ -211,7 +211,7 @@ export default function ScenariosTab() {
     purchase_price: 0,
     purchase_currency: 'USD' as 'USD' | 'CAD',
     initial_fees: 0,
-    initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment',
+    initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment' | 'add_to_total',
     deduct_initial_from_first_term: false,
     transaction_fees: {
       type: 'percentage' as 'percentage' | 'fixed_amount',
@@ -523,7 +523,7 @@ export default function ScenariosTab() {
         purchase_price: 0,
         purchase_currency: 'USD' as 'USD' | 'CAD',
         initial_fees: 0,
-        initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment',
+        initial_fees_distribution: 'first_payment' as 'equal' | 'first_payment' | 'add_to_total',
         deduct_initial_from_first_term: false,
         transaction_fees: {
           type: 'percentage',
@@ -1877,10 +1877,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         name="initial_fees_distribution"
                         value="first_payment"
                         checked={formData.initial_fees_distribution === 'first_payment'}
-                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment'})}
+                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
                         className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
                       />
-                      <span>Appliquer au premier paiement</span>
+                      <span>Déduire du premier paiement</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input
@@ -1888,10 +1888,21 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         name="initial_fees_distribution"
                         value="equal"
                         checked={formData.initial_fees_distribution === 'equal'}
-                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment'})}
+                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
                         className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
                       />
                       <span>Répartir également sur tous les termes</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="initial_fees_distribution"
+                        value="add_to_total"
+                        checked={formData.initial_fees_distribution === 'add_to_total'}
+                        onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                      />
+                      <span>Ajouter au total des termes</span>
                     </label>
                   </div>
                 )}
@@ -2311,8 +2322,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       let deduction = 0
                       let deductionLabel = ''
 
-                      // Appliquer déduction selon l'option choisie
-                      if (formData.initial_fees > 0) {
+                      // Appliquer déduction selon l'option choisie (sauf si add_to_total)
+                      if (formData.initial_fees > 0 && formData.initial_fees_distribution !== 'add_to_total') {
                         if (formData.initial_fees_distribution === 'first_payment' && index === 0) {
                           // Premier paiement: déduire tous les frais initiaux
                           deduction = formData.initial_fees
@@ -2371,8 +2382,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   const amountsAfterDeduction = formData.payment_terms.map((term, index) => {
                     let amount = amountsBeforeDeduction[index]
 
-                    // Appliquer déduction si nécessaire
-                    if (formData.initial_fees > 0) {
+                    // Appliquer déduction si nécessaire (sauf si add_to_total)
+                    if (formData.initial_fees > 0 && formData.initial_fees_distribution !== 'add_to_total') {
                       if (formData.initial_fees_distribution === 'first_payment' && index === 0) {
                         amount -= formData.initial_fees
                       } else if (formData.initial_fees_distribution === 'equal') {
@@ -2396,6 +2407,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   } else {
                     // Cas par défaut : somme des montants
                     totalAmount = amountsBeforeDeduction.reduce((sum, a) => sum + a, 0)
+                  }
+
+                  // Si add_to_total, ajouter les frais initiaux au total
+                  if (formData.initial_fees > 0 && formData.initial_fees_distribution === 'add_to_total') {
+                    totalAmount += formData.initial_fees
                   }
 
                   const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
@@ -2450,10 +2466,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               style: 'currency',
                               currency: 'USD',
                               minimumFractionDigits: 0
-                            })} ont été déduits {
-                              formData.initial_fees_distribution === 'first_payment'
-                                ? 'du premier paiement'
-                                : 'également de chaque paiement'
+                            })} {
+                              formData.initial_fees_distribution === 'add_to_total'
+                                ? 'ont été ajoutés au total'
+                                : formData.initial_fees_distribution === 'first_payment'
+                                ? 'ont été déduits du premier paiement'
+                                : 'ont été répartis également sur chaque paiement'
                             }
                           </div>
                         )}
