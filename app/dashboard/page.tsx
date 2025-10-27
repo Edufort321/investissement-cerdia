@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
@@ -25,7 +26,6 @@ import PropertyValuationManager from '@/components/PropertyValuationManager'
 import SharePriceCalculator from '@/components/SharePriceCalculator'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import CorporateBookTab from '@/components/CorporateBookTab'
-import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
@@ -34,21 +34,12 @@ export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, loading } = useInvestment()
   const { t, language } = useLanguage()
+  const { rate: exchangeRate } = useExchangeRate()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
-  const [exchangeRate, setExchangeRate] = useState<number>(1.35)
-
-  // Charger le taux de change au montage
-  useEffect(() => {
-    const loadExchangeRate = async () => {
-      const rate = await getCurrentExchangeRate('USD', 'CAD')
-      setExchangeRate(rate)
-    }
-    loadExchangeRate()
-  }, [])
 
   // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
   const getColorFlag = (dueDate: string, status: string): { color: string; emoji: string; label: string } => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
+import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 
 interface ExchangeRateData {
   current: {
@@ -27,6 +28,7 @@ const PERIOD_LABELS: Record<TimePeriod, string> = {
 }
 
 export default function ExchangeRateWidget() {
+  const { updateRate } = useExchangeRate()
   const [data, setData] = useState<ExchangeRateData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +44,9 @@ export default function ExchangeRateWidget() {
       }
       const result = await response.json()
       setData(result)
+
+      // Mettre à jour le context avec le taux actuel
+      updateRate(result.current.rate, result.current.date)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
       console.error('Error fetching exchange rate:', err)
@@ -52,12 +57,14 @@ export default function ExchangeRateWidget() {
 
   useEffect(() => {
     fetchExchangeRate(selectedPeriod)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod])
 
   useEffect(() => {
     // Rafraîchir toutes les heures
     const interval = setInterval(() => fetchExchangeRate(selectedPeriod), 3600000)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod])
 
   if (loading && !data) {
