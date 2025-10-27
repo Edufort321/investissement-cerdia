@@ -2348,7 +2348,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 ))}
 
                 {/* Résumé des termes de paiement */}
-                {formData.payment_terms.length > 0 && formData.purchase_price > 0 && (() => {
+                {formData.payment_terms.length > 0 && (() => {
                   // Détecter si on utilise des pourcentages ou des montants fixes
                   const hasPercentages = formData.payment_terms.some(term => term.amount_type === 'percentage')
                   const hasFixedAmounts = formData.payment_terms.some(term => term.amount_type === 'fixed_amount')
@@ -2390,9 +2390,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   if (hasFixedAmounts && !hasPercentages) {
                     // Si tous sont en montants fixes, le total est la somme des montants AVANT déduction
                     totalAmount = amountsBeforeDeduction.reduce((sum, a) => sum + a, 0)
-                  } else {
+                  } else if (hasPercentages) {
                     // Si on utilise des pourcentages, le total est le prix d'achat
-                    totalAmount = formData.purchase_price
+                    totalAmount = formData.purchase_price || 0
+                  } else {
+                    // Cas par défaut : somme des montants
+                    totalAmount = amountsBeforeDeduction.reduce((sum, a) => sum + a, 0)
                   }
 
                   const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
