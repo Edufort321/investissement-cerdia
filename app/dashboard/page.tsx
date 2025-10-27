@@ -701,6 +701,46 @@ export default function DashboardPage() {
                       {upcomingPayments.filter(p => p.status === 'pending' || p.status === 'overdue').length} en attente • {upcomingPayments.filter(p => p.status === 'paid').length} payé(s)
                     </span>
                   </h3>
+
+                  {/* Total des paiements à venir */}
+                  {(() => {
+                    const pendingPayments = upcomingPayments.filter(p => p.status === 'pending' || p.status === 'overdue')
+                    const totalUSD = pendingPayments
+                      .filter(p => p.currency === 'USD')
+                      .reduce((sum, p) => sum + p.amount, 0)
+                    const totalCAD = pendingPayments
+                      .filter(p => p.currency === 'CAD')
+                      .reduce((sum, p) => sum + p.amount, 0)
+                    const totalCADConverted = totalUSD * exchangeRate + totalCAD
+
+                    return (
+                      <div className="mb-4 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total des paiements à venir</p>
+                            {totalUSD > 0 && (
+                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1">
+                                {totalUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                {totalCAD > 0 && ` + ${totalCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}`}
+                              </p>
+                            )}
+                            {totalUSD === 0 && totalCAD > 0 && (
+                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1">
+                                {totalCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Équivalent CAD</p>
+                            <p className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-400">
+                              {totalCADConverted.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   <div className="space-y-3">
                     {upcomingPayments.map((payment) => {
                       const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
