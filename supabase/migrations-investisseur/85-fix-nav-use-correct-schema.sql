@@ -15,6 +15,66 @@
 -- Recréer les fonctions avec les bonnes colonnes
 
 -- ==========================================
+-- 0. VUE: FLUX DE TRÉSORERIE (de migration 84)
+-- ==========================================
+
+CREATE OR REPLACE VIEW cash_flow_summary AS
+SELECT
+  'Investissements' as category,
+  COALESCE(SUM(amount), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'investissement'
+
+UNION ALL
+
+SELECT
+  'Achats propriétés' as category,
+  COALESCE(SUM(ABS(amount)), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'investissement' AND property_id IS NOT NULL
+
+UNION ALL
+
+SELECT
+  'CAPEX' as category,
+  COALESCE(SUM(ABS(amount)), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'capex'
+
+UNION ALL
+
+SELECT
+  'Maintenance' as category,
+  COALESCE(SUM(ABS(amount)), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'maintenance'
+
+UNION ALL
+
+SELECT
+  'Administration' as category,
+  COALESCE(SUM(ABS(amount)), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'admin'
+
+UNION ALL
+
+SELECT
+  'Revenus locatifs' as category,
+  COALESCE(SUM(amount), 0) as total_cad,
+  COUNT(*) as nb_transactions
+FROM transactions
+WHERE type = 'loyer';
+
+COMMENT ON VIEW cash_flow_summary IS
+  'Résumé des flux de trésorerie par catégorie';
+
+-- ==========================================
 -- 1. CORRIGER: auto_create_initial_valuation
 -- ==========================================
 

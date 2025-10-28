@@ -41,7 +41,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
-import { Evenement } from '@/types/voyage'
+import { Evenement, Voyage } from '@/types/voyage'
 import VoyageList from './VoyageList'
 import GaleriePublique from './GaleriePublique'
 import { voyageService, evenementService, depenseService, checklistService } from '@/lib/voyage-service'
@@ -401,7 +401,7 @@ export default function MonVoyageV2() {
           updatedEvents.push(newEvent)
         }
 
-        const updatedVoyage = {
+        const updatedVoyage: Voyage = {
           ...voyageActif,
           evenements: updatedEvents
         }
