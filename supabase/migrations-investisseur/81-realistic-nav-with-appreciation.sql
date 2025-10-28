@@ -41,7 +41,7 @@ BEGIN
         currency
       ) VALUES (
         NEW.id,
-        COALESCE(NEW.acquisition_date, CURRENT_DATE),
+        COALESCE(NEW.reservation_date, NEW.completion_date, CURRENT_DATE),
         NEW.total_cost, -- Prix d'achat
         'initial',
         'purchase_price',
@@ -127,7 +127,7 @@ SELECT
   p.id as property_id,
   p.name as property_name,
   p.total_cost as acquisition_cost,
-  p.acquisition_date,
+  COALESCE(p.reservation_date, p.completion_date) as acquisition_date,
 
   -- Évaluation initiale
   pv.valuation_amount as initial_valuation,
@@ -137,7 +137,7 @@ SELECT
   calculate_property_value_with_appreciation(p.id, CURRENT_DATE) as current_value,
 
   -- Calculs
-  EXTRACT(YEAR FROM AGE(CURRENT_DATE, COALESCE(p.acquisition_date, pv.valuation_date))) as years_held,
+  EXTRACT(YEAR FROM AGE(CURRENT_DATE, COALESCE(p.reservation_date, p.completion_date, pv.valuation_date))) as years_held,
   calculate_property_value_with_appreciation(p.id, CURRENT_DATE) - pv.valuation_amount as appreciation_amount,
 
   -- Taux d'appréciation réalisé (peut différer de 8% si période < 1 an)
@@ -152,8 +152,8 @@ SELECT
 
 FROM properties p
 LEFT JOIN property_valuations pv ON p.id = pv.property_id AND pv.valuation_type = 'initial'
-WHERE p.status = 'acquired' -- Seulement les propriétés acquises
-ORDER BY p.acquisition_date DESC;
+WHERE p.status IN ('acquired', 'complete', 'en_location') -- Propriétés acquises/complètes
+ORDER BY COALESCE(p.reservation_date, p.completion_date) DESC;
 
 COMMENT ON VIEW current_property_values IS
   'Vue des valeurs actuelles des propriétés avec appréciation de 8% annuelle depuis l''acquisition';
