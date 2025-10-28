@@ -52,6 +52,7 @@ END $$;
 DO $$
 DECLARE
   v_count INT := 0;
+  v_rec RECORD;
 BEGIN
   RAISE NOTICE '💰 CORRECTION: Achats de propriétés';
   RAISE NOTICE '';
@@ -105,6 +106,7 @@ END $$;
 DO $$
 DECLARE
   v_count INT := 0;
+  v_rec RECORD;
 BEGIN
   RAISE NOTICE '📋 CORRECTION: Frais administratifs';
   RAISE NOTICE '';
@@ -169,6 +171,7 @@ DECLARE
   v_total_inflow DECIMAL(15, 2);
   v_total_outflow DECIMAL(15, 2);
   v_net_balance DECIMAL(15, 2);
+  v_rec RECORD;
 BEGIN
   RAISE NOTICE '═══════════════════════════════════════════════════════════';
   RAISE NOTICE '✅ VÉRIFICATION FINALE';
