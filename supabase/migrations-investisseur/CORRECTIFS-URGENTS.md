@@ -1,16 +1,19 @@
 # 🚨 Correctifs Urgents - Migrations à exécuter
 
-## Problème actuel
-Impossible d'enregistrer des transactions. Erreurs multiples :
+## Problème 1: Colonnes manquantes ✅ RÉSOLU
+~~Impossible d'enregistrer des transactions. Erreurs multiples~~
+**Statut:** ✅ Résolu avec migration 75
+
+## Problème 2: Erreur Foreign Key sur cash_flow_forecast 🔴 ACTUEL
+Erreur lors de l'enregistrement d'une transaction :
 ```
-Could not find the 'bank_fees' column of 'transactions' in the schema cache
-Could not find the 'category' column of 'transactions' in the schema cache
+insert or update on table "cash_flow_forecast" violates foreign key constraint "cash_flow_forecast_scenario_id_fkey"
+POST /rest/v1/transactions 409 (Conflict)
 ```
 
-**Cause:** La table `transactions` dans Supabase n'a que les colonnes de base.
-Toutes les migrations ultérieures (12, 15, 018, 70, 74) n'ont pas été exécutées.
+**Cause:** Le trigger `create_actual_cash_flow` essaie d'utiliser `property_id` comme `scenario_id`, mais `property_id` n'existe pas dans la table `scenarios`.
 
-## Solution : Exécuter 1 migration complète
+## Solution : Exécuter 2 migrations
 
 ### ✅ Migration 075 : TOUTES les colonnes manquantes (COMPLET)
 
@@ -88,7 +91,39 @@ Cela devrait maintenant fonctionner ! ✅
 Si vous avez déjà exécuté les migrations 018 et 074, la migration 075 va simplement
 ajouter les colonnes manquantes sans erreur (grâce à `IF NOT EXISTS`).
 
+### ✅ Migration 076 : Correction trigger cash_flow_forecast (CRITIQUE) 🆕
+
+**Fichier:** `76-fix-cash-flow-trigger-scenario-id.sql`
+
+**Ce qu'elle fait:**
+Corrige le trigger automatique `create_actual_cash_flow_from_transaction()` qui s'exécute à chaque création de transaction.
+
+**Le problème:**
+- Le trigger insère automatiquement un enregistrement dans `cash_flow_forecast`
+- Il essayait d'utiliser `NEW.property_id` comme `scenario_id`
+- Mais `scenario_id` a une contrainte de clé étrangère vers la table `scenarios`
+- Le `property_id` n'existe pas dans `scenarios` → erreur !
+
+**La solution:**
+- Met `scenario_id` à `NULL` pour les transactions réelles
+- Les transactions réelles ne font pas partie d'un scénario de prévision
+
+**Exécution:**
+1. Allez sur https://app.supabase.com
+2. SQL Editor → New query
+3. Copiez-collez le contenu de `76-fix-cash-flow-trigger-scenario-id.sql`
+4. Cliquez **RUN** ▶️
+
+**Résultat attendu:**
+```
+✅ Trigger create_actual_cash_flow mis à jour avec succès
+```
+
+Après cette migration, vous pourrez créer des transactions sans erreur de clé étrangère ! ✅
+
+---
+
 **Date:** 27 octobre 2025
 **Priorité:** 🔴 CRITIQUE
 **Impact:** Bloque la création de transactions
-**Solution:** Migration 075 (complète et définitive)
+**Solution:** Migrations 075 + 076 (complète et définitive)
