@@ -657,10 +657,11 @@ export default function MonVoyageV2() {
     }
 
     // Mettre à jour l'état local
-    setVoyageActif({
+    const updatedVoyage = {
       ...voyageActif,
       evenements: [...voyageActif.evenements, newEvent]
-    })
+    } as Voyage
+    setVoyageActif(updatedVoyage)
 
     // TODO: Sauvegarder dans Supabase si mode payant
   }
