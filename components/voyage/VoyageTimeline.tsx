@@ -42,7 +42,7 @@ export default function VoyageTimeline({
 }: VoyageTimelineProps) {
   const [viewMode, setViewMode] = useState<'gantt' | 'list'>('gantt')
   const [showOptimizationModal, setShowOptimizationModal] = useState(false)
-  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null)
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult<Evenement> | null>(null)
   const [showEmailImport, setShowEmailImport] = useState(false)
 
   const t = (key: string) => {

@@ -18,9 +18,9 @@ export interface OptimizableEvent {
   coordonnees?: Location
 }
 
-export interface OptimizationResult {
-  originalOrder: OptimizableEvent[]
-  optimizedOrder: OptimizableEvent[]
+export interface OptimizationResult<T extends OptimizableEvent = OptimizableEvent> {
+  originalOrder: T[]
+  optimizedOrder: T[]
   originalDistance: number
   optimizedDistance: number
   timeSaved: number // en minutes (estimation basée sur 50 km/h moyenne)
@@ -55,7 +55,7 @@ function toRad(degrees: number): number {
 /**
  * Calcule la distance totale d'un parcours
  */
-export function calculateTotalDistance(events: OptimizableEvent[]): number {
+export function calculateTotalDistance<T extends OptimizableEvent>(events: T[]): number {
   if (events.length < 2) return 0
 
   let totalDistance = 0
@@ -75,7 +75,7 @@ export function calculateTotalDistance(events: OptimizableEvent[]): number {
  * Optimise l'ordre des événements avec l'algorithme du plus proche voisin
  * Garde les événements avec horaires fixes à leur position, optimise seulement les flexibles
  */
-export function optimizeRoute(events: OptimizableEvent[]): OptimizationResult {
+export function optimizeRoute<T extends OptimizableEvent>(events: T[]): OptimizationResult<T> {
   // Filtrer les événements qui ont des coordonnées
   const eventsWithCoords = events.filter(e => e.coordonnees)
 
@@ -92,16 +92,16 @@ export function optimizeRoute(events: OptimizableEvent[]): OptimizationResult {
   }
 
   // Séparer les événements avec horaires fixes et flexibles
-  const fixedEvents: Array<{ event: OptimizableEvent, index: number }> = []
-  const flexibleEvents: OptimizableEvent[] = []
+  const fixedEvents: Array<{ event: T, index: number }> = []
+  const flexibleEvents: T[] = []
 
   eventsWithCoords.forEach((event, index) => {
     if (event.heureDebut) {
       // Événement avec horaire fixe
-      fixedEvents.push({ event, index })
+      fixedEvents.push({ event: event as T, index })
     } else {
       // Événement flexible (peut être réordonné)
-      flexibleEvents.push(event)
+      flexibleEvents.push(event as T)
     }
   })
 
@@ -120,7 +120,7 @@ export function optimizeRoute(events: OptimizableEvent[]): OptimizationResult {
   }
 
   // Algorithme du plus proche voisin pour les événements flexibles
-  const optimizedFlexible: OptimizableEvent[] = []
+  const optimizedFlexible: T[] = []
   const remaining = [...flexibleEvents]
 
   // Commencer par le premier événement flexible
@@ -149,7 +149,7 @@ export function optimizeRoute(events: OptimizableEvent[]): OptimizationResult {
   }
 
   // Réinsérer les événements optimisés avec les événements à horaires fixes
-  const optimizedOrder: OptimizableEvent[] = []
+  const optimizedOrder: T[] = []
   let flexibleIndex = 0
 
   for (let i = 0; i < events.length; i++) {
