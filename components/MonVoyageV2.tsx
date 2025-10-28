@@ -117,12 +117,13 @@ interface ChecklistItem {
 
 interface Voyage {
   id: string
+  userId: string
   titre: string
   dateDebut: string
   dateFin: string
   budget?: number
   devise: string
-  evenements: Event[]
+  evenements: Evenement[]
   depenses: Depense[]
   checklist: ChecklistItem[]
   partage: {
@@ -131,6 +132,10 @@ interface Voyage {
     enDirect: boolean
   }
   coverImage?: string
+  createdAt?: string
+  updatedAt?: string
+  destination?: string
+  description?: string
 }
 
 // Initialize Stripe
