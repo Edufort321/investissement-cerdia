@@ -1,5 +1,9 @@
 # 🚨 Correctifs Urgents - Migrations à exécuter
 
+> **📄 Documentation complète** : Voir [CORRECTIFS-27-OCT-2025.md](./CORRECTIFS-27-OCT-2025.md) pour un résumé détaillé de tous les problèmes résolus
+
+---
+
 ## Problème 1: Colonnes manquantes ✅ RÉSOLU
 ~~Impossible d'enregistrer des transactions. Erreurs multiples~~
 **Statut:** ✅ Résolu avec migration 75
@@ -121,9 +125,47 @@ Corrige le trigger automatique `create_actual_cash_flow_from_transaction()` qui 
 
 Après cette migration, vous pourrez créer des transactions sans erreur de clé étrangère ! ✅
 
+### ✅ Migration 077 : Calcul automatique des parts d'investisseur 🆕
+
+**Fichier:** `77-auto-create-investor-shares-from-transactions.sql`
+
+**Ce qu'elle fait:**
+Crée un trigger automatique qui calcule et enregistre les parts d'investisseur quand une transaction d'investissement est créée.
+
+**Le problème:**
+- Quand on crée une transaction d'investissement, les parts ne sont pas calculées
+- Les investisseurs affichent "0 parts" même après avoir investi
+- La table `investor_investments` reste vide
+
+**La solution:**
+- Trigger qui s'exécute automatiquement à chaque transaction de type `'investissement'`
+- Récupère le prix actuel de la part depuis `share_settings`
+- Calcule : `nombre de parts = montant investi / prix de la part`
+- Insère automatiquement dans `investor_investments`
+
+**Exemple:**
+```
+Investissement: 2,921.78 $ CAD
+Prix de la part: 1.00 $ CAD
+Parts créées: 2,921.78 parts ✓
+```
+
+**Exécution:**
+1. Allez sur https://app.supabase.com
+2. SQL Editor → New query
+3. Copiez-collez le contenu de `77-auto-create-investor-shares-from-transactions.sql`
+4. Cliquez **RUN** ▶️
+
+**Résultat attendu:**
+```
+✅ Trigger auto_create_investor_shares créé avec succès
+```
+
+Après cette migration, les parts seront calculées automatiquement ! ✅
+
 ---
 
 **Date:** 27 octobre 2025
 **Priorité:** 🔴 CRITIQUE
-**Impact:** Bloque la création de transactions
-**Solution:** Migrations 075 + 076 (complète et définitive)
+**Impact:** Bloque la création de transactions + Calcul des parts + Affichage comptable
+**Solution:** Migrations 075 + 076 + 077 (complète et définitive)
