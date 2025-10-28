@@ -270,6 +270,7 @@ export default function MonVoyageV2() {
     if (isGratuit) {
       const voyageLocal: Voyage = {
         id: Date.now().toString(),
+        userId: '', // Free mode - no authenticated user
         titre: data.titre,
         dateDebut: data.dateDebut,
         dateFin: data.dateFin,
@@ -449,6 +450,7 @@ export default function MonVoyageV2() {
       // Convertir au format Voyage
       const voyage: Voyage = {
         id: voyageDB.id,
+        userId: voyageDB.user_id,
         titre: voyageDB.titre,
         dateDebut: voyageDB.date_debut,
         dateFin: voyageDB.date_fin,
@@ -1180,6 +1182,7 @@ export default function MonVoyageV2() {
               // Convertir VoyageDB en Voyage
               const voyageComplet: Voyage = {
                 id: voyage.id,
+                userId: voyage.user_id,
                 titre: voyage.titre,
                 dateDebut: voyage.date_debut,
                 dateFin: voyage.date_fin,
