@@ -2,7 +2,7 @@
 
 ## Résumé des problèmes résolus
 
-Cette mise à jour corrige **7 problèmes critiques** liés aux transactions et à la comptabilité :
+Cette mise à jour corrige **8 problèmes critiques** liés aux transactions et à la comptabilité :
 
 ### ✅ Problème 1 : Colonnes manquantes dans la table `transactions`
 **Symptôme :** Erreur "Could not find the 'bank_fees' column" et "Could not find the 'category' column"
@@ -150,6 +150,51 @@ Par défaut, PostgreSQL empêche la suppression d'une transaction si elle est r�
 
 ---
 
+### ✅ Problème 8 : Impossible de modifier une transaction
+**Symptôme :** Les modifications de transactions ne mettent pas à jour les parts d'investisseur
+**Cause :** Le trigger de création de parts (migration 77) ne gère que les INSERT, pas les UPDATE
+
+**Explication :**
+Quand on modifie une transaction d'investissement (changement de montant, date, investisseur), plusieurs problèmes se posent :
+- Les parts dans `investor_investments` ne sont pas mises à jour
+- Si on change le montant de 2000$ à 3000$, les parts restent calculées sur 2000$
+- Si on change le type de `'investissement'` à `'dividende'`, les parts restent
+- Si on change le type de `'dividende'` à `'investissement'`, aucune part n'est créée
+
+**Solution :** Migration 79 - Trigger intelligent qui gère les 3 cas
+
+**Trigger intelligent :**
+```sql
+-- CAS 1: Investissement → Non-investissement
+IF OLD.type = 'investissement' AND NEW.type != 'investissement' THEN
+  DELETE parts -- Supprimer les parts
+END IF
+
+-- CAS 2: Non-investissement → Investissement
+IF OLD.type != 'investissement' AND NEW.type = 'investissement' THEN
+  INSERT parts -- Créer les parts
+END IF
+
+-- CAS 3: Investissement → Investissement
+IF OLD.type = 'investissement' AND NEW.type = 'investissement' THEN
+  UPDATE parts -- Mettre à jour montant, date, investisseur
+END IF
+```
+
+**Amélioration migration 77 :**
+- Vérifie si des parts existent déjà avant création
+- Évite les doublons en cas de retry ou re-exécution
+
+**Fichier :** `79-handle-transaction-updates.sql`
+
+**Comportement après correction :**
+- ✅ Modification de montant → Parts recalculées automatiquement
+- ✅ Changement de type → Parts créées/supprimées selon le cas
+- ✅ Changement d'investisseur → Parts transférées automatiquement
+- ✅ Pas de doublons, pas d'incohérences
+
+---
+
 ## 📋 Migrations à exécuter sur Supabase
 
 ### **ORDRE D'EXÉCUTION IMPORTANT** :
@@ -166,6 +211,9 @@ Par défaut, PostgreSQL empêche la suppression d'une transaction si elle est r�
 4. **Migration 78** : Autoriser suppression de transactions
    Fichier : `78-fix-transaction-delete-constraint.sql`
 
+5. **Migration 79** : Gérer les modifications de transactions
+   Fichier : `79-handle-transaction-updates.sql`
+
 ### Comment les exécuter :
 1. Allez sur https://app.supabase.com
 2. Sélectionnez votre projet
@@ -181,6 +229,7 @@ Par défaut, PostgreSQL empêche la suppression d'une transaction si elle est r�
 ### Avant :
 - ❌ Impossible de créer des transactions (colonnes manquantes)
 - ❌ Impossible de supprimer des transactions (erreur 409 Conflict)
+- ❌ Impossible de modifier des transactions (parts non mises à jour)
 - ❌ Investissement direct va dans "Compte Courant"
 - ❌ "Investissement Immobilier" = 0 $ (problème conversion USD/CAD)
 - ❌ Investisseurs affichent "0 parts"
@@ -189,10 +238,11 @@ Par défaut, PostgreSQL empêche la suppression d'une transaction si elle est r�
 ### Après :
 - ✅ Transactions créées sans erreur
 - ✅ Transactions supprimées sans erreur (avec nettoyage automatique)
+- ✅ Transactions modifiées avec mise à jour automatique des parts
 - ✅ Investissement direct va dans "Investissement Immobilier"
 - ✅ "Investissement Immobilier" affiche le bon montant en USD
 - ✅ "Compte Courant" calculé correctement (Total - Investissements - Dépenses)
-- ✅ Parts calculées et supprimées automatiquement
+- ✅ Parts calculées, modifiées et supprimées automatiquement
 - ✅ Barre de progression pour voir les paiements partiels
 
 ---
@@ -240,6 +290,8 @@ Tous les changements ont été poussés sur GitHub :
 2. **Commit a74111a** : Toutes les corrections dashboard + Migration 77
 3. **Commit ad431e9** : Documentation complète des corrections
 4. **Commit b60fee7** : Migration 78 (autoriser suppression transactions)
+5. **Commit 84bb370** : Documentation migration 78
+6. **Commit ca973b2** : Migration 79 (gérer modifications transactions)
 
 ---
 

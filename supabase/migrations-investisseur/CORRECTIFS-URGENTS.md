@@ -207,9 +207,45 @@ violates foreign key constraint "cash_flow_forecast_actual_transaction_id_fkey"
 
 Après cette migration, vous pourrez supprimer des transactions sans erreur ! ✅
 
+### ✅ Migration 079 : Gérer les modifications de transactions 🆕
+
+**Fichier:** `79-handle-transaction-updates.sql`
+
+**Ce qu'elle fait:**
+Crée un trigger automatique qui gère les modifications (UPDATE) de transactions et met à jour les parts d'investisseur en conséquence.
+
+**Le problème:**
+- Quand on modifie une transaction d'investissement (montant, date, investisseur, etc.)
+- Les parts dans `investor_investments` ne sont pas mises à jour
+- Incohérence entre la table `transactions` et `investor_investments`
+- Le trigger de migration 77 gère uniquement les INSERT
+
+**La solution:**
+Trigger intelligent qui gère 3 cas:
+1. **Investissement → Non-investissement** : Supprime les parts
+2. **Non-investissement → Investissement** : Crée les parts
+3. **Investissement → Investissement** : Met à jour les parts (montant, date, investisseur)
+
+**Amélioration trigger création (migration 77):**
+- Vérifie si des parts existent déjà avant création
+- Évite les doublons
+
+**Exécution:**
+1. Allez sur https://app.supabase.com
+2. SQL Editor → New query
+3. Copiez-collez le contenu de `79-handle-transaction-updates.sql`
+4. Cliquez **RUN** ▶️
+
+**Résultat attendu:**
+```
+✅ Trigger auto_update_investor_shares créé avec succès
+```
+
+Après cette migration, les modifications de transactions mettront à jour les parts automatiquement ! ✅
+
 ---
 
 **Date:** 27 octobre 2025
 **Priorité:** 🔴 CRITIQUE
-**Impact:** Bloque la création et suppression de transactions + Calcul des parts + Affichage comptable
-**Solution:** Migrations 075 + 076 + 077 + 078 (complète et définitive)
+**Impact:** Bloque la création, modification et suppression de transactions + Calcul des parts + Affichage comptable
+**Solution:** Migrations 075 + 076 + 077 + 078 + 079 (complète et définitive)
