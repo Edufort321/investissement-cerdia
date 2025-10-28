@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -62,17 +62,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Cache pour éviter les appels multiples
+  const investorDataCache = useRef<{ [userId: string]: Investor | null }>({})
+  const loadingInvestor = useRef<{ [userId: string]: boolean }>({})
+
   // Charger les données de l'investisseur depuis la table investors
   const loadInvestorData = useCallback(async (userId: string): Promise<Investor | null> => {
     console.log('🔵 [AUTH] Chargement des données investisseur pour userId:', userId)
+
+    // Vérifier le cache
+    if (investorDataCache.current[userId]) {
+      console.log('✅ [AUTH] Données investisseur trouvées dans le cache')
+      return investorDataCache.current[userId]
+    }
+
+    // Éviter les appels concurrents
+    if (loadingInvestor.current[userId]) {
+      console.log('⏳ [AUTH] Chargement déjà en cours, attente...')
+      // Attendre max 35 secondes que l'autre appel finisse
+      for (let i = 0; i < 35; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        if (investorDataCache.current[userId]) {
+          return investorDataCache.current[userId]
+        }
+      }
+      return null
+    }
+
+    loadingInvestor.current[userId] = true
+
     try {
-      // Timeout de 10 secondes pour éviter les blocages infinis
+      // Timeout de 30 secondes (augmenté de 10s à 30s pour connexions lentes)
       let timeoutId: NodeJS.Timeout
       const timeoutPromise = new Promise<null>((resolve) => {
         timeoutId = setTimeout(() => {
           console.warn('⚠️ [AUTH] Timeout lors du chargement des données investisseur')
           resolve(null)
-        }, 10000)
+        }, 30000) // 30 secondes au lieu de 10
       })
 
       const dataPromise = supabase
@@ -88,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!result) {
         console.error('🔴 [AUTH] Timeout - données investisseur non chargées')
+        loadingInvestor.current[userId] = false
         return null
       }
 
@@ -95,13 +122,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('🔴 [AUTH] Erreur lors du chargement des données investisseur:', error)
+        loadingInvestor.current[userId] = false
         return null
       }
 
       console.log('✅ [AUTH] Données investisseur chargées avec succès')
+      // Stocker dans le cache
+      investorDataCache.current[userId] = data as Investor
+      loadingInvestor.current[userId] = false
       return data as Investor
     } catch (error) {
       console.error('🔴 [AUTH] Exception lors du chargement des données investisseur:', error)
+      loadingInvestor.current[userId] = false
       return null
     }
   }, [])
