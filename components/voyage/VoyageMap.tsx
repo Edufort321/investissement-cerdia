@@ -5,35 +5,14 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Tooltip } fro
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapPin, Plane, Car, Train, Bus, Plus, Sparkles, Bike, Ship, PersonStanding, Hotel, UtensilsCrossed, CalendarDays } from 'lucide-react'
+import { Evenement, Voyage } from '@/types/voyage'
 
-// Types locaux
-interface Evenement {
-  id: string
-  type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo' | 'restaurant' | 'hotel'
-  titre: string
-  date: string
-  heureDebut?: string
-  heureFin?: string
-  lieu: string
-  prix?: number
-  devise?: string
-  notes?: string
-  transport?: string
-  photos?: string[]
+// Type étendu pour compatibilité carte
+interface EventWithCoordinates extends Evenement {
   coordinates?: { lat: number; lng: number }
   transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
   duration?: number
   fromLocation?: string
-}
-
-interface Voyage {
-  id: string
-  titre: string
-  dateDebut: string
-  dateFin: string
-  budget?: number
-  devise: string
-  evenements: Evenement[]
 }
 
 // Fix pour les icônes Leaflet par défaut
@@ -444,7 +423,7 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
                 <Popup>
                   <div className="text-sm">
                     <strong className="text-base font-bold">{loc.event.titre}</strong>
-                    <p className="mt-1">{loc.event.lieu}</p>
+                    {loc.event.lieu && <p className="mt-1">{loc.event.lieu}</p>}
                     <p className="text-gray-600 text-xs mt-1">
                       {new Date(loc.event.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                         weekday: 'long',
