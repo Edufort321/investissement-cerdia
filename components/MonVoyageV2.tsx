@@ -767,10 +767,11 @@ export default function MonVoyageV2() {
 
   const handleAddTransport = (event: Evenement) => {
     if (!voyageActif) return
-    setVoyageActif({
+    const updatedVoyage = {
       ...voyageActif,
       evenements: [...voyageActif.evenements, event]
-    })
+    } as Voyage
+    setVoyageActif(updatedVoyage)
     alert(`Transport ajouté: ${event.titre}`)
   }
 
