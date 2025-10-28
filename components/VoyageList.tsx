@@ -179,7 +179,7 @@ export default function VoyageList({
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {voyages.map((voyage) => {
-              const isExpired = voyage.expire_at && new Date(voyage.expire_at) < new Date()
+              const isExpired = voyage.expire_at ? new Date(voyage.expire_at) < new Date() : false
 
               return (
                 <div
