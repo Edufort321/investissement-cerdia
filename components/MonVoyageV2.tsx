@@ -1155,7 +1155,7 @@ export default function MonVoyageV2() {
           onClose={() => setShowAddEventModal(false)}
           onAdd={handleSaveEvent}
           language={language}
-          tripCurrency={voyageActif?.devise || 'CAD'}
+          tripCurrency={'CAD'}
         />
       </div>
     )
