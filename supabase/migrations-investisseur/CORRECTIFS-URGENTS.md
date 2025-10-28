@@ -163,9 +163,53 @@ Parts créées: 2,921.78 parts ✓
 
 Après cette migration, les parts seront calculées automatiquement ! ✅
 
+### ✅ Migration 078 : Autoriser suppression de transactions 🆕
+
+**Fichier:** `78-fix-transaction-delete-constraint.sql`
+
+**Ce qu'elle fait:**
+Corrige les contraintes de clé étrangère pour permettre la suppression de transactions + nettoyage automatique des données liées.
+
+**Le problème:**
+```
+Erreur lors de la suppression: update or delete on table "transactions"
+violates foreign key constraint "cash_flow_forecast_actual_transaction_id_fkey"
+```
+
+**Cause:**
+- Le trigger `create_actual_cash_flow` insère automatiquement dans `cash_flow_forecast`
+- La contrainte par défaut empêche la suppression de la transaction référencée
+- Même problème avec `bank_transactions` et `payment_obligations`
+
+**La solution:**
+1. **Modifier 3 contraintes** pour `ON DELETE SET NULL` :
+   - `cash_flow_forecast.actual_transaction_id`
+   - `bank_transactions.matched_transaction_id`
+   - `payment_obligations.paid_transaction_id`
+
+2. **Créer trigger de nettoyage** :
+   - Supprime automatiquement les parts dans `investor_investments`
+   - Quand une transaction d'investissement est supprimée
+   - Garantit la cohérence des données
+
+**Exécution:**
+1. Allez sur https://app.supabase.com
+2. SQL Editor → New query
+3. Copiez-collez le contenu de `78-fix-transaction-delete-constraint.sql`
+4. Cliquez **RUN** ▶️
+
+**Résultat attendu:**
+```
+✅ Contrainte cash_flow_forecast.actual_transaction_id mise à jour
+✅ Contrainte bank_transactions.matched_transaction_id mise à jour
+✅ Contrainte payment_obligations.paid_transaction_id mise à jour
+```
+
+Après cette migration, vous pourrez supprimer des transactions sans erreur ! ✅
+
 ---
 
 **Date:** 27 octobre 2025
 **Priorité:** 🔴 CRITIQUE
-**Impact:** Bloque la création de transactions + Calcul des parts + Affichage comptable
-**Solution:** Migrations 075 + 076 + 077 (complète et définitive)
+**Impact:** Bloque la création et suppression de transactions + Calcul des parts + Affichage comptable
+**Solution:** Migrations 075 + 076 + 077 + 078 (complète et définitive)

@@ -2,7 +2,7 @@
 
 ## Résumé des problèmes résolus
 
-Cette mise à jour corrige **5 problèmes critiques** liés aux transactions et à la comptabilité :
+Cette mise à jour corrige **7 problèmes critiques** liés aux transactions et à la comptabilité :
 
 ### ✅ Problème 1 : Colonnes manquantes dans la table `transactions`
 **Symptôme :** Erreur "Could not find the 'bank_fees' column" et "Could not find the 'category' column"
@@ -117,6 +117,39 @@ Parts créées : 2921.78 parts
 
 ---
 
+### ✅ Problème 7 : Impossible de supprimer une transaction
+**Symptôme :** Erreur "violates foreign key constraint cash_flow_forecast_actual_transaction_id_fkey"
+**Cause :** Les contraintes de clé étrangère empêchent la suppression de transactions référencées dans d'autres tables
+
+**Explication :**
+Quand une transaction est créée, plusieurs triggers automatiques insèrent des enregistrements dans d'autres tables :
+- `create_actual_cash_flow` → insère dans `cash_flow_forecast`
+- `mark_obligation_paid` → référence dans `payment_obligations`
+- `sync_bank_balance` → référence dans `bank_transactions`
+
+Par défaut, PostgreSQL empêche la suppression d'une transaction si elle est référencée ailleurs.
+
+**Solution :** Migration 78 - Modifier les contraintes pour `ON DELETE SET NULL` + trigger de nettoyage
+
+**Tables corrigées :**
+1. `cash_flow_forecast.actual_transaction_id` → ON DELETE SET NULL
+2. `bank_transactions.matched_transaction_id` → ON DELETE SET NULL
+3. `payment_obligations.paid_transaction_id` → ON DELETE SET NULL
+
+**Trigger de nettoyage :**
+- `auto_delete_investor_shares` : Supprime automatiquement les parts dans `investor_investments` quand une transaction d'investissement est supprimée
+- Garantit la cohérence des données
+
+**Fichier :** `78-fix-transaction-delete-constraint.sql`
+
+**Comportement après correction :**
+- ✅ Suppression de transactions autorisée
+- ✅ Les références dans autres tables sont mises à NULL (historique conservé)
+- ✅ Les parts d'investisseur sont automatiquement supprimées
+- ✅ Pas d'erreur 409 Conflict
+
+---
+
 ## 📋 Migrations à exécuter sur Supabase
 
 ### **ORDRE D'EXÉCUTION IMPORTANT** :
@@ -129,6 +162,9 @@ Parts créées : 2921.78 parts
 
 3. **Migration 77** : Calcul automatique des parts
    Fichier : `77-auto-create-investor-shares-from-transactions.sql`
+
+4. **Migration 78** : Autoriser suppression de transactions
+   Fichier : `78-fix-transaction-delete-constraint.sql`
 
 ### Comment les exécuter :
 1. Allez sur https://app.supabase.com
@@ -144,17 +180,19 @@ Parts créées : 2921.78 parts
 
 ### Avant :
 - ❌ Impossible de créer des transactions (colonnes manquantes)
+- ❌ Impossible de supprimer des transactions (erreur 409 Conflict)
 - ❌ Investissement direct va dans "Compte Courant"
 - ❌ "Investissement Immobilier" = 0 $ (problème conversion USD/CAD)
 - ❌ Investisseurs affichent "0 parts"
 - ❌ Pas de visibilité sur les paiements partiels
 
 ### Après :
-- ✅ Transactions enregistrées sans erreur
+- ✅ Transactions créées sans erreur
+- ✅ Transactions supprimées sans erreur (avec nettoyage automatique)
 - ✅ Investissement direct va dans "Investissement Immobilier"
 - ✅ "Investissement Immobilier" affiche le bon montant en USD
 - ✅ "Compte Courant" calculé correctement (Total - Investissements - Dépenses)
-- ✅ Parts calculées automatiquement pour chaque investisseur
+- ✅ Parts calculées et supprimées automatiquement
 - ✅ Barre de progression pour voir les paiements partiels
 
 ---
@@ -200,6 +238,8 @@ Tous les changements ont été poussés sur GitHub :
 
 1. **Commit d0c49b3** : Migration 76 (trigger cash_flow)
 2. **Commit a74111a** : Toutes les corrections dashboard + Migration 77
+3. **Commit ad431e9** : Documentation complète des corrections
+4. **Commit b60fee7** : Migration 78 (autoriser suppression transactions)
 
 ---
 
