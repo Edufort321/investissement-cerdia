@@ -609,14 +609,9 @@ export default function MonVoyageV2() {
       // Mode gratuit : localStorage
       localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
     } else {
-      // Mode payant : Supabase
-      try {
-        await voyageService.update(voyageActif.id, {
-          evenements: optimizedEvents
-        })
-      } catch (err) {
-        console.error('Erreur sauvegarde optimisation:', err)
-      }
+      // Mode payant : L'ordre optimisé est sauvegardé dans le state local
+      // Les événements individuels existent déjà dans Supabase
+      // TODO: Ajouter champ 'ordre' dans EvenementDB pour persister l'ordre optimisé
     }
   }
 
