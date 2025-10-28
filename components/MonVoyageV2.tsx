@@ -41,7 +41,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
-import { Evenement } from '@/types/voyage'
+import { Evenement, Voyage, Depense, ChecklistItem } from '@/types/voyage'
 import VoyageList from './VoyageList'
 import GaleriePublique from './GaleriePublique'
 import { voyageService, evenementService, depenseService, checklistService } from '@/lib/voyage-service'
@@ -70,72 +70,6 @@ interface UserSession {
   expiresAt?: string
   tripId?: string
   userId?: string
-}
-
-interface Event {
-  id: string
-  type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'
-  titre: string
-  date: string
-  heureDebut: string
-  heureFin: string
-  lieu: string
-  prix?: number
-  devise: string
-  notes?: string
-  transport?: string
-  photos?: string[]
-  // Nouvelles propriétés pour la carte
-  coordinates?: { lat: number; lng: number }
-  transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
-  duration?: number
-  fromLocation?: string
-  // Nouvelles propriétés pour prix estimé/réel
-  priceType?: 'estimated' | 'actual'
-  originalPrice?: number
-  originalCurrency?: string
-  exchangeRate?: number
-  // Évaluation de l'événement
-  rating?: number // Note sur 5 étoiles
-}
-
-interface Depense {
-  id: string
-  date: string
-  categorie: string
-  description: string
-  montant: number
-  devise: string
-  photos?: string[]
-}
-
-interface ChecklistItem {
-  id: string
-  texte: string
-  complete: boolean
-}
-
-interface Voyage {
-  id: string
-  userId: string
-  titre: string
-  dateDebut: string
-  dateFin: string
-  budget?: number
-  devise: string
-  evenements: Evenement[]
-  depenses: Depense[]
-  checklist: ChecklistItem[]
-  partage: {
-    actif: boolean
-    lien: string
-    enDirect: boolean
-  }
-  coverImage?: string
-  createdAt?: string
-  updatedAt?: string
-  destination?: string
-  description?: string
 }
 
 // Initialize Stripe

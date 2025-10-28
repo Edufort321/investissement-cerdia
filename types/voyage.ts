@@ -60,6 +60,12 @@ export interface Voyage {
   evenements: Evenement[]
   depenses: Depense[]
   checklist: ChecklistItem[]
+  partage: {
+    actif: boolean
+    lien: string
+    enDirect: boolean
+  }
+  coverImage?: string
   createdAt?: string
   updatedAt?: string
 }
