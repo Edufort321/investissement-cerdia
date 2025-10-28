@@ -28,6 +28,10 @@ export interface Evenement {
   villeArrivee?: string
   heureArrivee?: string
   dateArrivee?: string
+  // Propriétés pour les transports et la carte
+  transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
+  duration?: number
+  fromLocation?: string
 }
 
 export interface Depense {

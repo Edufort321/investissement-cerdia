@@ -7,14 +7,6 @@ import 'leaflet/dist/leaflet.css'
 import { MapPin, Plane, Car, Train, Bus, Plus, Sparkles, Bike, Ship, PersonStanding, Hotel, UtensilsCrossed, CalendarDays } from 'lucide-react'
 import { Evenement, Voyage } from '@/types/voyage'
 
-// Type étendu pour compatibilité carte
-interface EventWithCoordinates extends Evenement {
-  coordinates?: { lat: number; lng: number }
-  transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
-  duration?: number
-  fromLocation?: string
-}
-
 // Fix pour les icônes Leaflet par défaut
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -151,8 +143,8 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
   // Géocoder un lieu si pas de coordonnées
   const geocodeIfNeeded = async (event: Evenement): Promise<[number, number] | null> => {
     // Si l'événement a déjà des coordonnées, les utiliser
-    if (event.coordinates) {
-      return [event.coordinates.lat, event.coordinates.lng]
+    if (event.coordonnees) {
+      return [event.coordonnees.lat, event.coordonnees.lng]
     }
 
     // Sinon, géocoder le lieu
