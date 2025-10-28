@@ -1,0 +1,78 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="planeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e0e7ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bgGradient)"/>
+
+  <!-- Plane icon (modern, stylized) -->
+  <g transform="translate(512, 512)">
+    <!-- Plane body -->
+    <path d="M -180 -60 L -80 -20 L 160 -20 L 200 20 L 160 60 L -80 60 L -180 100 L -200 80 L -120 20 L -200 -40 Z"
+          fill="url(#planeGradient)"
+          stroke="#ffffff"
+          stroke-width="8"/>
+
+    <!-- Wings -->
+    <ellipse cx="-40" cy="0" rx="140" ry="40" fill="#ffffff" opacity="0.9"/>
+
+    <!-- Tail -->
+    <path d="M 160 -20 L 200 -80 L 220 -60 L 180 0 Z"
+          fill="#ffffff"
+          opacity="0.9"/>
+
+    <!-- Window dots -->
+    <circle cx="-120" cy="0" r="12" fill="#6366f1" opacity="0.6"/>
+    <circle cx="-80" cy="0" r="12" fill="#6366f1" opacity="0.6"/>
+    <circle cx="-40" cy="0" r="12" fill="#6366f1" opacity="0.6"/>
+    <circle cx="0" cy="0" r="12" fill="#6366f1" opacity="0.6"/>
+  </g>
+
+  <!-- Travel route line (dotted path) -->
+  <g opacity="0.4">
+    <path d="M 200 750 Q 350 650, 500 700 T 800 650"
+          stroke="#ffffff"
+          stroke-width="8"
+          stroke-dasharray="20,20"
+          fill="none"
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Location pins -->
+  <g transform="translate(200, 750)">
+    <circle cx="0" cy="0" r="24" fill="#ffffff"/>
+    <circle cx="0" cy="-8" r="12" fill="#6366f1"/>
+  </g>
+
+  <g transform="translate(800, 650)">
+    <circle cx="0" cy="0" r="24" fill="#ffffff"/>
+    <circle cx="0" cy="-8" r="12" fill="#8b5cf6"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="512" y="880"
+        font-family="'Arial', 'Helvetica', sans-serif"
+        font-size="80"
+        font-weight="bold"
+        fill="#ffffff"
+        text-anchor="middle">
+    CERDIA
+  </text>
+  <text x="512" y="950"
+        font-family="'Arial', 'Helvetica', sans-serif"
+        font-size="48"
+        font-weight="normal"
+        fill="#e0e7ff"
+        text-anchor="middle">
+    Voyage
+  </text>
+</svg>

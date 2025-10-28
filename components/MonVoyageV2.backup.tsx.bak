@@ -1,0 +1,685 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import {
+  Calendar,
+  DollarSign,
+  MapPin,
+  Plane,
+  Hotel,
+  Activity,
+  Plus,
+  Trash2,
+  Check,
+  X,
+  Share2,
+  Camera,
+  Link as LinkIcon,
+  Facebook,
+  Twitter,
+  Instagram,
+  Clock,
+  TrendingUp,
+  Download,
+  Users,
+  Eye,
+  Shield,
+  Zap,
+  Star,
+  Printer,
+  CreditCard,
+  FolderOpen,
+  FileText
+} from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { loadStripe } from '@stripe/stripe-js'
+import VoyageList from './VoyageList'
+import { voyageService, evenementService, depenseService, checklistService } from '@/lib/voyage-service'
+
+// Types
+type UserMode = 'investor' | 'free' | 'single' | 'full' | null
+
+interface UserSession {
+  mode: UserMode
+  expiresAt?: string
+  tripId?: string
+  userId?: string
+}
+
+interface Event {
+  id: string
+  type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'
+  titre: string
+  date: string
+  heureDebut: string
+  heureFin: string
+  lieu: string
+  prix?: number
+  devise: string
+  notes?: string
+  transport?: string
+  photos?: string[]
+}
+
+interface Depense {
+  id: string
+  date: string
+  categorie: string
+  description: string
+  montant: number
+  devise: string
+  photos?: string[]
+}
+
+interface ChecklistItem {
+  id: string
+  texte: string
+  complete: boolean
+}
+
+interface Voyage {
+  id: string
+  titre: string
+  dateDebut: string
+  dateFin: string
+  budget?: number
+  devise: string
+  evenements: Event[]
+  depenses: Depense[]
+  checklist: ChecklistItem[]
+  partage: {
+    actif: boolean
+    lien: string
+    enDirect: boolean
+  }
+}
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+
+export default function MonVoyageV2() {
+  const { language, t } = useLanguage()
+  const { user, isInvestor } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [userSession, setUserSession] = useState<UserSession | null>(null)
+  const [showModeSelection, setShowModeSelection] = useState(true)
+  const [showVoyageChoice, setShowVoyageChoice] = useState(false) // Nouveau/Consulter
+  const [showVoyageList, setShowVoyageList] = useState(false) // Liste des voyages
+  const [voyageActif, setVoyageActif] = useState<Voyage | null>(null)
+  const [voyageActifId, setVoyageActifId] = useState<string | null>(null) // ID du voyage actif dans la DB
+  const [vueActive, setVueActive] = useState<'dashboard' | 'timeline' | 'checklist' | 'depenses' | 'budget' | 'partage'>('dashboard')
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
+
+  // Handle Stripe payment success/cancel
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id')
+    const mode = searchParams.get('mode') as 'single' | 'full' | null
+    const canceled = searchParams.get('canceled')
+
+    if (canceled) {
+      alert(language === 'fr' ? 'Paiement annulé' : 'Payment canceled')
+      // Clean up URL
+      router.replace('/mon-voyage')
+      return
+    }
+
+    if (sessionId && mode) {
+      // Payment successful - activate the session
+      const expiresAt = mode === 'single'
+        ? new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000).toISOString() // 6 months
+        : undefined // No expiration for full mode
+
+      const session: UserSession = {
+        mode,
+        expiresAt
+      }
+      localStorage.setItem('monVoyageSession', JSON.stringify(session))
+      setUserSession(session)
+      setShowModeSelection(false)
+      createDemoVoyage()
+
+      // Clean up URL
+      router.replace('/mon-voyage')
+    }
+  }, [searchParams, language, router])
+
+  // Charger la session depuis localStorage OU vérifier si l'utilisateur est un investisseur
+  useEffect(() => {
+    // Si l'utilisateur est connecté et est un investisseur, activer le mode investisseur automatiquement
+    if (user && isInvestor) {
+      const investorSession: UserSession = {
+        mode: 'investor',
+        userId: user.id
+      }
+      setUserSession(investorSession)
+      setShowModeSelection(false)
+      loadVoyage(investorSession)
+      return
+    }
+
+    // Sinon, charger depuis localStorage
+    const savedSession = localStorage.getItem('monVoyageSession')
+    if (savedSession) {
+      const session: UserSession = JSON.parse(savedSession)
+
+      // Vérifier si la session n'est pas expirée
+      if (session.expiresAt) {
+        const now = new Date()
+        const expires = new Date(session.expiresAt)
+        if (now < expires) {
+          setUserSession(session)
+          setShowModeSelection(false)
+          loadVoyage(session)
+        } else {
+          // Session expirée
+          localStorage.removeItem('monVoyageSession')
+        }
+      } else {
+        setUserSession(session)
+        setShowModeSelection(false)
+        loadVoyage(session)
+      }
+    }
+  }, [user, isInvestor])
+
+  const loadVoyage = (session: UserSession) => {
+    if (session.mode === 'free') {
+      // Charger depuis localStorage
+      const savedVoyage = localStorage.getItem('monVoyageFree')
+      if (savedVoyage) {
+        setVoyageActif(JSON.parse(savedVoyage))
+      } else {
+        createDemoVoyage()
+      }
+    } else {
+      // Pour les autres modes, charger un voyage démo (à remplacer par Supabase)
+      createDemoVoyage()
+    }
+  }
+
+  const createDemoVoyage = () => {
+    const voyageDemo: Voyage = {
+      id: '1',
+      titre: language === 'fr' ? 'Mon Voyage à Paris' : 'My Trip to Paris',
+      dateDebut: '2025-05-15',
+      dateFin: '2025-05-22',
+      budget: 8000,
+      devise: 'CAD',
+      evenements: [
+        {
+          id: '1',
+          type: 'vol',
+          titre: 'Vol AC123 → Paris',
+          date: '2025-05-15',
+          heureDebut: '06:00',
+          heureFin: '14:00',
+          lieu: 'Aéroport YUL → CDG',
+          prix: 1200,
+          devise: 'CAD',
+          transport: 'Avion'
+        },
+        {
+          id: '2',
+          type: 'condo',
+          titre: 'Condo CERDIA #45',
+          date: '2025-05-15',
+          heureDebut: '15:30',
+          heureFin: '2025-05-22',
+          lieu: 'Paris 8e arrondissement',
+          prix: 1500,
+          devise: 'CAD',
+          notes: 'Réservation CERDIA Location'
+        }
+      ],
+      depenses: [],
+      checklist: [
+        { id: '1', texte: t('voyage.checklist') || 'Vérifier passeports', complete: true },
+        { id: '2', texte: language === 'fr' ? 'Réserver billets d\'avion' : 'Book flight tickets', complete: true },
+        { id: '3', texte: language === 'fr' ? 'Assurance voyage' : 'Travel insurance', complete: false }
+      ],
+      partage: {
+        actif: false,
+        lien: `https://cerdia.com/voyage/partage/${Math.random().toString(36).substr(2, 9)}`,
+        enDirect: false
+      }
+    }
+    setVoyageActif(voyageDemo)
+  }
+
+  const handleModeSelection = (mode: UserMode) => {
+    if (mode === 'investor') {
+      // Rediriger vers la page de connexion investisseur avec retour vers Mon Voyage
+      router.push('/connexion?redirect=/mon-voyage')
+    } else if (mode === 'free') {
+      // Mode gratuit - session jusqu'à la fermeture
+      const session: UserSession = { mode: 'free' }
+      localStorage.setItem('monVoyageSession', JSON.stringify(session))
+      setUserSession(session)
+      setShowModeSelection(false)
+      createDemoVoyage()
+    } else if (mode === 'single' || mode === 'full') {
+      // Modes payants - rediriger vers Stripe
+      handleStripePayment(mode)
+    }
+  }
+
+  const handleStripePayment = async (mode: 'single' | 'full') => {
+    setPaymentProcessing(true)
+
+    try {
+      // Call API to create Stripe checkout session
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode,
+          userId: user?.id || null,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      // Check if we're in demo mode
+      if (data.demo) {
+        const price = mode === 'single' ? '5$' : '15$'
+        alert(
+          language === 'fr'
+            ? `🎭 MODE DÉMO\n\nPaiement de ${price} CAD simulé avec succès!\n\n💡 Pour activer les vrais paiements Stripe, consultez STRIPE_SETUP.md`
+            : `🎭 DEMO MODE\n\n${price} CAD payment simulated successfully!\n\n💡 To enable real Stripe payments, see STRIPE_SETUP.md`
+        )
+      }
+
+      // Redirect to checkout (or success page in demo mode)
+      window.location.href = data.url
+    } catch (error) {
+      console.error('Payment error:', error)
+      alert(
+        language === 'fr'
+          ? 'Erreur lors du paiement. Veuillez réessayer.'
+          : 'Payment error. Please try again.'
+      )
+      setPaymentProcessing(false)
+    }
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleLogout = () => {
+    if (userSession?.mode === 'free') {
+      const confirm = window.confirm(language === 'fr'
+        ? 'Attention: En mode gratuit, vos données seront perdues. Voulez-vous imprimer avant de quitter?'
+        : 'Warning: In free mode, your data will be lost. Do you want to print before leaving?')
+      if (confirm) {
+        handlePrint()
+      }
+    }
+    localStorage.removeItem('monVoyageSession')
+    localStorage.removeItem('monVoyageFree')
+    setUserSession(null)
+    setShowModeSelection(true)
+    setVoyageActif(null)
+  }
+
+  // Écran de sélection des modes
+  if (showModeSelection || !userSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 pt-20 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MapPin className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+              {t('voyage.title')}
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              {t('voyage.subtitle')}
+            </p>
+          </div>
+
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8 text-center">
+            {t('voyage.selectMode')}
+          </h2>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Mode Investisseur */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-indigo-600 dark:border-indigo-400 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+                <Shield className="w-12 h-12 mb-3" />
+                <h3 className="text-2xl font-bold mb-2">{t('voyage.modeInvestor')}</h3>
+                <div className="text-3xl font-bold my-4">{t('voyage.free')}</div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {t('voyage.modeInvestorDesc')}
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Accès illimité' : 'Unlimited access'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Toutes fonctionnalités' : 'All features'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Support prioritaire' : 'Priority support'}
+                  </li>
+                </ul>
+                <button
+                  onClick={() => handleModeSelection('investor')}
+                  className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
+                >
+                  {t('voyage.login')}
+                </button>
+              </div>
+            </div>
+
+            {/* Mode Gratuit */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-300 dark:border-gray-600 overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-6 text-white">
+                <Printer className="w-12 h-12 mb-3" />
+                <h3 className="text-2xl font-bold mb-2">{t('voyage.modeFree')}</h3>
+                <div className="text-3xl font-bold my-4">{t('voyage.free')}</div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {t('voyage.modeFreeDesc')}
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Impression uniquement' : 'Print only'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <X className="w-4 h-4" />
+                    {language === 'fr' ? 'Données perdues à la fermeture' : 'Data lost on close'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <X className="w-4 h-4" />
+                    {language === 'fr' ? 'Pas de sauvegarde' : 'No save'}
+                  </li>
+                </ul>
+                <button
+                  onClick={() => handleModeSelection('free')}
+                  className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold"
+                >
+                  {t('voyage.continue')}
+                </button>
+              </div>
+            </div>
+
+            {/* Mode 5$ - Un Voyage */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-green-600 dark:border-green-400 overflow-hidden">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
+                <Zap className="w-12 h-12 mb-3" />
+                <h3 className="text-2xl font-bold mb-2">{t('voyage.modeSingle')}</h3>
+                <div className="text-3xl font-bold my-4">{t('voyage.price5')}</div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {t('voyage.modeSingleDesc')}
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Un voyage' : 'One trip'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Valide 6 mois' : 'Valid 6 months'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Toutes fonctionnalités' : 'All features'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Impression illimitée' : 'Unlimited print'}
+                  </li>
+                </ul>
+                <button
+                  onClick={() => handleModeSelection('single')}
+                  disabled={paymentProcessing}
+                  className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {paymentProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {language === 'fr' ? 'Traitement...' : 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      {t('voyage.purchase')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Mode 15$ - Application Complète */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-purple-600 dark:border-purple-400 overflow-hidden relative">
+              <div className="absolute top-4 right-4">
+                <div className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold">
+                  {language === 'fr' ? 'RECOMMANDÉ' : 'RECOMMENDED'}
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
+                <Star className="w-12 h-12 mb-3" />
+                <h3 className="text-2xl font-bold mb-2">{t('voyage.modeFull')}</h3>
+                <div className="text-3xl font-bold my-4">{t('voyage.price15')}</div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {t('voyage.modeFullDesc')}
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Voyages illimités' : 'Unlimited trips'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Accès à vie' : 'Lifetime access'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Toutes fonctionnalités' : 'All features'}
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {language === 'fr' ? 'Mises à jour gratuites' : 'Free updates'}
+                  </li>
+                </ul>
+                <button
+                  onClick={() => handleModeSelection('full')}
+                  disabled={paymentProcessing}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-semibold flex items-center justify-center gap-2 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
+                >
+                  {paymentProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {language === 'fr' ? 'Traitement...' : 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      {t('voyage.purchase')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Interface principale (après sélection du mode)
+  if (!voyageActif) {
+    return <div className="p-6">{language === 'fr' ? 'Chargement...' : 'Loading...'}</div>
+  }
+
+  const budgetUtilise = voyageActif.evenements.reduce((sum, e) => sum + (e.prix || 0), 0) +
+    voyageActif.depenses.reduce((sum, d) => sum + d.montant, 0)
+  const pourcentageBudget = voyageActif.budget ? (budgetUtilise / voyageActif.budget) * 100 : 0
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* En-tête avec infos de session */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{voyageActif.titre}</h1>
+              <p className="text-indigo-100">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                {new Date(voyageActif.dateDebut).toLocaleDateString()} - {new Date(voyageActif.dateFin).toLocaleDateString()}
+              </p>
+            </div>
+            <div className="text-right">
+              {/* Badge du mode */}
+              <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full mb-2">
+                {userSession.mode === 'investor' && <Shield className="w-4 h-4" />}
+                {userSession.mode === 'free' && <Printer className="w-4 h-4" />}
+                {userSession.mode === 'single' && <Zap className="w-4 h-4" />}
+                {userSession.mode === 'full' && <Star className="w-4 h-4" />}
+                <span className="text-sm font-semibold">
+                  {userSession.mode === 'investor' && t('voyage.modeInvestor')}
+                  {userSession.mode === 'free' && t('voyage.modeFree')}
+                  {userSession.mode === 'single' && t('voyage.modeSingle')}
+                  {userSession.mode === 'full' && t('voyage.modeFull')}
+                </span>
+              </div>
+
+              {/* Expiration pour mode single */}
+              {userSession.mode === 'single' && userSession.expiresAt && (
+                <div className="text-sm text-indigo-100">
+                  {t('voyage.validUntil')}: {new Date(userSession.expiresAt).toLocaleDateString()}
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handlePrint}
+                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition flex items-center gap-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  {t('voyage.print')}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
+                >
+                  {language === 'fr' ? 'Quitter' : 'Logout'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Barre de progression budget */}
+          {voyageActif.budget && (
+            <div className="mt-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span>{Math.round(pourcentageBudget)}%</span>
+                <span className={pourcentageBudget > 90 ? 'text-red-200' : 'text-indigo-100'}>
+                  {pourcentageBudget > 90 && '⚠️ '}
+                  {(voyageActif.budget - budgetUtilise).toFixed(0)}$ {t('voyage.budgetRemaining')}
+                </span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all duration-500 ${
+                    pourcentageBudget > 90 ? 'bg-red-400' : pourcentageBudget > 75 ? 'bg-yellow-400' : 'bg-green-400'
+                  }`}
+                  style={{ width: `${Math.min(pourcentageBudget, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Contenu simple - Dashboard */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('voyage.events')}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {voyageActif.evenements.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('voyage.totalSpent')}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {budgetUtilise.toFixed(0)}$
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                <Check className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Checklist</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {voyageActif.checklist.filter(i => i.complete).length}/{voyageActif.checklist.length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Message pour mode gratuit */}
+        {userSession.mode === 'free' && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-6 mt-6">
+            <div className="flex items-start gap-3">
+              <div className="bg-yellow-400 rounded-full p-2">
+                <Printer className="w-5 h-5 text-yellow-900" />
+              </div>
+              <div>
+                <h3 className="font-bold text-yellow-900 dark:text-yellow-400 mb-2">
+                  {language === 'fr' ? 'Mode Gratuit - Attention' : 'Free Mode - Warning'}
+                </h3>
+                <p className="text-yellow-800 dark:text-yellow-300 text-sm">
+                  {language === 'fr'
+                    ? 'Vos données seront perdues lorsque vous fermerez cette page. Pensez à imprimer votre voyage avant de quitter!'
+                    : 'Your data will be lost when you close this page. Remember to print your trip before leaving!'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

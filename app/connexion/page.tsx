@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import Image from 'next/image'
 
-export default function ConnexionPage() {
+function ConnexionForm() {
   const { login, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,7 +38,8 @@ export default function ConnexionPage() {
       localStorage.setItem('cerdia_session_expires', expiresAt.toString())
       localStorage.setItem('cerdia_remember_me', rememberMe.toString())
 
-      router.push('/dashboard')
+      // Rediriger vers l'URL demandée ou le dashboard par défaut
+      router.push(redirectUrl)
     }
   }
 
@@ -185,5 +188,17 @@ export default function ConnexionPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ConnexionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black pt-20">
+        <div className="text-white">Chargement...</div>
+      </div>
+    }>
+      <ConnexionForm />
+    </Suspense>
   )
 }

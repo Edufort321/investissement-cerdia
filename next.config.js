@@ -32,18 +32,27 @@ const withPWA = require('next-pwa')({
 });
 
 const isDev = process.env.NODE_ENV !== 'production';
+const isCapacitor = process.env.BUILD_MODE === 'capacitor';
 
 const nextConfig = {
+  // Export statique pour Capacitor (mobile)
+  ...(isCapacitor && {
+    output: 'export',
+    trailingSlash: true,
+  }),
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,
   },
-  i18n: {
-    locales: ['fr', 'en'],
-    defaultLocale: 'fr',
-  },
+  // i18n désactivé pour export statique
+  ...(!isCapacitor && {
+    i18n: {
+      locales: ['fr', 'en'],
+      defaultLocale: 'fr',
+    },
+  }),
   images: {
     remotePatterns: [
       // Domaines Amazon officiels
@@ -62,7 +71,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
       { protocol: 'http', hostname: '**' }
     ],
-    unoptimized: isDev, // Optimisation désactivée en dev uniquement
+    unoptimized: isDev || isCapacitor, // Désactivé en dev et pour Capacitor
   },
 };
 

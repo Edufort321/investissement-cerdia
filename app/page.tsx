@@ -23,7 +23,10 @@ export default function Home() {
       immobilierCTA: "Découvrir nos projets",
       locationTitle: "Location haut de gamme",
       locationDesc: "Une plateforme locative CERDIA avec conciergerie VIP et rendement optimisé.",
-      locationCTA: "Explorer nos locations"
+      locationCTA: "Explorer nos locations",
+      voyageTitle: "Mon Voyage",
+      voyageDesc: "Planifiez votre voyage parfait avec l'IA. Timeline 24/7, gestion de budget, suggestions intelligentes et mode partage.",
+      voyageCTA: "Planifier mon voyage"
     },
     en: {
       title: "A bold vision combining AI, real estate, education and luxury rentals",
@@ -40,7 +43,10 @@ export default function Home() {
       immobilierCTA: "Discover our projects",
       locationTitle: "Premium Rentals",
       locationDesc: "A CERDIA rental platform with VIP concierge service and optimized returns.",
-      locationCTA: "Explore our rentals"
+      locationCTA: "Explore our rentals",
+      voyageTitle: "My Journey",
+      voyageDesc: "Plan your perfect trip with AI. 24/7 timeline, budget management, smart suggestions and share mode.",
+      voyageCTA: "Plan my trip"
     }
   }
 
@@ -132,6 +138,36 @@ export default function Home() {
                   fill
                   className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                 />
+              </div>
+            </div>
+          </Link>
+        </section>
+
+        {/* MON VOYAGE SECTION - Image + Text */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <Link href="/mon-voyage" className="block group">
+            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+              {/* Image */}
+              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden">
+                <Image
+                  src="/cerdia-slide-voyage.png"
+                  alt="Mon Voyage"
+                  fill
+                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              {/* Texte */}
+              <div className="p-8 md:p-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
+                  {tr.voyageTitle}
+                </h2>
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                  {tr.voyageDesc}
+                </p>
+                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
+                  {tr.voyageCTA}
+                  <span className="text-xl">→</span>
+                </span>
               </div>
             </div>
           </Link>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Récupération des données - CERDIA Voyage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ef4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Récupération des données de voyage</h1>
+
+        <div class="status">
+            <h3>📊 État actuel</h3>
+            <div id="status"></div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h3>⚠️ Important</h3>
+            <p>Cet outil vous permet de récupérer vos données si vous avez changé de port.</p>
+            <p>Vos données sont stockées dans localStorage et sont séparées par port :</p>
+            <ul>
+                <li>localhost:3000 a ses propres données</li>
+                <li>localhost:3004 a ses propres données</li>
+            </ul>
+        </div>
+
+        <button onclick="checkData()">🔍 Vérifier les données actuelles</button>
+        <button onclick="showAllData()">📋 Afficher toutes les données</button>
+        <button onclick="copyToClipboard()">📋 Copier les données</button>
+        <button onclick="importData()" style="background: #3b82f6;">📥 Importer des données</button>
+        <button onclick="clearData()" class="danger">🗑️ Effacer toutes les données</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function checkData() {
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+
+            const session = localStorage.getItem('monVoyageSession');
+            const voyage = localStorage.getItem('monVoyageFree');
+
+            let html = '<div class="status">';
+            html += '<h4>Données trouvées :</h4>';
+
+            if (session) {
+                const sessionData = JSON.parse(session);
+                html += `<div class="success">✅ Session trouvée : ${sessionData.email || 'Mode gratuit'}</div>`;
+            } else {
+                html += '<div class="error">❌ Aucune session trouvée</div>';
+            }
+
+            if (voyage) {
+                const voyageData = JSON.parse(voyage);
+                html += `<div class="success">✅ Voyage trouvé : "${voyageData.titre}"</div>`;
+                html += `<div>📅 ${voyageData.dateDebut} → ${voyageData.dateFin}</div>`;
+                html += `<div>🎯 ${voyageData.evenements?.length || 0} événements</div>`;
+            } else {
+                html += '<div class="error">❌ Aucun voyage trouvé</div>';
+            }
+
+            html += '</div>';
+            status.innerHTML = html;
+            output.innerHTML = '';
+        }
+
+        function showAllData() {
+            const output = document.getElementById('output');
+            const session = localStorage.getItem('monVoyageSession');
+            const voyage = localStorage.getItem('monVoyageFree');
+
+            let html = '<div class="status">';
+            html += '<h4>📦 Toutes les données :</h4>';
+
+            if (session) {
+                html += '<h5>Session :</h5>';
+                html += `<pre>${JSON.stringify(JSON.parse(session), null, 2)}</pre>`;
+            }
+
+            if (voyage) {
+                html += '<h5>Voyage :</h5>';
+                html += `<pre>${JSON.stringify(JSON.parse(voyage), null, 2)}</pre>`;
+            }
+
+            html += '</div>';
+            output.innerHTML = html;
+        }
+
+        function copyToClipboard() {
+            const data = {
+                session: localStorage.getItem('monVoyageSession'),
+                voyage: localStorage.getItem('monVoyageFree'),
+                timestamp: new Date().toISOString()
+            };
+
+            const jsonString = JSON.stringify(data, null, 2);
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert('✅ Données copiées dans le presse-papier!');
+            }).catch(err => {
+                alert('❌ Erreur de copie: ' + err);
+            });
+        }
+
+        function importData() {
+            const jsonString = prompt('Collez vos données JSON ici:');
+            if (!jsonString) return;
+
+            try {
+                const data = JSON.parse(jsonString);
+
+                if (data.session) {
+                    localStorage.setItem('monVoyageSession', data.session);
+                }
+
+                if (data.voyage) {
+                    localStorage.setItem('monVoyageFree', data.voyage);
+                }
+
+                alert('✅ Données importées avec succès!');
+                checkData();
+            } catch (err) {
+                alert('❌ Erreur: Données JSON invalides');
+            }
+        }
+
+        function clearData() {
+            if (!confirm('⚠️ Êtes-vous sûr de vouloir effacer TOUTES les données?')) {
+                return;
+            }
+
+            localStorage.removeItem('monVoyageSession');
+            localStorage.removeItem('monVoyageFree');
+
+            alert('✅ Données effacées');
+            checkData();
+        }
+
+        // Vérifier automatiquement au chargement
+        window.onload = checkData;
+    </script>
+</body>
+</html>
