@@ -12,7 +12,7 @@ import {
   Trash2,
   Clock,
   Star,
-  Route,
+  Navigation,
   TrendingDown,
   X,
   Mail

@@ -386,16 +386,18 @@ export default function MonVoyageV2() {
       if (result.itinerary && result.itinerary.length > 0 && voyageActif) {
         const updatedEvents = [...voyageActif.evenements]
         for (const event of result.itinerary) {
-          const newEvent = {
+          const newEvent: Evenement = {
             id: `event_${Date.now()}_${Math.random()}`,
             type: event.type || 'activite',
             titre: event.titre,
             date: event.date,
+            heureDebut: event.heureDebut,
+            heureFin: event.heureFin,
             lieu: event.lieu,
             prix: event.prix,
             devise: voyageActif.devise,
             notes: event.notes
-          } as Evenement
+          }
           updatedEvents.push(newEvent)
         }
 
