@@ -2,21 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-09-30.clover' as any,
-})
+// Lazy initialization to avoid errors during build
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not configured')
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-09-30.clover' as any,
+  })
+}
 
-// Stripe webhook secret for signature verification
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
-
-// Initialize Supabase client for storing payment records
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  )
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const stripe = getStripe()
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
+    const supabase = getSupabase()
+
     const body = await req.text()
     const signature = req.headers.get('stripe-signature')
 
