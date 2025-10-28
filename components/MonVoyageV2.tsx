@@ -384,7 +384,7 @@ export default function MonVoyageV2() {
 
       // Si des événements ont été générés, les ajouter
       if (result.itinerary && result.itinerary.length > 0 && voyageActif) {
-        const updatedEvents = [...voyageActif.evenements]
+        const updatedEvents: Evenement[] = [...voyageActif.evenements]
         for (const event of result.itinerary) {
           const newEvent: Evenement = {
             id: `event_${Date.now()}_${Math.random()}`,
