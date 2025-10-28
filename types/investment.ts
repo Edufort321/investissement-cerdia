@@ -37,6 +37,26 @@ export interface Transaction {
   createdAt: string
   createdBy: string
   verified: boolean
+
+  // Nouveaux champs Migration 90
+  payment_source?: 'compte_courant' | 'investisseur_direct'
+  investor_payment_type?: 'achat_parts' | 'dette_a_rembourser'
+  affects_compte_courant?: boolean
+
+  // Remboursement en parts
+  reimbursement_in_shares?: boolean
+  shares_returned?: number
+
+  // Devise
+  source_currency?: 'CAD' | 'USD'
+  source_amount?: number
+  exchange_rate?: number
+  bank_fees?: number
+
+  // Notes et statut
+  notes?: string
+  status?: 'pending' | 'complete' | 'cancelled'
+  payment_schedule_id?: string
 }
 
 // Propriété immobilière
@@ -65,6 +85,25 @@ export interface Property {
   }>
 }
 
+// Dette investisseur
+export interface InvestorDebt {
+  id: string
+  investor_id: string
+  transaction_id?: string
+  amount: number
+  currency: 'CAD' | 'USD'
+  description: string
+  notes?: string
+  status: 'active' | 'partial' | 'paid'
+  amount_paid: number
+  amount_remaining: number
+  created_date: string
+  due_date?: string
+  paid_date?: string
+  created_at: string
+  updated_at: string
+}
+
 // Investisseur
 export interface Investor {
   id: string
@@ -91,6 +130,10 @@ export interface Investor {
     projet: boolean
     administration: boolean
   }
+  // Nouveau: Dettes
+  debts?: InvestorDebt[]
+  total_debt?: number
+  has_active_debt?: boolean
 }
 
 // Dividende
