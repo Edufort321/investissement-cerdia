@@ -237,6 +237,7 @@ DO $$
 DECLARE
   v_nav RECORD;
   v_cash_flow RECORD;
+  v_appreciation_pct DECIMAL(10, 2);
 BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '═══════════════════════════════════════════════════';
@@ -250,8 +251,8 @@ BEGIN
   FOR v_cash_flow IN
     SELECT * FROM cash_flow_summary ORDER BY category
   LOOP
-    RAISE NOTICE '  % : % $ CAD (% transactions)',
-      RPAD(v_cash_flow.category, 20),
+    RAISE NOTICE '  %: % $ CAD (% transactions)',
+      v_cash_flow.category,
       v_cash_flow.total_cad,
       v_cash_flow.nb_transactions;
   END LOOP;
@@ -280,13 +281,15 @@ BEGIN
   RAISE NOTICE 'PROPRIÉTÉS:';
   RAISE NOTICE '  Valeur initiale: % $ CAD', v_nav.properties_initial_value;
   RAISE NOTICE '  Valeur actuelle: % $ CAD', v_nav.properties_current_value;
-  RAISE NOTICE '  Appréciation: % $ CAD (%.2f%%)',
-    v_nav.properties_appreciation,
-    CASE
-      WHEN v_nav.properties_initial_value > 0
-      THEN (v_nav.properties_appreciation / v_nav.properties_initial_value * 100)
-      ELSE 0
-    END;
+
+  -- Calculer le pourcentage d'appréciation
+  IF v_nav.properties_initial_value > 0 THEN
+    v_appreciation_pct := (v_nav.properties_appreciation / v_nav.properties_initial_value * 100);
+  ELSE
+    v_appreciation_pct := 0;
+  END IF;
+
+  RAISE NOTICE '  Appréciation: % $ CAD (% %%)', v_nav.properties_appreciation, v_appreciation_pct;
   RAISE NOTICE '';
   RAISE NOTICE '📊 RÉSULTAT NAV:';
   RAISE NOTICE '  Actifs totaux: % $ CAD', v_nav.total_assets;
@@ -295,7 +298,7 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '  Parts totales: %', v_nav.total_shares;
   RAISE NOTICE '  NAV par part: % $ CAD', v_nav.nav_per_share;
-  RAISE NOTICE '  Performance: %% (depuis le départ)', v_nav.nav_change_pct;
+  RAISE NOTICE '  Performance: % %% (depuis le départ)', v_nav.nav_change_pct;
   RAISE NOTICE '';
   RAISE NOTICE '═══════════════════════════════════════════════════';
   RAISE NOTICE '';
