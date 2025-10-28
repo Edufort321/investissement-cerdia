@@ -98,10 +98,17 @@ export default function DashboardPage() {
     .filter(t => t.type === 'investissement')
     .reduce((sum, t) => sum + t.amount, 0)
 
-  // 2. INVESTISSEMENT IMMOBILIER (USD) - Somme des paiements sur propriétés (transactions avec property_id, sauf investissements)
+  // 2. INVESTISSEMENT IMMOBILIER (USD) - Somme de TOUTES les transactions liées à une propriété (incluant investissements directs)
   const totalInvestissementImmobilierUSD = transactions
-    .filter(t => t.property_id && t.type !== 'investissement')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    .filter(t => t.property_id) // Toutes les transactions avec property_id (investissements directs + paiements depuis compte)
+    .reduce((sum, t) => {
+      // Si la transaction a une devise source USD, utiliser source_amount
+      if (t.source_currency === 'USD' && t.source_amount) {
+        return sum + Math.abs(t.source_amount)
+      }
+      // Sinon, convertir le montant CAD en USD
+      return sum + (Math.abs(t.amount) / exchangeRate)
+    }, 0)
 
   // Convertir Investissement Immobilier en CAD pour le calcul du Compte Courant
   const totalInvestissementImmobilierCAD = totalInvestissementImmobilierUSD * exchangeRate
@@ -582,10 +589,17 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-4">
                       {properties.map((property) => {
-                        // Calculer le montant payé depuis les transactions réelles
+                        // Calculer le montant payé depuis les transactions réelles (incluant investissements directs)
                         const paidFromTransactions = transactions
-                          .filter(t => t.property_id === property.id && t.type !== 'investissement')
-                          .reduce((sum, t) => sum + Math.abs(t.amount), 0) // USD
+                          .filter(t => t.property_id === property.id) // Toutes les transactions liées à cette propriété
+                          .reduce((sum, t) => {
+                            // Si la transaction a une devise source USD, utiliser source_amount
+                            if (t.source_currency === 'USD' && t.source_amount) {
+                              return sum + Math.abs(t.source_amount)
+                            }
+                            // Sinon, convertir le montant CAD en USD
+                            return sum + (Math.abs(t.amount) / exchangeRate)
+                          }, 0) // USD
 
                         // Convertir en CAD
                         const paidAmountCAD = paidFromTransactions * exchangeRate
@@ -796,6 +810,39 @@ export default function DashboardPage() {
                               )}
                             </div>
                           </div>
+
+                          {/* Barre de progression pour paiements partiels */}
+                          {(() => {
+                            // Calculer le montant déjà payé pour ce paiement
+                            const paidAmount = transactions
+                              .filter(t => t.payment_schedule_id === payment.id)
+                              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+                            const remainingAmount = payment.amount - paidAmount
+                            const progressPercentage = payment.amount > 0 ? (paidAmount / payment.amount) * 100 : 0
+
+                            // Afficher seulement si des paiements partiels ont été faits
+                            if (paidAmount > 0 && remainingAmount > 0) {
+                              return (
+                                <div className="mt-3 pt-3 border-t border-gray-300">
+                                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                    <span>Payé: {paidAmount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                    <span>Reste: {remainingAmount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-blue-600 h-2 rounded-full transition-all"
+                                      style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1 text-center">
+                                    {progressPercentage.toFixed(1)}% payé
+                                  </p>
+                                </div>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
                       )
                     })}
