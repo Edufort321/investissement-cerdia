@@ -632,21 +632,27 @@ export default function MonVoyageV2() {
   }) => {
     if (!voyageActif) return
 
+    // Mapper les types d'événements
+    const typeMap: Record<string, 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'> = {
+      'hotel': 'hebergement',
+      'activity': 'activite',
+      'restaurant': 'activite',
+      'transport': 'transport'
+    }
+
     const newEvent: Evenement = {
       id: Date.now().toString(),
-      type: eventData.type,
+      type: typeMap[eventData.type] || 'activite',
       titre: eventData.titre,
       date: eventData.date,
-      heureDebut: eventData.heureDebut || '',
-      heureFin: eventData.heureFin || '',
+      heureDebut: eventData.heureDebut,
+      heureFin: eventData.heureFin,
       lieu: eventData.lieu,
-      prix: eventData.prix || 0,
+      prix: eventData.prix,
       devise: voyageActif.devise,
       notes: eventData.notes,
-      coordinates: eventData.coordinates,
-      transportMode: eventData.transportMode,
-      duration: eventData.duration,
-      fromLocation: eventData.fromLocation,
+      coordonnees: eventData.coordinates,
+      transport: eventData.transportMode,
       rating: eventData.rating
     }
 
