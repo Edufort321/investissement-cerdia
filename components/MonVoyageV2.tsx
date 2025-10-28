@@ -598,7 +598,7 @@ export default function MonVoyageV2() {
     const updatedVoyage = {
       ...voyageActif,
       evenements: optimizedEvents
-    }
+    } as Voyage
 
     setVoyageActif(updatedVoyage)
 
@@ -677,7 +677,7 @@ export default function MonVoyageV2() {
     const updatedVoyage = {
       ...voyageActif,
       evenements: [...voyageActif.evenements, newEvent]
-    }
+    } as Voyage
 
     setVoyageActif(updatedVoyage)
 
