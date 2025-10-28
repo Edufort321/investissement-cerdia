@@ -814,20 +814,33 @@ export default function DashboardPage() {
                           {/* Barre de progression pour paiements partiels */}
                           {(() => {
                             // Calculer le montant déjà payé pour ce paiement
-                            const paidAmount = transactions
-                              .filter(t => t.payment_schedule_id === payment.id)
+                            const relatedTransactions = transactions.filter(t => t.payment_schedule_id === payment.id)
+
+                            // Montant payé en CAD (montant réel payé avec les taux de change)
+                            const paidAmountCAD = relatedTransactions
                               .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-                            const remainingAmount = payment.amount - paidAmount
-                            const progressPercentage = payment.amount > 0 ? (paidAmount / payment.amount) * 100 : 0
+                            // Montant payé en USD (pour calculer le reste)
+                            const paidAmountUSD = relatedTransactions
+                              .reduce((sum, t) => {
+                                // Si transaction a un source_amount en USD, l'utiliser
+                                if (t.source_currency === 'USD' && t.source_amount) {
+                                  return sum + Math.abs(t.source_amount)
+                                }
+                                // Sinon convertir le montant CAD en USD
+                                return sum + (Math.abs(t.amount) / exchangeRate)
+                              }, 0)
+
+                            const remainingAmountUSD = payment.amount - paidAmountUSD
+                            const progressPercentage = payment.amount > 0 ? (paidAmountUSD / payment.amount) * 100 : 0
 
                             // Afficher seulement si des paiements partiels ont été faits
-                            if (paidAmount > 0 && remainingAmount > 0) {
+                            if (paidAmountUSD > 0 && remainingAmountUSD > 0) {
                               return (
                                 <div className="mt-3 pt-3 border-t border-gray-300">
                                   <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                    <span>Payé: {paidAmount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
-                                    <span>Reste: {remainingAmount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                    <span>Payé: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
+                                    <span>Reste: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div
