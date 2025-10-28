@@ -194,7 +194,7 @@ export default function VoyageTimeline({
               onClick={handleOptimize}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
             >
-              <Route className="w-4 h-4" />
+              <Navigation className="w-4 h-4" />
               {t('timeline.optimizeRoute')}
             </button>
           )}
@@ -399,7 +399,7 @@ export default function VoyageTimeline({
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center shadow-md">
-                  <Route className="w-6 h-6 text-white" />
+                  <Navigation className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {t('optimize.title')}
