@@ -26,9 +26,12 @@ import PropertyValuationManager from '@/components/PropertyValuationManager'
 import SharePriceCalculator from '@/components/SharePriceCalculator'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import CorporateBookTab from '@/components/CorporateBookTab'
+import FinancialKPIs from '@/components/FinancialKPIs'
+import CAPEXDashboard from '@/components/CAPEXDashboard'
+import CompteCourantDashboard from '@/components/CompteCourantDashboard'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -308,6 +311,19 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={() => {
+                          setAdminSubTab('compte_courant')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'compte_courant'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        Compte Courant
+                      </button>
+                      <button
+                        onClick={() => {
                           setAdminSubTab('rd_dividendes')
                           if (isMobile) setSidebarOpen(false)
                         }}
@@ -508,67 +524,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* KPIs Cards - Flux de Trésorerie */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {/* 1. Total Investisseurs (CAD) */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.totalInvestors')}</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="text-blue-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {totalInvestisseurs.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.cadContributions')} ({investors.length} {investors.length > 1 ? t('dashboard.investors') : t('dashboard.investor')})</p>
-                </div>
-
-                {/* 2. Investissement Immobilier (CAD) */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.realEstateInvestment')}</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Building2 className="text-purple-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {totalInvestissementImmobilierCAD.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
-                    {numberOfProperties} {numberOfProperties > 1 ? t('dashboard.properties') : t('dashboard.property')} • {totalInvestissementImmobilierUSD.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD
-                  </p>
-                </div>
-
-                {/* 3. Dépenses Opération (CAD) */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.operationalExpenses')}</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <TrendingDown className="text-orange-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {totalDepensesOperation.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.capexRnD')}</p>
-                </div>
-
-                {/* 4. Compte Courant (CAD) */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-gray-600 text-xs sm:text-sm font-medium">{t('dashboard.currentAccount')}</h3>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="text-green-600" size={18} />
-                    </div>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {compteCurrentCalcule.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{t('dashboard.availableFunds')}</p>
-                </div>
-
-              </div>
+              {/* KPIs Cards - Utilise le nouveau composant FinancialKPIs avec vues SQL temps réel */}
+              <FinancialKPIs year={null} className="mb-6 sm:mb-8" />
 
               {/* Widget Prix des Parts et Taux de change */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -934,6 +891,16 @@ export default function DashboardPage() {
 
           {activeTab === 'administration' && (currentUser?.investorData?.access_level === 'admin' || currentUser?.investorData?.permissions?.administration === true) && (
             <>
+              {adminSubTab === 'capex' && (
+                <div className="p-6">
+                  <CAPEXDashboard />
+                </div>
+              )}
+              {adminSubTab === 'compte_courant' && (
+                <div className="p-6">
+                  <CompteCourantDashboard />
+                </div>
+              )}
               {adminSubTab === 'tresorerie' && <TreasuryDashboard />}
               {adminSubTab === 'gestion_projet' && <ProjectManagementDashboard />}
               {adminSubTab === 'budgetisation' && <BudgetDashboard />}
@@ -954,7 +921,7 @@ export default function DashboardPage() {
               )}
               {adminSubTab === 'mode_emploi' && <UserGuide />}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
-              {!['tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
+              {!['capex', 'compte_courant', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab} />
               )}
             </>
