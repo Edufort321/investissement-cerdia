@@ -4,6 +4,41 @@
 -- ==========================================
 
 -- ============================================
+-- 0. VÉRIFICATION DES DÉPENDANCES
+-- ============================================
+DO $$
+BEGIN
+  -- Vérifier que la fonction calculate_realistic_nav_v2 existe (migration 85)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'calculate_realistic_nav_v2'
+      AND n.nspname = 'public'
+  ) THEN
+    RAISE EXCEPTION '
+╔═══════════════════════════════════════════════════════════════╗
+║  ERREUR: DÉPENDANCE MANQUANTE                                 ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  La fonction calculate_realistic_nav_v2() n''existe pas.     ║
+║                                                               ║
+║  Cette fonction est requise par la migration 97.             ║
+║  Elle devrait avoir été créée par la migration 85.           ║
+║                                                               ║
+║  SOLUTION:                                                    ║
+║  1. Exécutez d''abord la migration 85:                       ║
+║     85-fix-nav-use-correct-schema.sql                        ║
+║                                                               ║
+║  2. Puis ré-exécutez cette migration (97)                    ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+    ';
+  END IF;
+
+  RAISE NOTICE '✅ Dépendances vérifiées: calculate_realistic_nav_v2 existe';
+END $$;
+
+-- ============================================
 -- 1. Création de la table nav_history
 -- ============================================
 CREATE TABLE IF NOT EXISTS nav_history (

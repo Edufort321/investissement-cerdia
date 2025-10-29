@@ -384,11 +384,42 @@ FROM nav_history;
 
 ### Prérequis
 
+**⚠️ IMPORTANT**: Migration 85 DOIT être exécutée AVANT migration 97!
+
 - ✅ Migration 85 déjà exécutée (calcul NAV base)
 - ✅ Table `property_valuations` existe
 - ✅ Fonction `calculate_realistic_nav_v2` existe
 
+Si vous tentez d'exécuter migration 97 sans migration 85, vous verrez cette erreur:
+```
+ERROR: DÉPENDANCE MANQUANTE
+La fonction calculate_realistic_nav_v2() n'existe pas.
+SOLUTION: Exécutez d'abord la migration 85
+```
+
 ### Étapes de déploiement
+
+#### 0. Vérifier que migration 85 est exécutée (PRÉREQUIS)
+
+**Avant d'exécuter migration 97**, vérifiez que migration 85 existe:
+
+```sql
+-- Vérifier si la fonction existe
+SELECT EXISTS (
+  SELECT 1 FROM pg_proc p
+  JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE p.proname = 'calculate_realistic_nav_v2'
+    AND n.nspname = 'public'
+) as function_exists;
+```
+
+**Si `function_exists` = `false`**, exécutez d'abord migration 85:
+
+```bash
+# Sur Supabase SQL Editor
+# Copier/coller le contenu de:
+supabase/migrations-investisseur/85-fix-nav-use-correct-schema.sql
+```
 
 #### 1. Exécuter migration 97 sur Supabase
 
