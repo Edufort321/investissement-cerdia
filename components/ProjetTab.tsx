@@ -1134,7 +1134,7 @@ export default function ProjetTab() {
                           <PaymentScheduleManager
                             propertyId={property.id}
                             propertyName={property.name}
-                            propertyCurrency={property.currency}
+                            propertyCurrency={property.currency || 'USD'}
                           />
                         </div>
                       )}
