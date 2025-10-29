@@ -9,6 +9,7 @@ import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
 import BookingRevenueSync from './BookingRevenueSync'
+import InvestorDebts from './InvestorDebts'
 
 interface InvestorFormData {
   user_id: string
@@ -1411,6 +1412,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       />
                     </div>
                   )}
+                </div>
+
+                {/* Investor Debts Section */}
+                <div className="pt-2 sm:pt-3 border-t border-gray-100 mt-2 sm:mt-3">
+                  <InvestorDebts
+                    investorId={investor.id}
+                    investorName={`${investor.first_name} ${investor.last_name}`}
+                  />
                 </div>
               </div>
 
