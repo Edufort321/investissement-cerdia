@@ -129,9 +129,9 @@ ORDER BY trigger_name;
 DO $$
 BEGIN
   RAISE NOTICE '';
-  RAISE NOTICE '✅ =============================================';;
+  RAISE NOTICE '✅ =============================================';
   RAISE NOTICE '✅ MIGRATION 94 TERMINÉE';
-  RAISE NOTICE '✅ =============================================';;
+  RAISE NOTICE '✅ =============================================';
   RAISE NOTICE '';
   RAISE NOTICE '📋 Tous les investisseurs devraient maintenant avoir:';
   RAISE NOTICE '   - Parts = 0';
