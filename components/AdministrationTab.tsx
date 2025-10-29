@@ -50,7 +50,7 @@ interface TransactionFormData {
   reference_number: string
   status: string
   // NEW: Payment source fields (Migration 90)
-  payment_source?: 'compte_courant' | 'investisseur_direct'
+  payment_source?: 'compte_courant' | 'investisseur_direct' | 'capex'
   investor_payment_type?: 'achat_parts' | 'dette_a_rembourser'
   affects_compte_courant?: boolean
   // International tax fields
@@ -175,7 +175,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     property_id: null,
     payment_schedule_id: null,
     payment_completion_status: null,
-    category: 'capital',
+    category: 'projet', // Changed from 'capital' to 'projet'
     payment_method: 'virement',
     reference_number: '',
     status: 'complete',
@@ -729,7 +729,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       property_id: null,
       payment_schedule_id: null,
       payment_completion_status: null,
-      category: 'capital',
+      category: 'projet', // Changed from 'capital' to 'projet'
       payment_method: 'virement',
       reference_number: '',
       status: 'complete',
@@ -1892,11 +1892,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* SECTION 7: PAIEMENT PROGRAMMÉ (si propriété sélectionnée) */}
             {transactionFormData.property_id && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-              {/* Paiement lié (optionnel, si propriété sélectionnée) */}
-              {transactionFormData.property_id && (
-                <>
+              <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Paiement lié (optionnel)
@@ -1955,8 +1951,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </>
               )}
 
+            {/* SECTION 8: DESCRIPTION ET RÉFÉRENCE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">📝 Description *</label>
                 <textarea
                   value={transactionFormData.description}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
@@ -1967,7 +1965,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Numéro de référence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🔢 Numéro de référence</label>
                 <input
                   type="text"
                   value={transactionFormData.reference_number}
