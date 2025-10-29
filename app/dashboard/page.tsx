@@ -29,9 +29,10 @@ import CorporateBookTab from '@/components/CorporateBookTab'
 import FinancialKPIs from '@/components/FinancialKPIs'
 import CAPEXDashboard from '@/components/CAPEXDashboard'
 import CompteCourantDashboard from '@/components/CompteCourantDashboard'
+import NAVDashboard from '@/components/NAVDashboard'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -321,6 +322,19 @@ export default function DashboardPage() {
                         }`}
                       >
                         Compte Courant
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('nav')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'nav'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        NAV (Valeur Liquidative)
                       </button>
                       <button
                         onClick={() => {
@@ -901,6 +915,11 @@ export default function DashboardPage() {
                   <CompteCourantDashboard />
                 </div>
               )}
+              {adminSubTab === 'nav' && (
+                <div className="p-6">
+                  <NAVDashboard />
+                </div>
+              )}
               {adminSubTab === 'tresorerie' && <TreasuryDashboard />}
               {adminSubTab === 'gestion_projet' && <ProjectManagementDashboard />}
               {adminSubTab === 'budgetisation' && <BudgetDashboard />}
@@ -921,7 +940,7 @@ export default function DashboardPage() {
               )}
               {adminSubTab === 'mode_emploi' && <UserGuide />}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
-              {!['capex', 'compte_courant', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
+              {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab} />
               )}
             </>
