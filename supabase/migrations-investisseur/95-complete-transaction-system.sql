@@ -319,8 +319,8 @@ COMMENT ON FUNCTION validate_transaction IS 'Valide et corrige automatiquement l
 CREATE INDEX IF NOT EXISTS idx_transactions_payment_source ON transactions(payment_source);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
 CREATE INDEX IF NOT EXISTS idx_transactions_affects_compte_courant ON transactions(affects_compte_courant);
-CREATE INDEX IF NOT EXISTS idx_transactions_date_year ON transactions(EXTRACT(YEAR FROM date));
-CREATE INDEX IF NOT EXISTS idx_transactions_date_month ON transactions(EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date));
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
 
 -- =====================================================
 -- ÉTAPE 10: MIGRATION DONNÉES EXISTANTES
