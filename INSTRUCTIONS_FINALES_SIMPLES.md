@@ -70,7 +70,38 @@ NOTICE: ✅ MIGRATION 90 TERMINÉE
 
 ---
 
-### 3️⃣ Script 92 (OPTIONNEL)
+### 3️⃣ Script 95-complete-transaction-system.sql (OBLIGATOIRE)
+
+**Fichier :** `supabase/migrations-investisseur/95-complete-transaction-system.sql`
+
+**Ce qu'il fait :**
+- ✅ Finalise le système transactions comme source unique
+- ✅ Support CAPEX comme source de paiement
+- ✅ Crée 6 vues SQL calculées temps réel:
+  - `v_capex_summary` - CAPEX par année
+  - `v_compte_courant_monthly` - Compte courant mensuel
+  - `v_compte_courant_yearly` - Compte courant annuel
+  - `v_property_cashflow` - Flux par propriété
+  - `v_cashflow_by_source` - Flux par source
+  - `v_operational_costs` - Coûts opération
+- ✅ Fonction `get_financial_summary(year)` - Résumé financier
+- ✅ Trigger `validate_transaction()` - Validation automatique
+- ✅ Migration données existantes
+
+**Comment :**
+1. Ouvrez Supabase → SQL Editor
+2. Copiez/collez **TOUT** le contenu de `95-complete-transaction-system.sql`
+3. **RUN**
+
+**Résultat attendu :**
+```
+✅ MIGRATION 95 TERMINÉE
+6 vues créées + 2 fonctions + 1 trigger
+```
+
+---
+
+### 4️⃣ Script 92 (OPTIONNEL)
 
 **Fichier :** `supabase/migrations-investisseur/92-identify-unused-tables.sql`
 
@@ -82,7 +113,7 @@ NOTICE: ✅ MIGRATION 90 TERMINÉE
 
 ---
 
-### 4️⃣ Script 93 (OPTIONNEL - DANGER)
+### 5️⃣ Script 93 (OPTIONNEL - DANGER)
 
 **Fichier :** `supabase/migrations-investisseur/93-cleanup-unused-tables.sql`
 
@@ -142,6 +173,7 @@ WHERE setting_key = 'nominal_share_value';
 | **94-cleanup-orphaned-investments.sql** | ⚠️ Si résiduel | Nettoyer données orphelines (à faire EN PREMIER si besoin) |
 | **90-FINAL.sql** | ✅ OUI | Corrections principales |
 | **91-FINAL.sql** | ✅ OUI | Nettoyage + recalcul |
+| **95-complete-transaction-system.sql** | ✅ OUI | Système complet + vues calculées temps réel |
 | 92-identify-unused-tables.sql | ⚠️ Optionnel | Voir tables vides (info seulement) |
 | 93-cleanup-unused-tables.sql | ⚠️ Optionnel | Supprimer tables (danger) |
 
