@@ -2,6 +2,31 @@
 
 ## 🎯 SCRIPTS SQL À EXÉCUTER (DANS L'ORDRE)
 
+### 0️⃣ Script 94-cleanup-orphaned-investments.sql (SI DONNÉES RÉSIDUELLES)
+
+**Fichier :** `supabase/migrations-investisseur/94-cleanup-orphaned-investments.sql`
+
+**À exécuter SEULEMENT si :** Vous avez des parts ou montants résiduels après avoir supprimé des transactions
+
+**Ce qu'il fait :**
+- 🔍 Identifie les investissements orphelins (sans transaction associée)
+- 🗑️ Supprime ces entrées orphelines
+- 🔄 Recalcule tous les totaux
+- ✅ Vérifie que les triggers fonctionnent
+
+**Comment :**
+1. Ouvrez Supabase → SQL Editor
+2. Copiez/collez **TOUT** le contenu de `94-cleanup-orphaned-investments.sql`
+3. **RUN**
+
+**Résultat attendu :**
+```
+✅ MIGRATION 94 TERMINÉE
+Tous les investisseurs devraient avoir: Parts = 0, Total investi = 0$
+```
+
+---
+
 ### 1️⃣ Script 90-FINAL.sql (OBLIGATOIRE)
 
 **Fichier :** `supabase/migrations-investisseur/90-FINAL.sql`
@@ -114,6 +139,7 @@ WHERE setting_key = 'nominal_share_value';
 
 | Script | Obligatoire ? | Description |
 |--------|--------------|-------------|
+| **94-cleanup-orphaned-investments.sql** | ⚠️ Si résiduel | Nettoyer données orphelines (à faire EN PREMIER si besoin) |
 | **90-FINAL.sql** | ✅ OUI | Corrections principales |
 | **91-FINAL.sql** | ✅ OUI | Nettoyage + recalcul |
 | 92-identify-unused-tables.sql | ⚠️ Optionnel | Voir tables vides (info seulement) |
