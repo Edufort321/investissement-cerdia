@@ -1613,10 +1613,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <h3 className="text-base sm:text-lg font-semibold mb-4">
             {editingTransactionId ? 'Modifier la transaction' : 'Nouvelle transaction'}
           </h3>
-          <form onSubmit={handleTransactionSubmit} className="space-y-4">
+          <form onSubmit={handleTransactionSubmit} className="space-y-6">
+            {/* SECTION 1: INFORMATIONS DE BASE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">📅 Date *</label>
                 <input
                   type="date"
                   value={transactionFormData.date}
@@ -1627,7 +1628,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">📋 Type (À quoi sert l'argent) *</label>
                 <select
                   value={transactionFormData.type}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, type: e.target.value })}
@@ -1640,22 +1641,93 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <option value="depense">Dépense</option>
                 </select>
               </div>
+            </div>
 
+            {/* SECTION 2: SOURCE DE L'ARGENT - NOUVEAU! */}
+            <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
+              <label className="block text-sm font-medium text-gray-900 mb-3">💰 D'où vient l'argent? *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTransactionFormData({
+                    ...transactionFormData,
+                    payment_source: 'compte_courant',
+                    investor_payment_type: undefined,
+                    affects_compte_courant: true
+                  })}
+                  disabled={!!transactionFormData.investor_id}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    transactionFormData.payment_source === 'compte_courant'
+                      ? 'border-blue-500 bg-blue-100 text-blue-900 font-semibold'
+                      : transactionFormData.investor_id
+                      ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                  }`}
+                >
+                  🏢 COMPTE COURANT
+                  <div className="text-xs mt-1 opacity-75">L'entreprise paie</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransactionFormData({
+                    ...transactionFormData,
+                    payment_source: 'capex',
+                    investor_payment_type: undefined,
+                    affects_compte_courant: false
+                  })}
+                  disabled={!!transactionFormData.investor_id}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    transactionFormData.payment_source === 'capex'
+                      ? 'border-purple-500 bg-purple-100 text-purple-900 font-semibold'
+                      : transactionFormData.investor_id
+                      ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300'
+                  }`}
+                >
+                  🏗️ CAPEX
+                  <div className="text-xs mt-1 opacity-75">Budget CAPEX</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransactionFormData({
+                    ...transactionFormData,
+                    payment_source: 'investisseur_direct',
+                    affects_compte_courant: false
+                  })}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    transactionFormData.payment_source === 'investisseur_direct' || transactionFormData.investor_id
+                      ? 'border-green-500 bg-green-100 text-green-900 font-semibold'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-green-300'
+                  }`}
+                >
+                  👤 INVESTISSEUR
+                  <div className="text-xs mt-1 opacity-75">Payé directement</div>
+                </button>
+              </div>
+              {transactionFormData.investor_id && (
+                <p className="text-xs text-green-700 mt-2">
+                  ℹ️ Un investisseur est sélectionné → La source est automatiquement "Investisseur direct"
+                </p>
+              )}
+            </div>
+
+            {/* SECTION 3: MONTANT ET CATÉGORIE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Montant ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">💵 Montant ($) *</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={transactionFormData.amount}
                   onChange={(e) => {
                     let value = e.target.value.replace(',', '.')
-                    // Permet les nombres avec point décimal, y compris pendant la saisie
                     if (value === '' || value === '.' || value === '-' || /^-?\d*\.?\d*$/.test(value)) {
                       setTransactionFormData({ ...transactionFormData, amount: value as any })
                     }
                   }}
                   onBlur={(e) => {
-                    // Convertir en nombre propre au blur
                     const numValue = parseFloat(e.target.value) || 0
                     setTransactionFormData({ ...transactionFormData, amount: numValue })
                   }}
@@ -1666,22 +1738,55 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">📂 Catégorie (Où va l'argent) *</label>
                 <select
                   value={transactionFormData.category}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, category: e.target.value })}
+                  onChange={(e) => setTransactionFormData({
+                    ...transactionFormData,
+                    category: e.target.value,
+                    // Reset property si on quitte la catégorie Projet
+                    property_id: e.target.value === 'projet' ? transactionFormData.property_id : null
+                  })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="capital">Capital</option>
-                  <option value="operation">Opération</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="admin">Administration</option>
+                  <option value="projet">🏠 Projet (Propriété)</option>
+                  <option value="capex">🏗️ CAPEX (Transfert réserve)</option>
+                  <option value="operation">⚙️ Opération (Coûts opération)</option>
+                  <option value="maintenance">🔧 Maintenance (Coûts opération)</option>
+                  <option value="admin">📋 Administration (Coûts opération)</option>
                 </select>
               </div>
+            </div>
 
+            {/* SECTION 4: SÉLECTEUR PROPRIÉTÉ (Visible seulement si catégorie = Projet) */}
+            {transactionFormData.category === 'projet' && (
+              <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
+                <label className="block text-sm font-medium text-gray-900 mb-2">🏠 Propriété associée *</label>
+                <select
+                  value={transactionFormData.property_id || ''}
+                  onChange={(e) => setTransactionFormData({
+                    ...transactionFormData,
+                    property_id: e.target.value || null,
+                    payment_schedule_id: null
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="">-- Sélectionner une propriété --</option>
+                  {properties.map(prop => (
+                    <option key={prop.id} value={prop.id}>
+                      {prop.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* SECTION 5: DÉTAILS TRANSACTION */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Méthode de paiement *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">💳 Méthode de paiement *</label>
                 <select
                   value={transactionFormData.payment_method}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_method: e.target.value })}
@@ -1696,7 +1801,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Statut *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">✅ Statut *</label>
                 <select
                   value={transactionFormData.status}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, status: e.target.value })}
@@ -1710,10 +1815,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Investisseur</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">👤 Investisseur (optionnel)</label>
                 <select
                   value={transactionFormData.investor_id || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, investor_id: e.target.value || null })}
+                  onChange={(e) => {
+                    const investorId = e.target.value || null
+                    setTransactionFormData({
+                      ...transactionFormData,
+                      investor_id: investorId,
+                      // Si investisseur sélectionné, forcer source à "investisseur_direct"
+                      payment_source: investorId ? 'investisseur_direct' : 'compte_courant',
+                      affects_compte_courant: !investorId
+                    })
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">Aucun</option>
@@ -1726,129 +1840,59 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
             </div>
 
-            {/* Section Source du paiement - Visible uniquement si un investisseur est sélectionné */}
+            {/* SECTION 6: SI INVESTISSEUR SÉLECTIONNÉ - Type de paiement */}
             {transactionFormData.investor_id && (
-              <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">💳 Source du paiement</h4>
+              <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 Type de paiement investisseur</h4>
+                <p className="text-xs text-gray-600 mb-3">L'investisseur paie directement - précisez le type:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({
+                      ...transactionFormData,
+                      investor_payment_type: 'achat_parts'
+                    })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.investor_payment_type === 'achat_parts'
+                        ? 'border-purple-500 bg-purple-100 text-purple-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300'
+                    }`}
+                  >
+                    💵 ACHAT DE PARTS
+                    <div className="text-xs mt-1 opacity-75">L'investisseur achète des parts avec son propre argent</div>
+                  </button>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Qui paie cette transaction ?</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setTransactionFormData({
-                          ...transactionFormData,
-                          payment_source: 'compte_courant',
-                          investor_payment_type: undefined,
-                          affects_compte_courant: true
-                        })}
-                        className={`px-4 py-3 rounded-lg border-2 transition-all ${
-                          transactionFormData.payment_source === 'compte_courant'
-                            ? 'border-blue-500 bg-blue-100 text-blue-900 font-semibold'
-                            : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
-                        }`}
-                      >
-                        🏢 COMPTE COURANT
-                        <div className="text-xs mt-1 opacity-75">L'entreprise paie</div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setTransactionFormData({
-                          ...transactionFormData,
-                          payment_source: 'investisseur_direct',
-                          affects_compte_courant: false
-                        })}
-                        className={`px-4 py-3 rounded-lg border-2 transition-all ${
-                          transactionFormData.payment_source === 'investisseur_direct'
-                            ? 'border-green-500 bg-green-100 text-green-900 font-semibold'
-                            : 'border-gray-300 bg-white text-gray-700 hover:border-green-300'
-                        }`}
-                      >
-                        👤 INVESTISSEUR DIRECT
-                        <div className="text-xs mt-1 opacity-75">L'investisseur paie</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Si paiement direct par l'investisseur, demander le type */}
-                  {transactionFormData.payment_source === 'investisseur_direct' && (
-                    <div className="pl-4 border-l-4 border-green-400">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Type de paiement investisseur</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setTransactionFormData({
-                            ...transactionFormData,
-                            investor_payment_type: 'achat_parts'
-                          })}
-                          className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
-                            transactionFormData.investor_payment_type === 'achat_parts'
-                              ? 'border-purple-500 bg-purple-100 text-purple-900 font-semibold'
-                              : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300'
-                          }`}
-                        >
-                          💵 ACHAT DE PARTS
-                          <div className="text-xs mt-1 opacity-75">L'investisseur achète des parts avec son propre argent</div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setTransactionFormData({
-                            ...transactionFormData,
-                            investor_payment_type: 'dette_a_rembourser'
-                          })}
-                          className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
-                            transactionFormData.investor_payment_type === 'dette_a_rembourser'
-                              ? 'border-orange-500 bg-orange-100 text-orange-900 font-semibold'
-                              : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
-                          }`}
-                        >
-                          📝 DETTE À REMBOURSER
-                          <div className="text-xs mt-1 opacity-75">L'entreprise doit rembourser cet investisseur</div>
-                        </button>
-                      </div>
-
-                      {transactionFormData.investor_payment_type === 'dette_a_rembourser' && (
-                        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                          <p className="text-xs text-orange-800">
-                            ⚠️ Une dette sera automatiquement créée pour cet investisseur.
-                            Elle apparaîtra dans le tableau des dettes à rembourser.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Info pour compte courant */}
-                  {transactionFormData.payment_source === 'compte_courant' && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-800">
-                        ℹ️ Cette transaction affectera le compte courant de l'entreprise.
-                      </p>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({
+                      ...transactionFormData,
+                      investor_payment_type: 'dette_a_rembourser'
+                    })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.investor_payment_type === 'dette_a_rembourser'
+                        ? 'border-orange-500 bg-orange-100 text-orange-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
+                    }`}
+                  >
+                    📝 DETTE À REMBOURSER
+                    <div className="text-xs mt-1 opacity-75">L'entreprise doit rembourser cet investisseur</div>
+                  </button>
                 </div>
+
+                {transactionFormData.investor_payment_type === 'dette_a_rembourser' && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-800">
+                      ⚠️ Une dette sera automatiquement créée pour cet investisseur.
+                      Elle apparaîtra dans le tableau des dettes à rembourser.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Propriété</label>
-                <select
-                  value={transactionFormData.property_id || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, property_id: e.target.value || null, payment_schedule_id: null })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                >
-                  <option value="">Aucune</option>
-                  {properties.map(prop => (
-                    <option key={prop.id} value={prop.id}>
-                      {prop.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* SECTION 7: PAIEMENT PROGRAMMÉ (si propriété sélectionnée) */}
+            {transactionFormData.property_id && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               {/* Paiement lié (optionnel, si propriété sélectionnée) */}
               {transactionFormData.property_id && (
