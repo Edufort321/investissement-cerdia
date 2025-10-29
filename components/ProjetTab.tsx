@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
+import PaymentScheduleManager from './PaymentScheduleManager'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import { supabase } from '@/lib/supabase'
 
@@ -53,6 +54,7 @@ export default function ProjetTab() {
   const [showAttachmentsPropertyId, setShowAttachmentsPropertyId] = useState<string | null>(null)
   const [showScenarioDataPropertyId, setShowScenarioDataPropertyId] = useState<string | null>(null)
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
+  const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
   const [scenarios, setScenarios] = useState<any[]>([])
@@ -1112,6 +1114,28 @@ export default function ProjetTab() {
                               </div>
                             )
                           })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Gestionnaire de paiements programmés */}
+                  {propertyPayments.length > 0 && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setShowPaymentManagerPropertyId(showPaymentManagerPropertyId === property.id ? null : property.id)}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
+                      >
+                        {showPaymentManagerPropertyId === property.id ? '▼' : '▶'} Gérer les paiements programmés
+                      </button>
+
+                      {showPaymentManagerPropertyId === property.id && (
+                        <div className="mt-2">
+                          <PaymentScheduleManager
+                            propertyId={property.id}
+                            propertyName={property.name}
+                            propertyCurrency={property.currency}
+                          />
                         </div>
                       )}
                     </div>
