@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 
 interface NAVHistoryPoint {
   id: string
@@ -43,8 +43,6 @@ export default function NAVDashboard() {
   const [snapshotLoading, setSnapshotLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | '6m' | '3m' | '1m'>('all')
-
-  const supabase = createClient()
 
   useEffect(() => {
     loadNAVData()
