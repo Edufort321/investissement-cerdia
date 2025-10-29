@@ -137,6 +137,6 @@ BEGIN
   RAISE NOTICE '   - Parts = 0';
   RAISE NOTICE '   - Total investi = 0$';
   RAISE NOTICE '   - Valeur actuelle = 0$';
-  RAISE NOTICE '   - ROI = 0%';
+  RAISE NOTICE '   - ROI = 0%%';
   RAISE NOTICE '';
 END $$;
