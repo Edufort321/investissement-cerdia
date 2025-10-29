@@ -941,7 +941,7 @@ export default function DashboardPage() {
               {adminSubTab === 'mode_emploi' && <UserGuide />}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
               {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes'].includes(adminSubTab) && (
-                <AdministrationTab activeSubTab={adminSubTab} />
+                <AdministrationTab activeSubTab={adminSubTab as 'investisseurs' | 'transactions' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'} />
               )}
             </>
           )}
