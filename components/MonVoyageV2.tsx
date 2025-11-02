@@ -1581,31 +1581,9 @@ export default function MonVoyageV2() {
           userId={userSession.userId || currentUser?.id || ''}
           userMode={userSession.mode}
           onSelectVoyage={async (voyageId) => {
-            // Charger le voyage depuis la DB
-            const voyage = await voyageService.getById(voyageId)
-            if (voyage) {
-              // Convertir VoyageDB en Voyage
-              const voyageComplet: Voyage = {
-                id: voyage.id,
-                userId: voyage.user_id,
-                titre: voyage.titre,
-                dateDebut: voyage.date_debut,
-                dateFin: voyage.date_fin,
-                budget: voyage.budget || undefined,
-                devise: voyage.devise,
-                evenements: [], // À charger depuis evenementService
-                depenses: [], // À charger depuis depenseService
-                checklist: [], // À charger depuis checklistService
-                partage: {
-                  actif: false,
-                  lien: '',
-                  enDirect: false
-                }
-              }
-              setVoyageActif(voyageComplet)
-              setVoyageActifId(voyageId)
-              setShowVoyageList(false)
-            }
+            // Utiliser loadVoyageFromDB qui charge TOUT (événements, dépenses, checklist)
+            await loadVoyageFromDB(voyageId)
+            setShowVoyageList(false)
           }}
           onCreateNew={() => {
             setShowCreateModal(true)
