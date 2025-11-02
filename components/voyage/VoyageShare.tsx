@@ -1,8 +1,16 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Share2, Copy, Check, Eye, EyeOff, Globe, Link as LinkIcon } from 'lucide-react'
+import { Share2, Copy, Check, Eye, EyeOff, Globe, Link as LinkIcon, CheckSquare, Calendar, Image, DollarSign, MapPin } from 'lucide-react'
 import { Voyage } from '@/types/voyage'
+
+export interface SharePreferences {
+  timeline: boolean
+  checklist: boolean
+  photos: boolean
+  budget: boolean
+  map: boolean
+}
 
 interface VoyageShareProps {
   voyage: Voyage
@@ -11,6 +19,8 @@ interface VoyageShareProps {
   shareLink?: string
   isLive: boolean
   language?: string
+  sharePreferences?: SharePreferences
+  onSharePreferencesChange?: (prefs: SharePreferences) => void
 }
 
 export default function VoyageShare({
@@ -19,9 +29,28 @@ export default function VoyageShare({
   onToggleLive,
   shareLink,
   isLive,
-  language = 'fr'
+  language = 'fr',
+  sharePreferences,
+  onSharePreferencesChange
 }: VoyageShareProps) {
   const [copied, setCopied] = useState(false)
+  const [localPrefs, setLocalPrefs] = useState<SharePreferences>(
+    sharePreferences || {
+      timeline: true,
+      checklist: true,
+      photos: true,
+      budget: false,
+      map: true
+    }
+  )
+
+  const handleTogglePreference = (key: keyof SharePreferences) => {
+    const newPrefs = { ...localPrefs, [key]: !localPrefs[key] }
+    setLocalPrefs(newPrefs)
+    if (onSharePreferencesChange) {
+      onSharePreferencesChange(newPrefs)
+    }
+  }
 
   const t = (key: string) => {
     const translations: Record<string, { fr: string; en: string }> = {
@@ -36,11 +65,16 @@ export default function VoyageShare({
       'share.copied': { fr: 'Copié !', en: 'Copied!' },
       'share.public': { fr: 'Visible publiquement', en: 'Publicly Visible' },
       'share.private': { fr: 'Privé', en: 'Private' },
+      'share.customize': { fr: 'Personnaliser le partage', en: 'Customize Sharing' },
+      'share.customizeDesc': { fr: 'Choisissez exactement ce que vous voulez partager', en: 'Choose exactly what you want to share' },
       'share.whatIsShared': { fr: 'Ce qui sera partagé', en: 'What Will Be Shared' },
       'share.timeline': { fr: 'Timeline complète avec événements', en: 'Complete timeline with events' },
       'share.checklist': { fr: 'Checklist de préparation', en: 'Preparation checklist' },
       'share.photos': { fr: 'Photos de voyage', en: 'Trip photos' },
-      'share.budget': { fr: 'Budget (si partagé)', en: 'Budget (if shared)' }
+      'share.budget': { fr: 'Budget et dépenses', en: 'Budget and expenses' },
+      'share.map': { fr: 'Carte interactive', en: 'Interactive map' },
+      'share.nothingSelected': { fr: 'Aucun élément sélectionné', en: 'No items selected' },
+      'share.selectAtLeastOne': { fr: 'Sélectionnez au moins un élément à partager', en: 'Select at least one item to share' }
     }
     return translations[key]?.[language as 'fr' | 'en'] || key
   }
@@ -161,28 +195,90 @@ export default function VoyageShare({
         )}
       </div>
 
-      {/* What's Shared */}
+      {/* Customize Sharing */}
       <div className="bg-gray-800 rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-100 mb-4">
-          {t('share.whatIsShared')}
-        </h3>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-100 mb-1">
+            {t('share.customize')}
+          </h3>
+          <p className="text-sm text-gray-400">
+            {t('share.customizeDesc')}
+          </p>
+        </div>
 
         <div className="space-y-3">
           {[
-            { icon: '📅', text: t('share.timeline') },
-            { icon: '✓', text: t('share.checklist') },
-            { icon: '📸', text: t('share.photos') },
-            { icon: '💰', text: t('share.budget') }
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg"
-            >
-              <span className="text-2xl">{item.icon}</span>
-              <span className="text-gray-300">{item.text}</span>
-            </div>
-          ))}
+            {
+              key: 'timeline' as keyof SharePreferences,
+              icon: Calendar,
+              emoji: '📅',
+              text: t('share.timeline')
+            },
+            {
+              key: 'checklist' as keyof SharePreferences,
+              icon: CheckSquare,
+              emoji: '✓',
+              text: t('share.checklist')
+            },
+            {
+              key: 'map' as keyof SharePreferences,
+              icon: MapPin,
+              emoji: '🗺️',
+              text: t('share.map')
+            },
+            {
+              key: 'photos' as keyof SharePreferences,
+              icon: Image,
+              emoji: '📸',
+              text: t('share.photos')
+            },
+            {
+              key: 'budget' as keyof SharePreferences,
+              icon: DollarSign,
+              emoji: '💰',
+              text: t('share.budget')
+            }
+          ].map((item) => {
+            const Icon = item.icon
+            const isEnabled = localPrefs[item.key]
+            return (
+              <button
+                key={item.key}
+                onClick={() => handleTogglePreference(item.key)}
+                className={`w-full flex items-center justify-between p-4 rounded-lg transition-all ${
+                  isEnabled
+                    ? 'bg-indigo-600/20 border-2 border-indigo-500'
+                    : 'bg-gray-700/50 border-2 border-gray-600 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{item.emoji}</span>
+                  <Icon className={`w-5 h-5 ${isEnabled ? 'text-indigo-400' : 'text-gray-500'}`} />
+                  <span className={`font-medium ${isEnabled ? 'text-gray-100' : 'text-gray-400'}`}>
+                    {item.text}
+                  </span>
+                </div>
+                <div className={`w-12 h-6 rounded-full transition-colors relative ${
+                  isEnabled ? 'bg-indigo-600' : 'bg-gray-600'
+                }`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    isEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`} />
+                </div>
+              </button>
+            )
+          })}
         </div>
+
+        {/* Warning if nothing selected */}
+        {!Object.values(localPrefs).some(v => v) && (
+          <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+            <p className="text-sm text-yellow-300 flex items-center gap-2">
+              <span className="text-lg">⚠️</span>
+              {t('share.selectAtLeastOne')}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Privacy Notice */}

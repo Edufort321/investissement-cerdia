@@ -51,7 +51,7 @@ import VoyageTimeline from './voyage/VoyageTimeline'
 import VoyageChecklist from './voyage/VoyageChecklist'
 import VoyageExpenses from './voyage/VoyageExpenses'
 import VoyageBudget from './voyage/VoyageBudget'
-import VoyageShare from './voyage/VoyageShare'
+import VoyageShare, { SharePreferences } from './voyage/VoyageShare'
 import CreateTripModal from './voyage/CreateTripModal'
 import AddEventModal from './voyage/AddEventModal'
 import dynamic from 'next/dynamic'
@@ -98,6 +98,13 @@ export default function MonVoyageV2() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
+  const [sharePreferences, setSharePreferences] = useState<SharePreferences>({
+    timeline: true,
+    checklist: true,
+    photos: true,
+    budget: false,
+    map: true
+  })
 
   // Initialiser la sidebar fermée sur mobile au montage
   useEffect(() => {
@@ -776,6 +783,12 @@ export default function MonVoyageV2() {
     alert('TODO: Toggle live mode')
   }
 
+  const handleSharePreferencesChange = async (newPrefs: SharePreferences) => {
+    setSharePreferences(newPrefs)
+    // TODO: Sauvegarder dans Supabase (future feature)
+    console.log('📤 Préférences de partage mises à jour:', newPrefs)
+  }
+
   const handleAddTransport = (event: Evenement) => {
     if (!voyageActif) return
     const updatedVoyage = {
@@ -1443,6 +1456,8 @@ export default function MonVoyageV2() {
             shareLink={voyageActif.partage.lien}
             isLive={voyageActif.partage.enDirect}
             language={language}
+            sharePreferences={sharePreferences}
+            onSharePreferencesChange={handleSharePreferencesChange}
           />
         )}
 
