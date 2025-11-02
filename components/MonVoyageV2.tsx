@@ -417,6 +417,7 @@ export default function MonVoyageV2() {
               ...e,
               waypoints: waypoints.map(w => ({
                 id: w.id,
+                evenementId: e.id,
                 nom: w.nom,
                 description: w.description,
                 ordre: w.ordre,
@@ -1784,6 +1785,11 @@ export default function MonVoyageV2() {
           <VoyageDashboard
             voyage={voyageActif}
             onAddEvent={handleAddEvent}
+            onEditEvent={(event) => {
+              setSelectedEvent(event)
+              setShowEditEventModal(true)
+            }}
+            onDeleteEvent={handleDeleteEvent}
             language={language}
           />
         )}

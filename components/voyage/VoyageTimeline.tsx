@@ -130,30 +130,65 @@ export default function VoyageTimeline({
     return colors[type] || 'bg-gray-500/10 border-gray-500/20'
   }
 
-  // Calculer la durée du voyage en jours
-  const dateDebut = new Date(voyage.dateDebut)
-  const dateFin = new Date(voyage.dateFin)
+  // Calculer la durée du voyage en jours (en utilisant des dates locales pour éviter les problèmes de timezone)
+  const dateDebut = new Date(voyage.dateDebut + 'T00:00:00')
+  const dateFin = new Date(voyage.dateFin + 'T23:59:59')
   const dureeJours = Math.ceil((dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-  // Générer les dates pour le Gantt
+  // Générer les dates pour le Gantt avec heures
   const dates = Array.from({ length: dureeJours }, (_, i) => {
     const date = new Date(dateDebut)
     date.setDate(date.getDate() + i)
     return date
   })
 
-  // Trier les événements par date
-  const sortedEvents = [...voyage.evenements].sort((a, b) =>
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  )
+  // Trier les événements par date et heure
+  const sortedEvents = [...voyage.evenements].sort((a, b) => {
+    const dateA = new Date(a.date + (a.heureDebut ? ` ${a.heureDebut}` : ' 00:00'))
+    const dateB = new Date(b.date + (b.heureDebut ? ` ${b.heureDebut}` : ' 00:00'))
+    return dateA.getTime() - dateB.getTime()
+  })
 
-  // Calculer la position de l'événement dans le Gantt
-  const getEventPosition = (eventDate: string) => {
-    const date = new Date(eventDate)
-    const dayIndex = Math.floor((date.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24))
+  // Calculer la position de l'événement dans le Gantt avec précision horaire
+  const getEventPosition = (event: typeof sortedEvents[0]) => {
+    // Utiliser la date locale pour éviter les problèmes de timezone
+    const eventDate = new Date(event.date + 'T00:00:00')
+
+    // Heure de début (si non spécifiée, utiliser 00:00)
+    const startHour = event.heureDebut ? parseInt(event.heureDebut.split(':')[0]) : 0
+    const startMinute = event.heureDebut ? parseInt(event.heureDebut.split(':')[1]) : 0
+
+    // Heure de fin (si non spécifiée, utiliser la même heure + 2h)
+    const endHour = event.heureFin ? parseInt(event.heureFin.split(':')[0]) : startHour + 2
+    const endMinute = event.heureFin ? parseInt(event.heureFin.split(':')[1]) : startMinute
+
+    // Calculer le nombre de jours depuis le début du voyage
+    const millisecondsSinceStart = eventDate.getTime() - dateDebut.getTime()
+    const daysSinceStart = Math.floor(millisecondsSinceStart / (1000 * 60 * 60 * 24))
+
+    // Calculer la position en heures depuis le début du voyage
+    const startHoursSinceVoyageStart = daysSinceStart * 24 + startHour + startMinute / 60
+
+    // Calculer la durée en heures
+    const startTotalMinutes = startHour * 60 + startMinute
+    const endTotalMinutes = endHour * 60 + endMinute
+    let durationHours = (endTotalMinutes - startTotalMinutes) / 60
+
+    // Si durée négative, c'est probablement le lendemain
+    if (durationHours <= 0) {
+      durationHours = ((24 * 60) + endTotalMinutes - startTotalMinutes) / 60
+    }
+
+    // Minimum 30 minutes
+    if (durationHours < 0.5) durationHours = 0.5
+
+    // Chaque jour = 200px, donc 1 heure = 200/24 ≈ 8.33px
+    const pixelsPerHour = 200 / 24
+
     return {
-      left: `${(dayIndex / dureeJours) * 100}%`,
-      width: `${(1 / dureeJours) * 100}%`
+      left: `${startHoursSinceVoyageStart * pixelsPerHour}px`,
+      width: `${durationHours * pixelsPerHour}px`,
+      minWidth: '80px' // Largeur minimum pour la lisibilité
     }
   }
 
@@ -225,22 +260,38 @@ export default function VoyageTimeline({
         </div>
       ) : viewMode === 'gantt' ? (
         <div className="bg-gray-800 rounded-xl shadow-md p-6 overflow-x-auto">
-          {/* Gantt Header - Dates */}
+          {/* Info : Précision horaire */}
+          <div className="mb-4 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+            <p className="text-sm text-blue-300 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{language === 'fr' ? 'Timeline avec précision horaire - Les événements sont positionnés selon leurs heures exactes' : 'Timeline with hourly precision - Events are positioned by exact times'}</span>
+            </p>
+          </div>
+
+          {/* Gantt Header - Dates avec heures */}
           <div className="mb-6">
-            <div className="flex border-b border-gray-700">
+            <div className="flex border-b border-gray-700 min-w-max">
               {dates.map((date, i) => (
                 <div
                   key={i}
-                  className="flex-1 text-center py-2 border-r border-gray-700 last:border-r-0"
+                  className="border-r border-gray-700 last:border-r-0"
+                  style={{ minWidth: '200px' }}
                 >
-                  <div className="text-xs text-gray-400">
-                    {date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' })}
+                  {/* Date */}
+                  <div className="text-center py-2 border-b border-gray-700/50">
+                    <div className="text-xs text-gray-400">
+                      {date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' })}
+                    </div>
+                    <div className="text-sm font-semibold text-gray-300">
+                      {date.getDate()} {date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' })}
+                    </div>
                   </div>
-                  <div className="text-sm font-semibold text-gray-300">
-                    {date.getDate()}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' })}
+                  {/* Heures */}
+                  <div className="flex text-xs text-gray-500">
+                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">0h</div>
+                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">6h</div>
+                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">12h</div>
+                    <div className="flex-1 text-center py-1">18h</div>
                   </div>
                 </div>
               ))}
@@ -248,48 +299,53 @@ export default function VoyageTimeline({
           </div>
 
           {/* Gantt Body - Events */}
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-max">
             {sortedEvents.map((event) => {
               const Icon = getEventIcon(event.type)
               const color = getEventColor(event.type)
-              const position = getEventPosition(event.date)
+              const position = getEventPosition(event)
 
               return (
-                <div key={event.id} className="relative h-16">
+                <div key={event.id} className="relative h-16" style={{ minWidth: `${dates.length * 200}px` }}>
                   {/* Grid Background */}
                   <div className="absolute inset-0 flex">
                     {dates.map((_, i) => (
-                      <div key={i} className="flex-1 border-r border-gray-700/30 last:border-r-0" />
+                      <div key={i} className="border-r border-gray-700/30 last:border-r-0" style={{ width: '200px' }} />
                     ))}
                   </div>
 
                   {/* Event Bar */}
                   <div
                     className="absolute top-1 h-14 group cursor-pointer"
-                    style={{ left: position.left, width: position.width, minWidth: '120px' }}
+                    style={{
+                      left: position.left,
+                      width: position.width,
+                      minWidth: position.minWidth
+                    }}
                   >
-                    <div className={`h-full ${color} rounded-lg p-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition relative`}>
+                    <div className={`h-full ${color} rounded-lg p-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition relative pr-20`}>
                       <Icon className="w-4 h-4 text-white flex-shrink-0" />
                       <div className="flex-1 min-w-0 text-white">
                         <p className="text-xs font-semibold truncate">{event.titre}</p>
                         <p className="text-xs opacity-90 truncate">
-                          {event.heureDebut && `${event.heureDebut}`}
+                          {event.heureDebut && event.heureFin && `${event.heureDebut} → ${event.heureFin}`}
+                          {!event.heureFin && event.heureDebut && `${event.heureDebut}`}
                           {event.prix && ` • ${event.prix} ${event.devise}`}
                         </p>
                       </div>
 
-                      {/* Actions (Always Visible) */}
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                      {/* Actions (Always Visible) - Plus visibles */}
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
                         {onEditEvent && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               onEditEvent(event)
                             }}
-                            className="bg-white/20 hover:bg-white/40 p-1.5 rounded shadow-sm transition"
-                            title="Modifier"
+                            className="bg-blue-600 hover:bg-blue-700 p-2 rounded shadow-md transition-all hover:scale-110"
+                            title="✏️ Modifier cet événement"
                           >
-                            <Edit2 className="w-3.5 h-3.5 text-white" />
+                            <Edit2 className="w-4 h-4 text-white" />
                           </button>
                         )}
                         {onDeleteEvent && (
@@ -298,10 +354,10 @@ export default function VoyageTimeline({
                               e.stopPropagation()
                               onDeleteEvent(event.id)
                             }}
-                            className="bg-red-500/30 hover:bg-red-500/50 p-1.5 rounded shadow-sm transition"
-                            title="Supprimer"
+                            className="bg-red-600 hover:bg-red-700 p-2 rounded shadow-md transition-all hover:scale-110"
+                            title="🗑️ Supprimer cet événement"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-white" />
+                            <Trash2 className="w-4 h-4 text-white" />
                           </button>
                         )}
                       </div>
@@ -374,18 +430,19 @@ export default function VoyageTimeline({
                   </div>
                 )}
 
-                {/* Actions (Always Visible) */}
-                <div className="flex gap-2">
+                {/* Actions (Always Visible) - BOUTONS BIEN VISIBLES */}
+                <div className="flex gap-2 mt-3">
                   {onEditEvent && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         onEditEvent(event)
                       }}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition shadow-sm"
-                      title="Modifier"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center gap-2"
+                      title="✏️ Modifier cet événement"
                     >
-                      <Edit2 className="w-4 h-4 text-gray-300" />
+                      <Edit2 className="w-4 h-4 text-white" />
+                      <span className="text-sm font-medium text-white">Modifier</span>
                     </button>
                   )}
                   {onDeleteEvent && (
@@ -394,10 +451,11 @@ export default function VoyageTimeline({
                         e.stopPropagation()
                         onDeleteEvent(event.id)
                       }}
-                      className="p-2 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition shadow-sm"
-                      title="Supprimer"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center gap-2"
+                      title="🗑️ Supprimer cet événement"
                     >
-                      <Trash2 className="w-4 h-4 text-red-400" />
+                      <Trash2 className="w-4 h-4 text-white" />
+                      <span className="text-sm font-medium text-white">Supprimer</span>
                     </button>
                   )}
                 </div>

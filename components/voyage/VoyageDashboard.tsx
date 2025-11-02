@@ -10,19 +10,25 @@ import {
   Plus,
   TrendingUp,
   AlertCircle,
-  Star
+  Star,
+  Edit2,
+  Trash2
 } from 'lucide-react'
-import { Voyage } from '@/types/voyage'
+import { Voyage, Evenement } from '@/types/voyage'
 
 interface VoyageDashboardProps {
   voyage: Voyage
   onAddEvent: () => void
+  onEditEvent?: (event: Evenement) => void
+  onDeleteEvent?: (eventId: string) => void
   language?: string
 }
 
 export default function VoyageDashboard({
   voyage,
   onAddEvent,
+  onEditEvent,
+  onDeleteEvent,
   language = 'fr'
 }: VoyageDashboardProps) {
   const t = (key: string) => {
@@ -235,7 +241,7 @@ export default function VoyageDashboard({
               return (
                 <div
                   key={event.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                 >
                   <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center flex-shrink-0">
                     <IconType className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -250,10 +256,40 @@ export default function VoyageDashboard({
                     </p>
                   </div>
                   {event.prix && (
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 mr-3">
                       {event.prix} {event.devise}
                     </span>
                   )}
+
+                  {/* BOUTONS DE MODIFICATION - BIEN VISIBLES */}
+                  <div className="flex gap-2 flex-shrink-0">
+                    {onEditEvent && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onEditEvent(event)
+                        }}
+                        className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:scale-110"
+                        title="✏️ Modifier cet événement"
+                      >
+                        <Edit2 className="w-4 h-4 text-white" />
+                      </button>
+                    )}
+                    {onDeleteEvent && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (window.confirm(language === 'fr' ? 'Supprimer cet événement ?' : 'Delete this event?')) {
+                            onDeleteEvent(event.id)
+                          }
+                        }}
+                        className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all shadow-md hover:scale-110"
+                        title="🗑️ Supprimer cet événement"
+                      >
+                        <Trash2 className="w-4 h-4 text-white" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
