@@ -561,6 +561,7 @@ export default function ScenariosTab() {
     if (!selectedScenario) return
 
     try {
+      // Mettre à jour le scénario
       const { error } = await supabase
         .from('scenarios')
         .update({
@@ -576,13 +577,53 @@ export default function ScenariosTab() {
           purchase_price: formData.purchase_price,
           purchase_currency: formData.purchase_currency,
           initial_fees: formData.initial_fees,
+          initial_fees_distribution: formData.initial_fees_distribution,
+          deduct_initial_from_first_term: formData.deduct_initial_from_first_term,
+          transaction_fees: formData.transaction_fees,
           delivery_date: formData.delivery_date,
           completion_year: formData.completion_year,
           construction_status: formData.construction_status,
+          promoter_data: formData.promoter_data,
+          payment_terms: formData.payment_terms,
+          recurring_fees: formData.recurring_fees,
+          main_photo_url: formData.main_photo_url
         })
         .eq('id', selectedScenario.id)
 
       if (error) throw error
+
+      // Si le scénario a été converti en projet (acheté), mettre à jour aussi la propriété
+      if (selectedScenario.status === 'purchased' && selectedScenario.converted_property_id) {
+        console.log('🔵 [UPDATE] Scénario acheté détecté - mise à jour du projet lié:', selectedScenario.converted_property_id)
+
+        // Créer un objet scenario temporaire avec les nouvelles données pour calculer le total_cost
+        const tempScenario = {
+          ...selectedScenario,
+          ...formData
+        }
+
+        const propertyUpdateData = {
+          name: getFullName(formData.name, formData.unit_number),
+          location: formData.address || t('scenarios.toBeDefinedLocation'),
+          total_cost: calculateTotalCost(tempScenario),
+          main_photo_url: formData.main_photo_url || null,
+          recurring_fees: formData.recurring_fees || [],
+          initial_fees_distribution: formData.initial_fees_distribution || 'first_payment',
+          deduct_initial_from_first_term: formData.deduct_initial_from_first_term || false
+        }
+
+        const { error: propertyError } = await supabase
+          .from('properties')
+          .update(propertyUpdateData)
+          .eq('id', selectedScenario.converted_property_id)
+
+        if (propertyError) {
+          console.error('❌ [UPDATE] Erreur lors de la mise à jour du projet:', propertyError)
+          alert('⚠️ Le scénario a été mis à jour, mais il y a eu une erreur lors de la mise à jour du projet lié.')
+        } else {
+          console.log('✅ [UPDATE] Projet mis à jour avec succès')
+        }
+      }
 
       alert('Modifications sauvegardées avec succès!')
 
