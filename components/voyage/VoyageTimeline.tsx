@@ -278,22 +278,30 @@ export default function VoyageTimeline({
                         </p>
                       </div>
 
-                      {/* Hover Actions */}
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                      {/* Actions (Always Visible) */}
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
                         {onEditEvent && (
                           <button
-                            onClick={() => onEditEvent(event)}
-                            className="bg-white/20 hover:bg-white/30 p-1 rounded"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onEditEvent(event)
+                            }}
+                            className="bg-white/20 hover:bg-white/40 p-1.5 rounded shadow-sm transition"
+                            title="Modifier"
                           >
-                            <Edit2 className="w-3 h-3 text-white" />
+                            <Edit2 className="w-3.5 h-3.5 text-white" />
                           </button>
                         )}
                         {onDeleteEvent && (
                           <button
-                            onClick={() => onDeleteEvent(event.id)}
-                            className="bg-red-500/20 hover:bg-red-500/30 p-1 rounded"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteEvent(event.id)
+                            }}
+                            className="bg-red-500/30 hover:bg-red-500/50 p-1.5 rounded shadow-sm transition"
+                            title="Supprimer"
                           >
-                            <Trash2 className="w-3 h-3 text-white" />
+                            <Trash2 className="w-3.5 h-3.5 text-white" />
                           </button>
                         )}
                       </div>
@@ -366,20 +374,28 @@ export default function VoyageTimeline({
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                {/* Actions (Always Visible) */}
+                <div className="flex gap-2">
                   {onEditEvent && (
                     <button
-                      onClick={() => onEditEvent(event)}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEditEvent(event)
+                      }}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition shadow-sm"
+                      title="Modifier"
                     >
                       <Edit2 className="w-4 h-4 text-gray-300" />
                     </button>
                   )}
                   {onDeleteEvent && (
                     <button
-                      onClick={() => onDeleteEvent(event.id)}
-                      className="p-2 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteEvent(event.id)
+                      }}
+                      className="p-2 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition shadow-sm"
+                      title="Supprimer"
                     >
                       <Trash2 className="w-4 h-4 text-red-400" />
                     </button>
