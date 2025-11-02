@@ -72,6 +72,7 @@ export interface EvenementDB {
   devise: string
   notes?: string
   transport?: string
+  external_link?: string
 }
 
 export interface DepenseDB {

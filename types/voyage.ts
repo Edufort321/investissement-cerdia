@@ -48,6 +48,8 @@ export interface Evenement {
   fromLocation?: string
   // Points d'intérêt / étapes
   waypoints?: Waypoint[]
+  // Lien externe vers application/site web de l'événement
+  externalLink?: string
 }
 
 export interface Depense {

@@ -65,6 +65,9 @@ export default function EditEventModal({
   // État pour les waypoints (étapes/points d'intérêt)
   const [waypoints, setWaypoints] = useState<Waypoint[]>(event.waypoints || [])
 
+  // État pour le lien externe (lien vers app/site de l'événement)
+  const [externalLink, setExternalLink] = useState(event.externalLink || '')
+
   // Extraire les infos de parking des notes existantes
   useEffect(() => {
     if (event.notes) {
@@ -174,7 +177,9 @@ export default function EditEventModal({
       'event.transportMode': { fr: 'Moyen de transport', en: 'Transport Mode' },
       'event.price': { fr: 'Prix', en: 'Price' },
       'event.notes': { fr: 'Notes', en: 'Notes' },
-      'event.rating': { fr: 'Évaluation', en: 'Rating' }
+      'event.rating': { fr: 'Évaluation', en: 'Rating' },
+      'event.externalLink': { fr: 'Lien de l\'événement', en: 'Event Link' },
+      'event.externalLinkPlaceholder': { fr: 'Ex: lien de réservation, billetterie, site web...', en: 'Ex: booking link, ticketing, website...' }
     }
     return translations[key]?.[language as 'fr' | 'en'] || key
   }
@@ -215,7 +220,8 @@ export default function EditEventModal({
         rating: rating > 0 ? rating : undefined,
         heureDebut: heureDebut || undefined,
         heureFin: heureFin || undefined,
-        waypoints: waypoints.length > 0 ? waypoints : undefined
+        waypoints: waypoints.length > 0 ? waypoints : undefined,
+        externalLink: externalLink.trim() || undefined
       }
 
       await onSave(event.id, updates)
@@ -551,6 +557,21 @@ export default function EditEventModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          {/* Lien externe */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {t('event.externalLink')}
+            </label>
+            <input
+              type="url"
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              placeholder={t('event.externalLinkPlaceholder')}
+              className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
 

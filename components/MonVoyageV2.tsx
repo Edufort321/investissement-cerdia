@@ -588,6 +588,7 @@ export default function MonVoyageV2() {
     heureDebut?: string
     heureFin?: string
     waypoints?: Waypoint[]
+    externalLink?: string
   }) => {
     if (!voyageActif) return
 
@@ -625,7 +626,8 @@ export default function MonVoyageV2() {
       duration: eventData.duration,
       fromLocation: eventData.fromLocation,
       rating: eventData.rating,
-      waypoints: eventData.waypoints
+      waypoints: eventData.waypoints,
+      externalLink: eventData.externalLink
     }
 
     // Mettre à jour l'état local d'abord (optimistic update)
@@ -663,7 +665,8 @@ export default function MonVoyageV2() {
           prix: eventData.prix,
           devise: voyageActif.devise,
           notes: eventData.notes,
-          transport: eventData.transportMode
+          transport: eventData.transportMode,
+          external_link: eventData.externalLink
         })
 
         if (evenementDB) {
@@ -750,6 +753,7 @@ export default function MonVoyageV2() {
         if (updates.duration !== undefined) supabaseUpdates.duration = updates.duration
         if (updates.rating !== undefined) supabaseUpdates.rating = updates.rating
         if (updates.coordonnees !== undefined) supabaseUpdates.coordonnees = updates.coordonnees
+        if (updates.externalLink !== undefined) supabaseUpdates.external_link = updates.externalLink
 
         await evenementService.update(eventId, supabaseUpdates)
         console.log('✅ Événement mis à jour dans Supabase:', eventId)

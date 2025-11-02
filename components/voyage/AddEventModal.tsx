@@ -34,6 +34,7 @@ interface AddEventModalProps {
     heureDebut?: string
     heureFin?: string
     waypoints?: Waypoint[]
+    externalLink?: string
   }) => void
   language?: string
   tripCurrency?: string
@@ -82,6 +83,9 @@ export default function AddEventModal({
 
   // État pour les waypoints (étapes/points d'intérêt)
   const [waypoints, setWaypoints] = useState<Waypoint[]>([])
+
+  // État pour le lien externe (lien vers app/site de l'événement)
+  const [externalLink, setExternalLink] = useState('')
 
   useEffect(() => {
     if (previousLocation) {
@@ -351,6 +355,8 @@ export default function AddEventModal({
       'event.ratingDesc': { fr: 'Notez votre expérience (optionnel)', en: 'Rate your experience (optional)' },
       'event.notes': { fr: 'Notes', en: 'Notes' },
       'event.notesPlaceholder': { fr: 'Informations supplémentaires...', en: 'Additional information...' },
+      'event.externalLink': { fr: 'Lien de l\'événement', en: 'Event Link' },
+      'event.externalLinkPlaceholder': { fr: 'Ex: lien de réservation, billetterie, site web...', en: 'Ex: booking link, ticketing, website...' },
       'event.aiSuggest': { fr: 'Suggestions IA', en: 'AI Suggestions' },
       'event.add': { fr: 'Ajouter', en: 'Add' },
       'event.cancel': { fr: 'Annuler', en: 'Cancel' }
@@ -541,7 +547,8 @@ export default function AddEventModal({
       rating: rating > 0 ? rating : undefined,
       heureDebut: heureDebut || undefined,
       heureFin: heureFin || undefined,
-      waypoints: waypoints.length > 0 ? waypoints : undefined
+      waypoints: waypoints.length > 0 ? waypoints : undefined,
+      externalLink: externalLink.trim() || undefined
     })
 
     // Reset form
@@ -564,6 +571,7 @@ export default function AddEventModal({
     setTimezoneInfo('')
     setParkingInfo('')
     setWaypoints([])
+    setExternalLink('')
     setType('activity')
     onClose()
   }
@@ -1056,6 +1064,21 @@ export default function AddEventModal({
               placeholder={t('event.notesPlaceholder')}
               rows={3}
               className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          {/* Lien externe */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {t('event.externalLink')}
+            </label>
+            <input
+              type="url"
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              placeholder={t('event.externalLinkPlaceholder')}
+              className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
 
