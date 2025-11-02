@@ -62,6 +62,7 @@ export default function AddEventModal({
   const [loadingScan, setLoadingScan] = useState(false)
   const [timezoneInfo, setTimezoneInfo] = useState<string>('') // Info timezone pour affichage
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [parkingInfo, setParkingInfo] = useState('')
 
   // États pour les suggestions de lieux de transport
   const [fromSuggestions, setFromSuggestions] = useState<any[]>([])
@@ -70,6 +71,11 @@ export default function AddEventModal({
   const [loadingToSuggestions, setLoadingToSuggestions] = useState(false)
   const [showFromSuggestions, setShowFromSuggestions] = useState(false)
   const [showToSuggestions, setShowToSuggestions] = useState(false)
+
+  // États pour les suggestions d'adresses (pour tous types d'événements)
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([])
+  const [loadingLocationSuggestions, setLoadingLocationSuggestions] = useState(false)
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false)
 
   useEffect(() => {
     if (previousLocation) {
@@ -150,30 +156,54 @@ export default function AddEventModal({
       setLoadingFromSuggestions(true)
       console.log('⏳ Début de la requête API...')
       try {
-        const requestBody = {
-          location: fromLocation,
-          transportMode: transportMode || 'plane',
-          language
+        // Combiner les suggestions de POIs (aéroports, gares) + adresses personnelles
+        const [poiResponse, addressResponse] = await Promise.all([
+          fetch('/api/ai/suggest-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: fromLocation,
+              transportMode: transportMode || 'plane',
+              language
+            })
+          }),
+          fetch('/api/geocode-autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: fromLocation,
+              language,
+              limit: 3
+            })
+          })
+        ])
+
+        const poiData = await poiResponse.json()
+        const addressData = await addressResponse.json()
+
+        console.log('📊 POI Data:', poiData)
+        console.log('📊 Address Data:', addressData)
+
+        // Combiner les résultats (POIs en premier, puis adresses personnelles)
+        const combined = []
+
+        if (poiData.success && poiData.suggestions) {
+          combined.push(...poiData.suggestions.map((s: any) => ({ ...s, source: 'poi' })))
         }
-        console.log('📤 Envoi requête:', requestBody)
 
-        const response = await fetch('/api/ai/suggest-location', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        })
-
-        console.log('📥 Réponse reçue:', response.status)
-        const data = await response.json()
-        console.log('📊 Données:', data)
-
-        if (data.success && data.suggestions) {
-          console.log(`✅ ${data.suggestions.length} suggestions trouvées`)
-          setFromSuggestions(data.suggestions)
-          setShowFromSuggestions(data.suggestions.length > 0)
-        } else {
-          console.warn('⚠️ Pas de suggestions ou erreur:', data.error)
+        if (addressData.success && addressData.results) {
+          combined.push(...addressData.results.map((r: any) => ({
+            name: r.shortName,
+            description: r.fullAddress,
+            type: 'address',
+            source: 'geocode',
+            coordinates: r.coordinates
+          })))
         }
+
+        console.log(`✅ ${combined.length} suggestions combinées trouvées (POIs + adresses)`)
+        setFromSuggestions(combined)
+        setShowFromSuggestions(combined.length > 0)
       } catch (error) {
         console.error('❌ Erreur suggestions départ:', error)
       } finally {
@@ -196,21 +226,50 @@ export default function AddEventModal({
     const timer = setTimeout(async () => {
       setLoadingToSuggestions(true)
       try {
-        const response = await fetch('/api/ai/suggest-location', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: lieu,
-            transportMode: transportMode || 'plane',
-            language
+        // Combiner les suggestions de POIs (aéroports, gares) + adresses
+        const [poiResponse, addressResponse] = await Promise.all([
+          fetch('/api/ai/suggest-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: lieu,
+              transportMode: transportMode || 'plane',
+              language
+            })
+          }),
+          fetch('/api/geocode-autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: lieu,
+              language,
+              limit: 3
+            })
           })
-        })
+        ])
 
-        const data = await response.json()
-        if (data.success && data.suggestions) {
-          setToSuggestions(data.suggestions)
-          setShowToSuggestions(data.suggestions.length > 0)
+        const poiData = await poiResponse.json()
+        const addressData = await addressResponse.json()
+
+        // Combiner les résultats (POIs en premier, puis adresses)
+        const combined = []
+
+        if (poiData.success && poiData.suggestions) {
+          combined.push(...poiData.suggestions.map((s: any) => ({ ...s, source: 'poi' })))
         }
+
+        if (addressData.success && addressData.results) {
+          combined.push(...addressData.results.map((r: any) => ({
+            name: r.shortName,
+            description: r.fullAddress,
+            type: 'address',
+            source: 'geocode',
+            coordinates: r.coordinates
+          })))
+        }
+
+        setToSuggestions(combined)
+        setShowToSuggestions(combined.length > 0)
       } catch (error) {
         console.error('Erreur suggestions arrivée:', error)
       } finally {
@@ -220,6 +279,42 @@ export default function AddEventModal({
 
     return () => clearTimeout(timer)
   }, [lieu, type, transportMode, language])
+
+  // Suggestions d'adresses pour événements non-transport (hotel, activity, restaurant)
+  useEffect(() => {
+    if (type === 'transport' || !lieu || lieu.length < 3) {
+      setLocationSuggestions([])
+      setShowLocationSuggestions(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setLoadingLocationSuggestions(true)
+      try {
+        const response = await fetch('/api/geocode-autocomplete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: lieu,
+            language,
+            limit: 5
+          })
+        })
+
+        const data = await response.json()
+        if (data.success && data.results) {
+          setLocationSuggestions(data.results)
+          setShowLocationSuggestions(data.results.length > 0)
+        }
+      } catch (error) {
+        console.error('Erreur suggestions lieu:', error)
+      } finally {
+        setLoadingLocationSuggestions(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [lieu, type, language])
 
   const t = (key: string) => {
     const translations: Record<string, { fr: string; en: string }> = {
@@ -410,6 +505,15 @@ export default function AddEventModal({
     // Obtenir les coordonnées du lieu
     const coordinates = await geocodeLocation(lieu.trim())
 
+    // Construire les notes avec info de stationnement si applicable
+    let finalNotes = notes.trim()
+    if (transportMode === 'car' && parkingInfo.trim()) {
+      const parkingNote = language === 'fr'
+        ? `🅿️ Stationnement: ${parkingInfo.trim()}`
+        : `🅿️ Parking: ${parkingInfo.trim()}`
+      finalNotes = finalNotes ? `${finalNotes}\n\n${parkingNote}` : parkingNote
+    }
+
     onAdd({
       type,
       titre: titre.trim(),
@@ -423,7 +527,7 @@ export default function AddEventModal({
       numeroVol: undefined, // TODO: Ajouter champ dans le formulaire
       compagnie: undefined, // TODO: Ajouter champ dans le formulaire
       prix: prix ? parseFloat(prix) : undefined,
-      notes: notes.trim() || undefined,
+      notes: finalNotes || undefined,
       transportMode: type === 'transport' ? transportMode || undefined : undefined,
       duration: duration ? parseInt(duration) : undefined,
       fromLocation: type === 'transport' ? fromLocation.trim() || undefined : undefined,
@@ -451,6 +555,7 @@ export default function AddEventModal({
     setHeureFin('')
     setRating(0)
     setTimezoneInfo('')
+    setParkingInfo('')
     setType('activity')
     onClose()
   }
@@ -778,6 +883,28 @@ export default function AddEventModal({
                   )}
                 </div>
               )}
+
+              {/* Parking Info (for car transport) */}
+              {transportMode === 'car' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    {language === 'fr' ? '🅿️ Stationnement' : '🅿️ Parking'}
+                  </label>
+                  <textarea
+                    value={parkingInfo}
+                    onChange={(e) => setParkingInfo(e.target.value)}
+                    placeholder={language === 'fr' ? 'Ex: Stationnement public rue Saint-Jean, 5$/heure' : 'Ex: Public parking on Saint-Jean street, $5/hour'}
+                    rows={2}
+                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {language === 'fr'
+                      ? '💡 Lieu de stationnement, coût, instructions'
+                      : '💡 Parking location, cost, instructions'}
+                  </p>
+                </div>
+              )}
             </>
           )}
 
@@ -812,7 +939,7 @@ export default function AddEventModal({
               />
             </div>
             {type !== 'transport' && (
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   {t('event.location')}
@@ -821,9 +948,39 @@ export default function AddEventModal({
                   type="text"
                   value={lieu}
                   onChange={(e) => setLieu(e.target.value)}
+                  onFocus={() => locationSuggestions.length > 0 && setShowLocationSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
                   placeholder={t('event.locationPlaceholder')}
                   className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
+                {loadingLocationSuggestions && (
+                  <div className="absolute right-3 top-11 text-gray-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
+                )}
+                {/* Suggestions Dropdown */}
+                {showLocationSuggestions && locationSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {locationSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          setLieu(suggestion.shortName || suggestion.name)
+                          setShowLocationSuggestions(false)
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                      >
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">
+                          📍 {suggestion.shortName || suggestion.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {suggestion.fullAddress || suggestion.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
