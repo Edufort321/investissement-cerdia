@@ -1385,7 +1385,6 @@ export default function MonVoyageV2() {
           budget={voyageActif.budget}
           totalSpent={totalSpent}
           devise={voyageActif.devise}
-          onEditBudget={handleEditBudget}
         />
 
         {/* Content Area */}
