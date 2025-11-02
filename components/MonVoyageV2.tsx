@@ -452,9 +452,12 @@ export default function MonVoyageV2() {
           mode: 'investor',
           userId: currentUser.id
         }
+        // Sauvegarder la session dans localStorage pour persistance
+        localStorage.setItem('monVoyageSession', JSON.stringify(investorSession))
         setUserSession(investorSession)
         setShowModeSelection(false)
         setShowVoyageChoice(true)
+        console.log('✅ [VOYAGE] Session investisseur créée et sauvegardée')
       } else {
         // Rediriger vers la page de connexion investisseur avec retour vers Mon Voyage
         router.push('/connexion?redirect=/mon-voyage')
@@ -592,6 +595,15 @@ export default function MonVoyageV2() {
   }) => {
     if (!voyageActif) return
 
+    // DEBUG: Log pour comprendre le mode de sauvegarde
+    console.log('🔍 [DEBUG] handleSaveEvent - État:', {
+      currentUser: !!currentUser,
+      userSession: !!userSession,
+      userSessionMode: userSession?.mode,
+      voyageActifId: voyageActif.id,
+      voyageActifTitre: voyageActif.titre
+    })
+
     // Mapper les types d'événements
     const typeMap: Record<string, 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'> = {
       'hotel': 'hebergement',
@@ -639,6 +651,12 @@ export default function MonVoyageV2() {
 
     // Sauvegarder dans Supabase si mode payant (investor/single/full)
     const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    console.log('🔍 [DEBUG] Mode sauvegarde:', {
+      isGratuit,
+      raison: !currentUser ? 'Pas de currentUser' : !userSession ? 'Pas de userSession' : userSession.mode === 'free' ? 'Mode gratuit' : 'Mode payant',
+      voyageId: voyageActif.id
+    })
 
     if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
       try {
