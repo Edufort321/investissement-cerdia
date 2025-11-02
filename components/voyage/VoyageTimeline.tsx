@@ -155,12 +155,12 @@ export default function VoyageTimeline({
     const eventDate = new Date(event.date + 'T00:00:00')
 
     // Heure de début (si non spécifiée, utiliser 00:00)
-    const startHour = event.heureDebut ? parseInt(event.heureDebut.split(':')[0]) : 0
-    const startMinute = event.heureDebut ? parseInt(event.heureDebut.split(':')[1]) : 0
+    const startHour = event.heureDebut ? parseInt(event.heureDebut.split(':')[0], 10) : 0
+    const startMinute = event.heureDebut ? parseInt(event.heureDebut.split(':')[1], 10) : 0
 
     // Heure de fin (si non spécifiée, utiliser la même heure + 2h)
-    const endHour = event.heureFin ? parseInt(event.heureFin.split(':')[0]) : startHour + 2
-    const endMinute = event.heureFin ? parseInt(event.heureFin.split(':')[1]) : startMinute
+    const endHour = event.heureFin ? parseInt(event.heureFin.split(':')[0], 10) : startHour + 2
+    const endMinute = event.heureFin ? parseInt(event.heureFin.split(':')[1], 10) : startMinute
 
     // Calculer le nombre de jours depuis le début du voyage
     const millisecondsSinceStart = eventDate.getTime() - dateDebut.getTime()
@@ -180,75 +180,87 @@ export default function VoyageTimeline({
     }
 
     // Minimum 30 minutes
-    if (durationHours < 0.5) durationHours = 0.5
+    if (durationHours < 0.5) {
+      durationHours = 0.5
+    }
 
-    // Chaque jour = 200px, donc 1 heure = 200/24 ≈ 8.33px
-    const pixelsPerHour = 200 / 24
+    // Chaque jour = 600px (pour plus de lisibilité), donc 1 heure = 600/24 = 25px
+    const DAY_WIDTH_PX = 600
+    const pixelsPerHour = DAY_WIDTH_PX / 24
+    const widthPx = durationHours * pixelsPerHour
 
     return {
       left: `${startHoursSinceVoyageStart * pixelsPerHour}px`,
-      width: `${durationHours * pixelsPerHour}px`,
-      minWidth: '80px' // Largeur minimum pour la lisibilité
+      width: `${widthPx}px`,
+      minWidth: '40px' // Minimum pour que ce soit cliquable
     }
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
           {t('timeline.title')}
         </h1>
-        <div className="flex items-center gap-3">
+
+        {/* Actions - Responsive */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           {/* View Toggle */}
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setViewMode('gantt')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition ${
                 viewMode === 'gantt'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              {t('timeline.gantt')}
+              📊 {t('timeline.gantt')}
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              {t('timeline.list')}
+              📋 {t('timeline.list')}
             </button>
           </div>
 
-          {voyage.evenements.length >= 2 && (
+          {/* Action Buttons - Stacked on mobile */}
+          <div className="flex flex-wrap gap-2">
+            {voyage.evenements.length >= 2 && (
+              <button
+                onClick={handleOptimize}
+                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 text-xs sm:text-sm"
+              >
+                <Navigation className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('timeline.optimizeRoute')}</span>
+                <span className="sm:hidden">Optimiser</span>
+              </button>
+            )}
+
             <button
-              onClick={handleOptimize}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+              onClick={() => setShowEmailImport(true)}
+              className="flex-1 sm:flex-none bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 text-xs sm:text-sm"
             >
-              <Navigation className="w-4 h-4" />
-              {t('timeline.optimizeRoute')}
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('timeline.importEmail')}</span>
+              <span className="sm:hidden">Email</span>
             </button>
-          )}
 
-          <button
-            onClick={() => setShowEmailImport(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
-          >
-            <Mail className="w-4 h-4" />
-            {t('timeline.importEmail')}
-          </button>
-
-          <button
-            onClick={onAddEvent}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {t('timeline.addEvent')}
-          </button>
+            <button
+              onClick={onAddEvent}
+              className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 text-xs sm:text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('timeline.addEvent')}</span>
+              <span className="sm:hidden">Ajouter</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -275,7 +287,7 @@ export default function VoyageTimeline({
                 <div
                   key={i}
                   className="border-r border-gray-700 last:border-r-0"
-                  style={{ minWidth: '200px' }}
+                  style={{ width: '600px' }}
                 >
                   {/* Date */}
                   <div className="text-center py-2 border-b border-gray-700/50">
@@ -286,12 +298,17 @@ export default function VoyageTimeline({
                       {date.getDate()} {date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' })}
                     </div>
                   </div>
-                  {/* Heures */}
+                  {/* Heures - Chaque heure pour plus de précision */}
                   <div className="flex text-xs text-gray-500">
-                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">0h</div>
-                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">6h</div>
-                    <div className="flex-1 text-center py-1 border-r border-gray-700/30">12h</div>
-                    <div className="flex-1 text-center py-1">18h</div>
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour, idx, arr) => (
+                      <div
+                        key={hour}
+                        className={`flex-1 text-center py-1 ${idx < arr.length - 1 ? 'border-r border-gray-700/30' : ''}`}
+                        style={{ minWidth: '25px' }}
+                      >
+                        {hour}h
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -306,24 +323,25 @@ export default function VoyageTimeline({
               const position = getEventPosition(event)
 
               return (
-                <div key={event.id} className="relative h-16" style={{ minWidth: `${dates.length * 200}px` }}>
+                <div key={event.id} className="relative h-16" style={{ minWidth: `${dates.length * 600}px` }}>
                   {/* Grid Background */}
                   <div className="absolute inset-0 flex">
                     {dates.map((_, i) => (
-                      <div key={i} className="border-r border-gray-700/30 last:border-r-0" style={{ width: '200px' }} />
+                      <div key={i} className="border-r border-gray-700/30 last:border-r-0" style={{ width: '600px' }} />
                     ))}
                   </div>
 
-                  {/* Event Bar */}
+                  {/* Event Bar - SANS boutons modifier/supprimer */}
                   <div
-                    className="absolute top-1 h-14 group cursor-pointer"
+                    className="absolute top-1 h-14 cursor-pointer"
                     style={{
                       left: position.left,
                       width: position.width,
                       minWidth: position.minWidth
                     }}
+                    title={`${event.titre}\n${event.heureDebut || ''} ${event.heureFin ? `→ ${event.heureFin}` : ''}\n${event.lieu || ''}`}
                   >
-                    <div className={`h-full ${color} rounded-lg p-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition relative pr-20`}>
+                    <div className={`h-full ${color} rounded-lg p-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition`}>
                       <Icon className="w-4 h-4 text-white flex-shrink-0" />
                       <div className="flex-1 min-w-0 text-white">
                         <p className="text-xs font-semibold truncate">{event.titre}</p>
@@ -332,34 +350,6 @@ export default function VoyageTimeline({
                           {!event.heureFin && event.heureDebut && `${event.heureDebut}`}
                           {event.prix && ` • ${event.prix} ${event.devise}`}
                         </p>
-                      </div>
-
-                      {/* Actions (Always Visible) - Plus visibles */}
-                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-                        {onEditEvent && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onEditEvent(event)
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 p-2 rounded shadow-md transition-all hover:scale-110"
-                            title="✏️ Modifier cet événement"
-                          >
-                            <Edit2 className="w-4 h-4 text-white" />
-                          </button>
-                        )}
-                        {onDeleteEvent && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDeleteEvent(event.id)
-                            }}
-                            className="bg-red-600 hover:bg-red-700 p-2 rounded shadow-md transition-all hover:scale-110"
-                            title="🗑️ Supprimer cet événement"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -378,67 +368,88 @@ export default function VoyageTimeline({
             return (
               <div
                 key={event.id}
-                className={`bg-gray-800 border ${bgColor} rounded-xl p-4 flex items-center gap-4 group hover:shadow-lg transition`}
+                className={`bg-gray-800 border ${bgColor} rounded-xl p-4 hover:shadow-lg transition`}
               >
-                <div className={`w-12 h-12 ${getEventColor(event.type)} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
+                {/* Layout responsive: colonne sur mobile, ligne sur desktop */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {/* Icône et titre */}
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className={`w-12 h-12 ${getEventColor(event.type)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-semibold text-gray-100">{event.titre}</h3>
-                    <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
-                      {t(`timeline.type.${event.type}`)}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      {/* Titre et badge */}
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-100 break-words">{event.titre}</h3>
+                        <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs whitespace-nowrap">
+                          {t(`timeline.type.${event.type}`)}
+                        </span>
+                      </div>
+
+                      {/* Informations sur une ou deux lignes selon l'espace */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
+                        <span className="flex items-center gap-1">
+                          📅 {new Date(event.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
+                        </span>
+                        {event.heureDebut && (
+                          <span className="flex items-center gap-1">
+                            🕒 {event.heureDebut}
+                            {event.heureFin && ` → ${event.heureFin}`}
+                          </span>
+                        )}
+                        {event.lieu && (
+                          <span className="flex items-center gap-1 truncate">
+                            📍 {event.lieu}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Notes */}
+                      {event.notes && (
+                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{event.notes}</p>
+                      )}
+
+                      {/* Rating */}
+                      {event.rating && event.rating > 0 && (
+                        <div className="flex items-center gap-1 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= event.rating!
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-400'
+                              }`}
+                            />
+                          ))}
+                          <span className="ml-1 text-sm text-gray-300">
+                            ({event.rating}/5)
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span>
-                      📅 {new Date(event.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
-                    </span>
-                    {event.heureDebut && <span>🕒 {event.heureDebut}</span>}
-                    {event.lieu && <span>📍 {event.lieu}</span>}
-                  </div>
-                  {event.notes && (
-                    <p className="text-sm text-gray-500 mt-2">{event.notes}</p>
+
+                  {/* Prix - Sur le côté desktop, en haut mobile */}
+                  {event.prix && (
+                    <div className="text-left sm:text-right sm:flex-shrink-0 sm:ml-auto">
+                      <p className="text-xl font-bold text-gray-100 whitespace-nowrap">
+                        {event.prix} {event.devise}
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                {event.prix && (
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xl font-bold text-gray-100">
-                      {event.prix} {event.devise}
-                    </p>
-                  </div>
-                )}
-
-                {/* Rating */}
-                {event.rating && event.rating > 0 && (
-                  <div className="flex items-center gap-1 mt-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`w-4 h-4 ${
-                          star <= event.rating!
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-400'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-1 text-sm text-gray-300">
-                      ({event.rating}/5)
-                    </span>
-                  </div>
-                )}
-
-                {/* Actions (Always Visible) - BOUTONS BIEN VISIBLES */}
-                <div className="flex gap-2 mt-3">
+                {/* Actions - En bas, responsive */}
+                <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-700">
                   {onEditEvent && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         onEditEvent(event)
                       }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center gap-2"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center justify-center gap-2"
                       title="✏️ Modifier cet événement"
                     >
                       <Edit2 className="w-4 h-4 text-white" />
@@ -449,9 +460,11 @@ export default function VoyageTimeline({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        onDeleteEvent(event.id)
+                        if (window.confirm(language === 'fr' ? 'Supprimer cet événement ?' : 'Delete this event?')) {
+                          onDeleteEvent(event.id)
+                        }
                       }}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center gap-2"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center justify-center gap-2"
                       title="🗑️ Supprimer cet événement"
                     >
                       <Trash2 className="w-4 h-4 text-white" />
