@@ -55,6 +55,19 @@ export interface EvenementDB {
   heure_debut?: string
   heure_fin?: string
   lieu?: string
+  adresse?: string
+  coordonnees?: { lat: number; lng: number }
+  ville_depart?: string
+  ville_arrivee?: string
+  numero_vol?: string
+  compagnie?: string
+  heure_arrivee?: string
+  date_arrivee?: string
+  transport_mode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
+  duration?: number
+  from_location?: string
+  rating?: number
+  ordre?: number
   prix?: number
   devise: string
   notes?: string

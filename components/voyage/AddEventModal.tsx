@@ -15,6 +15,13 @@ interface AddEventModalProps {
     titre: string
     date: string
     lieu: string
+    adresse?: string
+    villeDepart?: string
+    villeArrivee?: string
+    dateArrivee?: string
+    heureArrivee?: string
+    numeroVol?: string
+    compagnie?: string
     prix?: number
     notes?: string
     transportMode?: TransportMode
@@ -408,6 +415,13 @@ export default function AddEventModal({
       titre: titre.trim(),
       date,
       lieu: lieu.trim(),
+      adresse: lieu.trim(), // Adresse complète
+      villeDepart: type === 'transport' ? fromLocation.trim() || undefined : undefined,
+      villeArrivee: type === 'transport' ? lieu.trim() || undefined : undefined,
+      dateArrivee: type === 'transport' && transportMode === 'plane' ? arrivalDate : undefined,
+      heureArrivee: type === 'transport' ? heureFin || undefined : undefined,
+      numeroVol: undefined, // TODO: Ajouter champ dans le formulaire
+      compagnie: undefined, // TODO: Ajouter champ dans le formulaire
       prix: prix ? parseFloat(prix) : undefined,
       notes: notes.trim() || undefined,
       transportMode: type === 'transport' ? transportMode || undefined : undefined,

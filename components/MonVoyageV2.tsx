@@ -561,6 +561,13 @@ export default function MonVoyageV2() {
     titre: string
     date: string
     lieu: string
+    adresse?: string
+    villeDepart?: string
+    villeArrivee?: string
+    dateArrivee?: string
+    heureArrivee?: string
+    numeroVol?: string
+    compagnie?: string
     prix?: number
     notes?: string
     transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
@@ -581,30 +588,93 @@ export default function MonVoyageV2() {
       'transport': 'transport'
     }
 
+    const mappedType = typeMap[eventData.type] || 'activite'
+
     const newEvent: Evenement = {
       id: Date.now().toString(),
-      type: typeMap[eventData.type] || 'activite',
+      type: mappedType,
       titre: eventData.titre,
       date: eventData.date,
       heureDebut: eventData.heureDebut,
       heureFin: eventData.heureFin,
       lieu: eventData.lieu,
+      adresse: eventData.adresse,
+      villeDepart: eventData.villeDepart,
+      villeArrivee: eventData.villeArrivee,
+      dateArrivee: eventData.dateArrivee,
+      heureArrivee: eventData.heureArrivee,
+      numeroVol: eventData.numeroVol,
+      compagnie: eventData.compagnie,
       prix: eventData.prix,
       devise: voyageActif.devise,
       notes: eventData.notes,
       coordonnees: eventData.coordinates,
       transport: eventData.transportMode,
+      transportMode: eventData.transportMode,
+      duration: eventData.duration,
+      fromLocation: eventData.fromLocation,
       rating: eventData.rating
     }
 
-    // Mettre à jour l'état local
+    // Mettre à jour l'état local d'abord (optimistic update)
     const updatedVoyage = {
       ...voyageActif,
       evenements: [...voyageActif.evenements, newEvent]
     } as Voyage
     setVoyageActif(updatedVoyage)
 
-    // TODO: Sauvegarder dans Supabase si mode payant
+    // Sauvegarder dans Supabase si mode payant (investor/single/full)
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        const evenementDB = await evenementService.create({
+          voyage_id: voyageActif.id,
+          type: mappedType,
+          titre: eventData.titre,
+          date: eventData.date,
+          heure_debut: eventData.heureDebut,
+          heure_fin: eventData.heureFin,
+          lieu: eventData.lieu,
+          adresse: eventData.adresse,
+          coordonnees: eventData.coordinates,
+          ville_depart: eventData.villeDepart,
+          ville_arrivee: eventData.villeArrivee,
+          numero_vol: eventData.numeroVol,
+          compagnie: eventData.compagnie,
+          heure_arrivee: eventData.heureArrivee,
+          date_arrivee: eventData.dateArrivee,
+          transport_mode: eventData.transportMode,
+          duration: eventData.duration,
+          from_location: eventData.fromLocation,
+          rating: eventData.rating,
+          prix: eventData.prix,
+          devise: voyageActif.devise,
+          notes: eventData.notes,
+          transport: eventData.transportMode
+        })
+
+        if (evenementDB) {
+          // Mettre à jour l'ID local avec l'ID Supabase
+          newEvent.id = evenementDB.id
+          setVoyageActif({
+            ...updatedVoyage,
+            evenements: updatedVoyage.evenements.map(e =>
+              e.id === Date.now().toString() ? { ...e, id: evenementDB.id } : e
+            )
+          } as Voyage)
+          console.log('✅ Événement sauvegardé dans Supabase:', evenementDB.id)
+        }
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde événement Supabase:', error)
+        alert(language === 'fr'
+          ? 'Erreur lors de la sauvegarde de l\'événement'
+          : 'Error saving event')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
   }
 
   const handleImportFromEmail = async (eventData: any) => {
