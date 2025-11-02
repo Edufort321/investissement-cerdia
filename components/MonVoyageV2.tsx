@@ -54,6 +54,7 @@ import VoyageBudget from './voyage/VoyageBudget'
 import VoyageShare, { SharePreferences } from './voyage/VoyageShare'
 import CreateTripModal from './voyage/CreateTripModal'
 import AddEventModal from './voyage/AddEventModal'
+import EditEventModal from './voyage/EditEventModal'
 import dynamic from 'next/dynamic'
 
 // Import dynamique pour VoyageMap (car Leaflet utilise window)
@@ -95,6 +96,8 @@ export default function MonVoyageV2() {
   const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showAddEventModal, setShowAddEventModal] = useState(false)
+  const [showEditEventModal, setShowEditEventModal] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Evenement | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
@@ -677,6 +680,96 @@ export default function MonVoyageV2() {
         alert(language === 'fr'
           ? 'Erreur lors de la sauvegarde de l\'événement'
           : 'Error saving event')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
+  }
+
+  const handleEditEvent = async (eventId: string, updates: Partial<Evenement>) => {
+    if (!voyageActif) return
+
+    // Mettre à jour l'état local d'abord (optimistic update)
+    const updatedEvenements = voyageActif.evenements.map(e =>
+      e.id === eventId ? { ...e, ...updates } : e
+    )
+    const updatedVoyage = {
+      ...voyageActif,
+      evenements: updatedEvenements
+    } as Voyage
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        // Préparer les données pour Supabase (snake_case)
+        const supabaseUpdates: any = {}
+        if (updates.titre !== undefined) supabaseUpdates.titre = updates.titre
+        if (updates.date !== undefined) supabaseUpdates.date = updates.date
+        if (updates.lieu !== undefined) supabaseUpdates.lieu = updates.lieu
+        if (updates.adresse !== undefined) supabaseUpdates.adresse = updates.adresse
+        if (updates.villeDepart !== undefined) supabaseUpdates.ville_depart = updates.villeDepart
+        if (updates.villeArrivee !== undefined) supabaseUpdates.ville_arrivee = updates.villeArrivee
+        if (updates.dateArrivee !== undefined) supabaseUpdates.date_arrivee = updates.dateArrivee
+        if (updates.heureArrivee !== undefined) supabaseUpdates.heure_arrivee = updates.heureArrivee
+        if (updates.heureDebut !== undefined) supabaseUpdates.heure_debut = updates.heureDebut
+        if (updates.heureFin !== undefined) supabaseUpdates.heure_fin = updates.heureFin
+        if (updates.prix !== undefined) supabaseUpdates.prix = updates.prix
+        if (updates.notes !== undefined) supabaseUpdates.notes = updates.notes
+        if (updates.transportMode !== undefined) {
+          supabaseUpdates.transport_mode = updates.transportMode
+          supabaseUpdates.transport = updates.transportMode
+        }
+        if (updates.duration !== undefined) supabaseUpdates.duration = updates.duration
+        if (updates.rating !== undefined) supabaseUpdates.rating = updates.rating
+        if (updates.coordonnees !== undefined) supabaseUpdates.coordonnees = updates.coordonnees
+
+        await evenementService.update(eventId, supabaseUpdates)
+        console.log('✅ Événement mis à jour dans Supabase:', eventId)
+      } catch (error) {
+        console.error('❌ Erreur mise à jour événement Supabase:', error)
+        // Rollback
+        setVoyageActif(voyageActif)
+        alert(language === 'fr'
+          ? 'Erreur lors de la mise à jour de l\'événement'
+          : 'Error updating event')
+        throw error
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!voyageActif) return
+
+    // Mettre à jour l'état local d'abord (optimistic update)
+    const updatedEvenements = voyageActif.evenements.filter(e => e.id !== eventId)
+    const updatedVoyage = {
+      ...voyageActif,
+      evenements: updatedEvenements
+    } as Voyage
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        await evenementService.delete(eventId)
+        console.log('✅ Événement supprimé de Supabase:', eventId)
+      } catch (error) {
+        console.error('❌ Erreur suppression événement Supabase:', error)
+        // Rollback
+        setVoyageActif(voyageActif)
+        alert(language === 'fr'
+          ? 'Erreur lors de la suppression de l\'événement'
+          : 'Error deleting event')
+        throw error
       }
     } else if (isGratuit) {
       // Mode gratuit : localStorage uniquement
@@ -1414,6 +1507,11 @@ export default function MonVoyageV2() {
           <VoyageTimeline
             voyage={voyageActif}
             onAddEvent={handleAddEvent}
+            onEditEvent={(event) => {
+              setSelectedEvent(event)
+              setShowEditEventModal(true)
+            }}
+            onDeleteEvent={handleDeleteEvent}
             onOptimizeRoute={handleOptimizeRoute}
             onImportFromEmail={handleImportFromEmail}
             language={language}
@@ -1479,6 +1577,22 @@ export default function MonVoyageV2() {
         language={language}
         tripCurrency={voyageActif?.devise || 'CAD'}
       />
+
+      {/* Edit Event Modal */}
+      {selectedEvent && (
+        <EditEventModal
+          isOpen={showEditEventModal}
+          onClose={() => {
+            setShowEditEventModal(false)
+            setSelectedEvent(null)
+          }}
+          onSave={handleEditEvent}
+          onDelete={handleDeleteEvent}
+          event={selectedEvent}
+          language={language}
+          tripCurrency={voyageActif?.devise || 'CAD'}
+        />
+      )}
     </div>
   )
 }
