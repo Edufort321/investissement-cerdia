@@ -7,6 +7,20 @@ export interface Location {
   lng: number
 }
 
+export interface Waypoint {
+  id: string
+  evenementId: string
+  nom: string
+  description?: string
+  ordre: number
+  coordonnees: Location
+  adresse?: string
+  photoUrl?: string
+  visited: boolean
+  notes?: string
+  createdAt?: string
+}
+
 export interface Evenement {
   id: string
   type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'
@@ -32,6 +46,8 @@ export interface Evenement {
   transportMode?: 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
   duration?: number
   fromLocation?: string
+  // Points d'intérêt / étapes
+  waypoints?: Waypoint[]
 }
 
 export interface Depense {

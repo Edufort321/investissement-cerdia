@@ -126,11 +126,11 @@ export async function POST(request: NextRequest) {
     cache.set(cacheKey, { data: results, timestamp: Date.now() })
 
     // Nettoyer le cache (supprimer les entrées > 10 minutes)
-    for (const [key, value] of cache.entries()) {
+    Array.from(cache.entries()).forEach(([key, value]) => {
       if (Date.now() - value.timestamp > 10 * 60 * 1000) {
         cache.delete(key)
       }
-    }
+    })
 
     return NextResponse.json({
       success: true,

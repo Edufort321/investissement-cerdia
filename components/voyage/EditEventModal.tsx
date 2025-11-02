@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, Calendar, MapPin, DollarSign, FileText, Plane, Hotel, Activity, Utensils, Train, Car, Bus, Bike, Ship, PersonStanding, Clock, Globe, Loader2, Star } from 'lucide-react'
 import { calculateFlightDuration, formatDuration, formatOffset, extractCityKey } from '@/lib/timezone-helper'
-import { Evenement } from '@/types/voyage'
+import { Evenement, Waypoint } from '@/types/voyage'
+import WaypointsManager from './WaypointsManager'
 
 type EventType = 'transport' | 'hotel' | 'activity' | 'restaurant'
 type TransportMode = 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
@@ -60,6 +61,9 @@ export default function EditEventModal({
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([])
   const [loadingLocationSuggestions, setLoadingLocationSuggestions] = useState(false)
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false)
+
+  // État pour les waypoints (étapes/points d'intérêt)
+  const [waypoints, setWaypoints] = useState<Waypoint[]>(event.waypoints || [])
 
   // Extraire les infos de parking des notes existantes
   useEffect(() => {
@@ -210,7 +214,8 @@ export default function EditEventModal({
         duration: duration ? parseInt(duration) : undefined,
         rating: rating > 0 ? rating : undefined,
         heureDebut: heureDebut || undefined,
-        heureFin: heureFin || undefined
+        heureFin: heureFin || undefined,
+        waypoints: waypoints.length > 0 ? waypoints : undefined
       }
 
       await onSave(event.id, updates)
@@ -548,6 +553,17 @@ export default function EditEventModal({
               className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
             />
           </div>
+
+          {/* Waypoints / Étapes (pour activités comme promenades) */}
+          {type === 'activity' && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <WaypointsManager
+                waypoints={waypoints}
+                onChange={setWaypoints}
+                language={language}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-between gap-3 pt-4">

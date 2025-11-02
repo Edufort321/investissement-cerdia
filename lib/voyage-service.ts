@@ -513,9 +513,100 @@ export const checklistService = {
   }
 }
 
+// ============================================
+// CRUD WAYPOINTS (Points d'intérêt / étapes)
+// ============================================
+
+export interface WaypointDB {
+  id: string
+  evenement_id: string
+  nom: string
+  description?: string
+  ordre: number
+  coordonnees: { lat: number; lng: number }
+  adresse?: string
+  photo_url?: string
+  visited: boolean
+  notes?: string
+  created_at?: string
+}
+
+export const waypointService = {
+  async getByEvent(eventId: string): Promise<WaypointDB[]> {
+    const { data, error } = await supabase
+      .from('event_waypoints')
+      .select('*')
+      .eq('evenement_id', eventId)
+      .order('ordre', { ascending: true })
+
+    if (error) {
+      console.error('Erreur get waypoints:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  async create(waypoint: Omit<WaypointDB, 'id' | 'created_at'>): Promise<WaypointDB | null> {
+    const { data, error } = await supabase
+      .from('event_waypoints')
+      .insert([waypoint])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Erreur create waypoint:', error)
+      return null
+    }
+
+    return data
+  },
+
+  async update(waypointId: string, updates: Partial<WaypointDB>): Promise<WaypointDB | null> {
+    const { data, error } = await supabase
+      .from('event_waypoints')
+      .update(updates)
+      .eq('id', waypointId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Erreur update waypoint:', error)
+      return null
+    }
+
+    return data
+  },
+
+  async delete(waypointId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('event_waypoints')
+      .delete()
+      .eq('id', waypointId)
+
+    if (error) {
+      console.error('Erreur delete waypoint:', error)
+      return false
+    }
+
+    return true
+  },
+
+  async toggleVisited(waypointId: string, visited: boolean): Promise<boolean> {
+    const result = await this.update(waypointId, { visited })
+    return result !== null
+  },
+
+  async reorder(waypointId: string, newOrdre: number): Promise<boolean> {
+    const result = await this.update(waypointId, { ordre: newOrdre })
+    return result !== null
+  }
+}
+
 export default {
   voyage: voyageService,
   evenement: evenementService,
   depense: depenseService,
-  checklist: checklistService
+  checklist: checklistService,
+  waypoint: waypointService
 }

@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X, Calendar, MapPin, DollarSign, FileText, Plane, Hotel, Activity, Utensils, Train, Car, Bus, Bike, Ship, PersonStanding, Clock, Sparkles, Loader2, Camera, Upload, Star, Globe } from 'lucide-react'
 import { calculateFlightDuration, formatDuration, formatOffset, extractCityKey, TIMEZONE_CITIES } from '@/lib/timezone-helper'
+import { Waypoint } from '@/types/voyage'
+import WaypointsManager from './WaypointsManager'
 
 type EventType = 'transport' | 'hotel' | 'activity' | 'restaurant'
 type TransportMode = 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
@@ -31,6 +33,7 @@ interface AddEventModalProps {
     rating?: number
     heureDebut?: string
     heureFin?: string
+    waypoints?: Waypoint[]
   }) => void
   language?: string
   tripCurrency?: string
@@ -76,6 +79,9 @@ export default function AddEventModal({
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([])
   const [loadingLocationSuggestions, setLoadingLocationSuggestions] = useState(false)
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false)
+
+  // État pour les waypoints (étapes/points d'intérêt)
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([])
 
   useEffect(() => {
     if (previousLocation) {
@@ -534,7 +540,8 @@ export default function AddEventModal({
       coordinates: coordinates || undefined,
       rating: rating > 0 ? rating : undefined,
       heureDebut: heureDebut || undefined,
-      heureFin: heureFin || undefined
+      heureFin: heureFin || undefined,
+      waypoints: waypoints.length > 0 ? waypoints : undefined
     })
 
     // Reset form
@@ -556,6 +563,7 @@ export default function AddEventModal({
     setRating(0)
     setTimezoneInfo('')
     setParkingInfo('')
+    setWaypoints([])
     setType('activity')
     onClose()
   }
@@ -1050,6 +1058,17 @@ export default function AddEventModal({
               className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
             />
           </div>
+
+          {/* Waypoints / Étapes (pour activités comme promenades) */}
+          {type === 'activity' && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <WaypointsManager
+                waypoints={waypoints}
+                onChange={setWaypoints}
+                language={language}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">

@@ -41,10 +41,10 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
-import { Evenement, Voyage, Depense, ChecklistItem } from '@/types/voyage'
+import { Evenement, Voyage, Depense, ChecklistItem, Waypoint } from '@/types/voyage'
 import VoyageList from './VoyageList'
 import GaleriePublique from './GaleriePublique'
-import { voyageService, evenementService, depenseService, checklistService } from '@/lib/voyage-service'
+import { voyageService, evenementService, depenseService, checklistService, waypointService } from '@/lib/voyage-service'
 import VoyageSidebar, { VoyageView } from './voyage/VoyageSidebar'
 import VoyageDashboard from './voyage/VoyageDashboard'
 import VoyageTimeline from './voyage/VoyageTimeline'
@@ -587,6 +587,7 @@ export default function MonVoyageV2() {
     rating?: number
     heureDebut?: string
     heureFin?: string
+    waypoints?: Waypoint[]
   }) => {
     if (!voyageActif) return
 
@@ -623,7 +624,8 @@ export default function MonVoyageV2() {
       transportMode: eventData.transportMode,
       duration: eventData.duration,
       fromLocation: eventData.fromLocation,
-      rating: eventData.rating
+      rating: eventData.rating,
+      waypoints: eventData.waypoints
     }
 
     // Mettre à jour l'état local d'abord (optimistic update)
@@ -674,6 +676,28 @@ export default function MonVoyageV2() {
             )
           } as Voyage)
           console.log('✅ Événement sauvegardé dans Supabase:', evenementDB.id)
+
+          // Sauvegarder les waypoints si présents
+          if (eventData.waypoints && eventData.waypoints.length > 0) {
+            try {
+              for (const waypoint of eventData.waypoints) {
+                await waypointService.create({
+                  evenement_id: evenementDB.id,
+                  nom: waypoint.nom,
+                  description: waypoint.description,
+                  ordre: waypoint.ordre,
+                  coordonnees: waypoint.coordonnees,
+                  adresse: waypoint.adresse,
+                  photo_url: waypoint.photoUrl,
+                  visited: waypoint.visited,
+                  notes: waypoint.notes
+                })
+              }
+              console.log(`✅ ${eventData.waypoints.length} waypoint(s) sauvegardé(s)`)
+            } catch (error) {
+              console.error('❌ Erreur sauvegarde waypoints:', error)
+            }
+          }
         }
       } catch (error) {
         console.error('❌ Erreur sauvegarde événement Supabase:', error)
@@ -729,6 +753,41 @@ export default function MonVoyageV2() {
 
         await evenementService.update(eventId, supabaseUpdates)
         console.log('✅ Événement mis à jour dans Supabase:', eventId)
+
+        // Mettre à jour les waypoints si fournis
+        if (updates.waypoints !== undefined) {
+          try {
+            // Récupérer les waypoints existants
+            const existingWaypoints = await waypointService.getByEvent(eventId)
+
+            // Supprimer tous les waypoints existants
+            for (const waypoint of existingWaypoints) {
+              await waypointService.delete(waypoint.id)
+            }
+
+            // Créer les nouveaux waypoints
+            if (updates.waypoints && updates.waypoints.length > 0) {
+              for (const waypoint of updates.waypoints) {
+                await waypointService.create({
+                  evenement_id: eventId,
+                  nom: waypoint.nom,
+                  description: waypoint.description,
+                  ordre: waypoint.ordre,
+                  coordonnees: waypoint.coordonnees,
+                  adresse: waypoint.adresse,
+                  photo_url: waypoint.photoUrl,
+                  visited: waypoint.visited,
+                  notes: waypoint.notes
+                })
+              }
+              console.log(`✅ ${updates.waypoints.length} waypoint(s) mis à jour`)
+            } else {
+              console.log('✅ Waypoints supprimés')
+            }
+          } catch (error) {
+            console.error('❌ Erreur mise à jour waypoints:', error)
+          }
+        }
       } catch (error) {
         console.error('❌ Erreur mise à jour événement Supabase:', error)
         // Rollback
