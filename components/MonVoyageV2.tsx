@@ -821,51 +821,189 @@ export default function MonVoyageV2() {
       photos: expenseData.photos || []
     }
 
-    // Mettre à jour l'état local
-    setVoyageActif({
+    // Mettre à jour l'état local (optimistic update)
+    const updatedVoyage = {
       ...voyageActif,
       depenses: [...voyageActif.depenses, newExpense]
-    })
+    }
+    setVoyageActif(updatedVoyage)
 
-    // TODO: Sauvegarder dans Supabase si mode payant
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        const depenseDB = await depenseService.create({
+          voyage_id: voyageActif.id,
+          date: newExpense.date,
+          categorie: newExpense.categorie,
+          description: newExpense.description,
+          montant: newExpense.montant,
+          devise: newExpense.devise
+        })
+
+        if (depenseDB) {
+          // Mettre à jour l'ID local avec l'ID Supabase
+          newExpense.id = depenseDB.id
+          setVoyageActif({
+            ...updatedVoyage,
+            depenses: updatedVoyage.depenses.map(d =>
+              d.id === expenseData.id ? { ...d, id: depenseDB.id } : d
+            )
+          })
+          console.log('✅ Dépense sauvegardée dans Supabase:', depenseDB.id)
+        }
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde dépense Supabase:', error)
+        alert(language === 'fr'
+          ? 'Erreur lors de la sauvegarde de la dépense'
+          : 'Error saving expense')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
   }
 
   const handleToggleChecklist = async (itemId: string) => {
     if (!voyageActif) return
     const item = voyageActif.checklist.find(i => i.id === itemId)
-    if (item) {
-      item.complete = !item.complete
-      setVoyageActif({ ...voyageActif })
+    if (!item) return
+
+    // Mettre à jour l'état local (optimistic update)
+    item.complete = !item.complete
+    const updatedVoyage = { ...voyageActif }
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        await checklistService.toggle(itemId, item.complete)
+        console.log('✅ Checklist mise à jour dans Supabase:', itemId, item.complete)
+      } catch (error) {
+        console.error('❌ Erreur mise à jour checklist Supabase:', error)
+        // Rollback
+        item.complete = !item.complete
+        setVoyageActif({ ...voyageActif })
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
     }
   }
 
   const handleAddChecklistItem = async (text: string) => {
     if (!voyageActif) return
-    const newItem = {
+    const newItem: ChecklistItem = {
       id: Date.now().toString(),
       texte: text,
       complete: false
     }
-    setVoyageActif({
+
+    // Mettre à jour l'état local (optimistic update)
+    const updatedVoyage = {
       ...voyageActif,
       checklist: [...voyageActif.checklist, newItem]
-    })
+    }
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        const checklistDB = await checklistService.create({
+          voyage_id: voyageActif.id,
+          texte: newItem.texte,
+          complete: newItem.complete,
+          ordre: voyageActif.checklist.length
+        })
+
+        if (checklistDB) {
+          // Mettre à jour l'ID local avec l'ID Supabase
+          newItem.id = checklistDB.id
+          setVoyageActif({
+            ...updatedVoyage,
+            checklist: updatedVoyage.checklist.map(c =>
+              c.id === Date.now().toString() ? { ...c, id: checklistDB.id } : c
+            )
+          })
+          console.log('✅ Item checklist sauvegardé dans Supabase:', checklistDB.id)
+        }
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde checklist Supabase:', error)
+        alert(language === 'fr'
+          ? 'Erreur lors de la sauvegarde de l\'item'
+          : 'Error saving checklist item')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
   }
 
   const handleDeleteChecklistItem = async (itemId: string) => {
     if (!voyageActif) return
-    setVoyageActif({
+
+    // Mettre à jour l'état local (optimistic update)
+    const updatedVoyage = {
       ...voyageActif,
       checklist: voyageActif.checklist.filter(i => i.id !== itemId)
-    })
+    }
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        await checklistService.delete(itemId)
+        console.log('✅ Item checklist supprimé de Supabase:', itemId)
+      } catch (error) {
+        console.error('❌ Erreur suppression checklist Supabase:', error)
+        // Rollback
+        setVoyageActif(voyageActif)
+        alert(language === 'fr'
+          ? 'Erreur lors de la suppression de l\'item'
+          : 'Error deleting checklist item')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
   }
 
   const handleDeleteExpense = async (depenseId: string) => {
     if (!voyageActif) return
-    setVoyageActif({
+
+    // Mettre à jour l'état local (optimistic update)
+    const updatedVoyage = {
       ...voyageActif,
       depenses: voyageActif.depenses.filter(d => d.id !== depenseId)
-    })
+    }
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        await depenseService.delete(depenseId)
+        console.log('✅ Dépense supprimée de Supabase:', depenseId)
+      } catch (error) {
+        console.error('❌ Erreur suppression dépense Supabase:', error)
+        // Rollback
+        setVoyageActif(voyageActif)
+        alert(language === 'fr'
+          ? 'Erreur lors de la suppression de la dépense'
+          : 'Error deleting expense')
+      }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
+    }
   }
 
   const handleGenerateShareLink = () => {
