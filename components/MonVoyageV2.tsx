@@ -786,23 +786,34 @@ export default function MonVoyageV2() {
     alert(`Transport ajouté: ${event.titre}`)
   }
 
-  const handleEditBudget = () => {
+  const handleEditBudget = async (newBudgetValue: number) => {
     if (!voyageActif) return
-    const newBudget = prompt(
-      language === 'fr'
-        ? `Budget actuel: ${voyageActif.budget || 0} ${voyageActif.devise}\n\nNouveau budget :`
-        : `Current budget: ${voyageActif.budget || 0} ${voyageActif.devise}\n\nNew budget:`,
-      voyageActif.budget?.toString() || '0'
-    )
-    if (newBudget !== null) {
-      const budgetValue = parseFloat(newBudget)
-      if (!isNaN(budgetValue) && budgetValue >= 0) {
-        setVoyageActif({
-          ...voyageActif,
-          budget: budgetValue
+
+    // Mettre à jour l'état local (optimistic update)
+    const updatedVoyage = {
+      ...voyageActif,
+      budget: newBudgetValue
+    }
+    setVoyageActif(updatedVoyage)
+
+    // Sauvegarder dans Supabase si mode payant
+    const isGratuit = !currentUser || !userSession || userSession.mode === 'free'
+
+    if (!isGratuit && voyageActif.id && voyageActif.id !== 'temp-free-trip') {
+      try {
+        await voyageService.update(voyageActif.id, {
+          budget: newBudgetValue
         })
-        // TODO: Sauvegarder dans Supabase
+        console.log('✅ Budget sauvegardé dans Supabase:', newBudgetValue)
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde budget Supabase:', error)
+        // Revenir à l'ancienne valeur en cas d'erreur
+        setVoyageActif(voyageActif)
+        throw error // Propager l'erreur pour que VoyageBudget puisse l'afficher
       }
+    } else if (isGratuit) {
+      // Mode gratuit : localStorage uniquement
+      localStorage.setItem('monVoyageFree', JSON.stringify(updatedVoyage))
     }
   }
 
@@ -1421,6 +1432,7 @@ export default function MonVoyageV2() {
           <VoyageBudget
             voyage={voyageActif}
             language={language}
+            onBudgetChange={handleEditBudget}
           />
         )}
 
