@@ -88,7 +88,7 @@ export default function VoyageShare({
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 pt-20 sm:pt-24 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
