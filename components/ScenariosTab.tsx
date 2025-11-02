@@ -1031,6 +1031,54 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
   }
 
+  const loadScenarioForEdit = () => {
+    if (!selectedScenario) return
+
+    // Charger toutes les données du scénario dans le formulaire
+    setFormData({
+      name: selectedScenario.name || '',
+      main_photo_url: selectedScenario.main_photo_url || '',
+      unit_number: selectedScenario.unit_number || '',
+      address: selectedScenario.address || '',
+      country: selectedScenario.country || '',
+      state_region: selectedScenario.state_region || '',
+      promoter_name: selectedScenario.promoter_name || '',
+      broker_name: selectedScenario.broker_name || '',
+      broker_email: selectedScenario.broker_email || '',
+      company_name: selectedScenario.company_name || '',
+      purchase_price: selectedScenario.purchase_price || 0,
+      purchase_currency: selectedScenario.purchase_currency || 'USD',
+      initial_fees: selectedScenario.initial_fees || 0,
+      initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
+      deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false,
+      transaction_fees: selectedScenario.transaction_fees || {
+        type: 'percentage',
+        percentage: 0,
+        fixed_amount: 0,
+        currency: 'USD'
+      },
+      construction_status: selectedScenario.construction_status || 'in_progress',
+      delivery_date: selectedScenario.delivery_date || '',
+      completion_year: selectedScenario.completion_year || new Date().getFullYear(),
+      promoter_data: selectedScenario.promoter_data || {
+        monthly_rent: 0,
+        rent_type: 'monthly',
+        rent_currency: 'USD',
+        annual_appreciation: 5,
+        occupancy_rate: 80,
+        management_fees: 10,
+        project_duration: 10,
+        tax_rate: 27,
+        annual_rent_increase: 2
+      },
+      payment_terms: selectedScenario.payment_terms || [],
+      recurring_fees: selectedScenario.recurring_fees || []
+    })
+
+    // Afficher le formulaire d'édition
+    setShowEditForm(true)
+  }
+
   const deleteScenario = async () => {
     if (!selectedScenario) return
 
@@ -2785,7 +2833,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
             {/* Bouton Modifier */}
             <button
-              onClick={() => setShowEditForm(!showEditForm)}
+              onClick={() => {
+                if (showEditForm) {
+                  setShowEditForm(false)
+                } else {
+                  loadScenarioForEdit()
+                }
+              }}
               className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <Edit size={16} />
