@@ -183,7 +183,7 @@ export default function MonVoyageV2() {
     }
   }, [])
 
-  const loadVoyage = (session: UserSession) => {
+  const loadVoyage = async (session: UserSession) => {
     if (session.mode === 'free') {
       // Charger depuis localStorage
       const savedVoyage = localStorage.getItem('monVoyageFree')
@@ -194,8 +194,25 @@ export default function MonVoyageV2() {
         setShowVoyageChoice(true)
       }
     } else {
-      // Pour les modes payants, afficher le choix Nouveau/Consulter
-      setShowVoyageChoice(true)
+      // Pour les modes payants, essayer de charger le voyage actif depuis Supabase
+      const activeVoyageId = localStorage.getItem('activeVoyageId')
+
+      if (activeVoyageId && currentUser) {
+        try {
+          console.log('🔄 [VOYAGE] Rechargement du voyage actif depuis Supabase:', activeVoyageId)
+          await loadVoyageFromDB(activeVoyageId)
+          console.log('✅ [VOYAGE] Voyage rechargé avec succès')
+        } catch (error) {
+          console.error('❌ [VOYAGE] Erreur rechargement voyage:', error)
+          // Si erreur, effacer l'ID et afficher le choix
+          localStorage.removeItem('activeVoyageId')
+          setShowVoyageChoice(true)
+        }
+      } else {
+        // Pas de voyage actif, afficher le choix Nouveau/Consulter
+        console.log('ℹ️ [VOYAGE] Pas de voyage actif, affichage du choix')
+        setShowVoyageChoice(true)
+      }
     }
   }
 
@@ -391,6 +408,32 @@ export default function MonVoyageV2() {
         checklistService.getByVoyage(voyageId)
       ])
 
+      // Charger les waypoints pour chaque événement
+      const evenementsWithWaypoints = await Promise.all(
+        evenements.map(async (e) => {
+          try {
+            const waypoints = await waypointService.getByEvent(e.id)
+            return {
+              ...e,
+              waypoints: waypoints.map(w => ({
+                id: w.id,
+                nom: w.nom,
+                description: w.description,
+                ordre: w.ordre,
+                coordonnees: w.coordonnees,
+                adresse: w.adresse,
+                photoUrl: w.photo_url,
+                visited: w.visited,
+                notes: w.notes
+              }))
+            }
+          } catch (error) {
+            console.error('Erreur chargement waypoints pour événement', e.id, error)
+            return { ...e, waypoints: [] }
+          }
+        })
+      )
+
       // Convertir au format Voyage
       const voyage: Voyage = {
         id: voyageDB.id,
@@ -400,7 +443,7 @@ export default function MonVoyageV2() {
         dateFin: voyageDB.date_fin,
         budget: voyageDB.budget,
         devise: voyageDB.devise,
-        evenements: evenements.map(e => ({
+        evenements: evenementsWithWaypoints.map(e => ({
           id: e.id,
           type: e.type,
           titre: e.titre,
@@ -408,10 +451,24 @@ export default function MonVoyageV2() {
           heureDebut: e.heure_debut || '',
           heureFin: e.heure_fin || '',
           lieu: e.lieu || '',
+          adresse: e.adresse,
+          coordonnees: e.coordonnees,
+          villeDepart: e.ville_depart,
+          villeArrivee: e.ville_arrivee,
+          dateArrivee: e.date_arrivee,
+          heureArrivee: e.heure_arrivee,
+          numeroVol: e.numero_vol,
+          compagnie: e.compagnie,
+          transportMode: e.transport_mode,
+          duration: e.duration,
+          fromLocation: e.from_location,
+          rating: e.rating,
           prix: e.prix,
           devise: e.devise,
           notes: e.notes,
-          transport: e.transport
+          transport: e.transport,
+          externalLink: e.external_link,
+          waypoints: e.waypoints
         })),
         depenses: depenses.map(d => ({
           id: d.id,
@@ -437,6 +494,10 @@ export default function MonVoyageV2() {
       setVoyageActifId(voyageId)
       setShowVoyageList(false)
       setShowVoyageChoice(false)
+
+      // Sauvegarder l'ID du voyage actif dans localStorage pour persistance
+      localStorage.setItem('activeVoyageId', voyageId)
+      console.log('💾 [VOYAGE] ID du voyage actif sauvegardé:', voyageId)
     } catch (error) {
       console.error('Erreur chargement voyage:', error)
       alert(language === 'fr' ? 'Erreur lors du chargement du voyage' : 'Error loading trip')
@@ -535,9 +596,12 @@ export default function MonVoyageV2() {
     }
     localStorage.removeItem('monVoyageSession')
     localStorage.removeItem('monVoyageFree')
+    localStorage.removeItem('activeVoyageId')
     setUserSession(null)
     setShowModeSelection(true)
     setVoyageActif(null)
+    setVoyageActifId(null)
+    console.log('🚪 [VOYAGE] Déconnexion - données effacées')
   }
 
   // Handlers pour les événements, dépenses, checklist, etc.
@@ -1621,7 +1685,9 @@ export default function MonVoyageV2() {
   const handleBackToVoyages = () => {
     setVoyageActif(null)
     setVoyageActifId(null)
+    localStorage.removeItem('activeVoyageId')
     setShowVoyageChoice(true)
+    console.log('⬅️ [VOYAGE] Retour à la liste - voyage actif effacé')
   }
 
   return (
