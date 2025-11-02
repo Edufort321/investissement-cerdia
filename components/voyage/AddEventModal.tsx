@@ -93,6 +93,33 @@ export default function AddEventModal({
     }
   }, [previousLocation])
 
+  // Ajustement automatique de la date d'arrivée pour les vols
+  useEffect(() => {
+    if (type === 'transport' && transportMode === 'plane' && heureDebut && heureFin && date) {
+      // Si l'heure d'arrivée est plus tôt que l'heure de départ, on assume que c'est le lendemain
+      const [depHour, depMin] = heureDebut.split(':').map(Number)
+      const [arrHour, arrMin] = heureFin.split(':').map(Number)
+
+      const depMinutes = depHour * 60 + depMin
+      const arrMinutes = arrHour * 60 + arrMin
+
+      if (arrMinutes < depMinutes) {
+        // Vol arrive le lendemain
+        const departureDate = new Date(date)
+        departureDate.setDate(departureDate.getDate() + 1)
+        const nextDay = departureDate.toISOString().split('T')[0]
+        if (arrivalDate !== nextDay) {
+          setArrivalDate(nextDay)
+        }
+      } else {
+        // Vol arrive le même jour
+        if (arrivalDate !== date) {
+          setArrivalDate(date)
+        }
+      }
+    }
+  }, [type, transportMode, heureDebut, heureFin, date])
+
   // Calcul automatique de la durée à partir des heures de début et fin
   // avec gestion du décalage horaire pour les vols
   useEffect(() => {
@@ -855,7 +882,7 @@ export default function AddEventModal({
                 </div>
               </div>
 
-              {/* Arrival Date (for flights that arrive next day) */}
+              {/* Arrival Date (for flights - auto-calculated but editable) */}
               {transportMode === 'plane' && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
@@ -870,8 +897,8 @@ export default function AddEventModal({
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {language === 'fr'
-                      ? '💡 Changez cette date si votre vol arrive le lendemain'
-                      : '💡 Change this date if your flight arrives the next day'}
+                      ? '✨ Ajustée automatiquement selon les heures de départ/arrivée. Modifiable si besoin.'
+                      : '✨ Auto-adjusted based on departure/arrival times. Editable if needed.'}
                   </p>
                 </div>
               )}
@@ -938,6 +965,23 @@ export default function AddEventModal({
               required
             />
           </div>
+
+          {/* Date de départ (pour vols d'avion seulement) */}
+          {type === 'transport' && transportMode === 'plane' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {language === 'fr' ? 'Date de départ' : 'Departure Date'} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                required
+              />
+            </div>
+          )}
 
           {/* Date and Location (for non-transport) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
