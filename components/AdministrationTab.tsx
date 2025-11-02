@@ -803,21 +803,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     )
   }
 
-  // Filtrer les transactions
-  const filteredTransactions = transactions.filter(t => {
+  // Filtrer les transactions (avec vérification de sécurité)
+  const filteredTransactions = (transactions || []).filter(t => {
+    if (!t) return false
     if (filterType !== 'all' && t.type !== filterType) return false
     if (filterCategory !== 'all' && t.category !== filterCategory) return false
     return true
   })
 
-  // Calculs statistiques pour transactions
+  // Calculs statistiques pour transactions (avec vérifications de sécurité)
   const totalIn = filteredTransactions
-    .filter(t => ['investissement', 'dividende'].includes(t.type))
-    .reduce((sum, t) => sum + t.amount, 0)
+    .filter(t => t && t.type && ['investissement', 'dividende'].includes(t.type))
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
 
   const totalOut = filteredTransactions
-    .filter(t => ['paiement', 'depense'].includes(t.type))
-    .reduce((sum, t) => sum + t.amount, 0)
+    .filter(t => t && t.type && ['paiement', 'depense'].includes(t.type))
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
 
   const balance = totalIn - totalOut
 
