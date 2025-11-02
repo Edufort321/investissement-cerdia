@@ -1092,11 +1092,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       initial_fees: selectedScenario.initial_fees || 0,
       initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
       deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false,
-      transaction_fees: selectedScenario.transaction_fees || {
-        type: 'percentage',
+      transaction_fees: selectedScenario.transaction_fees ? {
+        type: selectedScenario.transaction_fees.type,
+        percentage: selectedScenario.transaction_fees.percentage ?? 0,
+        fixed_amount: selectedScenario.transaction_fees.fixed_amount ?? 0,
+        currency: selectedScenario.transaction_fees.currency ?? 'USD'
+      } : {
+        type: 'percentage' as 'percentage' | 'fixed_amount',
         percentage: 0,
         fixed_amount: 0,
-        currency: 'USD'
+        currency: 'USD' as 'CAD' | 'USD'
       },
       construction_status: selectedScenario.construction_status || 'in_progress',
       delivery_date: selectedScenario.delivery_date || '',
