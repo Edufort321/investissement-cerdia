@@ -18,7 +18,7 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 let lastRequestTime = 0
 const MIN_REQUEST_INTERVAL = 1000 // 1 seconde
 
-async function throttledFetch(url: string): Promise<Response> {
+async function throttledFetch(url: string, options?: RequestInit): Promise<Response> {
   const now = Date.now()
   const timeSinceLastRequest = now - lastRequestTime
 
@@ -28,7 +28,7 @@ async function throttledFetch(url: string): Promise<Response> {
   }
 
   lastRequestTime = Date.now()
-  return fetch(url)
+  return fetch(url, options)
 }
 
 export async function POST(request: NextRequest) {
