@@ -163,10 +163,6 @@ export default function VoyageTimeline({
     const startHour = event.heureDebut ? parseInt(event.heureDebut.split(':')[0], 10) : 0
     const startMinute = event.heureDebut ? parseInt(event.heureDebut.split(':')[1], 10) : 0
 
-    // Heure de fin (si non spécifiée, utiliser la même heure + 2h)
-    const endHour = event.heureFin ? parseInt(event.heureFin.split(':')[0], 10) : startHour + 2
-    const endMinute = event.heureFin ? parseInt(event.heureFin.split(':')[1], 10) : startMinute
-
     // Calculer le nombre de jours depuis le début du voyage
     const millisecondsSinceStart = eventDate.getTime() - dateDebut.getTime()
     const daysSinceStart = Math.floor(millisecondsSinceStart / (1000 * 60 * 60 * 24))
@@ -177,12 +173,27 @@ export default function VoyageTimeline({
     // Calculer la durée en heures
     let durationHours: number
 
-    // Si l'événement a une durée pré-calculée (ex: vol avec fuseau horaire), l'utiliser
-    if (event.duration && event.duration > 0) {
-      durationHours = event.duration / 60 // Convertir minutes → heures
-      console.log(`✈️ [TIMELINE] Utilisation durée réelle pour "${event.titre}": ${event.duration}min = ${durationHours.toFixed(2)}h`)
-    } else {
-      // Sinon, calculer simplement à partir des heures locales
+    // Pour les événements avec date/heure de fin (ex: vols avec décalage horaire),
+    // calculer la durée RÉELLE en tenant compte de la date d'arrivée
+    if (event.dateArrivee && event.heureFin) {
+      const endDate = new Date(event.dateArrivee + 'T00:00:00')
+      const endHour = parseInt(event.heureFin.split(':')[0], 10)
+      const endMinute = parseInt(event.heureFin.split(':')[1], 10)
+
+      // Calculer les heures totales depuis le début du voyage pour l'arrivée
+      const millisecondsSinceStartEnd = endDate.getTime() - dateDebut.getTime()
+      const daysSinceStartEnd = Math.floor(millisecondsSinceStartEnd / (1000 * 60 * 60 * 24))
+      const endHoursSinceVoyageStart = daysSinceStartEnd * 24 + endHour + endMinute / 60
+
+      // La durée est la différence entre l'arrivée et le départ (en heures de timeline)
+      durationHours = endHoursSinceVoyageStart - startHoursSinceVoyageStart
+
+      console.log(`✈️ [TIMELINE] Vol "${event.titre}": départ ${event.date} ${event.heureDebut}, arrivée ${event.dateArrivee} ${event.heureFin}, durée timeline: ${durationHours.toFixed(2)}h`)
+    } else if (event.heureFin) {
+      // Pour les événements avec heure de fin mais pas de date d'arrivée distincte
+      const endHour = parseInt(event.heureFin.split(':')[0], 10)
+      const endMinute = parseInt(event.heureFin.split(':')[1], 10)
+
       const startTotalMinutes = startHour * 60 + startMinute
       const endTotalMinutes = endHour * 60 + endMinute
       durationHours = (endTotalMinutes - startTotalMinutes) / 60
@@ -196,6 +207,9 @@ export default function VoyageTimeline({
       if (durationHours < 0.5) {
         durationHours = 0.5
       }
+    } else {
+      // Par défaut, 2 heures
+      durationHours = 2
     }
 
     // Chaque jour = 600px (pour plus de lisibilité), donc 1 heure = 600/24 = 25px
