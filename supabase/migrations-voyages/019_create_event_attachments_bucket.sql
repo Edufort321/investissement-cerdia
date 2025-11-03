@@ -37,55 +37,80 @@ ON CONFLICT (id) DO UPDATE SET
 -- POLICIES RLS POUR LE BUCKET
 -- =====================================================
 
--- Policy 1: INSERT - Permettre l'upload de fichiers pour les utilisateurs authentifiés
-CREATE POLICY "Users can upload event attachments to their own voyages"
+-- Supprimer les anciennes policies si elles existent
+DROP POLICY IF EXISTS "Users can upload event attachments" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view event attachments" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete event attachments" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update event attachments" ON storage.objects;
+
+-- =====================================================
+-- POLICY 1: INSERT (Upload)
+-- =====================================================
+CREATE POLICY "Users can upload event attachments"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (
   bucket_id = 'voyage-event-attachments'
-  AND auth.uid()::text = (storage.foldername(name))[1]
+  AND auth.uid() IS NOT NULL
 );
 
--- Policy 2: SELECT - Permettre la lecture des fichiers de l'utilisateur
-CREATE POLICY "Users can view their own event attachments"
+-- =====================================================
+-- POLICY 2: SELECT (View/Download)
+-- =====================================================
+CREATE POLICY "Users can view event attachments"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (
   bucket_id = 'voyage-event-attachments'
-  AND auth.uid()::text = (storage.foldername(name))[1]
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- Policy 3: UPDATE - Permettre la modification des fichiers de l'utilisateur
-CREATE POLICY "Users can update their own event attachments"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'voyage-event-attachments'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-)
-WITH CHECK (
-  bucket_id = 'voyage-event-attachments'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-);
-
--- Policy 4: DELETE - Permettre la suppression des fichiers de l'utilisateur
-CREATE POLICY "Users can delete their own event attachments"
+-- =====================================================
+-- POLICY 3: DELETE (Suppression)
+-- =====================================================
+CREATE POLICY "Users can delete event attachments"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (
   bucket_id = 'voyage-event-attachments'
-  AND auth.uid()::text = (storage.foldername(name))[1]
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
 -- =====================================================
--- COMMENTAIRES ET VÉRIFICATION
+-- POLICY 4: UPDATE (Modification métadonnées)
+-- =====================================================
+CREATE POLICY "Users can update event attachments"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'voyage-event-attachments'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+)
+WITH CHECK (
+  bucket_id = 'voyage-event-attachments'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- =====================================================
+-- FONCTION HELPER POUR GÉNÉRER CHEMIN DE FICHIER
 -- =====================================================
 
-COMMENT ON POLICY "Users can upload event attachments to their own voyages" ON storage.objects
-IS 'Permet aux utilisateurs d''uploader des pièces jointes pour leurs événements';
+CREATE OR REPLACE FUNCTION public.get_event_attachment_path(
+  event_id_param TEXT,
+  filename TEXT
+)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN auth.uid()::TEXT || '/' || event_id_param || '/' || filename;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON POLICY "Users can view their own event attachments" ON storage.objects
-IS 'Permet aux utilisateurs de voir leurs propres pièces jointes d''événements';
+COMMENT ON FUNCTION public.get_event_attachment_path(TEXT, TEXT) IS
+'Génère le chemin complet pour une pièce jointe d''événement: {user_id}/{event_id}/{filename}';
+
+-- =====================================================
+-- VÉRIFICATION
+-- =====================================================
 
 -- Vérification
 SELECT
