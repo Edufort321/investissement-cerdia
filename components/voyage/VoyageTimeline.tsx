@@ -15,7 +15,8 @@ import {
   Navigation,
   TrendingDown,
   X,
-  Mail
+  Mail,
+  Utensils
 } from 'lucide-react'
 import { Voyage, Evenement } from '@/types/voyage'
 import { optimizeRoute, OptimizationResult } from '@/lib/route-optimizer'
@@ -60,6 +61,7 @@ export default function VoyageTimeline({
       'timeline.type.activite': { fr: 'Activité', en: 'Activity' },
       'timeline.type.transport': { fr: 'Transport', en: 'Transport' },
       'timeline.type.condo': { fr: 'Condo', en: 'Condo' },
+      'timeline.type.restaurant': { fr: 'Restaurant', en: 'Restaurant' },
       'optimize.title': { fr: 'Optimisation d\'itinéraire', en: 'Route Optimization' },
       'optimize.improvements': { fr: 'Améliorations', en: 'Improvements' },
       'optimize.distanceSaved': { fr: 'Distance économisée', en: 'Distance Saved' },
@@ -103,29 +105,32 @@ export default function VoyageTimeline({
       hebergement: Hotel,
       activite: MapPin,
       transport: Car,
-      condo: Home
+      condo: Home,
+      restaurant: Utensils
     }
     return icons[type] || MapPin
   }
 
   const getEventColor = (type: string) => {
     const colors: Record<string, string> = {
-      vol: 'bg-blue-500',
-      hebergement: 'bg-purple-500',
-      activite: 'bg-green-500',
-      transport: 'bg-yellow-500',
-      condo: 'bg-indigo-500'
+      vol: 'bg-sky-500',
+      hebergement: 'bg-pink-500',
+      activite: 'bg-emerald-500',
+      transport: 'bg-amber-500',
+      condo: 'bg-purple-500',
+      restaurant: 'bg-orange-500'
     }
     return colors[type] || 'bg-gray-500'
   }
 
   const getEventBgColor = (type: string) => {
     const colors: Record<string, string> = {
-      vol: 'bg-blue-500/10 border-blue-500/20',
-      hebergement: 'bg-purple-500/10 border-purple-500/20',
-      activite: 'bg-green-500/10 border-green-500/20',
-      transport: 'bg-yellow-500/10 border-yellow-500/20',
-      condo: 'bg-indigo-500/10 border-indigo-500/20'
+      vol: 'bg-sky-500/10 border-sky-500/20',
+      hebergement: 'bg-pink-500/10 border-pink-500/20',
+      activite: 'bg-emerald-500/10 border-emerald-500/20',
+      transport: 'bg-amber-500/10 border-amber-500/20',
+      condo: 'bg-purple-500/10 border-purple-500/20',
+      restaurant: 'bg-orange-500/10 border-orange-500/20'
     }
     return colors[type] || 'bg-gray-500/10 border-gray-500/20'
   }

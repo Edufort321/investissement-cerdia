@@ -54,19 +54,19 @@ function createCustomIcon(type: string, transportMode?: string) {
     }
   } else if (type === 'hebergement') {
     emoji = '🏨'
-    bgColor = '#ec4899' // pink
+    bgColor = '#ec4899' // pink-500
   } else if (type === 'restaurant') {
     emoji = '🍽️'
-    bgColor = '#f97316' // orange
+    bgColor = '#f97316' // orange-500
   } else if (type === 'activite') {
     emoji = '🎯'
-    bgColor = '#10b981' // green
+    bgColor = '#10b981' // emerald-500
   } else if (type === 'condo') {
     emoji = '🏢'
-    bgColor = '#8b5cf6' // violet
+    bgColor = '#a855f7' // purple-500
   } else if (type === 'vol') {
     emoji = '✈️'
-    bgColor = '#3b82f6' // blue
+    bgColor = '#0ea5e9' // sky-500
   }
 
   const iconHtml = `
