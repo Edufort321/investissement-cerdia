@@ -1214,7 +1214,7 @@ export default function AddEventModal({
                   </div>
                 )}
               </div>
-            </div>
+            </>
           )}
 
           {/* Price */}
