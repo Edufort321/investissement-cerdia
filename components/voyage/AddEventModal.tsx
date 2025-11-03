@@ -91,11 +91,89 @@ export default function AddEventModal({
   const [attachments, setAttachments] = useState<File[]>([])
   const attachmentInputRef = useRef<HTMLInputElement>(null)
 
+  // États pour les coordonnées (utilisés pour le calcul de durée)
+  const [fromCoordinates, setFromCoordinates] = useState<{ lat: number; lng: number } | null>(null)
+  const [toCoordinates, setToCoordinates] = useState<{ lat: number; lng: number } | null>(null)
+  const [calculatingDuration, setCalculatingDuration] = useState(false)
+
   useEffect(() => {
     if (previousLocation) {
       setFromLocation(previousLocation)
     }
   }, [previousLocation])
+
+  // Calculer automatiquement la durée estimée pour les transports
+  useEffect(() => {
+    if (type !== 'transport' || !fromCoordinates || !toCoordinates || !transportMode) {
+      return
+    }
+
+    const calculateTravelTime = async () => {
+      setCalculatingDuration(true)
+      try {
+        const response = await fetch('/api/calculate-travel-time', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromCoordinates,
+            to: toCoordinates,
+            mode: transportMode
+          })
+        })
+
+        const data = await response.json()
+        if (data.success && data.duration) {
+          setDuration(data.duration.toString())
+          console.log(`✅ Durée calculée: ${data.duration} min (${data.distance} km)`)
+        }
+      } catch (error) {
+        console.error('Erreur calcul durée:', error)
+      } finally {
+        setCalculatingDuration(false)
+      }
+    }
+
+    calculateTravelTime()
+  }, [fromCoordinates, toCoordinates, transportMode, type])
+
+  // Mettre à jour automatiquement l'heure d'arrivée basée sur heure départ + durée
+  useEffect(() => {
+    if (type !== 'transport' || !heureDebut || !duration || !date) {
+      return
+    }
+
+    try {
+      const durationMinutes = parseInt(duration)
+      if (isNaN(durationMinutes) || durationMinutes <= 0) {
+        return
+      }
+
+      // Parser heure de départ
+      const [depHour, depMin] = heureDebut.split(':').map(Number)
+      const departureDate = new Date(date)
+      departureDate.setHours(depHour, depMin, 0, 0)
+
+      // Ajouter la durée
+      const arrivalDate = new Date(departureDate.getTime() + durationMinutes * 60 * 1000)
+
+      // Mettre à jour heure et date d'arrivée
+      const arrHour = arrivalDate.getHours().toString().padStart(2, '0')
+      const arrMin = arrivalDate.getMinutes().toString().padStart(2, '0')
+      setHeureFin(`${arrHour}:${arrMin}`)
+
+      // Si l'arrivée est un autre jour
+      const arrDateStr = arrivalDate.toISOString().split('T')[0]
+      if (arrDateStr !== date) {
+        setArrivalDate(arrDateStr)
+      } else {
+        setArrivalDate(date)
+      }
+
+      console.log(`🕐 Heure d'arrivée mise à jour: ${arrHour}:${arrMin} (${arrDateStr})`)
+    } catch (error) {
+      console.error('Erreur calcul heure d\'arrivée:', error)
+    }
+  }, [heureDebut, duration, date, type])
 
   // Synchroniser la date d'arrivée avec la date de départ (par défaut)
   useEffect(() => {
@@ -791,21 +869,30 @@ export default function AddEventModal({
                           type="button"
                           onClick={() => {
                             setFromLocation(suggestion.code ? `${suggestion.name} (${suggestion.code})` : suggestion.name)
+                            // Sauvegarder les coordonnées pour le calcul de durée
+                            if (suggestion.coordinates) {
+                              setFromCoordinates(suggestion.coordinates)
+                            }
                             setShowFromSuggestions(false)
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                         >
-                          <div className="font-semibold text-gray-900 dark:text-gray-100">
-                            {suggestion.name}
-                            {suggestion.code && (
-                              <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-mono">
-                                {suggestion.code}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {suggestion.description}
-                            {suggestion.distance && ` • ${suggestion.distance}`}
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                {suggestion.name}
+                                {suggestion.code && (
+                                  <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-mono">
+                                    {suggestion.code}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                {suggestion.description}
+                                {suggestion.distance && ` • ${suggestion.distance}`}
+                              </div>
+                            </div>
                           </div>
                         </button>
                       ))}
@@ -842,21 +929,30 @@ export default function AddEventModal({
                           type="button"
                           onClick={() => {
                             setLieu(suggestion.code ? `${suggestion.name} (${suggestion.code})` : suggestion.name)
+                            // Sauvegarder les coordonnées pour le calcul de durée
+                            if (suggestion.coordinates) {
+                              setToCoordinates(suggestion.coordinates)
+                            }
                             setShowToSuggestions(false)
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                         >
-                          <div className="font-semibold text-gray-900 dark:text-gray-100">
-                            {suggestion.name}
-                            {suggestion.code && (
-                              <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-mono">
-                                {suggestion.code}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {suggestion.description}
-                            {suggestion.distance && ` • ${suggestion.distance}`}
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                {suggestion.name}
+                                {suggestion.code && (
+                                  <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-mono">
+                                    {suggestion.code}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                {suggestion.description}
+                                {suggestion.distance && ` • ${suggestion.distance}`}
+                              </div>
+                            </div>
                           </div>
                         </button>
                       ))}
@@ -1022,20 +1118,54 @@ export default function AddEventModal({
 
           {/* Date and Location (for non-transport ONLY) */}
           {type !== 'transport' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {t('event.date')}
-                </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  required
-                />
-              </div>
+            <>
+              {/* Pour hébergement: Date d'arrivée et Date de départ */}
+              {type === 'hebergement' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {language === 'fr' ? 'Date d\'arrivée (Check-in)' : 'Check-in Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {language === 'fr' ? 'Date de départ (Check-out)' : 'Check-out Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={arrivalDate}
+                      onChange={(e) => setArrivalDate(e.target.value)}
+                      min={date}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Pour autres types: Une seule date */
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    {t('event.date')}
+                  </label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    required
+                  />
+                </div>
+              )}
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
@@ -1068,11 +1198,16 @@ export default function AddEventModal({
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                       >
-                        <div className="font-semibold text-gray-900 dark:text-gray-100">
-                          📍 {suggestion.shortName || suggestion.name}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {suggestion.fullAddress || suggestion.description}
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                              {suggestion.shortName || suggestion.name}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                              {suggestion.fullAddress || suggestion.description}
+                            </div>
+                          </div>
                         </div>
                       </button>
                     ))}
