@@ -899,26 +899,26 @@ export default function AddEventModal({
                   />
                 </div>
 
-                {/* Date d'arrivée (pour vols - auto-calculée) */}
-                {transportMode === 'plane' && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {language === 'fr' ? 'Date d\'arrivée' : 'Arrival Date'}
-                    </label>
-                    <input
-                      type="date"
-                      value={arrivalDate}
-                      onChange={(e) => setArrivalDate(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    />
+                {/* Date d'arrivée (auto-calculée pour avion) */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    {language === 'fr' ? 'Date d\'arrivée' : 'Arrival Date'}
+                  </label>
+                  <input
+                    type="date"
+                    value={arrivalDate}
+                    onChange={(e) => setArrivalDate(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  {transportMode === 'plane' && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {language === 'fr'
                         ? '✨ Ajustée automatiquement selon heures'
                         : '✨ Auto-adjusted based on times'}
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Calculated Duration Display with Timezone Info */}
@@ -984,22 +984,22 @@ export default function AddEventModal({
             />
           </div>
 
-          {/* Date and Location (for non-transport) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {t('event.date')}
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                required
-              />
-            </div>
-            {type !== 'transport' && (
+          {/* Date and Location (for non-transport ONLY) */}
+          {type !== 'transport' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {t('event.date')}
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required
+                />
+              </div>
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
@@ -1043,8 +1043,8 @@ export default function AddEventModal({
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Price */}
           <div>
