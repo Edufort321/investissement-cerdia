@@ -180,23 +180,39 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
         if (coords) {
           locs.push({ event, coords })
 
-          // Si c'est un événement de transport avec fromLocation, créer une route
-          if (event.type === 'transport' && event.fromLocation && event.transportMode) {
-            try {
-              const fromResponse = await fetch(`/api/geocode?address=${encodeURIComponent(event.fromLocation)}`)
-              const fromData = await fromResponse.json()
-              if (fromData.success && fromData.coordinates) {
-                const fromCoords: [number, number] = [fromData.coordinates.lat, fromData.coordinates.lng]
-                routes.push({
-                  from: fromCoords,
-                  to: coords,
-                  mode: event.transportMode,
-                  duration: event.duration,
-                  title: event.titre
-                })
+          // Si c'est un événement de transport, créer une route
+          if (event.type === 'transport' && event.transportMode) {
+            let fromCoords: [number, number] | null = null
+
+            // Utiliser coordonneesDepart si disponible (plus fiable)
+            if (event.coordonneesDepart) {
+              fromCoords = [event.coordonneesDepart.lat, event.coordonneesDepart.lng]
+              console.log(`🗺️ Utilisation coordonneesDepart pour "${event.titre}":`, fromCoords)
+            } else if (event.fromLocation) {
+              // Fallback: géocoder fromLocation si pas de coordonneesDepart
+              try {
+                const fromResponse = await fetch(`/api/geocode?address=${encodeURIComponent(event.fromLocation)}`)
+                const fromData = await fromResponse.json()
+                if (fromData.success && fromData.coordinates) {
+                  fromCoords = [fromData.coordinates.lat, fromData.coordinates.lng]
+                  console.log(`🗺️ Géocodage fromLocation pour "${event.titre}":`, fromCoords)
+                }
+              } catch (error) {
+                console.error('Erreur géocodage fromLocation:', error)
               }
-            } catch (error) {
-              console.error('Erreur géocodage fromLocation:', error)
+            }
+
+            if (fromCoords) {
+              routes.push({
+                from: fromCoords,
+                to: coords,
+                mode: event.transportMode,
+                duration: event.duration,
+                title: event.titre
+              })
+              console.log(`✅ Route ajoutée: ${event.titre} (${event.transportMode})`)
+            } else {
+              console.warn(`⚠️ Impossible de créer route pour "${event.titre}": pas de coordonnées de départ`)
             }
           }
         }

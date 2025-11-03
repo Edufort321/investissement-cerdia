@@ -30,7 +30,8 @@ export interface Evenement {
   heureFin?: string
   lieu?: string
   adresse?: string
-  coordonnees?: Location // Added for route optimization
+  coordonnees?: Location // Added for route optimization (destination)
+  coordonneesDepart?: Location // Coordinates for departure point (for transport)
   prix?: number
   devise: string
   notes?: string

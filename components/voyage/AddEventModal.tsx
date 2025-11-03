@@ -712,6 +712,7 @@ export default function AddEventModal({
       duration: duration ? parseInt(duration) : undefined,
       fromLocation: type === 'transport' ? fromLocation.trim() || undefined : undefined,
       coordinates: coordinates || undefined,
+      coordonneesDepart: type === 'transport' && fromCoordinates ? fromCoordinates : undefined,
       rating: rating > 0 ? rating : undefined,
       heureDebut: heureDebut || undefined,
       heureFin: heureFin || undefined,
