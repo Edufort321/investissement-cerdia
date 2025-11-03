@@ -96,6 +96,9 @@ export default function AddEventModal({
   const [toCoordinates, setToCoordinates] = useState<{ lat: number; lng: number } | null>(null)
   const [calculatingDuration, setCalculatingDuration] = useState(false)
 
+  // État pour détecter si l'utilisateur a modifié manuellement l'heure d'arrivée
+  const [manualArrivalTime, setManualArrivalTime] = useState(false)
+
   useEffect(() => {
     if (previousLocation) {
       setFromLocation(previousLocation)
@@ -137,7 +140,13 @@ export default function AddEventModal({
   }, [fromCoordinates, toCoordinates, transportMode, type])
 
   // Mettre à jour automatiquement l'heure d'arrivée basée sur heure départ + durée
+  // SEULEMENT si l'utilisateur n'a pas modifié manuellement l'heure d'arrivée
   useEffect(() => {
+    // Ne pas faire le calcul automatique si l'utilisateur a modifié manuellement
+    if (manualArrivalTime) {
+      return
+    }
+
     if (type !== 'transport' || !heureDebut || !duration || !date) {
       return
     }
@@ -169,11 +178,17 @@ export default function AddEventModal({
         setArrivalDate(date)
       }
 
-      console.log(`🕐 Heure d'arrivée mise à jour: ${arrHour}:${arrMin} (${arrDateStr})`)
+      console.log(`🕐 Heure d'arrivée mise à jour automatiquement: ${arrHour}:${arrMin} (${arrDateStr})`)
     } catch (error) {
       console.error('Erreur calcul heure d\'arrivée:', error)
     }
-  }, [heureDebut, duration, date, type])
+  }, [heureDebut, duration, date, type, manualArrivalTime])
+
+  // Réinitialiser le flag manuel quand l'utilisateur change de mode de transport ou de lieux
+  // Cela permet de reprendre le calcul automatique
+  useEffect(() => {
+    setManualArrivalTime(false)
+  }, [transportMode, fromLocation, lieu])
 
   // Synchroniser la date d'arrivée avec la date de départ (par défaut)
   useEffect(() => {
@@ -212,15 +227,15 @@ export default function AddEventModal({
     }
   }, [type, transportMode, heureDebut, heureFin, date])
 
-  // Calcul automatique de la durée à partir des heures de début et fin
-  // avec gestion du décalage horaire pour les vols
+  // Affichage des informations de timezone pour les vols
+  // NOTE: On n'écrase PLUS la durée ici, car elle est déjà calculée correctement par l'API
   useEffect(() => {
     if (!heureDebut || !heureFin) {
       setTimezoneInfo('')
       return
     }
 
-    // Pour les vols en avion, utiliser le calcul avec timezone
+    // Pour les vols en avion, afficher les infos de timezone
     if (type === 'transport' && transportMode === 'plane' && fromLocation && lieu) {
       try {
         const departureCity = extractCityKey(fromLocation)
@@ -237,11 +252,10 @@ export default function AddEventModal({
           )
 
           if (result) {
-            setDuration(result.durationMinutes.toString())
-
-            // Afficher les informations de timezone
+            // Afficher les informations de timezone SANS modifier la durée
             const info = `${result.timezoneInfo.departure.city} ${formatOffset(result.timezoneInfo.departure.offset)} → ${result.timezoneInfo.arrival.city} ${formatOffset(result.timezoneInfo.arrival.offset)}`
             setTimezoneInfo(info)
+            console.log(`ℹ️ Durée réelle du vol (avec timezone): ${result.durationMinutes} min`)
             return
           }
         }
@@ -250,25 +264,8 @@ export default function AddEventModal({
       }
     }
 
-    // Calcul simple sans timezone (pour les autres cas)
-    try {
-      setTimezoneInfo('')
-
-      const [startHour, startMin] = heureDebut.split(':').map(Number)
-      const [endHour, endMin] = heureFin.split(':').map(Number)
-
-      // Calculer la différence en minutes en tenant compte de la date
-      const startDate = new Date(date + 'T' + heureDebut)
-      const endDate = new Date(arrivalDate + 'T' + heureFin)
-
-      const totalMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))
-
-      if (totalMinutes >= 0) {
-        setDuration(totalMinutes.toString())
-      }
-    } catch (error) {
-      console.error('Erreur calcul durée:', error)
-    }
+    // Pas d'info timezone pour les autres modes
+    setTimezoneInfo('')
   }, [heureDebut, heureFin, date, arrivalDate, type, transportMode, fromLocation, lieu])
 
   // Suggestions pour le lieu de départ (transport)
@@ -1026,7 +1023,10 @@ export default function AddEventModal({
                   <input
                     type="time"
                     value={heureFin}
-                    onChange={(e) => setHeureFin(e.target.value)}
+                    onChange={(e) => {
+                      setHeureFin(e.target.value)
+                      setManualArrivalTime(true) // Marquer comme édition manuelle
+                    }}
                     className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
