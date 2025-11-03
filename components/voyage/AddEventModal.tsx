@@ -93,7 +93,17 @@ export default function AddEventModal({
     }
   }, [previousLocation])
 
-  // Ajustement automatique de la date d'arrivée pour les vols
+  // Synchroniser la date d'arrivée avec la date de départ (par défaut)
+  useEffect(() => {
+    if (type === 'transport' && date) {
+      // Si pas d'heures définies, ou si l'arrivée est très différente, synchroniser avec la date de départ
+      if (!heureDebut || !heureFin) {
+        setArrivalDate(date)
+      }
+    }
+  }, [type, date, heureDebut, heureFin])
+
+  // Ajustement automatique de la date d'arrivée pour les vols (basé sur les heures)
   useEffect(() => {
     if (type === 'transport' && transportMode === 'plane' && heureDebut && heureFin && date) {
       // Si l'heure d'arrivée est plus tôt que l'heure de départ, on assume que c'est le lendemain
