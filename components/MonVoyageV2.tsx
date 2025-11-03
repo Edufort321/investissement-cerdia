@@ -635,7 +635,7 @@ export default function MonVoyageV2() {
   }
 
   const handleSaveEvent = async (eventData: {
-    type: 'transport' | 'hotel' | 'activity' | 'restaurant'
+    type: 'transport' | 'hebergement' | 'activite' | 'restaurant'
     titre: string
     date: string
     lieu: string
