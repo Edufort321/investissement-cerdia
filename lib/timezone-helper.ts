@@ -40,6 +40,52 @@ export const TIMEZONE_CITIES: Record<string, TimezoneCity> = {
   'buenos-aires': { name: 'Buenos Aires', offset: -180 }, // UTC-3
 }
 
+// Mapping des codes d'aéroport vers les villes
+export const AIRPORT_CODES: Record<string, string> = {
+  // Amérique du Nord
+  'YUL': 'montreal',
+  'YMQ': 'montreal',
+  'YYZ': 'toronto',
+  'YTO': 'toronto',
+  'YVR': 'vancouver',
+  'JFK': 'new-york',
+  'LGA': 'new-york',
+  'EWR': 'new-york',
+  'LAX': 'los-angeles',
+  'ORD': 'chicago',
+  'MDW': 'chicago',
+
+  // Europe
+  'CDG': 'paris',
+  'ORY': 'paris',
+  'LHR': 'london',
+  'LGW': 'london',
+  'STN': 'london',
+  'MAD': 'madrid',
+  'FCO': 'rome',
+  'CIA': 'rome',
+  'TXL': 'berlin',
+  'SXF': 'berlin',
+
+  // Asie
+  'NRT': 'tokyo',
+  'HND': 'tokyo',
+  'PEK': 'beijing',
+  'DXB': 'dubai',
+  'SIN': 'singapore',
+
+  // Océanie
+  'SYD': 'sydney',
+
+  // Afrique
+  'CAI': 'cairo',
+  'JNB': 'johannesburg',
+
+  // Amérique du Sud
+  'GRU': 'sao-paulo',
+  'EZE': 'buenos-aires'
+}
+
 /**
  * Détermine si on est en période d'heure d'été pour une date donnée
  * Simplifié : Mars-Octobre pour hémisphère Nord
@@ -181,6 +227,23 @@ export function extractCityKey(locationString: string): string | null {
   console.log('🔍 [TIMEZONE] Recherche ville dans:', locationString)
   console.log('📝 [TIMEZONE] Texte normalisé:', normalized)
 
+  // 1. Chercher un code d'aéroport entre parenthèses (ex: "(CDG)" ou "(YUL)")
+  const codeMatch = locationString.match(/\(([A-Z]{3})\)/)
+  if (codeMatch) {
+    const airportCode = codeMatch[1]
+    console.log(`🛫 [TIMEZONE] Code aéroport détecté: ${airportCode}`)
+
+    const cityKey = AIRPORT_CODES[airportCode]
+    if (cityKey) {
+      const city = TIMEZONE_CITIES[cityKey]
+      console.log(`✅ [TIMEZONE] Ville trouvée via code aéroport: ${cityKey} (${city.name})`)
+      return cityKey
+    } else {
+      console.log(`⚠️ [TIMEZONE] Code aéroport ${airportCode} non reconnu`)
+    }
+  }
+
+  // 2. Chercher le nom de la ville dans le texte
   for (const [key, city] of Object.entries(TIMEZONE_CITIES)) {
     const cityNameNormalized = city.name
       .toLowerCase()
@@ -188,7 +251,7 @@ export function extractCityKey(locationString: string): string | null {
       .replace(/[\u0300-\u036f]/g, '')
 
     if (normalized.includes(key) || normalized.includes(cityNameNormalized)) {
-      console.log(`✅ [TIMEZONE] Ville trouvée: ${key} (${city.name})`)
+      console.log(`✅ [TIMEZONE] Ville trouvée par nom: ${key} (${city.name})`)
       return key
     }
   }
