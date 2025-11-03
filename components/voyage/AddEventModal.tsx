@@ -851,9 +851,9 @@ export default function AddEventModal({
                 </button>
               )}
 
-              {/* Time fields with auto-calculated duration */}
+              {/* Départ: Heure + Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Start Time */}
+                {/* Heure de départ */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
@@ -867,7 +867,25 @@ export default function AddEventModal({
                   />
                 </div>
 
-                {/* End Time */}
+                {/* Date de départ */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    {language === 'fr' ? 'Date de départ' : 'Departure Date'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Arrivée: Heure + Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Heure d'arrivée */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
@@ -880,28 +898,28 @@ export default function AddEventModal({
                     className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
-              </div>
 
-              {/* Arrival Date (for flights - auto-calculated but editable) */}
-              {transportMode === 'plane' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {language === 'fr' ? 'Date d\'arrivée' : 'Arrival Date'}
-                  </label>
-                  <input
-                    type="date"
-                    value={arrivalDate}
-                    onChange={(e) => setArrivalDate(e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === 'fr'
-                      ? '✨ Ajustée automatiquement selon les heures de départ/arrivée. Modifiable si besoin.'
-                      : '✨ Auto-adjusted based on departure/arrival times. Editable if needed.'}
-                  </p>
-                </div>
-              )}
+                {/* Date d'arrivée (pour vols - auto-calculée) */}
+                {transportMode === 'plane' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {language === 'fr' ? 'Date d\'arrivée' : 'Arrival Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={arrivalDate}
+                      onChange={(e) => setArrivalDate(e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {language === 'fr'
+                        ? '✨ Ajustée automatiquement selon heures'
+                        : '✨ Auto-adjusted based on times'}
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Calculated Duration Display with Timezone Info */}
               {duration && heureDebut && heureFin && (
@@ -965,23 +983,6 @@ export default function AddEventModal({
               required
             />
           </div>
-
-          {/* Date de départ (pour vols d'avion seulement) */}
-          {type === 'transport' && transportMode === 'plane' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {language === 'fr' ? 'Date de départ' : 'Departure Date'} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                required
-              />
-            </div>
-          )}
 
           {/* Date and Location (for non-transport) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
