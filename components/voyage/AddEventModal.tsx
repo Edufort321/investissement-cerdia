@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Calendar, MapPin, DollarSign, FileText, Plane, Hotel, Activity, Utensils, Train, Car, Bus, Bike, Ship, PersonStanding, Clock, Sparkles, Loader2, Camera, Upload, Star, Globe } from 'lucide-react'
+import { X, Calendar, MapPin, DollarSign, FileText, Plane, Hotel, Activity, Utensils, Train, Car, Bus, Bike, Ship, PersonStanding, Clock, Sparkles, Loader2, Camera, Upload, Star, Globe, Plus } from 'lucide-react'
 import { calculateFlightDuration, formatDuration, formatOffset, extractCityKey, TIMEZONE_CITIES } from '@/lib/timezone-helper'
 import { Waypoint } from '@/types/voyage'
 import WaypointsManager from './WaypointsManager'
@@ -49,7 +49,7 @@ export default function AddEventModal({
   tripCurrency = 'CAD',
   previousLocation = ''
 }: AddEventModalProps) {
-  const [type, setType] = useState<EventType>('activity')
+  const [type, setType] = useState<EventType>('activite')
   const [titre, setTitre] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [arrivalDate, setArrivalDate] = useState(new Date().toISOString().split('T')[0]) // Date d'arrivée (pour vols)
@@ -86,6 +86,10 @@ export default function AddEventModal({
 
   // État pour le lien externe (lien vers app/site de l'événement)
   const [externalLink, setExternalLink] = useState('')
+
+  // État pour les pièces jointes (PDFs, billets, etc.)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (previousLocation) {
@@ -394,6 +398,10 @@ export default function AddEventModal({
       'event.notesPlaceholder': { fr: 'Informations supplémentaires...', en: 'Additional information...' },
       'event.externalLink': { fr: 'Lien de l\'événement', en: 'Event Link' },
       'event.externalLinkPlaceholder': { fr: 'Ex: lien de réservation, billetterie, site web...', en: 'Ex: booking link, ticketing, website...' },
+      'event.attachments': { fr: 'Pièces jointes', en: 'Attachments' },
+      'event.attachmentsDesc': { fr: 'PDFs, billets, confirmations...', en: 'PDFs, tickets, confirmations...' },
+      'event.addAttachment': { fr: 'Ajouter un fichier', en: 'Add file' },
+      'event.removeAttachment': { fr: 'Retirer', en: 'Remove' },
       'event.aiSuggest': { fr: 'Suggestions IA', en: 'AI Suggestions' },
       'event.add': { fr: 'Ajouter', en: 'Add' },
       'event.cancel': { fr: 'Annuler', en: 'Cancel' }
@@ -544,6 +552,23 @@ export default function AddEventModal({
     }
   }
 
+  const handleAddAttachments = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newFiles = Array.from(files)
+    setAttachments(prev => [...prev, ...newFiles])
+
+    // Reset input to allow re-selecting the same file
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!titre.trim()) {
@@ -609,7 +634,8 @@ export default function AddEventModal({
     setParkingInfo('')
     setWaypoints([])
     setExternalLink('')
-    setType('activity')
+    setAttachments([])
+    setType('activite')
     onClose()
   }
 
@@ -1137,8 +1163,67 @@ export default function AddEventModal({
             />
           </div>
 
+          {/* Pièces jointes */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              📎 {t('event.attachments')}
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              {t('event.attachmentsDesc')}
+            </p>
+
+            {/* Hidden file input */}
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+              onChange={handleAddAttachments}
+              className="hidden"
+            />
+
+            {/* Add attachment button */}
+            <button
+              type="button"
+              onClick={() => attachmentInputRef.current?.click()}
+              className="w-full px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-indigo-500 dark:hover:border-indigo-400 transition flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+            >
+              <Plus className="w-5 h-5" />
+              {t('event.addAttachment')}
+            </button>
+
+            {/* List of attached files */}
+            {attachments.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {attachments.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                        {file.name}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(index)}
+                      className="ml-2 px-3 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition"
+                    >
+                      {t('event.removeAttachment')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Waypoints / Étapes (pour activités comme promenades) */}
-          {type === 'activity' && (
+          {type === 'activite' && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <WaypointsManager
                 waypoints={waypoints}

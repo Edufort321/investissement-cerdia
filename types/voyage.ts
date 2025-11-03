@@ -50,6 +50,13 @@ export interface Evenement {
   waypoints?: Waypoint[]
   // Lien externe vers application/site web de l'événement
   externalLink?: string
+  // Pièces jointes (PDFs, billets, etc.)
+  attachments?: Array<{
+    url: string
+    name: string
+    type: string
+    size?: number
+  }>
 }
 
 export interface Depense {
