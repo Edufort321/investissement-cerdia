@@ -23,7 +23,7 @@ export interface Waypoint {
 
 export interface Evenement {
   id: string
-  type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo'
+  type: 'vol' | 'hebergement' | 'activite' | 'transport' | 'condo' | 'restaurant'
   titre: string
   date: string
   heureDebut?: string

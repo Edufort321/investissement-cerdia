@@ -52,7 +52,7 @@ function createCustomIcon(type: string, transportMode?: string) {
         bgColor = '#0ea5e9' // sky
         break
     }
-  } else if (type === 'hotel' || type === 'hebergement') {
+  } else if (type === 'hebergement') {
     emoji = '🏨'
     bgColor = '#ec4899' // pink
   } else if (type === 'restaurant') {
@@ -60,7 +60,13 @@ function createCustomIcon(type: string, transportMode?: string) {
     bgColor = '#f97316' // orange
   } else if (type === 'activite') {
     emoji = '🎯'
-    bgColor = '#f97316' // orange
+    bgColor = '#10b981' // green
+  } else if (type === 'condo') {
+    emoji = '🏢'
+    bgColor = '#8b5cf6' // violet
+  } else if (type === 'vol') {
+    emoji = '✈️'
+    bgColor = '#3b82f6' // blue
   }
 
   const iconHtml = `

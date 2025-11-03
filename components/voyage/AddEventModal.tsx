@@ -6,7 +6,7 @@ import { calculateFlightDuration, formatDuration, formatOffset, extractCityKey, 
 import { Waypoint } from '@/types/voyage'
 import WaypointsManager from './WaypointsManager'
 
-type EventType = 'transport' | 'hotel' | 'activity' | 'restaurant'
+type EventType = 'transport' | 'hebergement' | 'activite' | 'restaurant'
 type TransportMode = 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
 
 interface AddEventModalProps {
@@ -403,8 +403,8 @@ export default function AddEventModal({
 
   const eventTypes = [
     { id: 'transport' as EventType, icon: Plane, label: t('event.type.transport') },
-    { id: 'hotel' as EventType, icon: Hotel, label: t('event.type.hotel') },
-    { id: 'activity' as EventType, icon: Activity, label: t('event.type.activity') },
+    { id: 'hebergement' as EventType, icon: Hotel, label: t('event.type.hotel') },
+    { id: 'activite' as EventType, icon: Activity, label: t('event.type.activity') },
     { id: 'restaurant' as EventType, icon: Utensils, label: t('event.type.restaurant') }
   ]
 
@@ -509,9 +509,9 @@ export default function AddEventModal({
 
           // Définir le type selon la catégorie
           if (receipt.categorie === 'restaurant') setType('restaurant')
-          else if (receipt.categorie === 'hotel' || receipt.categorie === 'hebergement') setType('hotel')
+          else if (receipt.categorie === 'hotel' || receipt.categorie === 'hebergement') setType('hebergement')
           else if (receipt.categorie === 'transport') setType('transport')
-          else if (receipt.categorie === 'activite' || receipt.categorie === 'activity') setType('activity')
+          else if (receipt.categorie === 'activite' || receipt.categorie === 'activity') setType('activite')
 
           // Ajouter les items dans les notes si présents
           if (receipt.items && receipt.items.length > 0) {

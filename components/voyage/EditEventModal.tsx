@@ -6,7 +6,7 @@ import { calculateFlightDuration, formatDuration, formatOffset, extractCityKey }
 import { Evenement, Waypoint } from '@/types/voyage'
 import WaypointsManager from './WaypointsManager'
 
-type EventType = 'transport' | 'hotel' | 'activity' | 'restaurant'
+type EventType = 'transport' | 'hebergement' | 'activite' | 'restaurant'
 type TransportMode = 'plane' | 'train' | 'car' | 'bus' | 'bike' | 'walk' | 'boat'
 
 interface EditEventModalProps {
@@ -31,10 +31,10 @@ export default function EditEventModal({
   // Mapper les types de l'événement
   const getEventType = (type: string): EventType => {
     if (type === 'transport' || type === 'vol') return 'transport'
-    if (type === 'hebergement' || type === 'hotel') return 'hotel'
-    if (type === 'activite') return 'activity'
+    if (type === 'hebergement' || type === 'hotel') return 'hebergement'
+    if (type === 'activite' || type === 'activity') return 'activite'
     if (type === 'restaurant') return 'restaurant'
-    return 'activity'
+    return 'activite'
   }
 
   const [type, setType] = useState<EventType>(getEventType(event.type))
@@ -576,7 +576,7 @@ export default function EditEventModal({
           </div>
 
           {/* Waypoints / Étapes (pour activités comme promenades) */}
-          {type === 'activity' && (
+          {type === 'activite' && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <WaypointsManager
                 waypoints={waypoints}
