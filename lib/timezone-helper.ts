@@ -172,13 +172,27 @@ export function formatOffset(offsetMinutes: number): string {
  * Ex: "Aéroport international Pierre-Elliott-Trudeau de Montréal (YUL)" -> "montreal"
  */
 export function extractCityKey(locationString: string): string | null {
-  const normalized = locationString.toLowerCase()
+  // Normaliser: lowercase + enlever accents
+  const normalized = locationString
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Enlever les accents
+
+  console.log('🔍 [TIMEZONE] Recherche ville dans:', locationString)
+  console.log('📝 [TIMEZONE] Texte normalisé:', normalized)
 
   for (const [key, city] of Object.entries(TIMEZONE_CITIES)) {
-    if (normalized.includes(key) || normalized.includes(city.name.toLowerCase())) {
+    const cityNameNormalized = city.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+
+    if (normalized.includes(key) || normalized.includes(cityNameNormalized)) {
+      console.log(`✅ [TIMEZONE] Ville trouvée: ${key} (${city.name})`)
       return key
     }
   }
 
+  console.warn('❌ [TIMEZONE] Aucune ville reconnue dans:', locationString)
   return null
 }
