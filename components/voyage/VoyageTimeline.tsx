@@ -170,18 +170,27 @@ export default function VoyageTimeline({
     const startHoursSinceVoyageStart = daysSinceStart * 24 + startHour + startMinute / 60
 
     // Calculer la durée en heures
-    const startTotalMinutes = startHour * 60 + startMinute
-    const endTotalMinutes = endHour * 60 + endMinute
-    let durationHours = (endTotalMinutes - startTotalMinutes) / 60
+    let durationHours: number
 
-    // Si durée négative, c'est probablement le lendemain
-    if (durationHours <= 0) {
-      durationHours = ((24 * 60) + endTotalMinutes - startTotalMinutes) / 60
-    }
+    // Si l'événement a une durée pré-calculée (ex: vol avec fuseau horaire), l'utiliser
+    if (event.duration && event.duration > 0) {
+      durationHours = event.duration / 60 // Convertir minutes → heures
+      console.log(`✈️ [TIMELINE] Utilisation durée réelle pour "${event.titre}": ${event.duration}min = ${durationHours.toFixed(2)}h`)
+    } else {
+      // Sinon, calculer simplement à partir des heures locales
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      durationHours = (endTotalMinutes - startTotalMinutes) / 60
 
-    // Minimum 30 minutes
-    if (durationHours < 0.5) {
-      durationHours = 0.5
+      // Si durée négative, c'est probablement le lendemain
+      if (durationHours <= 0) {
+        durationHours = ((24 * 60) + endTotalMinutes - startTotalMinutes) / 60
+      }
+
+      // Minimum 30 minutes
+      if (durationHours < 0.5) {
+        durationHours = 0.5
+      }
     }
 
     // Chaque jour = 600px (pour plus de lisibilité), donc 1 heure = 600/24 = 25px
