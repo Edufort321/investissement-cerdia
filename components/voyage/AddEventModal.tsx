@@ -227,15 +227,14 @@ export default function AddEventModal({
     }
   }, [type, transportMode, heureDebut, heureFin, date])
 
-  // Affichage des informations de timezone pour les vols
-  // NOTE: On n'écrase PLUS la durée ici, car elle est déjà calculée correctement par l'API
+  // Affichage des informations de timezone pour les vols + calcul durée si nécessaire
   useEffect(() => {
     if (!heureDebut || !heureFin) {
       setTimezoneInfo('')
       return
     }
 
-    // Pour les vols en avion, afficher les infos de timezone
+    // Pour les vols en avion avec villes connues, afficher les infos de timezone
     if (type === 'transport' && transportMode === 'plane' && fromLocation && lieu) {
       try {
         const departureCity = extractCityKey(fromLocation)
@@ -252,10 +251,16 @@ export default function AddEventModal({
           )
 
           if (result) {
-            // Afficher les informations de timezone SANS modifier la durée
+            // Afficher les informations de timezone
             const info = `${result.timezoneInfo.departure.city} ${formatOffset(result.timezoneInfo.departure.offset)} → ${result.timezoneInfo.arrival.city} ${formatOffset(result.timezoneInfo.arrival.offset)}`
             setTimezoneInfo(info)
-            console.log(`ℹ️ Durée réelle du vol (avec timezone): ${result.durationMinutes} min`)
+
+            // NE PAS modifier la durée si elle a été calculée par l'API (avec coordonnées)
+            // Seulement la mettre à jour si on n'a pas de coordonnées (entrée manuelle)
+            if (!fromCoordinates || !toCoordinates) {
+              setDuration(result.durationMinutes.toString())
+              console.log(`ℹ️ Durée vol calculée (timezone): ${result.durationMinutes} min`)
+            }
             return
           }
         }
@@ -264,9 +269,35 @@ export default function AddEventModal({
       }
     }
 
-    // Pas d'info timezone pour les autres modes
-    setTimezoneInfo('')
-  }, [heureDebut, heureFin, date, arrivalDate, type, transportMode, fromLocation, lieu])
+    // Pour les autres modes de transport (ou si pas de villes pour vols),
+    // calculer la durée basée simplement sur la différence d'heures
+    // MAIS seulement si pas de coordonnées (sinon c'est déjà calculé par l'API)
+    if (!fromCoordinates || !toCoordinates) {
+      try {
+        setTimezoneInfo('')
+
+        const [startHour, startMin] = heureDebut.split(':').map(Number)
+        const [endHour, endMin] = heureFin.split(':').map(Number)
+
+        // Calculer la différence en minutes en tenant compte de la date
+        const startDate = new Date(date + 'T' + heureDebut)
+        const endDate = new Date(arrivalDate + 'T' + heureFin)
+
+        const totalMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))
+
+        if (totalMinutes >= 0) {
+          setDuration(totalMinutes.toString())
+          console.log(`ℹ️ Durée calculée (différence heures): ${totalMinutes} min`)
+        }
+      } catch (error) {
+        console.error('Erreur calcul durée:', error)
+      }
+    } else {
+      // On a des coordonnées, donc l'API a déjà calculé la durée
+      // On ne fait rien ici pour ne pas l'écraser
+      setTimezoneInfo('')
+    }
+  }, [heureDebut, heureFin, date, arrivalDate, type, transportMode, fromLocation, lieu, fromCoordinates, toCoordinates])
 
   // Suggestions pour le lieu de départ (transport)
   useEffect(() => {
