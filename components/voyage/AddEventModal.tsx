@@ -30,6 +30,7 @@ interface AddEventModalProps {
     duration?: number
     fromLocation?: string
     coordinates?: { lat: number; lng: number }
+    coordonneesDepart?: { lat: number; lng: number }
     rating?: number
     heureDebut?: string
     heureFin?: string
