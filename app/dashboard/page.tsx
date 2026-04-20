@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import ScenariosTab from '@/components/ScenariosTab'
@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
 
   // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
   const getColorFlag = (dueDate: string, status: string): { color: string; emoji: string; label: string } => {
@@ -730,7 +731,10 @@ export default function DashboardPage() {
 
                       return (
                         <div key={payment.id} className={`border rounded-lg p-3 sm:p-4 ${bgColorClass}`}>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div
+                            className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setExpandedPaymentId(expandedPaymentId === payment.id ? null : payment.id)}
+                          >
                             {/* Flag et statut */}
                             <div className="flex items-center gap-2">
                               <span className="text-xl sm:text-2xl">{payment.color_flag.emoji}</span>
@@ -766,22 +770,29 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Montants */}
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900 dark:text-gray-100">
-                                {payment.amount.toLocaleString('fr-CA', {
-                                  style: 'currency',
-                                  currency: payment.currency,
-                                  minimumFractionDigits: 0
-                                })}
-                              </p>
-                              {payment.currency === 'USD' && (
-                                <p className="text-xs text-gray-600">
-                                  ≈ {payment.amount_in_cad.toLocaleString('fr-CA', {
+                            <div className="text-right flex items-center gap-2">
+                              <div>
+                                <p className="font-bold text-gray-900 dark:text-gray-100">
+                                  {payment.amount.toLocaleString('fr-CA', {
                                     style: 'currency',
-                                    currency: 'CAD',
+                                    currency: payment.currency,
                                     minimumFractionDigits: 0
                                   })}
                                 </p>
+                                {payment.currency === 'USD' && (
+                                  <p className="text-xs text-gray-600">
+                                    ≈ {payment.amount_in_cad.toLocaleString('fr-CA', {
+                                      style: 'currency',
+                                      currency: 'CAD',
+                                      minimumFractionDigits: 0
+                                    })}
+                                  </p>
+                                )}
+                              </div>
+                              {expandedPaymentId === payment.id ? (
+                                <ChevronUp size={20} className="text-gray-500 flex-shrink-0" />
+                              ) : (
+                                <ChevronDown size={20} className="text-gray-500 flex-shrink-0" />
                               )}
                             </div>
                           </div>
@@ -809,22 +820,24 @@ export default function DashboardPage() {
                             const remainingAmountUSD = payment.amount - paidAmountUSD
                             const progressPercentage = payment.amount > 0 ? (paidAmountUSD / payment.amount) * 100 : 0
 
-                            // Afficher seulement si des paiements partiels ont été faits
-                            if (paidAmountUSD > 0 && remainingAmountUSD > 0) {
+                            // Afficher la barre si ce paiement est sélectionné
+                            if (expandedPaymentId === payment.id) {
                               return (
-                                <div className="mt-3 pt-3 border-t border-gray-300">
+                                <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
                                   <div className="flex justify-between text-xs text-gray-600 mb-1">
                                     <span>Payé: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
                                     <span>Reste: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div
-                                      className="bg-blue-600 h-2 rounded-full transition-all"
+                                      className={`h-2 rounded-full transition-all ${progressPercentage === 100 ? 'bg-green-600' : 'bg-blue-600'}`}
                                       style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                                     />
                                   </div>
                                   <p className="text-xs text-gray-500 mt-1 text-center">
                                     {progressPercentage.toFixed(1)}% payé
+                                    {progressPercentage === 0 && ' - Aucun paiement effectué'}
+                                    {progressPercentage === 100 && ' ✅'}
                                   </p>
                                 </div>
                               )
