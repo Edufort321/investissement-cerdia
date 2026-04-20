@@ -145,11 +145,24 @@ export default function DashboardPage() {
   const upcomingPayments = paymentSchedules
     .map(payment => {
       const property = properties.find(p => p.id === payment.property_id)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+
+      // Trouver les transactions liées à ce paiement
+      const relatedTransactions = transactions.filter(t => t.payment_schedule_id === payment.id)
+
+      // Si payé, utiliser la date de la dernière transaction, sinon utiliser aujourd'hui
+      const referenceDate = new Date()
+      if (payment.status === 'paid' && relatedTransactions.length > 0) {
+        // Trouver la date de la dernière transaction
+        const lastTransaction = relatedTransactions.sort((a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        )[0]
+        referenceDate.setTime(new Date(lastTransaction.date).getTime())
+      }
+      referenceDate.setHours(0, 0, 0, 0)
+
       const due = new Date(payment.due_date)
       due.setHours(0, 0, 0, 0)
-      const daysUntil = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const daysUntil = Math.floor((due.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24))
       const flag = getColorFlag(payment.due_date, payment.status)
       const amountInCAD = payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
 
@@ -159,7 +172,8 @@ export default function DashboardPage() {
         property_location: property?.location || '',
         days_until_due: daysUntil,
         color_flag: flag,
-        amount_in_cad: amountInCAD
+        amount_in_cad: amountInCAD,
+        actual_payment_date: relatedTransactions.length > 0 ? relatedTransactions[0].date : null
       }
     })
     .sort((a, b) => {
@@ -741,7 +755,9 @@ export default function DashboardPage() {
                               <div>
                                 <p className="text-xs sm:text-sm font-medium text-gray-700">{payment.color_flag.label}</p>
                                 <p className="text-xs text-gray-600">
-                                  {payment.days_until_due < 0
+                                  {payment.status === 'paid' && payment.actual_payment_date
+                                    ? `Payé le ${new Date(payment.actual_payment_date).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                    : payment.days_until_due < 0
                                     ? `${Math.abs(payment.days_until_due)} jour${Math.abs(payment.days_until_due) > 1 ? 's' : ''} de retard`
                                     : payment.days_until_due === 0
                                     ? 'Aujourd\'hui'
