@@ -117,10 +117,14 @@ export default function DashboardPage() {
   // Convertir Investissement Immobilier en CAD pour le calcul du Compte Courant
   const totalInvestissementImmobilierCAD = totalInvestissementImmobilierUSD * exchangeRate
 
-  // 3. DÉPENSES OPÉRATION (CAD) - Somme des dépenses CAPEX + R&D
-  const totalDepensesOperation =
-    capexAccounts.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) +
-    (rndAccounts?.reduce((sum, acc) => sum + acc.investment_capex + acc.operation_capex, 0) || 0)
+  // 3. DÉPENSES OPÉRATION (CAD) - Somme des transactions de type paiement/depense SANS property_id
+  // (les transactions avec property_id sont déjà comptées dans Investissement Immobilier)
+  const totalDepensesOperation = transactions
+    .filter(t =>
+      // Inclure les paiements et dépenses qui ne sont PAS liés à une propriété
+      ['paiement', 'depense'].includes(t.type) && !t.property_id
+    )
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
   // 4. COMPTE COURANT (CAD) - Calculé = Total Investisseurs - Investissements (convertis) - Dépenses
   const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilierCAD - totalDepensesOperation
