@@ -626,11 +626,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       }
 
       if (editingTransactionId) {
+        console.log('🟡 [handleTransactionSubmit] Mode \u00c9DITION - ID:', editingTransactionId)
+        console.log('🟡 [handleTransactionSubmit] Donn\u00e9es soumises:', dataToSubmit)
+
         const result = await updateTransaction(editingTransactionId, dataToSubmit)
+
         if (result.success) {
+          console.log('\u2705 [handleTransactionSubmit] Mise \u00e0 jour r\u00e9ussie!')
           setEditingTransactionId(null)
+          setShowAddTransactionForm(false) // Fermer le formulaire
           resetTransactionForm()
+          alert('\u2705 Transaction modifi\u00e9e avec succ\u00e8s!')
         } else {
+          console.error('\u274c [handleTransactionSubmit] \u00c9chec:', result.error)
           alert('Erreur lors de la modification: ' + result.error)
         }
       } else {

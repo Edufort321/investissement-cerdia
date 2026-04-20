@@ -201,7 +201,7 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
       const finalAmount = formData.flowType === 'inflow' ? formData.amount : -formData.amount
 
       // Préparer les données
-      const transactionData = {
+      const transactionData: any = {
         date: formData.date,
         type: formData.category,
         amount: finalAmount,
@@ -216,6 +216,11 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
         source_amount: formData.source_amount || undefined,
         exchange_rate: formData.exchange_rate,
         bank_fees: formData.bank_fees || 0
+      }
+
+      // IMPORTANT: Si on est en mode édition, ajouter l'ID
+      if (transaction?.id) {
+        transactionData.id = transaction.id
       }
 
       await onSave(transactionData)

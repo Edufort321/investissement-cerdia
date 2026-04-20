@@ -561,15 +561,29 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Update Transaction
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
     try {
-      const { error } = await supabase
+      console.log('🔵 [updateTransaction] D\u00e9but de mise \u00e0 jour transaction:', id)
+      console.log('🔵 [updateTransaction] Donn\u00e9es:', updates)
+
+      const { data, error } = await supabase
         .from('transactions')
         .update(updates)
         .eq('id', id)
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('\u274c [updateTransaction] Erreur Supabase:', error)
+        throw error
+      }
+
+      console.log('\u2705 [updateTransaction] Transaction mise \u00e0 jour avec succ\u00e8s:', data)
+
+      // Forcer le rafra\u00eechissement
       await fetchTransactions()
+      console.log('\u2705 [updateTransaction] Liste des transactions rafra\u00eechie')
+
       return { success: true }
     } catch (error: any) {
+      console.error('\u274c [updateTransaction] ERREUR FINALE:', error)
       return { success: false, error: error.message }
     }
   }, [fetchTransactions])
