@@ -37,18 +37,16 @@ BEGIN
   UNION ALL
 
   -- Compte Courant Balance
+  -- MÊME LOGIQUE QUE ADMINISTRATION/TRANSACTIONS: totalIn - totalOut
   SELECT
     'compte_courant'::TEXT,
     'Compte Courant Balance'::TEXT,
     (
-      -- Investisseurs
-      COALESCE((SELECT SUM(t1.amount) FROM transactions t1 WHERE t1.type = 'investissement' AND (p_year IS NULL OR EXTRACT(YEAR FROM t1.date)::INTEGER = p_year)), 0)
+      -- Entrées (investissement + dividende)
+      COALESCE((SELECT SUM(t1.amount) FROM transactions t1 WHERE t1.type IN ('investissement', 'dividende') AND (p_year IS NULL OR EXTRACT(YEAR FROM t1.date)::INTEGER = p_year)), 0)
       -
-      -- Projets
-      COALESCE((SELECT SUM(ABS(t2.amount)) FROM transactions t2 WHERE t2.property_id IS NOT NULL AND (p_year IS NULL OR EXTRACT(YEAR FROM t2.date)::INTEGER = p_year)), 0)
-      -
-      -- Opération
-      COALESCE((SELECT SUM(ABS(t3.amount)) FROM transactions t3 WHERE t3.type IN ('paiement', 'depense') AND t3.property_id IS NULL AND (p_year IS NULL OR EXTRACT(YEAR FROM t3.date)::INTEGER = p_year)), 0)
+      -- Sorties (paiement + depense) - TOUTES, pas seulement sans property_id
+      COALESCE((SELECT SUM(ABS(t2.amount)) FROM transactions t2 WHERE t2.type IN ('paiement', 'depense') AND (p_year IS NULL OR EXTRACT(YEAR FROM t2.date)::INTEGER = p_year)), 0)
     )::NUMERIC
 
   UNION ALL
@@ -76,7 +74,7 @@ BEGIN
 
   UNION ALL
 
-  -- Coûts Opération
+  -- Coûts Opération (dépenses non liées à une propriété)
   SELECT
     'operation'::TEXT,
     'Coûts Opération'::TEXT,
