@@ -506,39 +506,46 @@ export default function PaymentScheduleManager({
                           </h4>
                           {getStatusBadge(payment.status)}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
-                          <div>
-                            <span className="text-gray-600">Montant:</span>
-                            <p className="font-semibold">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                          <div className="bg-white/50 p-2 rounded border border-gray-200">
+                            <span className="text-xs text-gray-600 block mb-0.5">Montant</span>
+                            <p className="font-semibold text-gray-900">
                               {payment.amount.toLocaleString('fr-CA', {
                                 style: 'currency',
-                                currency: payment.currency
+                                currency: payment.currency,
+                                minimumFractionDigits: 2
                               })}
                             </p>
                           </div>
-                          <div>
-                            <span className="text-gray-600">Échéance:</span>
-                            <p className="font-semibold">
-                              {new Date(payment.due_date).toLocaleDateString('fr-CA')}
+                          <div className="bg-white/50 p-2 rounded border border-gray-200">
+                            <span className="text-xs text-gray-600 block mb-0.5">Échéance</span>
+                            <p className="font-semibold text-gray-900">
+                              {new Date(payment.due_date).toLocaleDateString('fr-CA', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
                             </p>
                           </div>
                           {payment.status !== 'pending' && (
                             <>
-                              <div>
-                                <span className="text-gray-600">Payé:</span>
-                                <p className="font-semibold text-green-600">
+                              <div className="bg-green-50/50 p-2 rounded border border-green-200">
+                                <span className="text-xs text-gray-600 block mb-0.5">Payé</span>
+                                <p className="font-semibold text-green-700">
                                   {payment.total_amount_paid.toLocaleString('fr-CA', {
                                     style: 'currency',
-                                    currency: payment.currency
+                                    currency: payment.currency,
+                                    minimumFractionDigits: 2
                                   })}
                                 </p>
                               </div>
-                              <div>
-                                <span className="text-gray-600">Restant:</span>
-                                <p className="font-semibold text-orange-600">
+                              <div className="bg-orange-50/50 p-2 rounded border border-orange-200">
+                                <span className="text-xs text-gray-600 block mb-0.5">Restant</span>
+                                <p className="font-semibold text-orange-700">
                                   {payment.remaining_amount.toLocaleString('fr-CA', {
                                     style: 'currency',
-                                    currency: payment.currency
+                                    currency: payment.currency,
+                                    minimumFractionDigits: 2
                                   })}
                                 </p>
                               </div>
