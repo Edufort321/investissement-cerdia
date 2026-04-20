@@ -10,83 +10,83 @@
 --
 -- ==========================================
 
+-- Supprimer l'ancienne fonction si elle existe
+DROP FUNCTION IF EXISTS get_financial_summary(integer);
+DROP FUNCTION IF EXISTS get_financial_summary();
+
 CREATE OR REPLACE FUNCTION get_financial_summary(p_year INTEGER DEFAULT NULL)
 RETURNS TABLE (
-  category TEXT,
-  metric TEXT,
-  value NUMERIC
-) AS $$
-DECLARE
-  v_total_investisseurs NUMERIC;
-  v_investissements_projets NUMERIC;
-  v_depenses_operation NUMERIC;
-  v_compte_courant_balance NUMERIC;
-  v_capex_received NUMERIC;
-  v_capex_spent NUMERIC;
-  v_capex_balance NUMERIC;
+  result_category TEXT,
+  result_metric TEXT,
+  result_value NUMERIC
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
 BEGIN
-  -- 1. TOTAL INVESTISSEURS (CAD)
-  -- Somme des transactions de type 'investissement'
-  SELECT COALESCE(SUM(amount), 0)
-  INTO v_total_investisseurs
-  FROM transactions
-  WHERE type = 'investissement'
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM date) = p_year);
-
-  -- 2. INVESTISSEMENTS PROJETS (DÉPENSES PROJETS)
-  -- Somme absolue des transactions liées à une propriété
-  SELECT COALESCE(SUM(ABS(amount)), 0)
-  INTO v_investissements_projets
-  FROM transactions
-  WHERE property_id IS NOT NULL
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM date) = p_year);
-
-  -- 3. DÉPENSES OPÉRATION (SANS property_id)
-  -- Somme des transactions de type 'paiement' ou 'depense' SANS property_id
-  SELECT COALESCE(SUM(ABS(amount)), 0)
-  INTO v_depenses_operation
-  FROM transactions
-  WHERE type IN ('paiement', 'depense')
-    AND property_id IS NULL
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM date) = p_year);
-
-  -- 4. CAPEX BALANCE
-  -- Reçu (montants positifs avec payment_source='capex')
-  SELECT COALESCE(SUM(amount), 0)
-  INTO v_capex_received
-  FROM transactions
-  WHERE payment_source = 'capex'
-    AND amount > 0
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM date) = p_year);
-
-  -- Dépensé (montants négatifs avec category='capex')
-  SELECT COALESCE(SUM(ABS(amount)), 0)
-  INTO v_capex_spent
-  FROM transactions
-  WHERE category = 'capex'
-    AND amount < 0
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM date) = p_year);
-
-  -- Balance CAPEX
-  v_capex_balance := v_capex_received - v_capex_spent;
-
-  -- 5. COMPTE COURANT BALANCE
-  -- = Total Investisseurs - Investissements Projets - Dépenses Opération
-  v_compte_courant_balance := v_total_investisseurs - v_investissements_projets - v_depenses_operation;
-
-  -- RETOURNER LES RÉSULTATS
   RETURN QUERY
-  SELECT 'investissement'::TEXT, 'Total Investisseurs'::TEXT, v_total_investisseurs
+  -- Total Investisseurs
+  SELECT
+    'investissement'::TEXT,
+    'Total Investisseurs'::TEXT,
+    COALESCE(SUM(t.amount), 0)::NUMERIC
+  FROM transactions t
+  WHERE t.type = 'investissement'
+    AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year)
+
   UNION ALL
-  SELECT 'compte_courant'::TEXT, 'Compte Courant Balance'::TEXT, v_compte_courant_balance
+
+  -- Compte Courant Balance
+  SELECT
+    'compte_courant'::TEXT,
+    'Compte Courant Balance'::TEXT,
+    (
+      -- Investisseurs
+      COALESCE((SELECT SUM(t1.amount) FROM transactions t1 WHERE t1.type = 'investissement' AND (p_year IS NULL OR EXTRACT(YEAR FROM t1.date)::INTEGER = p_year)), 0)
+      -
+      -- Projets
+      COALESCE((SELECT SUM(ABS(t2.amount)) FROM transactions t2 WHERE t2.property_id IS NOT NULL AND (p_year IS NULL OR EXTRACT(YEAR FROM t2.date)::INTEGER = p_year)), 0)
+      -
+      -- Opération
+      COALESCE((SELECT SUM(ABS(t3.amount)) FROM transactions t3 WHERE t3.type IN ('paiement', 'depense') AND t3.property_id IS NULL AND (p_year IS NULL OR EXTRACT(YEAR FROM t3.date)::INTEGER = p_year)), 0)
+    )::NUMERIC
+
   UNION ALL
-  SELECT 'capex'::TEXT, 'CAPEX Réserve'::TEXT, v_capex_balance
+
+  -- CAPEX Balance
+  SELECT
+    'capex'::TEXT,
+    'CAPEX Réserve'::TEXT,
+    (
+      COALESCE((SELECT SUM(t4.amount) FROM transactions t4 WHERE t4.payment_source = 'capex' AND t4.amount > 0 AND (p_year IS NULL OR EXTRACT(YEAR FROM t4.date)::INTEGER = p_year)), 0)
+      -
+      COALESCE((SELECT SUM(ABS(t5.amount)) FROM transactions t5 WHERE t5.category = 'capex' AND t5.amount < 0 AND (p_year IS NULL OR EXTRACT(YEAR FROM t5.date)::INTEGER = p_year)), 0)
+    )::NUMERIC
+
   UNION ALL
-  SELECT 'projet'::TEXT, 'Dépenses Projets'::TEXT, v_investissements_projets
+
+  -- Dépenses Projets
+  SELECT
+    'projet'::TEXT,
+    'Dépenses Projets'::TEXT,
+    COALESCE(SUM(ABS(t.amount)), 0)::NUMERIC
+  FROM transactions t
+  WHERE t.property_id IS NOT NULL
+    AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year)
+
   UNION ALL
-  SELECT 'operation'::TEXT, 'Coûts Opération'::TEXT, v_depenses_operation;
+
+  -- Coûts Opération
+  SELECT
+    'operation'::TEXT,
+    'Coûts Opération'::TEXT,
+    COALESCE(SUM(ABS(t.amount)), 0)::NUMERIC
+  FROM transactions t
+  WHERE t.type IN ('paiement', 'depense')
+    AND t.property_id IS NULL
+    AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year);
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$;
 
 COMMENT ON FUNCTION get_financial_summary(INTEGER) IS
   'Calcule le résumé financier global basé sur les vraies transactions';

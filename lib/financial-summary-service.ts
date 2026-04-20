@@ -80,22 +80,22 @@ export async function getFinancialSummary(year: number | null = null): Promise<F
       couts_operation: 0
     }
 
-    data.forEach((row: { metric: string; value: number; category: string }) => {
-      switch (row.category) {
+    data.forEach((row: { result_metric: string; result_value: number; result_category: string }) => {
+      switch (row.result_category) {
         case 'investissement':
-          summary.total_investisseurs = row.value
+          summary.total_investisseurs = row.result_value
           break
         case 'compte_courant':
-          summary.compte_courant_balance = row.value
+          summary.compte_courant_balance = row.result_value
           break
         case 'capex':
-          summary.capex_balance = row.value
+          summary.capex_balance = row.result_value
           break
         case 'projet':
-          summary.depenses_projets = row.value
+          summary.depenses_projets = row.result_value
           break
         case 'operation':
-          summary.couts_operation = row.value
+          summary.couts_operation = row.result_value
           break
       }
     })
