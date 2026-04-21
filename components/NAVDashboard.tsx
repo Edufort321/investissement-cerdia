@@ -36,8 +36,35 @@ interface NAVSummary {
   latest_snapshot_date: string | null
 }
 
+interface DetailedNAVData {
+  // Flux de trésorerie
+  total_investments: number
+  property_purchases: number
+  capex_expenses: number
+  maintenance_expenses: number
+  admin_expenses: number
+  rental_income: number
+
+  // Solde
+  cash_balance: number
+
+  // Propriétés
+  properties_initial_value: number
+  properties_current_value: number
+  properties_appreciation: number
+
+  // NAV
+  total_assets: number
+  total_liabilities: number
+  net_asset_value: number
+  total_shares: number
+  nav_per_share: number
+  nav_change_pct: number
+}
+
 export default function NAVDashboard() {
   const [summary, setSummary] = useState<NAVSummary | null>(null)
+  const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
   const [history, setHistory] = useState<NAVHistoryPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
@@ -110,6 +137,9 @@ export default function NAVDashboard() {
 
         setSummary(summaryData)
       }
+
+      // Stocker les données détaillées pour affichage
+      setDetailedNavData(currentNavData)
 
     } catch (err: any) {
       console.error('Error loading NAV data:', err)
@@ -325,6 +355,200 @@ export default function NAVDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Section détaillée: Calcul NAV */}
+      {detailedNavData && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">🧮 Calcul détaillé du NAV</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Actifs */}
+            <div>
+              <h4 className="text-md font-semibold text-green-700 mb-3">💰 ACTIFS</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Trésorerie (compte courant)</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.cash_balance)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Valeur des propriétés</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.properties_current_value)}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Total Actifs</span>
+                  <span className="text-sm font-bold text-green-600">{formatCurrency(detailedNavData.total_assets)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Passifs */}
+            <div>
+              <h4 className="text-md font-semibold text-red-700 mb-3">💳 PASSIFS</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Dettes et obligations</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.total_liabilities)}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Total Passifs</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(detailedNavData.total_liabilities)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NAV final */}
+          <div className="mt-6 pt-6 border-t-2 border-gray-300">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">NAV Total</div>
+                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(detailedNavData.net_asset_value)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Actifs - Passifs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">Parts totales</div>
+                  <div className="text-2xl font-bold text-gray-900">{detailedNavData.total_shares.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Actions en circulation</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">NAV par part</div>
+                  <div className="text-2xl font-bold text-blue-600">{detailedNavData.nav_per_share.toFixed(4)} $</div>
+                  <div className="text-xs text-gray-500 mt-1">Valeur de chaque action</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section: Propriétés et Appréciation */}
+      {detailedNavData && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 Immeubles et Appréciation</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="text-sm text-gray-600 mb-1">Valeur d'achat (USD → CAD)</div>
+              <div className="text-xl font-bold text-gray-900">{formatCurrency(detailedNavData.properties_initial_value)}</div>
+              <div className="text-xs text-gray-500 mt-1">Prix payé pour les propriétés</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="text-sm text-gray-600 mb-1">Valeur actuelle (8%/an)</div>
+              <div className="text-xl font-bold text-green-600">{formatCurrency(detailedNavData.properties_current_value)}</div>
+              <div className="text-xs text-gray-500 mt-1">Avec appréciation composée</div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="text-sm text-gray-600 mb-1">Gain d'appréciation</div>
+              <div className="text-xl font-bold text-blue-600">{formatCurrency(detailedNavData.properties_appreciation)}</div>
+              <div className="text-xs text-green-600 mt-1">
+                {detailedNavData.properties_initial_value > 0
+                  ? `+${((detailedNavData.properties_appreciation / detailedNavData.properties_initial_value) * 100).toFixed(2)}%`
+                  : '-'}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-yellow-900 mb-1">Appréciation scénario vs évaluation réelle</h4>
+                <p className="text-sm text-yellow-800 mb-2">
+                  Les valeurs ci-dessus utilisent un scénario d'appréciation automatique de 8% par an.
+                  Pour un NAV précis, des évaluations réelles doivent être effectuées:
+                </p>
+                <ul className="text-sm text-yellow-800 space-y-1 ml-4 list-disc">
+                  <li><strong>À la livraison</strong> de chaque propriété: évaluation initiale réelle</li>
+                  <li><strong>Aux 2 ans</strong>: réévaluation pour ajuster le NAV</li>
+                </ul>
+                <p className="text-xs text-yellow-700 mt-2">
+                  💡 <strong>À implanter:</strong> Système de rappel automatique pour les évaluations aux 2 ans
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section: Flux de trésorerie */}
+      {detailedNavData && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">💸 Flux de trésorerie</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Entrées */}
+            <div>
+              <h4 className="text-md font-semibold text-green-700 mb-3">📥 ENTRÉES</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Investissements des commanditaires</span>
+                  <span className="text-sm font-medium text-green-600">{formatCurrency(detailedNavData.total_investments)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Revenus locatifs</span>
+                  <span className="text-sm font-medium text-green-600">{formatCurrency(detailedNavData.rental_income)}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Total Entrées</span>
+                  <span className="text-sm font-bold text-green-600">
+                    {formatCurrency(detailedNavData.total_investments + detailedNavData.rental_income)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sorties */}
+            <div>
+              <h4 className="text-md font-semibold text-red-700 mb-3">📤 SORTIES</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Achats de propriétés</span>
+                  <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.property_purchases)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">CAPEX (améliorations)</span>
+                  <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.capex_expenses)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Maintenance</span>
+                  <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.maintenance_expenses)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Administration</span>
+                  <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.admin_expenses)}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Total Sorties</span>
+                  <span className="text-sm font-bold text-red-600">
+                    {formatCurrency(
+                      detailedNavData.property_purchases +
+                      detailedNavData.capex_expenses +
+                      detailedNavData.maintenance_expenses +
+                      detailedNavData.admin_expenses
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Solde compte courant */}
+          <div className="mt-6 pt-6 border-t-2 border-gray-300">
+            <div className={`rounded-lg p-4 ${detailedNavData.cash_balance >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">💰 Solde du compte courant</div>
+                  <div className="text-xs text-gray-500">Entrées - Sorties</div>
+                </div>
+                <div className={`text-3xl font-bold ${detailedNavData.cash_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(detailedNavData.cash_balance)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Graphique historique */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
