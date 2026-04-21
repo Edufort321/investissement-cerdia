@@ -644,24 +644,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       } else {
         const result = await addTransaction(dataToSubmit)
         if (result.success) {
-          // Si c'est un investissement avec un investisseur, créer l'entrée dans investor_investments
-          if (dataToSubmit.type === 'investissement' && dataToSubmit.investor_id && shareSettings) {
-            const investmentData = {
-              investor_id: dataToSubmit.investor_id,
-              investment_date: dataToSubmit.date,
-              amount_invested: dataToSubmit.amount,
-              currency: dataToSubmit.source_currency || 'CAD',
-              payment_method: dataToSubmit.payment_method || '',
-              reference_number: dataToSubmit.reference_number || '',
-              notes: dataToSubmit.description || '',
-            }
-
-            const investmentResult = await addInvestment(investmentData)
-            if (!investmentResult.success) {
-              console.error('Erreur lors de la création de l\'investissement:', investmentResult.error)
-              alert('Transaction créée mais erreur lors de la création des parts: ' + investmentResult.error)
-            }
-          }
+          // Le trigger SQL 'auto_create_investor_shares_from_transactions' crée automatiquement
+          // l'entrée dans investor_investments, pas besoin de le faire manuellement
 
           setShowAddTransactionForm(false)
           resetTransactionForm()
