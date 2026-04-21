@@ -551,12 +551,17 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         .insert([transaction])
 
       if (error) throw error
+
+      // Recharger toutes les données liées
       await fetchTransactions()
+      await fetchInvestorInvestments()
+      await fetchInvestorSummaries()
+
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries])
 
   // Update Transaction
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
@@ -577,16 +582,18 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
       console.log('\u2705 [updateTransaction] Transaction mise \u00e0 jour avec succ\u00e8s:', data)
 
-      // Forcer le rafra\u00eechissement
+      // Forcer le rafra\u00eechissement de toutes les donn\u00e9es li\u00e9es
       await fetchTransactions()
-      console.log('\u2705 [updateTransaction] Liste des transactions rafra\u00eechie')
+      await fetchInvestorInvestments()
+      await fetchInvestorSummaries()
+      console.log('\u2705 [updateTransaction] Toutes les donn\u00e9es rafra\u00eechies')
 
       return { success: true }
     } catch (error: any) {
       console.error('\u274c [updateTransaction] ERREUR FINALE:', error)
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries])
 
   // Delete Transaction
   const deleteTransaction = useCallback(async (id: string) => {
@@ -597,12 +604,17 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         .eq('id', id)
 
       if (error) throw error
+
+      // Recharger toutes les données liées
       await fetchTransactions()
+      await fetchInvestorInvestments()
+      await fetchInvestorSummaries()
+
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries])
 
   // Fetch Payment Schedules
   const fetchPaymentSchedules = useCallback(async (propertyId?: string) => {
