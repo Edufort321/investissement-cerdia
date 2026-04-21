@@ -64,22 +64,15 @@ export default function NAVDashboard() {
         throw navError
       }
 
-      // DEBUG: Voir le format exact des données retournées
-      console.log('🔍 Format de currentNavRaw:', currentNavRaw)
-      console.log('🔍 Type:', typeof currentNavRaw)
-      console.log('🔍 Is Array:', Array.isArray(currentNavRaw))
-
-      // La fonction RPC retourne un objet direct (pas un array)
-      const currentNavData = currentNavRaw
+      // La fonction RPC retourne un array avec un objet dedans: [{...}]
+      // Extraire le premier élément
+      const currentNavData = Array.isArray(currentNavRaw) && currentNavRaw.length > 0
+        ? currentNavRaw[0]
+        : null
 
       if (!currentNavData) {
         throw new Error('Aucune donnée NAV retournée par calculate_realistic_nav_v2')
       }
-
-      // Vérifier les propriétés attendues
-      console.log('🔍 Properties:', Object.keys(currentNavData))
-      console.log('🔍 net_asset_value:', currentNavData.net_asset_value)
-      console.log('🔍 nav_per_share:', currentNavData.nav_per_share)
 
       // Charger l'historique des snapshots (pour le graphique)
       const { data: historyData, error: historyError } = await supabase
