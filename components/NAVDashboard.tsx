@@ -53,25 +53,53 @@ export default function NAVDashboard() {
       setLoading(true)
       setError(null)
 
-      // Charger le résumé NAV - utiliser maybeSingle() pour gérer le cas où il n'y a pas de snapshot
-      const { data: summaryData, error: summaryError } = await supabase
-        .from('v_nav_summary')
-        .select('*')
-        .maybeSingle()
+      // Calculer le NAV actuel EN TEMPS RÉEL basé sur les transactions
+      const { data: currentNavData, error: navError } = await supabase
+        .rpc('calculate_realistic_nav_v2', {
+          p_calculation_date: new Date().toISOString().split('T')[0]
+        })
 
-      // Si erreur autre que "pas de données", on throw
-      if (summaryError && summaryError.code !== 'PGRST116') throw summaryError
+      if (navError) {
+        console.error('Erreur calcul NAV actuel:', navError)
+        throw navError
+      }
 
-      setSummary(summaryData)
-
-      // Charger l'historique NAV
+      // Charger l'historique des snapshots (pour le graphique)
       const { data: historyData, error: historyError } = await supabase
-        .from('v_nav_history_with_changes')
+        .from('nav_history')
         .select('*')
         .order('snapshot_date', { ascending: true })
 
       if (historyError && historyError.code !== 'PGRST116') throw historyError
       setHistory(historyData || [])
+
+      // Construire le summary à partir du NAV actuel + historique
+      if (currentNavData) {
+        const firstSnapshot = historyData && historyData.length > 0 ? historyData[0] : null
+        const lastSnapshot = historyData && historyData.length > 0 ? historyData[historyData.length - 1] : null
+
+        const summaryData: NAVSummary = {
+          current_nav: currentNavData.net_asset_value,
+          current_nav_per_share: currentNavData.nav_per_share,
+          current_appreciation: currentNavData.properties_appreciation,
+          last_snapshot_date: lastSnapshot?.snapshot_date || null,
+          last_snapshot_nav_per_share: lastSnapshot?.nav_per_share || null,
+          first_snapshot_date: firstSnapshot?.snapshot_date || null,
+          first_snapshot_nav_per_share: firstSnapshot?.nav_per_share || null,
+          total_performance_pct: firstSnapshot
+            ? ((currentNavData.nav_per_share - firstSnapshot.nav_per_share) / firstSnapshot.nav_per_share * 100)
+            : null,
+          since_last_snapshot_pct: lastSnapshot
+            ? ((currentNavData.nav_per_share - lastSnapshot.nav_per_share) / lastSnapshot.nav_per_share * 100)
+            : null,
+          total_investments: currentNavData.total_investments,
+          properties_current_value: currentNavData.properties_current_value,
+          total_snapshots: historyData?.length || 0,
+          latest_snapshot_date: lastSnapshot?.snapshot_date || null
+        }
+
+        setSummary(summaryData)
+      }
 
     } catch (err: any) {
       console.error('Error loading NAV data:', err)
@@ -186,36 +214,24 @@ export default function NAVDashboard() {
 
   if (!summary) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="text-yellow-800 font-semibold mb-2">📊 Aucun snapshot NAV</h3>
-        <p className="text-yellow-700 mb-4">
-          Aucun snapshot NAV n'a encore été créé. Le système NAV suit l'évolution de la valeur liquidative du fonds dans le temps.
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 className="text-red-800 font-semibold mb-2">❌ Erreur de configuration NAV</h3>
+        <p className="text-red-700 mb-4">
+          Le système NAV ne peut pas calculer la valeur actuelle. Cela signifie que les migrations NAV ne sont pas exécutées sur Supabase.
         </p>
-        <p className="text-yellow-700 mb-4">
-          Pour commencer le suivi, créez votre premier snapshot en cliquant sur le bouton ci-dessous :
-        </p>
-        <button
-          onClick={createSnapshot}
-          disabled={snapshotLoading}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {snapshotLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-              Création en cours...
-            </>
-          ) : (
-            <>
-              <span className="text-xl">📸</span>
-              Créer le premier snapshot NAV
-            </>
-          )}
-        </button>
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
-          <p className="text-sm text-blue-800">
-            <strong>💡 Note:</strong> Si le bouton ne fonctionne pas, les migrations NAV doivent peut-être être exécutées sur Supabase (migrations 85 et 97).
-          </p>
+        <div className="bg-white rounded p-4 mb-4">
+          <p className="text-sm text-gray-700 mb-2"><strong>📋 Migrations requises:</strong></p>
+          <ol className="text-sm text-gray-700 list-decimal list-inside space-y-1">
+            <li>Migration 85: <code className="bg-gray-100 px-2 py-1 rounded">85-fix-nav-use-correct-schema.sql</code></li>
+            <li>Migration 97: <code className="bg-gray-100 px-2 py-1 rounded">97-add-nav-history-tracking.sql</code></li>
+          </ol>
         </div>
+        <button
+          onClick={loadNAVData}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          🔄 Réessayer
+        </button>
       </div>
     )
   }
@@ -229,7 +245,7 @@ export default function NAVDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Valeur Liquidative (NAV)</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Suivi de la performance du fonds avec appréciation de 8% annuel sur les propriétés
+            Calculé automatiquement en temps réel basé sur vos transactions et propriétés (8% appréciation annuelle)
           </p>
         </div>
         <button
@@ -453,10 +469,18 @@ export default function NAVDashboard() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ À propos du NAV</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Le NAV est calculé automatiquement avec une appréciation de 8% annuel sur les propriétés</li>
-          <li>• Les snapshots peuvent être créés manuellement ou générés mensuellement</li>
-          <li>• La performance est mesurée depuis le premier snapshot ({formatDate(summary.first_snapshot_date)})</li>
-          <li>• Dernier snapshot: {formatDate(summary.last_snapshot_date)} ({summary.total_snapshots} au total)</li>
+          <li>• <strong>Le NAV se met à jour automatiquement</strong> en temps réel basé sur vos transactions</li>
+          <li>• Le calcul inclut: investissements + appréciation de 8% annuel sur les propriétés</li>
+          <li>• Les <strong>snapshots sont optionnels</strong> - ils créent des points sur le graphique historique</li>
+          {summary.total_snapshots > 0 && (
+            <>
+              <li>• Performance mesurée depuis le premier snapshot ({formatDate(summary.first_snapshot_date)})</li>
+              <li>• Dernier snapshot: {formatDate(summary.last_snapshot_date)} ({summary.total_snapshots} au total)</li>
+            </>
+          )}
+          {summary.total_snapshots === 0 && (
+            <li>• <em>Aucun snapshot créé - créez-en pour voir l'évolution sur le graphique</em></li>
+          )}
         </ul>
       </div>
     </div>
