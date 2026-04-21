@@ -158,12 +158,15 @@ export default function ProjetTab() {
 
   const handleEdit = (property: any) => {
     setEditingId(property.id)
+    // Calculer automatiquement le montant payé depuis les transactions
+    const calculatedPaidAmount = calculateTotalPaidInPropertyCurrency(property.id, property.currency || 'USD')
+
     setFormData({
       name: property.name,
       location: property.location,
       status: property.status,
       total_cost: property.total_cost,
-      paid_amount: property.paid_amount,
+      paid_amount: calculatedPaidAmount, // Calculé automatiquement
       reservation_date: property.reservation_date.split('T')[0],
       completion_date: property.completion_date ? property.completion_date.split('T')[0] : '',
       expected_roi: property.expected_roi,
@@ -431,17 +434,19 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant payé
+                  Montant payé (calculé automatiquement)
                 </label>
                 <input
                   type="number"
                   value={formData.paid_amount}
-                  onChange={(e) => setFormData({ ...formData, paid_amount: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 116817.94"
-                  min="0"
-                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                  placeholder="Calculé depuis les transactions"
+                  disabled
+                  readOnly
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Montant calculé automatiquement depuis les transactions liées à ce projet
+                </p>
               </div>
 
               <div>
