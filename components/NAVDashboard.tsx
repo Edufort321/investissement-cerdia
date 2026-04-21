@@ -56,7 +56,7 @@ export default function NAVDashboard() {
       // Calculer le NAV actuel EN TEMPS RÉEL basé sur les transactions
       const { data: currentNavData, error: navError } = await supabase
         .rpc('calculate_realistic_nav_v2', {
-          p_calculation_date: new Date().toISOString().split('T')[0]
+          p_target_date: new Date().toISOString().split('T')[0]
         })
 
       if (navError) {
