@@ -62,9 +62,26 @@ interface DetailedNAVData {
   nav_change_pct: number
 }
 
+interface PropertyValue {
+  property_id: string
+  property_name: string
+  acquisition_cost: number
+  acquisition_date: string
+  initial_acquisition_cost: number
+  initial_market_value: number
+  initial_valuation_date: string
+  current_value: number
+  years_held: number
+  appreciation_amount: number
+  appreciation_percentage: number
+  status: string
+  currency: string
+}
+
 export default function NAVDashboard() {
   const [summary, setSummary] = useState<NAVSummary | null>(null)
   const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
+  const [properties, setProperties] = useState<PropertyValue[]>([])
   const [history, setHistory] = useState<NAVHistoryPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
@@ -140,6 +157,19 @@ export default function NAVDashboard() {
 
       // Stocker les données détaillées pour affichage
       setDetailedNavData(currentNavData)
+
+      // Charger les détails de chaque propriété
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('current_property_values')
+        .select('*')
+        .order('acquisition_date', { ascending: false })
+
+      if (propertiesError) {
+        console.error('Erreur chargement propriétés:', propertiesError)
+        // Ne pas bloquer l'affichage si les propriétés ne chargent pas
+      } else {
+        setProperties(propertiesData || [])
+      }
 
     } catch (err: any) {
       console.error('Error loading NAV data:', err)
@@ -425,7 +455,7 @@ export default function NAVDashboard() {
       {/* Section: Propriétés et Appréciation */}
       {detailedNavData && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 Immeubles et Appréciation</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 Immeubles et Appréciation (Total)</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
@@ -465,6 +495,138 @@ export default function NAVDashboard() {
                 <p className="text-xs text-yellow-700 mt-2">
                   💡 <strong>À implanter:</strong> Système de rappel automatique pour les évaluations aux 2 ans
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section: Portfolio détaillé par propriété */}
+      {properties.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">🏘️ Portfolio de Propriétés ({properties.length})</h3>
+            <div className="text-sm text-gray-600">
+              Détails de chaque propriété avec prise de valeur
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {properties.map((property, index) => {
+              const taux = 1.40 // Taux de change USD → CAD (à ajuster selon taux réel)
+              const valueCad = property.current_value * taux
+              const appreciationCad = property.appreciation_amount * taux
+              const initialCad = property.initial_acquisition_cost * taux
+
+              return (
+                <div key={property.property_id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="text-md font-semibold text-gray-900">{property.property_name}</h4>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-xs text-gray-500">
+                          Acquise le {formatDate(property.acquisition_date)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {property.years_held.toFixed(1)} années détenues
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          property.status === 'en_location' ? 'bg-green-100 text-green-700' :
+                          property.status === 'complete' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {property.status === 'en_location' ? 'En location' :
+                           property.status === 'complete' ? 'Complétée' : property.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Devise</div>
+                      <div className="text-sm font-medium text-gray-700">{property.currency}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    {/* Valeur d'achat */}
+                    <div className="bg-gray-50 rounded p-3">
+                      <div className="text-xs text-gray-600 mb-1">Valeur d'achat</div>
+                      <div className="text-sm font-bold text-gray-900">
+                        {property.currency === 'USD' ?
+                          `${formatCurrency(property.initial_acquisition_cost)} USD` :
+                          formatCurrency(property.initial_acquisition_cost)
+                        }
+                      </div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ≈ {formatCurrency(initialCad)} CAD
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Valeur actuelle */}
+                    <div className="bg-green-50 rounded p-3">
+                      <div className="text-xs text-gray-600 mb-1">Valeur actuelle (8%/an)</div>
+                      <div className="text-sm font-bold text-green-600">
+                        {property.currency === 'USD' ?
+                          `${formatCurrency(property.current_value)} USD` :
+                          formatCurrency(property.current_value)
+                        }
+                      </div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ≈ {formatCurrency(valueCad)} CAD
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gain d'appréciation */}
+                    <div className="bg-blue-50 rounded p-3">
+                      <div className="text-xs text-gray-600 mb-1">Gain d'appréciation</div>
+                      <div className="text-sm font-bold text-blue-600">
+                        {property.currency === 'USD' ?
+                          `${formatCurrency(property.appreciation_amount)} USD` :
+                          formatCurrency(property.appreciation_amount)
+                        }
+                      </div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ≈ {formatCurrency(appreciationCad)} CAD
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pourcentage */}
+                    <div className="bg-purple-50 rounded p-3">
+                      <div className="text-xs text-gray-600 mb-1">% Appréciation</div>
+                      <div className="text-lg font-bold text-purple-600">
+                        +{property.appreciation_percentage.toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Depuis acquisition
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date évaluation initiale */}
+                  {property.initial_valuation_date && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">Évaluation initiale:</span> {formatDate(property.initial_valuation_date)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Note importante */}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-lg">ℹ️</span>
+              <div className="flex-1 text-sm text-blue-800">
+                <strong>Note:</strong> Les valeurs affichées utilisent un taux d'appréciation automatique de 8% par an.
+                Pour un NAV précis, des évaluations réelles doivent être effectuées à la livraison et aux 2 ans.
               </div>
             </div>
           </div>
