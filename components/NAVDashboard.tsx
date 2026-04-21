@@ -53,13 +53,15 @@ export default function NAVDashboard() {
       setLoading(true)
       setError(null)
 
-      // Charger le résumé NAV
+      // Charger le résumé NAV - utiliser maybeSingle() pour gérer le cas où il n'y a pas de snapshot
       const { data: summaryData, error: summaryError } = await supabase
         .from('v_nav_summary')
         .select('*')
-        .single()
+        .maybeSingle()
 
-      if (summaryError) throw summaryError
+      // Si erreur autre que "pas de données", on throw
+      if (summaryError && summaryError.code !== 'PGRST116') throw summaryError
+
       setSummary(summaryData)
 
       // Charger l'historique NAV
@@ -68,7 +70,7 @@ export default function NAVDashboard() {
         .select('*')
         .order('snapshot_date', { ascending: true })
 
-      if (historyError) throw historyError
+      if (historyError && historyError.code !== 'PGRST116') throw historyError
       setHistory(historyData || [])
 
     } catch (err: any) {
@@ -185,10 +187,35 @@ export default function NAVDashboard() {
   if (!summary) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="text-yellow-800 font-semibold mb-2">Aucune donnée NAV</h3>
+        <h3 className="text-yellow-800 font-semibold mb-2">📊 Aucun snapshot NAV</h3>
         <p className="text-yellow-700 mb-4">
-          Aucune donnée NAV disponible. La migration 97 doit être exécutée sur Supabase.
+          Aucun snapshot NAV n'a encore été créé. Le système NAV suit l'évolution de la valeur liquidative du fonds dans le temps.
         </p>
+        <p className="text-yellow-700 mb-4">
+          Pour commencer le suivi, créez votre premier snapshot en cliquant sur le bouton ci-dessous :
+        </p>
+        <button
+          onClick={createSnapshot}
+          disabled={snapshotLoading}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {snapshotLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              Création en cours...
+            </>
+          ) : (
+            <>
+              <span className="text-xl">📸</span>
+              Créer le premier snapshot NAV
+            </>
+          )}
+        </button>
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-sm text-blue-800">
+            <strong>💡 Note:</strong> Si le bouton ne fonctionne pas, les migrations NAV doivent peut-être être exécutées sur Supabase (migrations 85 et 97).
+          </p>
+        </div>
       </div>
     )
   }
