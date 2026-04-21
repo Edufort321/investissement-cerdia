@@ -11,7 +11,11 @@
 --
 -- ==========================================
 
-CREATE OR REPLACE VIEW v_payment_schedules_detail AS
+-- SUPPRIMER COMPLÈTEMENT LA VUE (nécessaire pour changer les noms de colonnes)
+DROP VIEW IF EXISTS v_payment_schedules_detail CASCADE;
+
+-- RECRÉER LA VUE AVEC LES NOUVEAUX CHAMPS
+CREATE VIEW v_payment_schedules_detail AS
 SELECT
   ps.*,
   p.name as property_name,
