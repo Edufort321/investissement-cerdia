@@ -543,6 +543,62 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [fetchProperties])
 
+  // Fetch Investor Investments
+  const fetchInvestorInvestments = useCallback(async (investorId?: string) => {
+    try {
+      let query = supabase
+        .from('investor_investments')
+        .select('*')
+        .order('investment_date', { ascending: false })
+
+      if (investorId) {
+        query = query.eq('investor_id', investorId)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setInvestorInvestments(data || [])
+    } catch (error) {
+      console.error('Error fetching investor investments:', error)
+      setInvestorInvestments([])
+    }
+  }, [])
+
+  // Fetch Investor Summaries (résumés avec calculs)
+  const fetchInvestorSummaries = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('investor_summary')
+        .select('*')
+
+      if (error) throw error
+
+      // Ajouter les calculs de valeur actuelle si on a les settings
+      const enrichedData = (data || []).map((summary: any) => {
+        const currentValue = shareSettings
+          ? summary.total_shares * shareSettings.estimated_share_value
+          : 0
+        const gainLoss = currentValue - summary.total_amount_invested
+        const roiPercentage = summary.total_amount_invested > 0
+          ? (gainLoss / summary.total_amount_invested) * 100
+          : 0
+
+        return {
+          ...summary,
+          current_value: currentValue,
+          gain_loss: gainLoss,
+          roi_percentage: roiPercentage,
+        }
+      })
+
+      setInvestorSummaries(enrichedData)
+    } catch (error) {
+      console.error('Error fetching investor summaries:', error)
+      setInvestorSummaries([])
+    }
+  }, [shareSettings])
+
   // Add Transaction
   const addTransaction = useCallback(async (transaction: Partial<Transaction>) => {
     try {
@@ -784,28 +840,6 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [fetchShareSettings])
 
-  // Fetch Investor Investments (historique achats de parts)
-  const fetchInvestorInvestments = useCallback(async (investorId?: string) => {
-    try {
-      let query = supabase
-        .from('investor_investments')
-        .select('*')
-        .order('investment_date', { ascending: false })
-
-      if (investorId) {
-        query = query.eq('investor_id', investorId)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setInvestorInvestments(data || [])
-    } catch (error) {
-      console.error('Error fetching investor investments:', error)
-      setInvestorInvestments([])
-    }
-  }, [])
-
   // Add Investment (nouvel achat de parts)
   const addInvestment = useCallback(async (investment: Partial<InvestorInvestment>) => {
     try {
@@ -839,41 +873,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       console.error('Error adding investment:', error)
       return { success: false, error: error.message }
     }
-  }, [shareSettings, fetchInvestorInvestments])
-
-  // Fetch Investor Summaries (résumés avec calculs)
-  const fetchInvestorSummaries = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('investor_summary')
-        .select('*')
-
-      if (error) throw error
-
-      // Ajouter les calculs de valeur actuelle si on a les settings
-      const enrichedData = (data || []).map((summary: any) => {
-        const currentValue = shareSettings
-          ? summary.total_shares * shareSettings.estimated_share_value
-          : 0
-        const gainLoss = currentValue - summary.total_amount_invested
-        const roiPercentage = summary.total_amount_invested > 0
-          ? (gainLoss / summary.total_amount_invested) * 100
-          : 0
-
-        return {
-          ...summary,
-          current_value: currentValue,
-          gain_loss: gainLoss,
-          roi_percentage: roiPercentage,
-        }
-      })
-
-      setInvestorSummaries(enrichedData)
-    } catch (error) {
-      console.error('Error fetching investor summaries:', error)
-      setInvestorSummaries([])
-    }
-  }, [shareSettings])
+  }, [shareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
 
   // Calculate Estimated Share Value (basé sur ROI des propriétés)
   const calculateEstimatedShareValue = useCallback(async () => {
