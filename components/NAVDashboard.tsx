@@ -54,7 +54,7 @@ export default function NAVDashboard() {
       setError(null)
 
       // Calculer le NAV actuel EN TEMPS RÉEL basé sur les transactions
-      const { data: currentNavData, error: navError } = await supabase
+      const { data: currentNavRaw, error: navError } = await supabase
         .rpc('calculate_realistic_nav_v2', {
           p_target_date: new Date().toISOString().split('T')[0]
         })
@@ -63,6 +63,23 @@ export default function NAVDashboard() {
         console.error('Erreur calcul NAV actuel:', navError)
         throw navError
       }
+
+      // DEBUG: Voir le format exact des données retournées
+      console.log('🔍 Format de currentNavRaw:', currentNavRaw)
+      console.log('🔍 Type:', typeof currentNavRaw)
+      console.log('🔍 Is Array:', Array.isArray(currentNavRaw))
+
+      // La fonction RPC retourne un objet direct (pas un array)
+      const currentNavData = currentNavRaw
+
+      if (!currentNavData) {
+        throw new Error('Aucune donnée NAV retournée par calculate_realistic_nav_v2')
+      }
+
+      // Vérifier les propriétés attendues
+      console.log('🔍 Properties:', Object.keys(currentNavData))
+      console.log('🔍 net_asset_value:', currentNavData.net_asset_value)
+      console.log('🔍 nav_per_share:', currentNavData.nav_per_share)
 
       // Charger l'historique des snapshots (pour le graphique)
       const { data: historyData, error: historyError } = await supabase
