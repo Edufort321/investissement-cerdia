@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
+import PropertyFinancialSummary from './PropertyFinancialSummary'
 import PaymentScheduleManager from './PaymentScheduleManager'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import { supabase } from '@/lib/supabase'
@@ -25,6 +26,12 @@ interface PropertyFormData {
   reservation_deposit: number
   reservation_deposit_cad: number
   payment_start_date: string
+  // Sale fields
+  sale_date: string
+  sale_price: number
+  sale_currency: string
+  buyer_name: string
+  sale_notes: string
 }
 
 interface PaymentTerm {
@@ -56,6 +63,7 @@ export default function ProjetTab() {
   const [showScenarioDataPropertyId, setShowScenarioDataPropertyId] = useState<string | null>(null)
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
+  const [showFinancialSummaryPropertyId, setShowFinancialSummaryPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
   const [scenarios, setScenarios] = useState<any[]>([])
@@ -75,7 +83,12 @@ export default function ProjetTab() {
     payment_schedule_type: 'one_time',
     reservation_deposit: 0,
     reservation_deposit_cad: 0,
-    payment_start_date: new Date().toISOString().split('T')[0]
+    payment_start_date: new Date().toISOString().split('T')[0],
+    sale_date: '',
+    sale_price: 0,
+    sale_currency: 'USD',
+    buyer_name: '',
+    sale_notes: ''
   })
 
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
@@ -174,7 +187,12 @@ export default function ProjetTab() {
       payment_schedule_type: property.payment_schedule_type || 'one_time',
       reservation_deposit: property.reservation_deposit || 0,
       reservation_deposit_cad: property.reservation_deposit_cad || 0,
-      payment_start_date: property.payment_start_date?.split('T')[0] || new Date().toISOString().split('T')[0]
+      payment_start_date: property.payment_start_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      sale_date: property.sale_date ? property.sale_date.split('T')[0] : '',
+      sale_price: property.sale_price || 0,
+      sale_currency: property.sale_currency || 'USD',
+      buyer_name: property.buyer_name || '',
+      sale_notes: property.sale_notes || ''
     })
     setShowAddForm(true)
   }
@@ -202,7 +220,12 @@ export default function ProjetTab() {
       payment_schedule_type: 'one_time',
       reservation_deposit: 0,
       reservation_deposit_cad: 0,
-      payment_start_date: new Date().toISOString().split('T')[0]
+      payment_start_date: new Date().toISOString().split('T')[0],
+      sale_date: '',
+      sale_price: 0,
+      sale_currency: 'USD',
+      buyer_name: '',
+      sale_notes: ''
     })
     setShowAddForm(false)
     setEditingId(null)
@@ -372,6 +395,7 @@ export default function ProjetTab() {
                   <option value="en_construction">En construction</option>
                   <option value="complete">Complété</option>
                   <option value="actif">Actif</option>
+                  <option value="vendu">Vendu</option>
                 </select>
               </div>
 
@@ -465,6 +489,82 @@ export default function ProjetTab() {
                 />
               </div>
             </div>
+
+            {/* Section Vente (si statut = vendu) */}
+            {formData.status === 'vendu' && (
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">💸 Informations de Vente</h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date de vente
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.sale_date}
+                      onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prix de vente
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.sale_price}
+                      onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      placeholder="Ex: 300000"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Devise de vente
+                    </label>
+                    <select
+                      value={formData.sale_currency}
+                      onChange={(e) => setFormData({ ...formData, sale_currency: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="CAD">CAD ($)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom de l'acheteur (optionnel)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.buyer_name}
+                      onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      placeholder="Ex: Jean Dupont"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Notes sur la vente (optionnel)
+                    </label>
+                    <textarea
+                      value={formData.sale_notes}
+                      onChange={(e) => setFormData({ ...formData, sale_notes: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      placeholder="Ex: Vendu via agent immobilier ABC, commission 5%"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Payment Schedule Section */}
             <div className="border-t border-gray-200 pt-6">
@@ -1461,6 +1561,13 @@ export default function ProjetTab() {
                     Performance & ROI
                   </button>
                   <button
+                    onClick={() => setShowFinancialSummaryPropertyId(showFinancialSummaryPropertyId === property.id ? null : property.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <DollarSign size={16} />
+                    Bilan Financier
+                  </button>
+                  <button
                     onClick={() => handleEdit(property)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
@@ -1544,6 +1651,53 @@ export default function ProjetTab() {
                     originScenario={originScenario}
                     scenarioResults={scenarioData}
                     transactions={transactions}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Financial Summary Modal */}
+      {showFinancialSummaryPropertyId && (() => {
+        const property = properties.find(p => p.id === showFinancialSummaryPropertyId)
+        if (!property) return null
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Bilan Financier</h3>
+                  <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
+                </div>
+                <button
+                  onClick={() => setShowFinancialSummaryPropertyId(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+                {property && (
+                  <PropertyFinancialSummary
+                    propertyId={property.id}
+                    propertyName={property.name}
+                    totalCost={property.total_cost}
+                    currency={property.currency || 'USD'}
+                    status={property.status}
+                    reservationDate={property.reservation_date}
+                    completionDate={property.completion_date}
+                    saleDate={property.sale_date}
+                    salePrice={property.sale_price}
+                    saleCurrency={property.sale_currency}
+                    transactions={transactions}
+                    onOpenPerformanceROI={() => {
+                      setShowFinancialSummaryPropertyId(null)
+                      setShowPerformancePropertyId(property.id)
+                    }}
                   />
                 )}
               </div>
