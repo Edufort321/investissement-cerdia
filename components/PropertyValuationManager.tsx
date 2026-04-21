@@ -162,23 +162,56 @@ export default function PropertyValuationManager() {
       </div>
 
       {/* Alertes - Propriétés nécessitant une évaluation */}
-      {valuations.length > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="text-yellow-700 dark:text-yellow-400 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">
-                {language === 'fr' ? 'Prochaines évaluations requises' : 'Upcoming Valuations Required'}
-              </h3>
-              <p className="text-xs text-yellow-800 dark:text-yellow-300 mt-1">
-                {language === 'fr'
-                  ? 'Les propriétés doivent être évaluées tous les 2 ans pour le calcul du prix des parts.'
-                  : 'Properties must be valued every 2 years for share price calculation.'}
-              </p>
+      {valuations.length > 0 && (() => {
+        const today = new Date()
+        const reminderThreshold = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000) // 60 jours
+
+        const upcomingValuations = valuations.filter((v: any) => {
+          if (!v.next_valuation_date) return false
+          const nextDate = new Date(v.next_valuation_date)
+          return nextDate <= reminderThreshold
+        })
+
+        const overdueValuations = upcomingValuations.filter((v: any) => {
+          const nextDate = new Date(v.next_valuation_date)
+          return nextDate < today
+        })
+
+        if (upcomingValuations.length === 0) return null
+
+        return (
+          <div className={`${overdueValuations.length > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'} border rounded-lg p-4`}>
+            <div className="flex items-start gap-3">
+              <AlertCircle className={`${overdueValuations.length > 0 ? 'text-red-700 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'} flex-shrink-0 mt-0.5`} size={20} />
+              <div className="flex-1">
+                <h3 className={`text-sm font-semibold ${overdueValuations.length > 0 ? 'text-red-900 dark:text-red-200' : 'text-yellow-900 dark:text-yellow-200'}`}>
+                  {overdueValuations.length > 0
+                    ? (language === 'fr' ? `⚠️ ${overdueValuations.length} évaluation(s) en retard` : `⚠️ ${overdueValuations.length} overdue valuation(s)`)
+                    : (language === 'fr' ? `🔔 ${upcomingValuations.length} évaluation(s) à prévoir` : `🔔 ${upcomingValuations.length} upcoming valuation(s)`)}
+                </h3>
+                <ul className={`mt-2 space-y-1 text-xs ${overdueValuations.length > 0 ? 'text-red-800 dark:text-red-300' : 'text-yellow-800 dark:text-yellow-300'}`}>
+                  {upcomingValuations.map((v: any) => {
+                    const nextDate = new Date(v.next_valuation_date)
+                    const isOverdue = nextDate < today
+                    const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+
+                    return (
+                      <li key={v.id} className="flex items-center gap-2">
+                        <span className="font-medium">{v.properties?.name}:</span>
+                        <span>
+                          {isOverdue
+                            ? (language === 'fr' ? `En retard de ${Math.abs(daysUntil)} jours` : `${Math.abs(daysUntil)} days overdue`)
+                            : (language === 'fr' ? `Dans ${daysUntil} jours (${nextDate.toLocaleDateString('fr-CA')})` : `In ${daysUntil} days (${nextDate.toLocaleDateString('en-CA')})`)}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Formulaire d'ajout */}
       {showAddForm && (

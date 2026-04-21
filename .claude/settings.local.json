@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix: Timeline - Corriger trou causé par décalage horaire vols\n\nCorrection affichage timeline pour les vols avec décalage horaire:\n\n**Problème**: \n- Vol Montreal (18h jour 1) → Paris (8h jour 2 local)\n- Timeline affichait barre basée sur durée réelle (7h53)\n- Barre se terminait à ~2h du matin\n- Événement suivant (Paris 8h) créait un TROU visuel de 6h\n\n**Solution**:\n- Utiliser dateArrivee + heureFin au lieu de seulement duration\n- Calculer position fin = heures depuis début voyage pour l''arrivée\n- Durée affichée = différence entre positions (inclut changement jour)\n- La barre s''étend maintenant correctement jusqu''à l''heure d''arrivée réelle\n\nFichier modifié:\n- components/voyage/VoyageTimeline.tsx (lignes 157-225)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

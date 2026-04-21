@@ -17,6 +17,7 @@ interface PropertyFormData {
   total_cost: number
   paid_amount: number
   reservation_date: string
+  completion_date: string
   expected_roi: number
   // Payment schedule fields
   currency: string
@@ -68,6 +69,7 @@ export default function ProjetTab() {
     total_cost: 0,
     paid_amount: 0,
     reservation_date: new Date().toISOString().split('T')[0],
+    completion_date: '',
     expected_roi: 0,
     currency: 'USD',
     payment_schedule_type: 'one_time',
@@ -379,6 +381,19 @@ export default function ProjetTab() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date de livraison
+                </label>
+                <input
+                  type="date"
+                  value={formData.completion_date}
+                  onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Date prévue ou réelle de livraison du projet</p>
               </div>
 
               <div>

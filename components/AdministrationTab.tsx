@@ -10,6 +10,7 @@ import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
 import BookingRevenueSync from './BookingRevenueSync'
 import InvestorDebts from './InvestorDebts'
+import PropertyValuationManager from './PropertyValuationManager'
 
 interface InvestorFormData {
   user_id: string
@@ -3091,6 +3092,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {activeSubTab === 'rapports_fiscaux' && <TaxReports />}
       {activeSubTab === 'performance' && <PerformanceTracker />}
       {activeSubTab === 'sync_revenues' && <BookingRevenueSync />}
+      {activeSubTab === 'evaluations' && <PropertyValuationManager />}
     </div>
   )
 }
