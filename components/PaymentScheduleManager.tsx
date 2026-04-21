@@ -39,6 +39,8 @@ interface PaymentSchedule {
   notes: string | null
   transaction_count: number
   total_amount_paid: number
+  total_amount_paid_cad: number
+  avg_exchange_rate: number | null
   remaining_amount: number
   payment_progress_percent: number
   days_until_due: number
@@ -537,9 +539,17 @@ export default function PaymentScheduleManager({
                                     style: 'currency',
                                     currency: payment.currency,
                                     minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
+                                    maximumFractionDigits: 0
                                   })}
                                 </p>
+                                {payment.currency === 'USD' && payment.total_amount_paid_cad > 0 && payment.avg_exchange_rate && (
+                                  <p className="text-[10px] text-gray-600 mt-0.5">
+                                    ({payment.total_amount_paid_cad.toLocaleString('fr-CA', {
+                                      minimumFractionDigits: 0,
+                                      maximumFractionDigits: 0
+                                    })} $ CAD @ {payment.avg_exchange_rate.toFixed(3)})
+                                  </p>
+                                )}
                               </div>
                               <div className="bg-orange-50/50 p-2 rounded border border-orange-200 min-w-0">
                                 <span className="text-xs text-gray-500 block mb-0.5">Restant</span>
