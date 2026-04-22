@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 
 interface NAVHistoryPoint {
   id: string
@@ -79,6 +80,7 @@ interface PropertyValue {
 }
 
 export default function NAVDashboard() {
+  const { rate: exchangeRate } = useExchangeRate()
   const [summary, setSummary] = useState<NAVSummary | null>(null)
   const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
   const [properties, setProperties] = useState<PropertyValue[]>([])
@@ -315,7 +317,7 @@ export default function NAVDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Valeur Liquidative (NAV)</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Calculé automatiquement en temps réel basé sur vos transactions et propriétés (8% appréciation annuelle)
+            Calculé en temps réel — taux USD/CAD live: <strong>1 USD = {exchangeRate.toFixed(4)} CAD</strong>
           </p>
         </div>
         <button
@@ -464,9 +466,9 @@ export default function NAVDashboard() {
               <div className="text-xs text-gray-500 mt-1">Prix payé pour les propriétés</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Valeur actuelle (8%/an)</div>
+              <div className="text-sm text-gray-600 mb-1">Valeur actuelle (ROI projeté/an)</div>
               <div className="text-xl font-bold text-green-600">{formatCurrency(detailedNavData.properties_current_value)}</div>
-              <div className="text-xs text-gray-500 mt-1">Avec appréciation composée</div>
+              <div className="text-xs text-gray-500 mt-1">expected_roi → scénario → 8% défaut</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Gain d'appréciation</div>
@@ -483,17 +485,17 @@ export default function NAVDashboard() {
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚠️</span>
               <div className="flex-1">
-                <h4 className="font-semibold text-yellow-900 mb-1">Appréciation scénario vs évaluation réelle</h4>
+                <h4 className="font-semibold text-yellow-900 mb-1">Taux d'appréciation par propriété</h4>
                 <p className="text-sm text-yellow-800 mb-2">
-                  Les valeurs ci-dessus utilisent un scénario d'appréciation automatique de 8% par an.
-                  Pour un NAV précis, des évaluations réelles doivent être effectuées:
+                  Chaque propriété utilise son propre taux dans cet ordre de priorité:
                 </p>
-                <ul className="text-sm text-yellow-800 space-y-1 ml-4 list-disc">
-                  <li><strong>À la livraison</strong> de chaque propriété: évaluation initiale réelle</li>
-                  <li><strong>Aux 2 ans</strong>: réévaluation pour ajuster le NAV</li>
-                </ul>
+                <ol className="text-sm text-yellow-800 space-y-1 ml-4 list-decimal">
+                  <li><strong>ROI attendu</strong> (champ <em>expected_roi</em> de la propriété)</li>
+                  <li><strong>Taux du scénario</strong> (champ <em>annual_appreciation</em> de l'Évaluateur lié)</li>
+                  <li><strong>8% par défaut</strong> si aucun des deux n'est défini</li>
+                </ol>
                 <p className="text-xs text-yellow-700 mt-2">
-                  💡 <strong>À implanter:</strong> Système de rappel automatique pour les évaluations aux 2 ans
+                  💡 Pour un NAV précis: créez une évaluation initiale (Admin → Évaluations) avec le prix d'achat réel. Puis réévaluez aux 2 ans.
                 </p>
               </div>
             </div>
@@ -513,7 +515,7 @@ export default function NAVDashboard() {
 
           <div className="space-y-4">
             {properties.map((property, index) => {
-              const taux = 1.40 // Taux de change USD → CAD (à ajuster selon taux réel)
+              const taux = exchangeRate
               const valueCad = property.current_value * taux
               const appreciationCad = property.appreciation_amount * taux
               const initialCad = property.initial_acquisition_cost * taux
@@ -531,12 +533,18 @@ export default function NAVDashboard() {
                           {property.years_held.toFixed(1)} années détenues
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
-                          property.status === 'en_location' ? 'bg-green-100 text-green-700' :
-                          property.status === 'complete' ? 'bg-blue-100 text-blue-700' :
+                          property.status === 'en_location' || property.status === 'actif' ? 'bg-green-100 text-green-700' :
+                          property.status === 'complete' || property.status === 'acquired' ? 'bg-blue-100 text-blue-700' :
+                          property.status === 'en_construction' ? 'bg-orange-100 text-orange-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
                           {property.status === 'en_location' ? 'En location' :
-                           property.status === 'complete' ? 'Complétée' : property.status}
+                           property.status === 'actif' ? 'Actif' :
+                           property.status === 'complete' ? 'Complétée' :
+                           property.status === 'acquired' ? 'Acquise' :
+                           property.status === 'en_construction' ? 'En construction' :
+                           property.status === 'reservation' ? 'Réservation' :
+                           property.status}
                         </span>
                       </div>
                     </div>
@@ -565,7 +573,7 @@ export default function NAVDashboard() {
 
                     {/* Valeur actuelle */}
                     <div className="bg-green-50 rounded p-3">
-                      <div className="text-xs text-gray-600 mb-1">Valeur actuelle (8%/an)</div>
+                      <div className="text-xs text-gray-600 mb-1">Valeur actuelle (taux ROI projeté)</div>
                       <div className="text-sm font-bold text-green-600">
                         {property.currency === 'USD' ?
                           `${formatCurrency(property.current_value)} USD` :
@@ -625,8 +633,9 @@ export default function NAVDashboard() {
             <div className="flex items-start gap-3">
               <span className="text-lg">ℹ️</span>
               <div className="flex-1 text-sm text-blue-800">
-                <strong>Note:</strong> Les valeurs affichées utilisent un taux d'appréciation automatique de 8% par an.
-                Pour un NAV précis, des évaluations réelles doivent être effectuées à la livraison et aux 2 ans.
+                <strong>Note:</strong> Taux par propriété: <em>expected_roi</em> → <em>annual_appreciation</em> du scénario lié → 8% par défaut.
+                Les valeurs USD sont converties au taux en direct (1 USD = {exchangeRate.toFixed(4)} CAD).
+                Pour un NAV précis: créez une évaluation initiale par propriété (Admin → Évaluations).
               </div>
             </div>
           </div>
@@ -866,7 +875,8 @@ export default function NAVDashboard() {
         <h4 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ À propos du NAV</h4>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• <strong>Le NAV se met à jour automatiquement</strong> en temps réel basé sur vos transactions</li>
-          <li>• Le calcul inclut: investissements + appréciation de 8% annuel sur les propriétés</li>
+          <li>• Le calcul inclut: investissements + appréciation dynamique (expected_roi → scénario → 8%)</li>
+          <li>• Les propriétés USD sont converties en CAD au taux en direct ({exchangeRate.toFixed(4)})</li>
           <li>• Les <strong>snapshots sont optionnels</strong> - ils créent des points sur le graphique historique</li>
           {summary.total_snapshots > 0 && (
             <>
