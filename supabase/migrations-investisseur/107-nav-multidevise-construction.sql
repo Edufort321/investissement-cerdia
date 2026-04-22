@@ -46,6 +46,31 @@ BEGIN
 END $$;
 
 -- ==========================================
+-- 1b. COLONNE: origin_scenario_id dans properties
+-- ==========================================
+
+ALTER TABLE properties
+  ADD COLUMN IF NOT EXISTS origin_scenario_id UUID REFERENCES scenarios(id) ON DELETE SET NULL;
+
+-- Peupler depuis l'inverse: scenarios.converted_property_id
+UPDATE properties p
+SET origin_scenario_id = s.id
+FROM scenarios s
+WHERE s.converted_property_id = p.id
+  AND p.origin_scenario_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_properties_origin_scenario ON properties(origin_scenario_id);
+
+DO $$
+DECLARE
+  v_linked INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO v_linked FROM properties WHERE origin_scenario_id IS NOT NULL;
+  RAISE NOTICE '✅ Colonne origin_scenario_id ajoutée à properties';
+  RAISE NOTICE '✅ % propriété(s) liée(s) à leur scénario d''origine', v_linked;
+END $$;
+
+-- ==========================================
 -- 2. FONCTION: Taux d'appréciation dynamique par propriété
 -- ==========================================
 
