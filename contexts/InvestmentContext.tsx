@@ -14,9 +14,10 @@ interface Property {
   total_cost: number
   paid_amount: number
   reservation_date: string
+  completion_date?: string
   expected_roi: number
   main_photo_url?: string
-  origin_scenario_id?: string  // Link to originating scenario
+  origin_scenario_id?: string
   // Payment schedule fields
   currency?: string
   payment_schedule_type?: string
@@ -25,6 +26,12 @@ interface Property {
   total_paid_cad?: number
   payment_start_date?: string
   payment_end_date?: string
+  // Sale fields
+  sale_date?: string
+  sale_price?: number
+  sale_currency?: string
+  buyer_name?: string
+  sale_notes?: string
   created_at: string
   updated_at: string
 }
