@@ -96,39 +96,7 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  // Calculer les KPIs en temps réel basés sur les TRANSACTIONS
-
-  // 1. TOTAL INVESTISSEURS (CAD) - Somme des apports (transactions de type 'investissement')
-  const totalInvestisseurs = transactions
-    .filter(t => t.type === 'investissement')
-    .reduce((sum, t) => sum + t.amount, 0)
-
-  // 2. INVESTISSEMENT IMMOBILIER (USD) - Somme de TOUTES les transactions liées à une propriété (incluant investissements directs)
-  const totalInvestissementImmobilierUSD = transactions
-    .filter(t => t.property_id) // Toutes les transactions avec property_id (investissements directs + paiements depuis compte)
-    .reduce((sum, t) => {
-      // Si la transaction a une devise source USD, utiliser source_amount
-      if (t.source_currency === 'USD' && t.source_amount) {
-        return sum + Math.abs(t.source_amount)
-      }
-      // Sinon, convertir le montant CAD en USD
-      return sum + (Math.abs(t.amount) / exchangeRate)
-    }, 0)
-
-  // Convertir Investissement Immobilier en CAD pour le calcul du Compte Courant
-  const totalInvestissementImmobilierCAD = totalInvestissementImmobilierUSD * exchangeRate
-
-  // 3. DÉPENSES OPÉRATION (CAD) - Somme des transactions de type paiement/depense SANS property_id
-  // (les transactions avec property_id sont déjà comptées dans Investissement Immobilier)
-  const totalDepensesOperation = transactions
-    .filter(t =>
-      // Inclure les paiements et dépenses qui ne sont PAS liés à une propriété
-      ['paiement', 'depense'].includes(t.type) && !t.property_id
-    )
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-
-  // 4. COMPTE COURANT (CAD) - Calculé = Total Investisseurs - Investissements (convertis) - Dépenses
-  const compteCurrentCalcule = totalInvestisseurs - totalInvestissementImmobilierCAD - totalDepensesOperation
+  // KPIs financiers affichés via FinancialKPIs (get_financial_summary SQL)
 
   // Autres KPIs
   const numberOfProperties = properties.length
@@ -186,8 +154,11 @@ export default function DashboardPage() {
     })
 
   // Calculer les statistiques réelles des investisseurs depuis les transactions
+  const totalInvestisseurs = transactions
+    .filter(t => t.type === 'investissement')
+    .reduce((sum, t) => sum + t.amount, 0)
+
   const investorStats = investors.map(investor => {
-    // Calculer le total investi depuis les transactions
     const totalFromTransactions = transactions
       .filter(t => t.investor_id === investor.id && t.type === 'investissement')
       .reduce((sum, t) => sum + t.amount, 0)

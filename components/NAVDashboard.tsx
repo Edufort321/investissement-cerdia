@@ -22,59 +22,59 @@ interface NAVHistoryPoint {
 }
 
 interface NAVSummary {
-  current_nav: number
-  current_nav_per_share: number
-  current_appreciation: number
+  current_nav: number | null
+  current_nav_per_share: number | null
+  current_appreciation: number | null
   last_snapshot_date: string | null
   last_snapshot_nav_per_share: number | null
   first_snapshot_date: string | null
   first_snapshot_nav_per_share: number | null
   total_performance_pct: number | null
   since_last_snapshot_pct: number | null
-  total_investments: number
-  properties_current_value: number
+  total_investments: number | null
+  properties_current_value: number | null
   total_snapshots: number
   latest_snapshot_date: string | null
 }
 
 interface DetailedNAVData {
   // Flux de trésorerie
-  total_investments: number
-  property_purchases: number
-  capex_expenses: number
-  maintenance_expenses: number
-  admin_expenses: number
-  rental_income: number
+  total_investments: number | null
+  property_purchases: number | null
+  capex_expenses: number | null
+  maintenance_expenses: number | null
+  admin_expenses: number | null
+  rental_income: number | null
 
   // Solde
-  cash_balance: number
+  cash_balance: number | null
 
   // Propriétés
-  properties_initial_value: number
-  properties_current_value: number
-  properties_appreciation: number
+  properties_initial_value: number | null
+  properties_current_value: number | null
+  properties_appreciation: number | null
 
   // NAV
-  total_assets: number
-  total_liabilities: number
-  net_asset_value: number
-  total_shares: number
-  nav_per_share: number
-  nav_change_pct: number
+  total_assets: number | null
+  total_liabilities: number | null
+  net_asset_value: number | null
+  total_shares: number | null
+  nav_per_share: number | null
+  nav_change_pct: number | null
 }
 
 interface PropertyValue {
   property_id: string
   property_name: string
-  acquisition_cost: number
-  acquisition_date: string
-  initial_acquisition_cost: number
-  initial_market_value: number
-  initial_valuation_date: string
-  current_value: number
-  years_held: number
-  appreciation_amount: number
-  appreciation_percentage: number
+  acquisition_cost: number | null
+  acquisition_date: string | null
+  initial_acquisition_cost: number | null
+  initial_market_value: number | null
+  initial_valuation_date: string | null
+  current_value: number | null
+  years_held: number | null
+  appreciation_amount: number | null
+  appreciation_percentage: number | null
   status: string
   currency: string
 }
@@ -142,10 +142,10 @@ export default function NAVDashboard() {
           last_snapshot_nav_per_share: lastSnapshot?.nav_per_share || null,
           first_snapshot_date: firstSnapshot?.snapshot_date || null,
           first_snapshot_nav_per_share: firstSnapshot?.nav_per_share || null,
-          total_performance_pct: firstSnapshot
+          total_performance_pct: firstSnapshot && currentNavData.nav_per_share != null && firstSnapshot.nav_per_share
             ? ((currentNavData.nav_per_share - firstSnapshot.nav_per_share) / firstSnapshot.nav_per_share * 100)
             : null,
-          since_last_snapshot_pct: lastSnapshot
+          since_last_snapshot_pct: lastSnapshot && currentNavData.nav_per_share != null && lastSnapshot.nav_per_share
             ? ((currentNavData.nav_per_share - lastSnapshot.nav_per_share) / lastSnapshot.nav_per_share * 100)
             : null,
           total_investments: currentNavData.total_investments,
@@ -216,7 +216,7 @@ export default function NAVDashboard() {
   }
 
   function formatPercent(pct: number | null | undefined): string {
-    if (pct == null) return '-'
+    if (pct == null || isNaN(pct)) return '-'
     const sign = pct >= 0 ? '+' : ''
     return `${sign}${pct.toFixed(2)}%`
   }
@@ -317,7 +317,7 @@ export default function NAVDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Valeur Liquidative (NAV)</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Calculé en temps réel — taux USD/CAD live: <strong>1 USD = {exchangeRate.toFixed(4)} CAD</strong>
+            Calculé en temps réel — taux USD/CAD live: <strong>1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD</strong>
           </p>
         </div>
         <button
@@ -339,13 +339,27 @@ export default function NAVDashboard() {
         </button>
       </div>
 
+      {/* Avertissement migration manquante */}
+      {summary && summary.current_nav_per_share == null && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+          <h4 className="text-amber-900 font-semibold mb-1">⚠️ Migration NAV incomplète</h4>
+          <p className="text-sm text-amber-800 mb-2">
+            La vue <code className="bg-amber-100 px-1 rounded">current_property_values</code> est manquante sur Supabase.
+            Appliquez la migration <strong>107-nav-multidevise-construction.sql</strong> dans Supabase SQL Editor pour restaurer le NAV complet.
+          </p>
+          <p className="text-xs text-amber-700">
+            Les données de transactions sont intactes. Seul le calcul de valeur des propriétés est affecté.
+          </p>
+        </div>
+      )}
+
       {/* KPIs principaux */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NAV par action actuel */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-sm text-gray-600 mb-1">NAV par action</div>
           <div className="text-3xl font-bold text-blue-600">
-            {summary.current_nav_per_share.toFixed(4)} $
+            {summary.current_nav_per_share != null ? `${summary.current_nav_per_share.toFixed(4)} $` : '—'}
           </div>
           {summary.since_last_snapshot_pct != null && (
             <div className={`text-sm mt-2 ${getPerformanceColor(summary.since_last_snapshot_pct)}`}>
@@ -440,12 +454,12 @@ export default function NAVDashboard() {
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">Parts totales</div>
-                  <div className="text-2xl font-bold text-gray-900">{detailedNavData.total_shares.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-gray-900">{detailedNavData.total_shares != null ? detailedNavData.total_shares.toFixed(2) : '—'}</div>
                   <div className="text-xs text-gray-500 mt-1">Actions en circulation</div>
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">NAV par part</div>
-                  <div className="text-2xl font-bold text-blue-600">{detailedNavData.nav_per_share.toFixed(4)} $</div>
+                  <div className="text-2xl font-bold text-blue-600">{detailedNavData.nav_per_share != null ? `${detailedNavData.nav_per_share.toFixed(4)} $` : '—'}</div>
                   <div className="text-xs text-gray-500 mt-1">Valeur de chaque action</div>
                 </div>
               </div>
@@ -474,8 +488,8 @@ export default function NAVDashboard() {
               <div className="text-sm text-gray-600 mb-1">Gain d'appréciation</div>
               <div className="text-xl font-bold text-blue-600">{formatCurrency(detailedNavData.properties_appreciation)}</div>
               <div className="text-xs text-green-600 mt-1">
-                {detailedNavData.properties_initial_value > 0
-                  ? `+${((detailedNavData.properties_appreciation / detailedNavData.properties_initial_value) * 100).toFixed(2)}%`
+                {(detailedNavData.properties_initial_value ?? 0) > 0 && detailedNavData.properties_appreciation != null
+                  ? `+${((detailedNavData.properties_appreciation / detailedNavData.properties_initial_value!) * 100).toFixed(2)}%`
                   : '-'}
               </div>
             </div>
@@ -516,9 +530,9 @@ export default function NAVDashboard() {
           <div className="space-y-4">
             {properties.map((property, index) => {
               const taux = exchangeRate
-              const valueCad = property.current_value * taux
-              const appreciationCad = property.appreciation_amount * taux
-              const initialCad = property.initial_acquisition_cost * taux
+              const valueCad = (property.current_value ?? 0) * taux
+              const appreciationCad = (property.appreciation_amount ?? 0) * taux
+              const initialCad = (property.initial_acquisition_cost ?? 0) * taux
 
               return (
                 <div key={property.property_id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
@@ -530,7 +544,7 @@ export default function NAVDashboard() {
                           Acquise le {formatDate(property.acquisition_date)}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {property.years_held.toFixed(1)} années détenues
+                          {property.years_held != null ? `${property.years_held.toFixed(1)} années détenues` : ''}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
                           property.status === 'en_location' || property.status === 'actif' ? 'bg-green-100 text-green-700' :
@@ -607,7 +621,7 @@ export default function NAVDashboard() {
                     <div className="bg-purple-50 rounded p-3">
                       <div className="text-xs text-gray-600 mb-1">% Appréciation</div>
                       <div className="text-lg font-bold text-purple-600">
-                        +{property.appreciation_percentage.toFixed(2)}%
+                        {property.appreciation_percentage != null ? `+${property.appreciation_percentage.toFixed(2)}%` : '—'}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         Depuis acquisition
@@ -634,7 +648,7 @@ export default function NAVDashboard() {
               <span className="text-lg">ℹ️</span>
               <div className="flex-1 text-sm text-blue-800">
                 <strong>Note:</strong> Taux par propriété: <em>expected_roi</em> → <em>annual_appreciation</em> du scénario lié → 8% par défaut.
-                Les valeurs USD sont converties au taux en direct (1 USD = {exchangeRate.toFixed(4)} CAD).
+                Les valeurs USD sont converties au taux en direct (1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD).
                 Pour un NAV précis: créez une évaluation initiale par propriété (Admin → Évaluations).
               </div>
             </div>
@@ -663,7 +677,7 @@ export default function NAVDashboard() {
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-900">Total Entrées</span>
                   <span className="text-sm font-bold text-green-600">
-                    {formatCurrency(detailedNavData.total_investments + detailedNavData.rental_income)}
+                    {formatCurrency((detailedNavData.total_investments ?? 0) + (detailedNavData.rental_income ?? 0))}
                   </span>
                 </div>
               </div>
@@ -693,10 +707,10 @@ export default function NAVDashboard() {
                   <span className="text-sm font-semibold text-gray-900">Total Sorties</span>
                   <span className="text-sm font-bold text-red-600">
                     {formatCurrency(
-                      detailedNavData.property_purchases +
-                      detailedNavData.capex_expenses +
-                      detailedNavData.maintenance_expenses +
-                      detailedNavData.admin_expenses
+                      (detailedNavData.property_purchases ?? 0) +
+                      (detailedNavData.capex_expenses ?? 0) +
+                      (detailedNavData.maintenance_expenses ?? 0) +
+                      (detailedNavData.admin_expenses ?? 0)
                     )}
                   </span>
                 </div>
@@ -706,13 +720,13 @@ export default function NAVDashboard() {
 
           {/* Solde compte courant */}
           <div className="mt-6 pt-6 border-t-2 border-gray-300">
-            <div className={`rounded-lg p-4 ${detailedNavData.cash_balance >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className={`rounded-lg p-4 ${(detailedNavData.cash_balance ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm text-gray-600 mb-1">💰 Solde du compte courant</div>
                   <div className="text-xs text-gray-500">Entrées - Sorties</div>
                 </div>
-                <div className={`text-3xl font-bold ${detailedNavData.cash_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`text-3xl font-bold ${(detailedNavData.cash_balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(detailedNavData.cash_balance)}
                 </div>
               </div>
@@ -876,7 +890,7 @@ export default function NAVDashboard() {
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• <strong>Le NAV se met à jour automatiquement</strong> en temps réel basé sur vos transactions</li>
           <li>• Le calcul inclut: investissements + appréciation dynamique (expected_roi → scénario → 8%)</li>
-          <li>• Les propriétés USD sont converties en CAD au taux en direct ({exchangeRate.toFixed(4)})</li>
+          <li>• Les propriétés USD sont converties en CAD au taux en direct ({exchangeRate?.toFixed(4) ?? '...'})</li>
           <li>• Les <strong>snapshots sont optionnels</strong> - ils créent des points sur le graphique historique</li>
           {summary.total_snapshots > 0 && (
             <>

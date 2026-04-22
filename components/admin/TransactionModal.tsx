@@ -11,6 +11,51 @@ type TransactionFlowType = 'inflow' | 'outflow'
 type TransactionCategoryInflow = 'investissement' | 'loyer' | 'dividende'
 type TransactionCategoryOutflow = 'achat_propriete' | 'admin' | 'capex' | 'maintenance' | 'depense' | 'remboursement_investisseur'
 
+// Catégories fiscales par type de transaction
+const FISCAL_CATEGORIES: Record<string, { value: string; label: string }[]> = {
+  maintenance: [
+    { value: 'taxes_foncieres',   label: 'Taxes foncières' },
+    { value: 'assurances',        label: 'Assurances' },
+    { value: 'frais_condo',       label: 'Frais de condo' },
+    { value: 'utilites',          label: 'Services publics / Utilités' },
+    { value: 'entretien_courant', label: 'Entretien courant' },
+    { value: 'frais_gestion',     label: 'Frais de gestion locative' },
+  ],
+  depense: [
+    { value: 'taxes_foncieres',   label: 'Taxes foncières' },
+    { value: 'assurances',        label: 'Assurances' },
+    { value: 'frais_condo',       label: 'Frais de condo' },
+    { value: 'utilites',          label: 'Services publics / Utilités' },
+    { value: 'frais_gestion',     label: 'Frais de gestion' },
+    { value: 'entretien_courant', label: 'Entretien courant' },
+    { value: 'frais_bancaires',   label: 'Frais bancaires' },
+    { value: 'autre_depense',     label: 'Autre dépense' },
+  ],
+  capex: [
+    { value: 'renovation_majeure', label: 'Rénovation majeure' },
+    { value: 'equipements',        label: 'Équipements' },
+    { value: 'ameliorations',      label: 'Améliorations' },
+    { value: 'ameublement',        label: 'Ameublement' },
+  ],
+  achat_propriete: [
+    { value: 'acquisition',        label: 'Prix d\'acquisition' },
+    { value: 'frais_notaire',      label: 'Frais de notaire' },
+    { value: 'frais_inspection',   label: 'Inspection / diligence' },
+  ],
+  admin: [
+    { value: 'honoraires_comptables', label: 'Honoraires comptables' },
+    { value: 'honoraires_juridiques', label: 'Honoraires juridiques' },
+    { value: 'frais_constitutifs',    label: 'Frais constitutifs / NEQ' },
+    { value: 'frais_bancaires',       label: 'Frais bancaires' },
+    { value: 'autre_admin',           label: 'Autre administratif' },
+  ],
+  loyer: [
+    { value: 'loyer_court_terme', label: 'Location court terme (Airbnb, etc.)' },
+    { value: 'loyer_long_terme',  label: 'Location long terme' },
+    { value: 'loyer_autre',       label: 'Autre revenu locatif' },
+  ],
+}
+
 interface TransactionFormData {
   date: string
   flowType: TransactionFlowType
@@ -21,6 +66,8 @@ interface TransactionFormData {
   property_id: string | null
   status: 'pending' | 'complete' | 'cancelled'
   notes: string
+  // Catégorie fiscale (rapport T1135 / T2209)
+  fiscal_category: string | null
   // Champs pour remboursement en parts
   reimbursement_in_shares: boolean
   shares_returned: number
@@ -52,6 +99,7 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
     property_id: null,
     status: 'complete',
     notes: '',
+    fiscal_category: null,
     reimbursement_in_shares: false,
     shares_returned: 0,
     source_currency: 'CAD',
@@ -96,6 +144,7 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
         property_id: transaction.property_id || null,
         status: transaction.status || 'complete',
         notes: transaction.notes || '',
+        fiscal_category: transaction.fiscal_category || null,
         reimbursement_in_shares: transaction.reimbursement_in_shares || false,
         shares_returned: transaction.shares_returned || 0,
         source_currency: transaction.source_currency || 'CAD',
@@ -131,6 +180,7 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
       property_id: null,
       status: 'complete',
       notes: '',
+      fiscal_category: null,
       reimbursement_in_shares: false,
       shares_returned: 0,
       source_currency: 'CAD',
@@ -146,7 +196,8 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
     setFormData(prev => ({
       ...prev,
       flowType,
-      category: '', // Reset category
+      category: '',
+      fiscal_category: null,
       property_id: null,
       investor_id: null,
       reimbursement_in_shares: false,
@@ -157,7 +208,8 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
   const handleCategoryChange = (category: string) => {
     setFormData(prev => ({
       ...prev,
-      category: category as TransactionCategoryInflow | TransactionCategoryOutflow
+      category: category as TransactionCategoryInflow | TransactionCategoryOutflow,
+      fiscal_category: null // Reset quand catégorie change
     }))
   }
 
@@ -210,6 +262,7 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
         property_id: formData.property_id || undefined,
         status: formData.status,
         notes: formData.notes || undefined,
+        fiscal_category: formData.fiscal_category || undefined,
         reimbursement_in_shares: formData.reimbursement_in_shares,
         shares_returned: formData.shares_returned || 0,
         source_currency: formData.source_currency,
@@ -343,6 +396,29 @@ export default function TransactionModal({ isOpen, onClose, transaction, onSave 
             </select>
             {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
           </div>
+
+          {/* Catégorie fiscale (optionnel) */}
+          {formData.category && FISCAL_CATEGORIES[formData.category] && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Catégorie fiscale
+                <span className="ml-2 text-xs font-normal text-gray-500">(pour rapports T1135 / T2209)</span>
+              </label>
+              <select
+                value={formData.fiscal_category || ''}
+                onChange={(e) => setFormData({ ...formData, fiscal_category: e.target.value || null })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">— Non spécifié —</option>
+                {FISCAL_CATEGORIES[formData.category].map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Permet de générer des rapports OPEX/CAPEX et déclarations fiscales précis.
+              </p>
+            </div>
+          )}
 
           {/* Montant */}
           <div>
