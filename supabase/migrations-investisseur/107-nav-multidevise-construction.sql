@@ -10,6 +10,8 @@
 -- 5. Mettre à jour current_property_values (en_construction + actif + taux affiché)
 -- 6. Mettre à jour calculate_realistic_nav_v2 (conversion par devise)
 -- 7. Mettre à jour auto_create_initial_valuation (inclure currency)
+--
+-- NOTE: Toutes les opérations sont idempotentes (IF NOT EXISTS / CREATE OR REPLACE)
 -- ==========================================
 
 DO $$
@@ -52,7 +54,7 @@ RETURNS DECIMAL(5, 4) AS $$
 DECLARE
   v_rate DECIMAL(5, 4);
 BEGIN
-  -- Priorité: expected_roi de la propriété → annual_appreciation du scénario → 8% défaut
+  -- Priorité: expected_roi → annual_appreciation du scénario → 8% défaut
   SELECT COALESCE(
     CASE
       WHEN p.expected_roi > 0 AND p.expected_roi <= 50
@@ -78,7 +80,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION get_property_appreciation_rate IS
-  'Taux annuel appréciation: expected_roi (propriété) → annual_appreciation (scénario) → 8% défaut';
+  'Taux annuel: expected_roi (propriété) → annual_appreciation (scénario) → 8% défaut';
 
 DO $$
 BEGIN
@@ -86,7 +88,8 @@ BEGIN
 END $$;
 
 -- ==========================================
--- 3. FONCTION: Calcul valeur avec appréciation (taux dynamique + fallback construction)
+-- 3. FONCTION: Calcul valeur avec appréciation
+--    CORRECTIF: DATE - DATE = integer (jours) → diviser par 365.25, PAS EXTRACT(EPOCH)
 -- ==========================================
 
 CREATE OR REPLACE FUNCTION calculate_property_value_with_appreciation(
@@ -102,7 +105,7 @@ DECLARE
   v_prop_total_cost   DECIMAL(15, 2);
   v_prop_start_date   DATE;
 BEGIN
-  -- Récupérer le taux dynamique de cette propriété
+  -- Taux dynamique (expected_roi → scénario → 8%)
   v_appreciation_rate := get_property_appreciation_rate(p_property_id);
 
   -- Chercher l'évaluation initiale
@@ -115,15 +118,15 @@ BEGIN
   LIMIT 1;
 
   IF v_acquisition_cost IS NOT NULL THEN
-    -- Utiliser l'évaluation initiale comme base
-    v_years_elapsed := EXTRACT(EPOCH FROM (p_target_date - v_valuation_date)) / (365.25 * 24 * 3600);
+    -- DATE - DATE retourne INTEGER (jours), diviser par 365.25 = années décimales
+    v_years_elapsed := (p_target_date - v_valuation_date)::NUMERIC / 365.25;
     IF v_years_elapsed < 0 THEN
       RETURN v_acquisition_cost;
     END IF;
     RETURN ROUND(v_acquisition_cost * POWER(1.0 + v_appreciation_rate, v_years_elapsed), 2);
   END IF;
 
-  -- Pas d'évaluation: fallback sur total_cost + reservation_date (phase construction)
+  -- Pas d'évaluation: fallback sur total_cost + date réservation (phase construction)
   SELECT
     total_cost,
     COALESCE(reservation_date::DATE, completion_date::DATE)
@@ -135,12 +138,11 @@ BEGIN
     RETURN 0;
   END IF;
 
-  -- Si pas de date de départ, la valeur reste au coût d'achat
   IF v_prop_start_date IS NULL THEN
     RETURN v_prop_total_cost;
   END IF;
 
-  v_years_elapsed := EXTRACT(EPOCH FROM (p_target_date - v_prop_start_date)) / (365.25 * 24 * 3600);
+  v_years_elapsed := (p_target_date - v_prop_start_date)::NUMERIC / 365.25;
 
   IF v_years_elapsed <= 0 THEN
     RETURN v_prop_total_cost;
@@ -151,15 +153,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION calculate_property_value_with_appreciation IS
-  'Valeur actuelle: évaluation initiale → fallback total_cost + date achat. Taux: expected_roi → scénario → 8%';
+  'Valeur actuelle avec taux dynamique. DATE-DATE=jours/365.25=années (pas EXTRACT).';
 
 DO $$
 BEGIN
-  RAISE NOTICE '✅ Fonction calculate_property_value_with_appreciation() mise à jour (taux dynamique)';
+  RAISE NOTICE '✅ Fonction calculate_property_value_with_appreciation() mise à jour';
 END $$;
 
 -- ==========================================
 -- 4. VUE: current_property_values (toutes phases actives + devise + taux)
+--    CORRECTIF: (DATE - DATE)::NUMERIC / 365.25 pour years_held
 -- ==========================================
 
 DROP VIEW IF EXISTS current_property_values;
@@ -176,14 +179,17 @@ SELECT
   pv.current_market_value                                                           AS initial_market_value,
   pv.valuation_date                                                                 AS initial_valuation_date,
 
-  -- Valeur actuelle calculée (dans la devise native de la propriété)
+  -- Valeur actuelle calculée (devise native de la propriété)
   calculate_property_value_with_appreciation(p.id, CURRENT_DATE)                  AS current_value,
 
-  -- Années détenues (décimal)
+  -- Années détenues: DATE - DATE = integer jours → / 365.25 = années décimales
   GREATEST(
-    EXTRACT(EPOCH FROM (
-      CURRENT_DATE - COALESCE(p.reservation_date::DATE, p.completion_date::DATE, pv.valuation_date, CURRENT_DATE)
-    )) / (365.25 * 24 * 3600),
+    (CURRENT_DATE - COALESCE(
+      p.reservation_date::DATE,
+      p.completion_date::DATE,
+      pv.valuation_date,
+      CURRENT_DATE
+    ))::NUMERIC / 365.25,
     0
   )                                                                                 AS years_held,
 
@@ -205,24 +211,24 @@ SELECT
   p.status,
   p.currency,
 
-  -- Taux utilisé pour ce calcul (visible dans le NAV pour transparence)
+  -- Taux utilisé (pour transparence dans le NAV)
   ROUND(get_property_appreciation_rate(p.id) * 100, 2)                            AS appreciation_rate_pct
 
 FROM properties p
 LEFT JOIN property_valuations pv
   ON p.id = pv.property_id AND pv.valuation_type = 'initial'
 WHERE p.status IN (
-  'reservation',      -- Phase achat / acompte versé
-  'en_construction',  -- En cours de construction
-  'acquired',         -- Acquis
-  'complete',         -- Complété
-  'actif',            -- Actif / Opérationnel
-  'en_location'       -- En location
+  'reservation',
+  'en_construction',
+  'acquired',
+  'complete',
+  'actif',
+  'en_location'
 )
 ORDER BY COALESCE(p.reservation_date::DATE, p.completion_date::DATE) DESC NULLS LAST;
 
 COMMENT ON VIEW current_property_values IS
-  'Valeurs actuelles: toutes phases actives, devise native, taux dynamique (expected_roi → scénario → 8%)';
+  'Valeurs actuelles: toutes phases actives, devise native, taux dynamique (DATE-DATE/365.25)';
 
 DO $$
 BEGIN
@@ -255,8 +261,8 @@ RETURNS TABLE (
   nav_change_pct           DECIMAL(10, 4)
 ) AS $$
 DECLARE
-  v_exchange_rate          DECIMAL(10, 4);
-  v_construction_initial   DECIMAL(15, 2);
+  v_exchange_rate        DECIMAL(10, 4);
+  v_construction_initial DECIMAL(15, 2);
 BEGIN
   -- Taux de change USD → CAD
   SELECT get_current_exchange_rate('USD', 'CAD') INTO v_exchange_rate;
@@ -267,12 +273,10 @@ BEGIN
   -- ── Flux de trésorerie ──────────────────────────────────────────────────
 
   SELECT COALESCE(SUM(t.amount), 0) INTO total_investments
-  FROM transactions t
-  WHERE t.type = 'investissement';
+  FROM transactions t WHERE t.type = 'investissement';
 
   SELECT COALESCE(SUM(ABS(t.amount)), 0) INTO property_purchases
-  FROM transactions t
-  WHERE t.type = 'investissement' AND t.property_id IS NOT NULL;
+  FROM transactions t WHERE t.type = 'investissement' AND t.property_id IS NOT NULL;
 
   SELECT COALESCE(SUM(ABS(t.amount)), 0) INTO capex_expenses
   FROM transactions t WHERE t.type = 'capex';
@@ -290,7 +294,7 @@ BEGIN
                   - capex_expenses - maintenance_expenses
                   - admin_expenses + rental_income;
 
-  -- ── Valeur initiale des propriétés (évaluations initiales) ──────────────
+  -- ── Valeur initiale des propriétés (évaluations initiales → en CAD) ─────
 
   SELECT COALESCE(SUM(
     CASE
