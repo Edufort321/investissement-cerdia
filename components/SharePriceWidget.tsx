@@ -123,6 +123,15 @@ export default function SharePriceWidget() {
     }).format(amount)
   }
 
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat(language === 'fr' ? 'fr-CA' : 'en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
       year: 'numeric',
@@ -300,7 +309,7 @@ export default function SharePriceWidget() {
                   {language === 'fr' ? 'Actifs' : 'Assets'}
                 </div>
                 <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(currentPrice.total_assets)}
+                  {formatAmount(currentPrice.total_assets)}
                 </div>
               </div>
 
@@ -309,7 +318,7 @@ export default function SharePriceWidget() {
                   {language === 'fr' ? 'Passifs' : 'Liabilities'}
                 </div>
                 <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(currentPrice.total_liabilities)}
+                  {formatAmount(currentPrice.total_liabilities)}
                 </div>
               </div>
 
@@ -318,7 +327,7 @@ export default function SharePriceWidget() {
                   {language === 'fr' ? 'NAV' : 'NAV'}
                 </div>
                 <div className="text-sm font-bold text-green-800 dark:text-green-300">
-                  {formatCurrency(currentPrice.net_asset_value)}
+                  {formatAmount(currentPrice.net_asset_value)}
                 </div>
               </div>
 
