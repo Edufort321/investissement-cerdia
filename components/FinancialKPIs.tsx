@@ -6,7 +6,8 @@
 'use client'
 
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
-import { DollarSign, TrendingUp, Building2, Wallet } from 'lucide-react'
+import { useNAVRealtime } from '@/hooks/useNAVRealtime'
+import { DollarSign, TrendingUp, Building2, Wallet, BarChart3 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface FinancialKPIsProps {
@@ -16,6 +17,7 @@ interface FinancialKPIsProps {
 
 export default function FinancialKPIs({ year = null, className = '' }: FinancialKPIsProps) {
   const { summary, loading, error } = useFinancialSummary(year)
+  const { data: nav, loading: navLoading } = useNAVRealtime()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -24,8 +26,8 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
 
   if (!mounted || loading) {
     return (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
-        {[1, 2, 3, 4].map(i => (
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 ${className}`}>
+        {[1, 2, 3, 4, 5, 6].map(i => (
           <div key={i} className="bg-white p-4 rounded-lg border border-gray-200 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
             <div className="h-8 bg-gray-200 rounded w-1/2"></div>
@@ -55,53 +57,83 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
     {
       title: 'Total Investisseurs',
       value: summary.total_investisseurs,
-      format: 'currency',
+      format: 'currency' as const,
       icon: DollarSign,
       color: 'from-green-50 to-green-100',
       borderColor: 'border-green-200',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
+      subtitle: null as string | null,
     },
     {
       title: 'Compte Courant',
       value: summary.compte_courant_balance,
-      format: 'currency',
+      format: 'currency' as const,
       icon: Wallet,
-      color: 'from-blue-50 to-blue-100',
-      borderColor: 'border-blue-200',
-      iconColor: 'text-blue-600'
+      color: summary.compte_courant_balance >= 0 ? 'from-blue-50 to-blue-100' : 'from-orange-50 to-orange-100',
+      borderColor: summary.compte_courant_balance >= 0 ? 'border-blue-200' : 'border-orange-200',
+      iconColor: summary.compte_courant_balance >= 0 ? 'text-blue-600' : 'text-orange-600',
+      subtitle: null,
     },
     {
       title: 'CAPEX Réserve',
       value: summary.capex_balance,
-      format: 'currency',
+      format: 'currency' as const,
       icon: TrendingUp,
       color: 'from-purple-50 to-purple-100',
       borderColor: 'border-purple-200',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      subtitle: null,
     },
     {
       title: 'Dépenses Projets',
       value: summary.depenses_projets,
-      format: 'currency',
+      format: 'currency' as const,
       icon: Building2,
       color: 'from-orange-50 to-orange-100',
       borderColor: 'border-orange-200',
-      iconColor: 'text-orange-600'
-    }
+      iconColor: 'text-orange-600',
+      subtitle: null,
+    },
+    {
+      title: 'NAV / Part',
+      value: nav?.nav_per_share ?? 1,
+      format: 'nav' as const,
+      icon: BarChart3,
+      color: (nav?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
+      borderColor: (nav?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
+      iconColor: (nav?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
+      subtitle: nav ? `${nav.nav_change_pct >= 0 ? '+' : ''}${nav.nav_change_pct.toFixed(2)}%` : null,
+    },
+    {
+      title: 'Valeur Totale',
+      value: nav?.net_asset_value ?? 0,
+      format: 'currency' as const,
+      icon: BarChart3,
+      color: 'from-indigo-50 to-indigo-100',
+      borderColor: 'border-indigo-200',
+      iconColor: 'text-indigo-600',
+      subtitle: nav ? `${nav.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
+    },
   ]
 
   return (
-    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 ${className}`}>
       {kpis.map((kpi, index) => {
         const Icon = kpi.icon
-        const displayValue = kpi.format === 'currency'
-          ? new Intl.NumberFormat('fr-CA', {
-              style: 'currency',
-              currency: 'CAD',
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0
-            }).format(kpi.value)
-          : kpi.value.toLocaleString('fr-CA')
+        const isNavLoading = (index === 4 || index === 5) && navLoading
+        const displayValue = isNavLoading
+          ? '—'
+          : kpi.format === 'currency'
+            ? new Intl.NumberFormat('fr-CA', {
+                style: 'currency',
+                currency: 'CAD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(kpi.value)
+            : new Intl.NumberFormat('fr-CA', {
+                minimumFractionDigits: 4,
+                maximumFractionDigits: 4,
+              }).format(kpi.value) + ' $'
 
         return (
           <div
@@ -109,10 +141,16 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
             className={`bg-gradient-to-br ${kpi.color} p-4 rounded-lg border ${kpi.borderColor} transition-transform hover:scale-105`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{kpi.title}</p>
-              <Icon className={`w-5 h-5 ${kpi.iconColor}`} />
+              <p className="text-xs font-medium text-gray-700 leading-tight">{kpi.title}</p>
+              <Icon className={`w-4 h-4 flex-shrink-0 ${kpi.iconColor}`} />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{displayValue}</p>
+            <p className="text-lg font-bold text-gray-900 leading-tight">{displayValue}</p>
+            {kpi.subtitle && (
+              <p className={`text-xs mt-1 font-medium ${
+                kpi.subtitle.startsWith('+') ? 'text-green-600' :
+                kpi.subtitle.startsWith('-') ? 'text-red-600' : 'text-gray-500'
+              }`}>{kpi.subtitle}</p>
+            )}
             {year && (
               <p className="text-xs text-gray-500 mt-1">Année {year}</p>
             )}

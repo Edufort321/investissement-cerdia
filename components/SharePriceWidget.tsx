@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { TrendingUp, TrendingDown, DollarSign, Calendar, AlertCircle, Info } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Calendar, AlertCircle, Info, Zap } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useNAVRealtime } from '@/hooks/useNAVRealtime'
 
 interface SharePrice {
   effective_date: string
@@ -18,6 +19,7 @@ interface SharePrice {
   days_since_revision: number
   next_revision_date: string
   is_projected?: boolean
+  is_realtime?: boolean
 }
 
 export default function SharePriceWidget() {
@@ -26,11 +28,37 @@ export default function SharePriceWidget() {
   const [priceHistory, setPriceHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showDetails, setShowDetails] = useState(false)
+  const { data: navRealtime, loading: navLoading } = useNAVRealtime()
 
   useEffect(() => {
     fetchSharePrice()
     fetchPriceHistory()
   }, [])
+
+  // Quand le NAV temps réel arrive et qu'on n'a pas de prix publié → utiliser le NAV
+  useEffect(() => {
+    if (!navLoading && navRealtime && currentPrice?.share_price === 1.0000 && navRealtime.nav_per_share !== 1) {
+      const currentYear = new Date().getFullYear()
+      const june1stThisYear = new Date(currentYear, 5, 1)
+      const now = new Date()
+      const nextRevisionYear = now >= june1stThisYear ? currentYear + 1 : currentYear
+
+      setCurrentPrice({
+        effective_date: new Date().toISOString(),
+        share_price: navRealtime.nav_per_share,
+        price_change: navRealtime.nav_per_share - 1.0,
+        price_change_percentage: navRealtime.nav_change_pct,
+        total_assets: navRealtime.total_assets,
+        total_liabilities: navRealtime.total_liabilities,
+        net_asset_value: navRealtime.net_asset_value,
+        total_shares: navRealtime.total_shares,
+        total_return_percentage: navRealtime.nav_change_pct,
+        days_since_revision: 0,
+        next_revision_date: new Date(nextRevisionYear, 5, 1).toISOString(),
+        is_realtime: true,
+      })
+    }
+  }, [navRealtime, navLoading, currentPrice?.share_price])
 
   const fetchSharePrice = async () => {
     try {
@@ -40,9 +68,9 @@ export default function SharePriceWidget() {
         .single()
 
       if (error) {
-        // Si pas de prix, afficher 1,00$ par défaut
+        // Pas de prix publié — le useEffect ci-dessus injectera le NAV temps réel
         const currentYear = new Date().getFullYear()
-        const june1stThisYear = new Date(currentYear, 5, 1) // Mois 5 = juin (0-indexed)
+        const june1stThisYear = new Date(currentYear, 5, 1)
         const now = new Date()
         const nextRevisionYear = now >= june1stThisYear ? currentYear + 1 : currentYear
 
@@ -57,7 +85,8 @@ export default function SharePriceWidget() {
           total_shares: 0,
           total_return_percentage: 0,
           days_since_revision: 0,
-          next_revision_date: new Date(nextRevisionYear, 5, 1).toISOString()
+          next_revision_date: new Date(nextRevisionYear, 5, 1).toISOString(),
+          is_realtime: false,
         })
       } else {
         setCurrentPrice(data)
@@ -134,12 +163,18 @@ export default function SharePriceWidget() {
           <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             {formatCurrency(currentPrice.share_price)}
           </p>
-          {currentPrice.is_projected && (
+          {currentPrice.is_realtime && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full flex items-center gap-1">
+              <Zap size={10} />
+              {language === 'fr' ? 'Temps réel' : 'Real-time'}
+            </span>
+          )}
+          {currentPrice.is_projected && !currentPrice.is_realtime && (
             <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
               {language === 'fr' ? 'Projeté' : 'Projected'}
             </span>
           )}
-          {!currentPrice.is_projected && currentPrice.share_price !== 1.0000 && (
+          {!currentPrice.is_projected && !currentPrice.is_realtime && currentPrice.share_price !== 1.0000 && (
             <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
               {language === 'fr' ? 'Réel' : 'Actual'}
             </span>
@@ -309,7 +344,17 @@ export default function SharePriceWidget() {
               </div>
             </div>
 
-            {currentPrice.is_projected && (
+            {currentPrice.is_realtime && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded p-2 flex gap-2">
+                <Zap size={14} className="text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-800 dark:text-blue-300">
+                  {language === 'fr'
+                    ? 'NAV calculé en temps réel depuis les transactions et l\'appréciation des propriétés. Aucun prix publié manuellement.'
+                    : 'NAV calculated in real-time from transactions and property appreciation. No manually published price.'}
+                </div>
+              </div>
+            )}
+            {currentPrice.is_projected && !currentPrice.is_realtime && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded p-2 flex gap-2">
                 <AlertCircle size={14} className="text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-amber-800 dark:text-amber-300">
