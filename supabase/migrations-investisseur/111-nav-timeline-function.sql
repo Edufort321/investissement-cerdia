@@ -1,20 +1,15 @@
--- Migration 111 (v2): Fonction get_nav_timeline() — historique NAV mensuel
---
--- IMPORTANT: calculate_realistic_nav_v2() ignore p_target_date pour les transactions,
--- donc tous les points auraient le même NAV (aujourd'hui). Ce fichier recalcule
--- le NAV inline avec filtre t.date <= point pour chaque mois.
+-- Migration 111 (v3): Fonction get_nav_timeline() — historique NAV mensuel
 --
 -- Modèle par point de date D:
 --   investments   = SUM investissements CAD jusqu'à D
 --   purchases     = SUM paiements propriétés CAD jusqu'à D
 --   other         = SUM capex/maintenance/admin CAD jusqu'à D
---   rental        = SUM loyers CAD jusqu'à D
 --   cash          = investments − purchases − other + rental
---   prop_val      = pour chaque propriété, dépôts payés jusqu'à D
---                 + appréciation sur prix_total depuis réservation jusqu'à D
---   total_assets  = cash + prop_val
---   total_shares  = investments (proxy: 1 CAD investi = 1 part à 1.00$)
---   nav_per_share = total_assets / total_shares
+--   prop_val      = dépôts payés jusqu'à D
+--                 + appréciation depuis GREATEST(reservation_date, first_investment_date) → D
+--                   (l'appréciation ne démarre qu'au premier investissement, pas avant)
+--   nav_per_share = (cash + prop_val) / investments
+--   → Premier point ≈ 1.00 $ même si les propriétés ont été réservées avant les investissements
 
 DROP FUNCTION IF EXISTS get_nav_timeline();
 
@@ -30,7 +25,8 @@ DECLARE
   v_end_date   DATE := CURRENT_DATE;
   v_cur_date   DATE;
   v_last_date  DATE;
-  v_exchange   NUMERIC;
+  v_exchange          NUMERIC;
+  v_first_invest_date DATE;
 
   v_inv        NUMERIC;
   v_purch      NUMERIC;
@@ -46,7 +42,12 @@ BEGIN
   v_exchange := COALESCE(get_current_exchange_rate('USD', 'CAD'), 1.40);
   IF v_exchange IS NULL OR v_exchange <= 0 THEN v_exchange := 1.40; END IF;
 
-  -- Première transaction active
+  -- Date du premier investisseur (l'appréciation ne compte qu'à partir de là)
+  SELECT MIN(t.date) INTO v_first_invest_date
+  FROM transactions t WHERE t.type = 'investissement' AND t.status != 'cancelled';
+  IF v_first_invest_date IS NULL THEN RETURN; END IF;
+
+  -- Première transaction active (peut inclure paiements avant le premier investi)
   SELECT MIN(t.date) INTO v_start_date
   FROM transactions t WHERE t.status != 'cancelled';
   IF v_start_date IS NULL THEN RETURN; END IF;
@@ -111,19 +112,20 @@ BEGIN
           AND t2.date <= v_cur_date
       ), 0)
       +
-      -- Appréciation sur le PRIX TOTAL depuis la date de réservation jusqu'à v_cur_date
+      -- Appréciation sur le PRIX TOTAL depuis GREATEST(reservation_date, first_investment_date)
+      -- → l'appréciation ne démarre pas avant que les investisseurs aient mis leur argent
       GREATEST(
         CASE
           WHEN COALESCE(p.reservation_date::DATE, p.completion_date::DATE) IS NOT NULL
                AND p.total_cost > 0
-               AND (v_cur_date - COALESCE(p.reservation_date::DATE, p.completion_date::DATE)) > 0
+               AND (v_cur_date - GREATEST(COALESCE(p.reservation_date::DATE, p.completion_date::DATE), v_first_invest_date)) > 0
           THEN
             -- Convertir le prix total en CAD
             (CASE WHEN p.currency = 'USD' THEN p.total_cost * v_exchange ELSE p.total_cost END)
             *
             (POWER(
                1.0 + get_property_appreciation_rate(p.id),
-               (v_cur_date - COALESCE(p.reservation_date::DATE, p.completion_date::DATE))::NUMERIC / 365.25
+               (v_cur_date - GREATEST(COALESCE(p.reservation_date::DATE, p.completion_date::DATE), v_first_invest_date))::NUMERIC / 365.25
              ) - 1.0)
           ELSE 0.0
         END,
@@ -187,11 +189,11 @@ BEGIN
         CASE
           WHEN COALESCE(p.reservation_date::DATE, p.completion_date::DATE) IS NOT NULL
                AND p.total_cost > 0
-               AND (v_end_date - COALESCE(p.reservation_date::DATE, p.completion_date::DATE)) > 0
+               AND (v_end_date - GREATEST(COALESCE(p.reservation_date::DATE, p.completion_date::DATE), v_first_invest_date)) > 0
           THEN
             (CASE WHEN p.currency = 'USD' THEN p.total_cost * v_exchange ELSE p.total_cost END)
             * (POWER(1.0 + get_property_appreciation_rate(p.id),
-                (v_end_date - COALESCE(p.reservation_date::DATE, p.completion_date::DATE))::NUMERIC / 365.25
+                (v_end_date - GREATEST(COALESCE(p.reservation_date::DATE, p.completion_date::DATE), v_first_invest_date))::NUMERIC / 365.25
                ) - 1.0)
           ELSE 0.0 END,
         0.0
