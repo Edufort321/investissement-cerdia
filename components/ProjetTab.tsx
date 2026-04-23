@@ -162,8 +162,8 @@ export default function ProjetTab() {
     // Update existing property — convert empty date strings to null for PostgreSQL
     const sanitizedData = {
       ...formData,
-      completion_date: formData.completion_date || null,
-      sale_date: formData.sale_date || null,
+      completion_date: formData.completion_date || undefined,
+      sale_date: formData.sale_date || undefined,
     }
     const result = await updateProperty(editingId, sanitizedData)
     if (result.success) {
