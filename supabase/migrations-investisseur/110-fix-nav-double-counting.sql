@@ -404,9 +404,9 @@ BEGIN
     RAISE NOTICE '  nav_change_pct       : %%%', v_result.nav_change_pct;
   END LOOP;
   RAISE NOTICE '═══════════════════════════════════════════════════════════════';
-  RAISE NOTICE '💡 Pour 3 projets (178k+250k+227k USD, 8%/an, ~1 an):';
-  RAISE NOTICE '   Appréciation attendue: ~52 400 USD = ~73 000 CAD';
-  RAISE NOTICE '   nav_per_share attendu: ~1.20-1.30 (selon dates réservation)';
+  RAISE NOTICE '💡 Pour 3 projets (178k+250k+227k USD, 8%%/an, ~1 an):';
+  RAISE NOTICE '   Appreciation attendue: ~52 400 USD = ~73 000 CAD';
+  RAISE NOTICE '   nav_per_share attendu: ~1.20-1.30 (selon dates reservation)';
   RAISE NOTICE '═══════════════════════════════════════════════════════════════';
 END $$;
 
