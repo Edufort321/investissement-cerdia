@@ -187,7 +187,9 @@ END $$;
 -- 2. FONCTION calculate_realistic_nav_v2 — CORRECTIF
 -- ==========================================
 
-DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE);
+-- CASCADE requis: les vues realistic_nav_current_v2 et v_nav_summary dépendent de cette fonction
+-- Elles sont recréées identiques ci-dessous après la nouvelle fonction
+DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE) CASCADE;
 
 CREATE OR REPLACE FUNCTION calculate_realistic_nav_v2(
   p_target_date DATE DEFAULT CURRENT_DATE
@@ -318,6 +320,64 @@ COMMENT ON FUNCTION calculate_realistic_nav_v2 IS
 DO $$
 BEGIN
   RAISE NOTICE '✅ calculate_realistic_nav_v2() corrigée (no double counting)';
+END $$;
+
+-- ==========================================
+-- 3. RECRÉER LES VUES DÉPENDANTES (supprimées par CASCADE ci-dessus)
+-- ==========================================
+
+-- Vue simple : snapshot du NAV actuel
+CREATE OR REPLACE VIEW realistic_nav_current_v2 AS
+SELECT * FROM calculate_realistic_nav_v2(CURRENT_DATE);
+
+COMMENT ON VIEW realistic_nav_current_v2 IS
+  'Vue du NAV actuel temps réel (calculate_realistic_nav_v2)';
+
+-- Vue résumé : NAV actuel + comparaison avec historique snapshots
+CREATE OR REPLACE VIEW v_nav_summary AS
+SELECT
+  current_nav.net_asset_value          AS current_nav,
+  current_nav.nav_per_share            AS current_nav_per_share,
+  current_nav.properties_appreciation  AS current_appreciation,
+
+  last_snapshot.snapshot_date          AS last_snapshot_date,
+  last_snapshot.nav_per_share          AS last_snapshot_nav_per_share,
+
+  first_snapshot.snapshot_date         AS first_snapshot_date,
+  first_snapshot.nav_per_share         AS first_snapshot_nav_per_share,
+
+  CASE
+    WHEN first_snapshot.nav_per_share > 0 THEN
+      ((current_nav.nav_per_share - first_snapshot.nav_per_share)
+       / first_snapshot.nav_per_share * 100)
+    ELSE NULL
+  END AS total_performance_pct,
+
+  CASE
+    WHEN last_snapshot.nav_per_share > 0 THEN
+      ((current_nav.nav_per_share - last_snapshot.nav_per_share)
+       / last_snapshot.nav_per_share * 100)
+    ELSE NULL
+  END AS since_last_snapshot_pct,
+
+  current_nav.total_investments,
+  current_nav.properties_current_value,
+  (SELECT COUNT(*) FROM nav_history)          AS total_snapshots,
+  (SELECT MAX(snapshot_date) FROM nav_history) AS latest_snapshot_date
+
+FROM calculate_realistic_nav_v2(CURRENT_DATE) current_nav
+CROSS JOIN LATERAL (
+  SELECT * FROM nav_history ORDER BY snapshot_date DESC LIMIT 1
+) last_snapshot
+CROSS JOIN LATERAL (
+  SELECT * FROM nav_history ORDER BY snapshot_date ASC LIMIT 1
+) first_snapshot;
+
+COMMENT ON VIEW v_nav_summary IS 'Résumé NAV actuel avec comparaison historique (snapshots nav_history)';
+
+DO $$
+BEGIN
+  RAISE NOTICE '✅ Vues realistic_nav_current_v2 et v_nav_summary recréées';
 END $$;
 
 -- ==========================================
