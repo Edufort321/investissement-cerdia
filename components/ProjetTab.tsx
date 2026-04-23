@@ -159,8 +159,13 @@ export default function ProjetTab() {
       return
     }
 
-    // Update existing property
-    const result = await updateProperty(editingId, formData)
+    // Update existing property — convert empty date strings to null for PostgreSQL
+    const sanitizedData = {
+      ...formData,
+      completion_date: formData.completion_date || null,
+      sale_date: formData.sale_date || null,
+    }
+    const result = await updateProperty(editingId, sanitizedData)
     if (result.success) {
       setEditingId(null)
       setShowAddForm(false)
