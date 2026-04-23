@@ -814,7 +814,16 @@ export default function ProjetTab() {
                         {property.location}
                       </div>
                     </div>
-                    {getStatusBadge(property.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(property.status)}
+                      <button
+                        onClick={() => handleEdit(property)}
+                        title="Modifier ce projet"
+                        className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-gray-600">
@@ -1568,18 +1577,11 @@ export default function ProjetTab() {
                     Bilan Financier
                   </button>
                   <button
-                    onClick={() => handleEdit(property)}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Edit2 size={16} />
-                    <span className="sm:hidden">Modifier</span>
-                  </button>
-                  <button
                     onClick={() => handleDelete(property.id, property.name)}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex items-center justify-center gap-2 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-sm font-medium"
                   >
                     <Trash2 size={16} />
-                    <span className="sm:hidden">Supprimer</span>
+                    <span>Supprimer</span>
                   </button>
                 </div>
               </div>
