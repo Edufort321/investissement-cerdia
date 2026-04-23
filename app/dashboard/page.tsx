@@ -30,6 +30,7 @@ import FinancialKPIs from '@/components/FinancialKPIs'
 import CAPEXDashboard from '@/components/CAPEXDashboard'
 import CompteCourantDashboard from '@/components/CompteCourantDashboard'
 import NAVDashboard from '@/components/NAVDashboard'
+import NAVTimelineChart from '@/components/NAVTimelineChart'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
@@ -536,6 +537,9 @@ export default function DashboardPage() {
                 <SharePriceWidget />
                 <ExchangeRateWidget />
               </div>
+
+              {/* NAV Timeline Chart */}
+              <NAVTimelineChart className="mb-6 sm:mb-8" />
 
               {/* Section Propriétés */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
