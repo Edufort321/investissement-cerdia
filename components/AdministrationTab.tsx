@@ -806,11 +806,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   // Calculs statistiques pour transactions (avec vérifications de sécurité)
   const totalIn = filteredTransactions
-    .filter(t => t && t.type && ['investissement', 'dividende'].includes(t.type))
-    .reduce((sum, t) => sum + (t.amount || 0), 0)
+    .filter(t => t && t.type && ['investissement', 'loyer', 'dividende'].includes(t.type))
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
 
   const totalOut = filteredTransactions
-    .filter(t => t && t.type && ['paiement', 'depense'].includes(t.type))
+    .filter(t => t && t.type && ['achat_propriete', 'capex', 'maintenance', 'admin', 'depense', 'remboursement_investisseur', 'paiement'].includes(t.type))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
 
   const balance = totalIn - totalOut
