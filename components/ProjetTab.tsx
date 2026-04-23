@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
 import PropertyFinancialSummary from './PropertyFinancialSummary'
@@ -64,6 +64,7 @@ export default function ProjetTab() {
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
   const [showFinancialSummaryPropertyId, setShowFinancialSummaryPropertyId] = useState<string | null>(null)
+  const [openMenuPropertyId, setOpenMenuPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
   const [scenarios, setScenarios] = useState<any[]>([])
@@ -816,13 +817,98 @@ export default function ProjetTab() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(property.status)}
-                      <button
-                        onClick={() => handleEdit(property)}
-                        title="Modifier ce projet"
-                        className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+
+                      {/* Menu hamburger */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuPropertyId(openMenuPropertyId === property.id ? null : property.id)}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                          title="Actions"
+                        >
+                          <Menu size={18} />
+                        </button>
+
+                        {openMenuPropertyId === property.id && (
+                          <>
+                            {/* Overlay pour fermer en cliquant ailleurs */}
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setOpenMenuPropertyId(null)}
+                            />
+                            <div className="absolute right-0 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-56 py-1 overflow-hidden">
+                              <button
+                                onClick={() => { handleEdit(property); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                              >
+                                <Edit2 size={15} className="text-blue-500" />
+                                Modifier le projet
+                              </button>
+
+                              <div className="border-t border-gray-100 my-1" />
+
+                              <button
+                                onClick={() => { setSelectedPropertyId(selectedPropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <Calendar size={15} className="text-gray-500" />
+                                Calendrier de paiements
+                              </button>
+
+                              <button
+                                onClick={() => { setShowPaymentManagerPropertyId(showPaymentManagerPropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <CreditCard size={15} className="text-gray-500" />
+                                Gérer les paiements
+                              </button>
+
+                              <button
+                                onClick={() => { setShowTransactionsPropertyId(showTransactionsPropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <History size={15} className="text-gray-500" />
+                                Historique transactions
+                              </button>
+
+                              <div className="border-t border-gray-100 my-1" />
+
+                              <button
+                                onClick={() => { setShowAttachmentsPropertyId(property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                              >
+                                <FileImage size={15} className="text-purple-500" />
+                                Pièces jointes
+                              </button>
+
+                              <button
+                                onClick={() => { setShowPerformancePropertyId(showPerformancePropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                              >
+                                <BarChart2 size={15} className="text-green-500" />
+                                Performance & ROI
+                              </button>
+
+                              <button
+                                onClick={() => { setShowFinancialSummaryPropertyId(showFinancialSummaryPropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                              >
+                                <Wallet size={15} className="text-indigo-500" />
+                                Bilan Financier
+                              </button>
+
+                              <div className="border-t border-gray-100 my-1" />
+
+                              <button
+                                onClick={() => { handleDelete(property.id, property.name); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 size={15} className="text-red-500" />
+                                Supprimer
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1111,12 +1197,14 @@ export default function ProjetTab() {
                   {/* Payment Schedule */}
                   {propertyPayments.length > 0 && (
                     <div>
-                      <button
-                        onClick={() => setSelectedPropertyId(selectedPropertyId === property.id ? null : property.id)}
-                        className="text-sm font-medium text-[#5e5e5e] hover:text-[#3e3e3e] mb-2"
-                      >
-                        {selectedPropertyId === property.id ? '▼' : '▶'} Calendrier de paiements ({propertyPayments.length})
-                      </button>
+                      {selectedPropertyId === property.id && (
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                            <Calendar size={14} /> Calendrier de paiements ({propertyPayments.length})
+                          </span>
+                          <button onClick={() => setSelectedPropertyId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                        </div>
+                      )}
 
                       {selectedPropertyId === property.id && (
                         <div className="space-y-2 mt-2">
@@ -1251,37 +1339,31 @@ export default function ProjetTab() {
                   )}
 
                   {/* Gestionnaire de paiements programmés */}
-                  {propertyPayments.length > 0 && (
-                    <div className="mt-4">
-                      <button
-                        onClick={() => setShowPaymentManagerPropertyId(showPaymentManagerPropertyId === property.id ? null : property.id)}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-                      >
-                        {showPaymentManagerPropertyId === property.id ? '▼' : '▶'} Gérer les paiements programmés
-                      </button>
-
-                      {showPaymentManagerPropertyId === property.id && (
-                        <div className="mt-2">
-                          <PaymentScheduleManager
-                            propertyId={property.id}
-                            propertyName={property.name}
-                            propertyCurrency={property.currency || 'USD'}
-                          />
-                        </div>
-                      )}
+                  {showPaymentManagerPropertyId === property.id && (
+                    <div className="mt-2 border border-blue-200 rounded-lg p-3 bg-blue-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-blue-800 flex items-center gap-1">
+                          <CreditCard size={14} /> Gérer les paiements programmés
+                        </span>
+                        <button onClick={() => setShowPaymentManagerPropertyId(null)} className="text-blue-400 hover:text-blue-700"><X size={14} /></button>
+                      </div>
+                      <PaymentScheduleManager
+                        propertyId={property.id}
+                        propertyName={property.name}
+                        propertyCurrency={property.currency || 'USD'}
+                      />
                     </div>
                   )}
 
                   {/* Historique des transactions */}
-                  <div>
-                    <button
-                      onClick={() => setShowTransactionsPropertyId(showTransactionsPropertyId === property.id ? null : property.id)}
-                      className="text-sm font-medium text-[#5e5e5e] hover:text-[#3e3e3e] mb-2"
-                    >
-                      {showTransactionsPropertyId === property.id ? '▼' : '▶'} Historique des transactions ({transactions.filter(tx => tx.property_id === property.id).length})
-                    </button>
-
-                    {showTransactionsPropertyId === property.id && (
+                  {showTransactionsPropertyId === property.id && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                          <History size={14} /> Historique des transactions ({transactions.filter(tx => tx.property_id === property.id).length})
+                        </span>
+                        <button onClick={() => setShowTransactionsPropertyId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                      </div>
                       <div className="space-y-2 mt-2">
                         {transactions.filter(tx => tx.property_id === property.id).length === 0 ? (
                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
@@ -1313,7 +1395,6 @@ export default function ProjetTab() {
                                     )}
                                   </div>
                                 </div>
-
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className={`px-2 py-1 rounded text-white ${
                                     tx.type === 'investissement' ? 'bg-green-600' :
@@ -1322,11 +1403,9 @@ export default function ProjetTab() {
                                   }`}>
                                     {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
                                   </span>
-
                                   <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded">
                                     {tx.payment_method}
                                   </span>
-
                                   {tx.source_currency === 'USD' && tx.exchange_rate && (
                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
                                       Taux: {tx.exchange_rate.toFixed(4)}
@@ -1337,8 +1416,8 @@ export default function ProjetTab() {
                             ))
                         )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -1553,37 +1632,6 @@ export default function ProjetTab() {
                   </div>
                 )}
 
-                {/* Footer Actions */}
-                <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
-                  <button
-                    onClick={() => setShowAttachmentsPropertyId(property.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <FileImage size={16} />
-                    Pièces jointes
-                  </button>
-                  <button
-                    onClick={() => setShowPerformancePropertyId(showPerformancePropertyId === property.id ? null : property.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <TrendingUp size={16} />
-                    Performance & ROI
-                  </button>
-                  <button
-                    onClick={() => setShowFinancialSummaryPropertyId(showFinancialSummaryPropertyId === property.id ? null : property.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <DollarSign size={16} />
-                    Bilan Financier
-                  </button>
-                  <button
-                    onClick={() => handleDelete(property.id, property.name)}
-                    className="flex items-center justify-center gap-2 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Trash2 size={16} />
-                    <span>Supprimer</span>
-                  </button>
-                </div>
               </div>
             )
           })}
