@@ -165,14 +165,19 @@ export default function DashboardPage() {
     })
 
   // Calculer les statistiques réelles des investisseurs depuis les transactions
+  // Inclut: type='investissement' ET type='paiement'+investor_payment_type='achat_parts'
+  const isShareTransaction = (t: any) =>
+    t.type === 'investissement' ||
+    (t.type === 'paiement' && t.investor_payment_type === 'achat_parts')
+
   const totalInvestisseurs = transactions
-    .filter(t => t.type === 'investissement')
-    .reduce((sum, t) => sum + t.amount, 0)
+    .filter(t => isShareTransaction(t))
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
   const investorStats = investors.map(investor => {
     const totalFromTransactions = transactions
-      .filter(t => t.investor_id === investor.id && t.type === 'investissement')
-      .reduce((sum, t) => sum + t.amount, 0)
+      .filter(t => t.investor_id === investor.id && isShareTransaction(t))
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
     return {
       ...investor,
