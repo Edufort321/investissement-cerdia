@@ -118,7 +118,7 @@ export default function TransactionsTab() {
 
   // Calculs statistiques
   const totalIn = filteredTransactions
-    .filter(t => ['investissement', 'dividende'].includes(t.type))
+    .filter(t => ['investissement', 'dividende', 'loyer', 'revenu'].includes(t.type))
     .reduce((sum, t) => sum + t.amount, 0)
 
   const totalOut = filteredTransactions
@@ -128,7 +128,7 @@ export default function TransactionsTab() {
   const balance = totalIn - totalOut
 
   const getTypeIcon = (type: string) => {
-    if (['investissement', 'dividende'].includes(type)) {
+    if (['investissement', 'dividende', 'loyer', 'revenu'].includes(type)) {
       return <TrendingUp className="text-green-600" size={20} />
     }
     return <TrendingDown className="text-red-600" size={20} />
@@ -137,11 +137,13 @@ export default function TransactionsTab() {
   const getTypeBadge = (type: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
       investissement: { bg: 'bg-green-100', text: 'text-green-800', label: 'Investissement' },
+      loyer: { bg: 'bg-teal-100', text: 'text-teal-800', label: 'Loyer' },
+      revenu: { bg: 'bg-cyan-100', text: 'text-cyan-800', label: 'Revenu' },
       paiement: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Paiement' },
       dividende: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Dividende' },
       depense: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dépense' }
     }
-    const badge = badges[type] || badges.investissement
+    const badge = badges[type] || { bg: 'bg-gray-100', text: 'text-gray-800', label: type }
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
         {badge.label}
@@ -195,6 +197,8 @@ export default function TransactionsTab() {
           >
             <option value="all">Tous les types</option>
             <option value="investissement">Investissement</option>
+            <option value="loyer">Loyer</option>
+            <option value="revenu">Revenu</option>
             <option value="paiement">Paiement</option>
             <option value="dividende">Dividende</option>
             <option value="depense">Dépense</option>
@@ -250,6 +254,8 @@ export default function TransactionsTab() {
                   required
                 >
                   <option value="investissement">Investissement</option>
+                  <option value="loyer">Loyer</option>
+                  <option value="revenu">Revenu</option>
                   <option value="paiement">Paiement</option>
                   <option value="dividende">Dividende</option>
                   <option value="depense">Dépense</option>

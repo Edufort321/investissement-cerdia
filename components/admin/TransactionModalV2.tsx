@@ -10,7 +10,7 @@ type TransactionFlowType = 'inflow' | 'outflow'
 type PaymentSource = 'compte_courant' | 'investisseur_direct'
 type InvestorPaymentType = 'achat_parts' | 'dette_a_rembourser'
 
-type TransactionCategoryInflow = 'investissement' | 'loyer' | 'dividende'
+type TransactionCategoryInflow = 'investissement' | 'loyer' | 'dividende' | 'revenu'
 type TransactionCategoryOutflow = 'achat_propriete' | 'admin' | 'capex' | 'maintenance' | 'depense' | 'remboursement_investisseur'
 
 interface TransactionFormData {
@@ -81,6 +81,7 @@ export default function TransactionModalV2({ isOpen, onClose, transaction, onSav
   const inflowCategories: { value: TransactionCategoryInflow; label: string; description: string }[] = [
     { value: 'investissement', label: 'Investissement', description: 'Investisseur achète des parts' },
     { value: 'loyer', label: 'Loyer', description: 'Revenus locatifs' },
+    { value: 'revenu', label: 'Revenu', description: 'Revenu général' },
     { value: 'dividende', label: 'Dividende', description: 'Distribution de profits' }
   ]
 
@@ -609,7 +610,7 @@ export default function TransactionModalV2({ isOpen, onClose, transaction, onSav
           )}
 
           {/* Propriété (conditionnel) */}
-          {(formData.category === 'achat_propriete' || formData.category === 'capex' || formData.category === 'maintenance' || formData.category === 'loyer') && (
+          {(formData.category === 'achat_propriete' || formData.category === 'capex' || formData.category === 'maintenance' || formData.category === 'loyer' || formData.category === 'revenu') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 🏠 Propriété {formData.category === 'achat_propriete' && <span className="text-red-500">*</span>}
