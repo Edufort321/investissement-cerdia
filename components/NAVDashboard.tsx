@@ -731,149 +731,171 @@ export default function NAVDashboard() {
         </div>
       )}
 
-      {/* Graphique historique */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Évolution du NAV</h3>
-          <div className="flex gap-2">
-            {(['1m', '3m', '6m', 'all'] as const).map(period => (
-              <button
-                key={period}
-                onClick={() => setSelectedPeriod(period)}
-                className={`px-3 py-1 text-sm rounded ${
-                  selectedPeriod === period
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {period === 'all' ? 'Tout' : period.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Graphique historique — source: get_nav_timeline() */}
+      {(() => {
+        const now = new Date()
+        const cutoff = new Date()
+        switch (selectedPeriod) {
+          case '1m': cutoff.setMonth(now.getMonth() - 1); break
+          case '3m': cutoff.setMonth(now.getMonth() - 3); break
+          case '6m': cutoff.setMonth(now.getMonth() - 6); break
+          default: cutoff.setFullYear(2000)
+        }
+        const filtered = tlData.filter(p => new Date(p.point_date + 'T00:00:00') >= cutoff)
+        const maxNav = filtered.length > 0 ? Math.max(...filtered.map(p => p.nav_per_share)) : 1
 
-        {filteredHistory.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p className="mb-2">Aucun historique disponible pour cette période</p>
-            <p className="text-sm">Créez des snapshots réguliers pour suivre l'évolution du NAV</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Simple graphique ASCII / Barres */}
-            <div className="overflow-x-auto">
-              <div className="min-w-full">
-                {filteredHistory.map((point, idx) => {
-                  const maxNav = Math.max(...filteredHistory.map(p => p.nav_per_share))
-                  const barWidth = (point.nav_per_share / maxNav) * 100
+        return (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Évolution du NAV</h3>
+              <div className="flex gap-2">
+                {(['1m', '3m', '6m', 'all'] as const).map(period => (
+                  <button
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`px-3 py-1 text-sm rounded ${
+                      selectedPeriod === period
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {period === 'all' ? 'Tout' : period.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  return (
-                    <div key={point.id} className="mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-32 text-sm text-gray-600 flex-shrink-0">
-                          {new Date(point.snapshot_date).toLocaleDateString('fr-CA', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </div>
-                        <div className="flex-1">
-                          <div className="relative">
-                            <div
-                              className="h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded transition-all duration-300"
-                              style={{ width: `${barWidth}%` }}
-                            >
-                              <div className="absolute inset-0 flex items-center justify-end pr-2">
-                                <span className="text-white text-sm font-semibold">
-                                  {point.nav_per_share.toFixed(4)} $
-                                </span>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="mb-2">Aucune donnée pour cette période</p>
+                <p className="text-sm">Essayez une période plus large</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <div className="min-w-full">
+                    {filtered.map((point, idx) => {
+                      const barWidth = maxNav > 0 ? (point.nav_per_share / maxNav) * 100 : 0
+                      const prev = idx > 0 ? filtered[idx - 1].nav_per_share : (tlData[0]?.nav_per_share ?? point.nav_per_share)
+                      const periodPct = prev > 0 ? ((point.nav_per_share - prev) / prev * 100) : 0
+                      const isPositive = periodPct >= 0
+
+                      return (
+                        <div key={point.point_date} className="mb-3">
+                          <div className="flex items-center gap-4">
+                            <div className="w-24 text-sm text-gray-600 flex-shrink-0">
+                              {new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', {
+                                month: 'short', year: '2-digit'
+                              })}
+                            </div>
+                            <div className="flex-1 relative">
+                              <div
+                                className="h-7 bg-gradient-to-r from-blue-500 to-blue-600 rounded transition-all duration-300 min-w-[3rem]"
+                                style={{ width: `${barWidth}%` }}
+                              >
+                                <div className="absolute inset-0 flex items-center px-2">
+                                  <span className="text-white text-xs font-semibold whitespace-nowrap">
+                                    {point.nav_per_share.toFixed(4)} $
+                                  </span>
+                                </div>
                               </div>
+                            </div>
+                            <div className={`w-20 text-xs text-right flex-shrink-0 font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                              {idx === 0 ? '—' : `${isPositive ? '+' : ''}${periodPct.toFixed(2)}%`}
                             </div>
                           </div>
                         </div>
-                        <div className={`w-24 text-sm text-right flex-shrink-0 ${getPerformanceColor(point.period_change_pct)}`}>
-                          {point.period_change_pct != null ? formatPercent(point.period_change_pct) : '-'}
-                        </div>
-                      </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">Plus bas</div>
+                    <div className="text-base font-semibold text-gray-900">
+                      {Math.min(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Statistiques du graphique */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-              <div className="text-center">
-                <div className="text-sm text-gray-600">Plus bas</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {Math.min(...filteredHistory.map(p => p.nav_per_share)).toFixed(4)} $
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">Moyenne</div>
+                    <div className="text-base font-semibold text-gray-900">
+                      {(filtered.reduce((s, p) => s + p.nav_per_share, 0) / filtered.length).toFixed(4)} $
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">Plus haut</div>
+                    <div className="text-base font-semibold text-gray-900">
+                      {Math.max(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="text-center">
-                <div className="text-sm text-gray-600">Moyenne</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {(filteredHistory.reduce((sum, p) => sum + p.nav_per_share, 0) / filteredHistory.length).toFixed(4)} $
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-gray-600">Plus haut</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {Math.max(...filteredHistory.map(p => p.nav_per_share)).toFixed(4)} $
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
+        )
+      })()}
 
-      {/* Tableau détaillé des snapshots */}
+      {/* Tableau détaillé — source: get_nav_timeline() */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique des snapshots</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique mensuel du NAV</h3>
 
-        {history.length === 0 ? (
+        {tlData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p className="mb-2">Aucun snapshot disponible</p>
-            <p className="text-sm">Créez votre premier snapshot pour commencer le suivi</p>
+            <p className="mb-2">Aucune donnée disponible</p>
+            <p className="text-sm">Ajoutez des transactions pour voir l'historique</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">NAV/action</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Var. période</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mois</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">NAV / part</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Var. mensuelle</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Var. totale</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">NAV total</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Appréciation</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Propriétés</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Parts</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {history.slice().reverse().map((point) => (
-                  <tr key={point.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {formatDate(point.snapshot_date)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
-                      {point.nav_per_share.toFixed(4)} $
-                    </td>
-                    <td className={`px-4 py-3 text-sm text-right font-medium ${getPerformanceColor(point.period_change_pct)}`}>
-                      {formatPercent(point.period_change_pct)}
-                    </td>
-                    <td className={`px-4 py-3 text-sm text-right font-medium ${getPerformanceColor(point.total_change_pct)}`}>
-                      {formatPercent(point.total_change_pct)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">
-                      {formatCurrency(point.net_asset_value)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-green-600">
-                      {formatCurrency(point.properties_appreciation)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-600">
-                      {point.total_properties || '-'}
-                    </td>
-                  </tr>
-                ))}
+                {[...tlData].reverse().map((point, idx, arr) => {
+                  const prevPoint = arr[idx + 1]
+                  const firstPoint = tlData[0]
+                  const periodPct = prevPoint
+                    ? (point.nav_per_share - prevPoint.nav_per_share) / prevPoint.nav_per_share * 100
+                    : null
+                  const totalPct = firstPoint && firstPoint.nav_per_share > 0
+                    ? (point.nav_per_share - firstPoint.nav_per_share) / firstPoint.nav_per_share * 100
+                    : null
+                  const isLast = idx === 0
+
+                  return (
+                    <tr key={point.point_date} className={`hover:bg-gray-50 ${isLast ? 'font-semibold bg-blue-50' : ''}`}>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', {
+                          year: 'numeric', month: 'long'
+                        })}
+                        {isLast && <span className="ml-2 text-xs text-blue-600 font-normal">actuel</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                        {point.nav_per_share.toFixed(4)} $
+                      </td>
+                      <td className={`px-4 py-3 text-sm text-right font-medium ${periodPct == null ? 'text-gray-400' : periodPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {periodPct == null ? '—' : `${periodPct >= 0 ? '+' : ''}${periodPct.toFixed(2)}%`}
+                      </td>
+                      <td className={`px-4 py-3 text-sm text-right font-medium ${totalPct == null ? 'text-gray-400' : totalPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {totalPct == null ? '—' : `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                        {formatCurrency(point.net_asset_value)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-600">
+                        {point.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -884,19 +906,11 @@ export default function NAVDashboard() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ À propos du NAV</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• <strong>Le NAV se met à jour automatiquement</strong> en temps réel basé sur vos transactions</li>
+          <li>• <strong>Source unique: <code>get_nav_timeline()</code></strong> — calcul mensuel depuis les premières transactions</li>
           <li>• Le calcul inclut: investissements + appréciation dynamique (expected_roi → scénario → 8%)</li>
           <li>• Les propriétés USD sont converties en CAD au taux en direct ({exchangeRate?.toFixed(4) ?? '...'})</li>
-          <li>• Les <strong>snapshots sont optionnels</strong> - ils créent des points sur le graphique historique</li>
-          {summary.total_snapshots > 0 && (
-            <>
-              <li>• Performance mesurée depuis le premier snapshot ({formatDate(summary.first_snapshot_date)})</li>
-              <li>• Dernier snapshot: {formatDate(summary.last_snapshot_date)} ({summary.total_snapshots} au total)</li>
-            </>
-          )}
-          {summary.total_snapshots === 0 && (
-            <li>• <em>Aucun snapshot créé - créez-en pour voir l'évolution sur le graphique</em></li>
-          )}
+          <li>• <strong>{tlData.length} points</strong> dans la timeline — de {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'} à aujourd'hui</li>
+          <li>• Le bouton "Snapshot" crée un point archivé dans <code>nav_history</code> (distinct de la timeline)</li>
         </ul>
       </div>
     </div>
