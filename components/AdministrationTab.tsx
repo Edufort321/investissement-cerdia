@@ -74,6 +74,13 @@ interface TransactionFormData {
   attachment_mime_type?: string | null
   attachment_size?: number | null
   attachment_uploaded_at?: string | null
+  // New features (migration 115)
+  target_account?: 'compte_courant' | 'capex' | null
+  transfer_source?: 'compte_courant' | 'capex' | null
+  occurrence_type?: 'unique' | 'récurrent'
+  recurrence_frequency?: 'quotidien' | 'hebdomadaire' | 'mensuel' | 'trimestriel' | 'annuel' | null
+  recurrence_end_date?: string | null
+  recurrence_no_end?: boolean
 }
 
 interface Document {
@@ -177,15 +184,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     property_id: null,
     payment_schedule_id: null,
     payment_completion_status: null,
-    category: 'projet', // Changed from 'capital' to 'projet'
+    category: 'projet',
     payment_method: 'virement',
     reference_number: '',
     status: 'complete',
-    // NEW: Payment source fields
     payment_source: 'compte_courant',
     investor_payment_type: undefined,
     affects_compte_courant: true,
-    // International tax fields defaults
     source_currency: 'CAD',
     source_amount: null,
     exchange_rate: 1.0,
@@ -196,7 +201,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     tax_credit_claimable: 0,
     fiscal_category: null,
     vendor_name: null,
-    accountant_notes: null
+    accountant_notes: null,
+    target_account: null,
+    transfer_source: null,
+    occurrence_type: 'unique',
+    recurrence_frequency: null,
+    recurrence_end_date: null,
+    recurrence_no_end: false
   })
 
   // Fetch documents for selected investor
@@ -627,31 +638,64 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       }
 
       if (editingTransactionId) {
-        console.log('🟡 [handleTransactionSubmit] Mode \u00c9DITION - ID:', editingTransactionId)
-        console.log('🟡 [handleTransactionSubmit] Donn\u00e9es soumises:', dataToSubmit)
-
         const result = await updateTransaction(editingTransactionId, dataToSubmit)
-
         if (result.success) {
-          console.log('\u2705 [handleTransactionSubmit] Mise \u00e0 jour r\u00e9ussie!')
           setEditingTransactionId(null)
-          setShowAddTransactionForm(false) // Fermer le formulaire
+          setShowAddTransactionForm(false)
           resetTransactionForm()
-          alert('\u2705 Transaction modifi\u00e9e avec succ\u00e8s!')
+          alert('✅ Transaction modifiée avec succès!')
         } else {
-          console.error('\u274c [handleTransactionSubmit] \u00c9chec:', result.error)
           alert('Erreur lors de la modification: ' + result.error)
         }
+      } else if (
+        transactionFormData.type === 'paiement' &&
+        transactionFormData.occurrence_type === 'récurrent' &&
+        transactionFormData.recurrence_frequency
+      ) {
+        const startDate = new Date(transactionFormData.date)
+        const endDate = transactionFormData.recurrence_no_end || !transactionFormData.recurrence_end_date
+          ? null
+          : new Date(transactionFormData.recurrence_end_date)
+
+        const dates: string[] = []
+        let cur = new Date(startDate)
+
+        const advance = (d: Date) => {
+          switch (transactionFormData.recurrence_frequency) {
+            case 'quotidien':    d.setDate(d.getDate() + 1); break
+            case 'hebdomadaire': d.setDate(d.getDate() + 7); break
+            case 'mensuel':      d.setMonth(d.getMonth() + 1); break
+            case 'trimestriel':  d.setMonth(d.getMonth() + 3); break
+            case 'annuel':       d.setFullYear(d.getFullYear() + 1); break
+          }
+        }
+
+        while (!endDate || cur <= endDate) {
+          dates.push(cur.toISOString().split('T')[0])
+          advance(cur)
+          if (!endDate && dates.length >= 120) break
+        }
+
+        let errors = 0
+        const submitData = { ...dataToSubmit, occurrence_type: undefined, recurrence_frequency: undefined, recurrence_end_date: undefined, recurrence_no_end: undefined }
+        for (const d of dates) {
+          const res = await addTransaction({ ...submitData, date: d })
+          if (!res.success) errors++
+        }
+        if (errors > 0) {
+          alert(`⚠️ ${errors} transaction(s) n'ont pas pu être créées.`)
+        } else {
+          alert(`✅ ${dates.length} transactions récurrentes créées.`)
+        }
+        setShowAddTransactionForm(false)
+        resetTransactionForm()
       } else {
         const result = await addTransaction(dataToSubmit)
         if (result.success) {
-          // Le trigger SQL 'auto_create_investor_shares_from_transactions' crée automatiquement
-          // l'entrée dans investor_investments, pas besoin de le faire manuellement
-
           setShowAddTransactionForm(false)
           resetTransactionForm()
         } else {
-          alert('Erreur lors de l\'ajout: ' + result.error)
+          alert("Erreur lors de l'ajout: " + result.error)
         }
       }
     } catch (error: any) {
@@ -693,13 +737,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       fiscal_category: transaction.fiscal_category || null,
       vendor_name: transaction.vendor_name || null,
       accountant_notes: transaction.accountant_notes || null,
-      // Attachment fields
       attachment_name: transaction.attachment_name || null,
       attachment_url: transaction.attachment_url || null,
       attachment_storage_path: transaction.attachment_storage_path || null,
       attachment_mime_type: transaction.attachment_mime_type || null,
       attachment_size: transaction.attachment_size || null,
-      attachment_uploaded_at: transaction.attachment_uploaded_at || null
+      attachment_uploaded_at: transaction.attachment_uploaded_at || null,
+      target_account: transaction.target_account || null,
+      transfer_source: transaction.transfer_source || null,
+      occurrence_type: 'unique',
+      recurrence_frequency: null,
+      recurrence_end_date: null,
+      recurrence_no_end: false
     })
     setShowAddTransactionForm(true)
   }
@@ -743,13 +792,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       fiscal_category: null,
       vendor_name: null,
       accountant_notes: null,
-      // Attachment fields
       attachment_name: null,
       attachment_url: null,
       attachment_storage_path: null,
       attachment_mime_type: null,
       attachment_size: null,
-      attachment_uploaded_at: null
+      attachment_uploaded_at: null,
+      target_account: null,
+      transfer_source: null,
+      occurrence_type: 'unique',
+      recurrence_frequency: null,
+      recurrence_end_date: null,
+      recurrence_no_end: false
     })
     setSelectedFile(null)
     setShowAddTransactionForm(false)
@@ -786,9 +840,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       investissement: { bg: 'bg-green-100', text: 'text-green-800', label: 'Investissement' },
       paiement: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Paiement' },
       dividende: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Dividende' },
-      depense: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dépense' }
+      depense: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dépense' },
+      loyer: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Loyer' },
+      loyer_locatif: { bg: 'bg-teal-100', text: 'text-teal-800', label: 'Revenu locatif' },
+      revenu: { bg: 'bg-cyan-100', text: 'text-cyan-800', label: 'Revenu' },
+      transfert: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Transfert' },
+      capex: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'CAPEX' },
+      maintenance: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Maintenance' },
+      admin: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Admin' },
+      remboursement_investisseur: { bg: 'bg-pink-100', text: 'text-pink-800', label: 'Remboursement' }
     }
-    const badge = badges[type] || badges.investissement
+    const badge = badges[type] || { bg: 'bg-gray-100', text: 'text-gray-700', label: type }
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
         {badge.label}
@@ -806,7 +868,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   // Calculs statistiques pour transactions (avec vérifications de sécurité)
   const totalIn = filteredTransactions
-    .filter(t => t && t.type && ['investissement', 'loyer', 'dividende'].includes(t.type))
+    .filter(t => t && t.type && ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende'].includes(t.type))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
 
   const totalOut = filteredTransactions
@@ -1582,9 +1644,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             >
               <option value="all">Tous les types</option>
               <option value="investissement">Investissement</option>
-              <option value="paiement">Paiement</option>
+              <option value="loyer">Loyer</option>
+              <option value="loyer_locatif">Revenu locatif</option>
+              <option value="revenu">Revenu</option>
               <option value="dividende">Dividende</option>
+              <option value="paiement">Paiement</option>
               <option value="depense">Dépense</option>
+              <option value="capex">CAPEX</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="admin">Administration</option>
+              <option value="remboursement_investisseur">Remboursement investisseur</option>
+              <option value="transfert">Transfert</option>
             </select>
           </div>
 
@@ -1634,17 +1704,181 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <label className="block text-sm font-medium text-gray-700 mb-2">📋 Type (À quoi sert l'argent) *</label>
                 <select
                   value={transactionFormData.type}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, type: e.target.value })}
+                  onChange={(e) => setTransactionFormData({
+                    ...transactionFormData,
+                    type: e.target.value,
+                    target_account: null,
+                    transfer_source: null,
+                    occurrence_type: 'unique',
+                    recurrence_frequency: null,
+                    recurrence_end_date: null,
+                    recurrence_no_end: false
+                  })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="investissement">Investissement</option>
-                  <option value="paiement">Paiement</option>
-                  <option value="dividende">Dividende</option>
-                  <option value="depense">Dépense</option>
+                  <optgroup label="── Entrées d'argent ──">
+                    <option value="investissement">Investissement</option>
+                    <option value="loyer">Loyer</option>
+                    <option value="loyer_locatif">Revenu locatif (avec compte dest.)</option>
+                    <option value="revenu">Revenu général</option>
+                    <option value="dividende">Dividende</option>
+                  </optgroup>
+                  <optgroup label="── Sorties d'argent ──">
+                    <option value="paiement">Paiement</option>
+                    <option value="depense">Dépense</option>
+                    <option value="capex">CAPEX</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="admin">Administration</option>
+                    <option value="remboursement_investisseur">Remboursement investisseur</option>
+                  </optgroup>
+                  <optgroup label="── Autre ──">
+                    <option value="transfert">Transfert (courant ↔ CAPEX)</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
+
+            {/* SECTION 1b: REVENU LOCATIF — compte destination */}
+            {transactionFormData.type === 'loyer_locatif' && (
+              <div className="border-2 border-teal-300 rounded-lg p-4 bg-teal-50">
+                <label className="block text-sm font-medium text-gray-900 mb-3">🏦 Compte de destination *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, target_account: 'compte_courant' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.target_account === 'compte_courant'
+                        ? 'border-teal-500 bg-teal-100 text-teal-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-teal-300'
+                    }`}
+                  >
+                    🏢 COMPTE COURANT
+                    <div className="text-xs mt-1 opacity-75">Le revenu va dans le compte courant</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, target_account: 'capex' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.target_account === 'capex'
+                        ? 'border-teal-500 bg-teal-100 text-teal-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-teal-300'
+                    }`}
+                  >
+                    🏗️ CAPEX
+                    <div className="text-xs mt-1 opacity-75">Le revenu va dans la réserve CAPEX</div>
+                  </button>
+                </div>
+                {!transactionFormData.target_account && (
+                  <p className="text-xs text-red-600 mt-2">⚠️ Veuillez sélectionner un compte de destination</p>
+                )}
+              </div>
+            )}
+
+            {/* SECTION 1c: PAIEMENT RÉCURRENT */}
+            {transactionFormData.type === 'paiement' && (
+              <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
+                <label className="block text-sm font-medium text-gray-900 mb-3">🔁 Occurrence du paiement</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, occurrence_type: 'unique', recurrence_frequency: null, recurrence_end_date: null, recurrence_no_end: false })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.occurrence_type !== 'récurrent'
+                        ? 'border-orange-500 bg-orange-100 text-orange-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
+                    }`}
+                  >
+                    1️⃣ UNIQUE
+                    <div className="text-xs mt-1 opacity-75">Un seul paiement</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, occurrence_type: 'récurrent', recurrence_frequency: 'mensuel' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.occurrence_type === 'récurrent'
+                        ? 'border-orange-500 bg-orange-100 text-orange-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
+                    }`}
+                  >
+                    🔁 RÉCURRENT
+                    <div className="text-xs mt-1 opacity-75">Paiements répétés</div>
+                  </button>
+                </div>
+                {transactionFormData.occurrence_type === 'récurrent' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
+                      <select
+                        value={transactionFormData.recurrence_frequency || 'mensuel'}
+                        onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_frequency: e.target.value as any })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                      >
+                        <option value="quotidien">Quotidien</option>
+                        <option value="hebdomadaire">Hebdomadaire</option>
+                        <option value="mensuel">Mensuel</option>
+                        <option value="trimestriel">Trimestriel</option>
+                        <option value="annuel">Annuel</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                      <input
+                        type="date"
+                        value={transactionFormData.recurrence_end_date || ''}
+                        onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_end_date: e.target.value || null, recurrence_no_end: false })}
+                        disabled={!!transactionFormData.recurrence_no_end}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] text-sm disabled:bg-gray-100"
+                      />
+                      <label className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={!!transactionFormData.recurrence_no_end}
+                          onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_no_end: e.target.checked, recurrence_end_date: null })}
+                        />
+                        Pas de date de fin (max 120 occurrences)
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SECTION 1d: TRANSFERT entre courant et CAPEX */}
+            {transactionFormData.type === 'transfert' && (
+              <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
+                <label className="block text-sm font-medium text-gray-900 mb-3">↔️ Compte source du transfert *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, transfer_source: 'compte_courant', target_account: 'capex' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.transfer_source === 'compte_courant'
+                        ? 'border-indigo-500 bg-indigo-100 text-indigo-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300'
+                    }`}
+                  >
+                    🏢 COURANT → CAPEX
+                    <div className="text-xs mt-1 opacity-75">Transférer du compte courant vers CAPEX</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFormData({ ...transactionFormData, transfer_source: 'capex', target_account: 'compte_courant' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                      transactionFormData.transfer_source === 'capex'
+                        ? 'border-indigo-500 bg-indigo-100 text-indigo-900 font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300'
+                    }`}
+                  >
+                    🏗️ CAPEX → COURANT
+                    <div className="text-xs mt-1 opacity-75">Transférer du CAPEX vers le compte courant</div>
+                  </button>
+                </div>
+                {!transactionFormData.transfer_source && (
+                  <p className="text-xs text-red-600 mt-2">⚠️ Veuillez sélectionner le sens du transfert</p>
+                )}
+              </div>
+            )}
 
             {/* SECTION 2: SOURCE DE L'ARGENT - NOUVEAU! */}
             <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">

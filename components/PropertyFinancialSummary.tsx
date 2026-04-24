@@ -84,7 +84,7 @@ export default function PropertyFinancialSummary({
 
     // REVENUS
     const rentalIncome = propertyTxs
-      .filter(t => t.type === 'loyer' || (t.type === 'dividende' && (t.description?.toLowerCase().includes('loyer') || t.description?.toLowerCase().includes('location'))))
+      .filter(t => t.type === 'loyer' || t.type === 'loyer_locatif' || (t.type === 'dividende' && (t.description?.toLowerCase().includes('loyer') || t.description?.toLowerCase().includes('location'))))
       .reduce((sum, t) => sum + (t.source_amount || t.amount), 0)
 
     const otherIncome = propertyTxs
