@@ -16,6 +16,7 @@ interface Property {
   reservation_date: string
   completion_date?: string
   expected_roi: number
+  owner_occupation_days?: number
   main_photo_url?: string
   origin_scenario_id?: string
   // Payment schedule fields

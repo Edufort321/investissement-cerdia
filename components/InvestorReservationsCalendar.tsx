@@ -61,6 +61,14 @@ interface ApiConfig {
   auto_sync: boolean
 }
 
+interface AddReservationForm {
+  scenarioId: string
+  investorId: string
+  startDate: string
+  endDate: string
+  notes: string
+}
+
 export default function InvestorReservationsCalendar() {
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [investors, setInvestors] = useState<Investor[]>([])
@@ -74,11 +82,22 @@ export default function InvestorReservationsCalendar() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [isLoading, setIsLoading] = useState(true)
   const [showReservationModal, setShowReservationModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showApiConfig, setShowApiConfig] = useState(false)
-  const [showQuotaInfo, setShowQuotaInfo] = useState(false)
+  const [showQuotaInfo, setShowQuotaInfo] = useState(true)
   const [selectedCell, setSelectedCell] = useState<{ scenarioId: string, date: Date } | null>(null)
   const [selectedScenarioForApi, setSelectedScenarioForApi] = useState<string | null>(null)
   const [selectedInvestor, setSelectedInvestor] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const today = new Date().toISOString().split('T')[0]
+  const [addForm, setAddForm] = useState<AddReservationForm>({
+    scenarioId: '',
+    investorId: '',
+    startDate: today,
+    endDate: today,
+    notes: ''
+  })
 
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
     scenario_id: '',
@@ -292,11 +311,70 @@ export default function InvestorReservationsCalendar() {
 
       if (error) throw error
 
-      // Recharger les données
       await loadReservations()
       await loadInvestorQuotas()
     } catch (error) {
       console.error('Error deleting reservation:', error)
+    }
+  }
+
+  const handleAddReservation = async () => {
+    if (!addForm.scenarioId || !addForm.investorId || !addForm.startDate || !addForm.endDate) return
+
+    if (addForm.endDate < addForm.startDate) {
+      alert('La date de fin doit être après la date de début')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const { data: quotaCheck, error: quotaError } = await supabase
+        .rpc('check_investor_can_reserve', {
+          p_investor_id: addForm.investorId,
+          p_scenario_id: addForm.scenarioId,
+          p_start_date: addForm.startDate,
+          p_end_date: addForm.endDate
+        })
+
+      if (quotaError) {
+        console.error('Quota check error:', quotaError)
+        // Ne pas bloquer si la vérification échoue (investisseur peut ne pas être dans investor_properties)
+      } else if (quotaCheck && quotaCheck.length > 0 && !quotaCheck[0].can_reserve) {
+        const check = quotaCheck[0]
+        alert(`❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants: ${check.days_available_unit ?? check.days_available_total}`)
+        setIsSaving(false)
+        return
+      }
+
+      const { error } = await supabase
+        .from('investor_reservations')
+        .insert([{
+          scenario_id: addForm.scenarioId,
+          investor_id: addForm.investorId,
+          start_date: addForm.startDate,
+          end_date: addForm.endDate,
+          status: 'confirmed',
+          notes: addForm.notes || null,
+          reserved_by: addForm.investorId
+        }])
+
+      if (error) throw error
+
+      await loadReservations()
+      await loadInvestorQuotas()
+
+      // Naviguer vers le mois de la réservation
+      const startDate = new Date(addForm.startDate)
+      setCurrentMonth(startDate.getMonth())
+      setCurrentYear(startDate.getFullYear())
+
+      setShowAddModal(false)
+      setAddForm({ scenarioId: '', investorId: '', startDate: today, endDate: today, notes: '' })
+    } catch (error) {
+      console.error('Error creating reservation:', error)
+      alert('Erreur lors de la création de la réservation')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -415,6 +493,18 @@ export default function InvestorReservationsCalendar() {
             <option value="all">Tous les statuts</option>
             <option value="purchased">Achetés</option>
           </select>
+
+          <button
+            onClick={() => {
+              setAddForm({ scenarioId: '', investorId: '', startDate: today, endDate: today, notes: '' })
+              setShowAddModal(true)
+            }}
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span className="hidden sm:inline">Ajouter une réservation</span>
+            <span className="sm:hidden">Réserver</span>
+          </button>
 
           <button
             onClick={() => setShowApiConfig(true)}
@@ -706,6 +796,146 @@ export default function InvestorReservationsCalendar() {
                 >
                   <Check size={16} />
                   Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal — Ajouter une réservation */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
+                Ajouter une réservation
+              </h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Projet */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Projet *
+                </label>
+                <select
+                  value={addForm.scenarioId}
+                  onChange={(e) => setAddForm({ ...addForm, scenarioId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
+                  required
+                >
+                  <option value="">-- Choisir un projet --</option>
+                  {scenarios.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}{s.unit_number ? ` — Unité ${s.unit_number}` : ''}
+                      {s.owner_occupation_days ? ` (${s.owner_occupation_days} j/an)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Investisseur */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Investisseur *
+                </label>
+                <select
+                  value={addForm.investorId}
+                  onChange={(e) => setAddForm({ ...addForm, investorId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
+                  required
+                >
+                  <option value="">-- Choisir un investisseur --</option>
+                  {investors.map(i => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date de début *
+                  </label>
+                  <input
+                    type="date"
+                    value={addForm.startDate}
+                    onChange={(e) => {
+                      const newStart = e.target.value
+                      setAddForm(f => ({
+                        ...f,
+                        startDate: newStart,
+                        endDate: f.endDate < newStart ? newStart : f.endDate
+                      }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date de fin *
+                  </label>
+                  <input
+                    type="date"
+                    value={addForm.endDate}
+                    min={addForm.startDate}
+                    onChange={(e) => setAddForm(f => ({ ...f, endDate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Résumé jours */}
+              {addForm.startDate && addForm.endDate && addForm.endDate >= addForm.startDate && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-2 text-sm text-blue-800 dark:text-blue-300">
+                  {(() => {
+                    const d1 = new Date(addForm.startDate)
+                    const d2 = new Date(addForm.endDate)
+                    const days = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
+                    return `${days} jour${days > 1 ? 's' : ''} réservé${days > 1 ? 's' : ''}`
+                  })()}
+                </div>
+              )}
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={addForm.notes}
+                  onChange={(e) => setAddForm(f => ({ ...f, notes: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
+                  placeholder="Ex: Vacances en famille"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-2 border-t dark:border-gray-700">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  disabled={isSaving}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleAddReservation}
+                  disabled={!addForm.scenarioId || !addForm.investorId || !addForm.startDate || !addForm.endDate || isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center justify-center gap-2"
+                >
+                  <Check size={16} />
+                  {isSaving ? 'Enregistrement...' : 'Confirmer la réservation'}
                 </button>
               </div>
             </div>

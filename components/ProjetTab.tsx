@@ -20,6 +20,7 @@ interface PropertyFormData {
   reservation_date: string
   completion_date: string
   expected_roi: number
+  owner_occupation_days: number
   // Payment schedule fields
   currency: string
   payment_schedule_type: string
@@ -80,6 +81,7 @@ export default function ProjetTab() {
     reservation_date: new Date().toISOString().split('T')[0],
     completion_date: '',
     expected_roi: 0,
+    owner_occupation_days: 60,
     currency: 'USD',
     payment_schedule_type: 'one_time',
     reservation_deposit: 0,
@@ -189,6 +191,7 @@ export default function ProjetTab() {
       reservation_date: property.reservation_date.split('T')[0],
       completion_date: property.completion_date ? property.completion_date.split('T')[0] : '',
       expected_roi: property.expected_roi,
+      owner_occupation_days: property.owner_occupation_days ?? 60,
       currency: property.currency || 'USD',
       payment_schedule_type: property.payment_schedule_type || 'one_time',
       reservation_deposit: property.reservation_deposit || 0,
@@ -222,6 +225,7 @@ export default function ProjetTab() {
       reservation_date: new Date().toISOString().split('T')[0],
       completion_date: '',
       expected_roi: 0,
+      owner_occupation_days: 60,
       currency: 'USD',
       payment_schedule_type: 'one_time',
       reservation_deposit: 0,
@@ -493,6 +497,25 @@ export default function ProjetTab() {
                   step="0.1"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jours propriétaire / an
+                </label>
+                <input
+                  type="number"
+                  value={formData.owner_occupation_days}
+                  onChange={(e) => setFormData({ ...formData, owner_occupation_days: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  placeholder="Ex: 60"
+                  min="0"
+                  max="365"
+                  step="1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Jours d'utilisation personnelle autorisés par contrat — divisés selon les parts des investisseurs
+                </p>
               </div>
             </div>
 
