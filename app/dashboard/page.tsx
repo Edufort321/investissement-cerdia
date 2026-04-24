@@ -36,7 +36,7 @@ type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_cour
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
-  const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, loading } = useInvestment()
+  const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, shareSettings, investorSummaries, loading } = useInvestment()
   const { t, language } = useLanguage()
   const { rate: exchangeRate } = useExchangeRate()
   const router = useRouter()
@@ -106,8 +106,15 @@ export default function DashboardPage() {
     : 0
   const estimatedMonthlyRevenue = (totalCurrentValue * (averageROI / 100)) / 12
 
-  // Transactions récentes (5 dernières)
-  const recentTransactions = transactions.slice(0, 5)
+  // Transactions récentes (5 dernières, triées par date desc)
+  const recentTransactions = [...transactions]
+    .filter(t => t.status !== 'cancelled')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
+
+  const INFLOW_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
+  const OUTFLOW_TYPES = ['paiement', 'achat_propriete', 'capex', 'maintenance', 'admin',
+                         'depense', 'remboursement_investisseur', 'courant', 'rnd', 'transfert']
 
   // Tous les paiements (triés par date)
   const upcomingPayments = paymentSchedules
@@ -178,10 +185,17 @@ export default function DashboardPage() {
       .filter(t => t.investor_id === investor.id && isShareTransaction(t))
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
+    const summary = investorSummaries?.find(s => s.investor_id === investor.id)
+    const totalShares = summary?.total_shares ?? investor.total_shares ?? 0
+    const nominalPrice = shareSettings?.nominal_share_value ?? 1
+    const currentValue = totalShares * nominalPrice
+
     return {
       ...investor,
       calculated_total_invested: totalFromTransactions,
-      calculated_percentage: totalInvestisseurs > 0 ? (totalFromTransactions / totalInvestisseurs) * 100 : 0
+      calculated_percentage: totalInvestisseurs > 0 ? (totalFromTransactions / totalInvestisseurs) * 100 : 0,
+      calculated_current_value: currentValue,
+      calculated_total_shares: totalShares,
     }
   })
 
@@ -659,13 +673,17 @@ export default function DashboardPage() {
                             <div>
                               <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
                               <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
+                              <p className="text-xs text-gray-400">
+                                Investi: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100">
-                              {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            <p className="font-semibold text-green-700">
+                              {investor.calculated_current_value.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
-                            <p className="text-xs text-gray-500">{investor.total_shares.toLocaleString()} {t('dashboard.shares')}</p>
+                            <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} parts</p>
+                            <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} $/part</p>
                           </div>
                         </div>
                       ))}
@@ -870,43 +888,33 @@ export default function DashboardPage() {
                   <p className="text-gray-500 text-center py-8">Aucune transaction récente</p>
                 ) : (
                   <div className="space-y-4">
-                    {recentTransactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          transaction.type === 'investissement' ? 'bg-green-100' :
-                          transaction.type === 'paiement' ? 'bg-blue-100' :
-                          transaction.type === 'dividende' ? 'bg-purple-100' :
-                          'bg-gray-100'
-                        }`}>
-                          <DollarSign size={20} className={
-                            transaction.type === 'investissement' ? 'text-green-600' :
-                            transaction.type === 'paiement' ? 'text-blue-600' :
-                            transaction.type === 'dividende' ? 'text-purple-600' :
-                            'text-gray-600'
-                          } />
+                    {recentTransactions.map((transaction) => {
+                      const isInflow  = INFLOW_TYPES.includes(transaction.type)
+                      const isOutflow = OUTFLOW_TYPES.includes(transaction.type)
+                      const displayAmt = Math.abs(transaction.amount)
+                      const sign = isInflow ? '+' : isOutflow ? '-' : (transaction.amount >= 0 ? '+' : '-')
+                      const amtColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600'
+                      const iconBg = isInflow ? 'bg-green-100' : isOutflow ? 'bg-red-100' : 'bg-gray-100'
+                      const iconColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600'
+                      return (
+                        <div key={transaction.id} className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBg}`}>
+                            <DollarSign size={20} className={iconColor} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{transaction.description}</p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(transaction.date).toLocaleDateString('fr-CA', {
+                                year: 'numeric', month: 'long', day: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                          <span className={`font-semibold ${amtColor}`}>
+                            {sign}{displayAmt.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          </span>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{transaction.description}</p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(transaction.date).toLocaleDateString('fr-CA', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                        <span className={`font-semibold ${
-                          transaction.type === 'investissement' || transaction.type === 'dividende'
-                            ? 'text-green-600'
-                            : 'text-blue-600'
-                        }`}>
-                          {transaction.amount >= 0 ? '+' : ''}{transaction.amount.toLocaleString('fr-CA', {
-                            style: 'currency',
-                            currency: 'CAD'
-                          })}
-                        </span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
