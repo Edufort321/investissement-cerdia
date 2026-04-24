@@ -659,7 +659,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
           transaction.investor_id!,
           transaction.date as string | undefined,
           Number(transaction.amount) || 0,
-          (transaction.currency as string) || 'CAD'
+          (transaction.source_currency as string) || 'CAD'
         )
       }
 
@@ -691,7 +691,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         const investorId = updates.investor_id || (data as any)?.investor_id
         const amount = Number(updates.amount ?? (data as any)?.amount) || 0
         const date = (updates.date ?? (data as any)?.date) as string | undefined
-        const currency = ((updates.currency ?? (data as any)?.currency) as string) || 'CAD'
+        const currency = ((updates.source_currency ?? (data as any)?.source_currency) as string) || 'CAD'
         if (investorId) {
           await ensureSharesCreated(id, investorId, date, amount, currency)
         }
