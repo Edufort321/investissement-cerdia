@@ -606,6 +606,42 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [shareSettings])
 
+  // Helper: créer les parts pour une transaction si elles n'existent pas encore
+  // Déclenché pour: type='investissement' OU type='paiement' + investor_payment_type='achat_parts'
+  const ensureSharesCreated = useCallback(async (
+    txId: string,
+    investorId: string,
+    date: string | undefined,
+    amount: number,
+    currency: string
+  ) => {
+    const { data: existing } = await supabase
+      .from('investor_investments')
+      .select('id')
+      .eq('transaction_id', txId)
+      .maybeSingle()
+
+    if (!existing) {
+      const sharePrice = shareSettings?.nominal_share_value || 1.0
+      const numberOfShares = sharePrice > 0 ? Math.abs(amount) / sharePrice : Math.abs(amount)
+      await supabase.from('investor_investments').insert([{
+        investor_id:             investorId,
+        transaction_id:          txId,
+        investment_date:         date,
+        amount_invested:         Math.abs(amount),
+        share_price_at_purchase: sharePrice,
+        number_of_shares:        numberOfShares,
+        currency:                currency || 'CAD',
+        status:                  'active',
+      }])
+    }
+  }, [shareSettings])
+
+  const shouldGenerateShares = (t: Partial<Transaction>) =>
+    t.investor_id &&
+    (t.type === 'investissement' ||
+     (t.type === 'paiement' && (t as any).investor_payment_type === 'achat_parts'))
+
   // Add Transaction
   const addTransaction = useCallback(async (transaction: Partial<Transaction>) => {
     try {
@@ -617,33 +653,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
       if (error) throw error
 
-      // Fallback explicite pour les transactions d'investissement:
-      // Le trigger DB devrait créer les parts automatiquement, mais si il échoue
-      // (trigger désactivé, company_settings manquant, etc.) on le fait ici.
-      if (transaction.type === 'investissement' && transaction.investor_id && txData?.id) {
-        // Vérifier si le trigger a déjà créé les parts
-        const { data: existingShares } = await supabase
-          .from('investor_investments')
-          .select('id')
-          .eq('transaction_id', txData.id)
-          .maybeSingle()
-
-        if (!existingShares) {
-          const amount = Math.abs(Number(transaction.amount) || 0)
-          const sharePrice = shareSettings?.nominal_share_value || 1.0
-          const numberOfShares = sharePrice > 0 ? amount / sharePrice : amount
-
-          await supabase.from('investor_investments').insert([{
-            investor_id:             transaction.investor_id,
-            transaction_id:          txData.id,
-            investment_date:         transaction.date,
-            amount_invested:         amount,
-            share_price_at_purchase: sharePrice,
-            number_of_shares:        numberOfShares,
-            currency:                transaction.currency || 'CAD',
-            status:                  'active',
-          }])
-        }
+      if (shouldGenerateShares(transaction) && txData?.id) {
+        await ensureSharesCreated(
+          txData.id,
+          transaction.investor_id!,
+          transaction.date as string | undefined,
+          Number(transaction.amount) || 0,
+          (transaction.currency as string) || 'CAD'
+        )
       }
 
       // Recharger toutes les données liées
@@ -655,39 +672,40 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     } catch (error: any) {
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries, shareSettings])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries, ensureSharesCreated])
 
   // Update Transaction
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
     try {
-      console.log('🔵 [updateTransaction] D\u00e9but de mise \u00e0 jour transaction:', id)
-      console.log('🔵 [updateTransaction] Donn\u00e9es:', updates)
-
       const { data, error } = await supabase
         .from('transactions')
         .update(updates)
         .eq('id', id)
         .select()
+        .single()
 
-      if (error) {
-        console.error('\u274c [updateTransaction] Erreur Supabase:', error)
-        throw error
+      if (error) throw error
+
+      // Créer les parts si la transaction est un achat de parts (paiement ou investissement)
+      if (shouldGenerateShares({ ...updates, id })) {
+        const investorId = updates.investor_id || (data as any)?.investor_id
+        const amount = Number(updates.amount ?? (data as any)?.amount) || 0
+        const date = (updates.date ?? (data as any)?.date) as string | undefined
+        const currency = ((updates.currency ?? (data as any)?.currency) as string) || 'CAD'
+        if (investorId) {
+          await ensureSharesCreated(id, investorId, date, amount, currency)
+        }
       }
 
-      console.log('\u2705 [updateTransaction] Transaction mise \u00e0 jour avec succ\u00e8s:', data)
-
-      // Forcer le rafra\u00eechissement de toutes les donn\u00e9es li\u00e9es
       await fetchTransactions()
       await fetchInvestorInvestments()
       await fetchInvestorSummaries()
-      console.log('\u2705 [updateTransaction] Toutes les donn\u00e9es rafra\u00eechies')
 
       return { success: true }
     } catch (error: any) {
-      console.error('\u274c [updateTransaction] ERREUR FINALE:', error)
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries, ensureSharesCreated])
 
   // Delete Transaction
   const deleteTransaction = useCallback(async (id: string) => {
