@@ -118,11 +118,21 @@ export default function DashboardPage() {
       // Trouver les transactions liées à ce paiement
       const relatedTransactions = transactions.filter(t => t.payment_schedule_id === payment.id)
 
-      // Si payé, utiliser la date de la dernière transaction, sinon utiliser aujourd'hui
+      // Calculer le montant réellement payé en USD pour détecter si 100% couvert
+      const paidAmountUSD = relatedTransactions.reduce((sum, t) => {
+        if (t.source_currency === 'USD' && t.source_amount) return sum + Math.abs(t.source_amount)
+        return sum + (Math.abs(t.amount) / exchangeRate)
+      }, 0)
+      const progressPct = payment.amount > 0 ? (paidAmountUSD / payment.amount) * 100 : 0
+
+      // Statut effectif : si les transactions couvrent ≥ 100%, traiter comme payé
+      // même si le champ status dans la BD n'a pas encore été mis à jour
+      const effectiveStatus = progressPct >= 100 ? 'paid' : payment.status
+
+      // Si payé (BD ou transactions), utiliser la date de la dernière transaction comme référence
       const referenceDate = new Date()
-      if (payment.status === 'paid' && relatedTransactions.length > 0) {
-        // Trouver la date de la dernière transaction
-        const lastTransaction = relatedTransactions.sort((a, b) =>
+      if (effectiveStatus === 'paid' && relatedTransactions.length > 0) {
+        const lastTransaction = [...relatedTransactions].sort((a, b) =>
           new Date(b.date).getTime() - new Date(a.date).getTime()
         )[0]
         referenceDate.setTime(new Date(lastTransaction.date).getTime())
@@ -132,7 +142,7 @@ export default function DashboardPage() {
       const due = new Date(payment.due_date)
       due.setHours(0, 0, 0, 0)
       const daysUntil = Math.floor((due.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24))
-      const flag = getColorFlag(payment.due_date, payment.status)
+      const flag = getColorFlag(payment.due_date, effectiveStatus)
       const amountInCAD = payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
 
       return {
@@ -668,13 +678,13 @@ export default function DashboardPage() {
                     <Calendar size={18} className="text-blue-600" />
                     Calendrier des paiements
                     <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">
-                      {upcomingPayments.filter(p => p.status === 'pending' || p.status === 'overdue').length} en attente • {upcomingPayments.filter(p => p.status === 'paid').length} payé(s)
+                      {upcomingPayments.filter(p => p.color_flag.color !== 'green').length} en attente • {upcomingPayments.filter(p => p.color_flag.color === 'green').length} payé(s)
                     </span>
                   </h3>
 
                   {/* Total des paiements à venir */}
                   {(() => {
-                    const pendingPayments = upcomingPayments.filter(p => p.status === 'pending' || p.status === 'overdue')
+                    const pendingPayments = upcomingPayments.filter(p => p.color_flag.color !== 'green')
                     const totalUSD = pendingPayments
                       .filter(p => p.currency === 'USD')
                       .reduce((sum, p) => sum + p.amount, 0)
@@ -730,7 +740,7 @@ export default function DashboardPage() {
                               <div>
                                 <p className="text-xs sm:text-sm font-medium text-gray-700">{payment.color_flag.label}</p>
                                 <p className="text-xs text-gray-600">
-                                  {payment.status === 'paid' && payment.actual_payment_date
+                                  {payment.color_flag.color === 'green' && payment.actual_payment_date
                                     ? `Payé le ${new Date(payment.actual_payment_date).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' })}`
                                     : payment.days_until_due < 0
                                     ? `${Math.abs(payment.days_until_due)} jour${Math.abs(payment.days_until_due) > 1 ? 's' : ''} de retard`
