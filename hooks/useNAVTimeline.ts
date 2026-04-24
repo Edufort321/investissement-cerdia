@@ -39,5 +39,11 @@ export function useNAVTimeline() {
     }
   }
 
-  return { data, loading, error, reload: load }
+  const current  = data.length > 0 ? data[data.length - 1] : null
+  const initial  = data.length > 0 ? data[0] : null
+  const pctChange = current && initial && initial.nav_per_share > 0
+    ? (current.nav_per_share - initial.nav_per_share) / initial.nav_per_share * 100
+    : 0
+
+  return { data, loading, error, reload: load, current, pctChange }
 }

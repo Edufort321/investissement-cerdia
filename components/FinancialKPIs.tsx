@@ -6,7 +6,7 @@
 'use client'
 
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
-import { useNAVRealtime } from '@/hooks/useNAVRealtime'
+import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { DollarSign, TrendingUp, Building2, Wallet, BarChart3 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -17,7 +17,7 @@ interface FinancialKPIsProps {
 
 export default function FinancialKPIs({ year = null, className = '' }: FinancialKPIsProps) {
   const { summary, loading, error } = useFinancialSummary(year)
-  const { data: nav, loading: navLoading } = useNAVRealtime()
+  const { current: navCurrent, pctChange: navPct, loading: navLoading } = useNAVTimeline()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -96,23 +96,23 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
     },
     {
       title: 'NAV / Part',
-      value: nav?.nav_per_share ?? 1,
+      value: navCurrent?.nav_per_share ?? 1,
       format: 'nav' as const,
       icon: BarChart3,
-      color: (nav?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
-      borderColor: (nav?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
-      iconColor: (nav?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
-      subtitle: nav ? `${nav.nav_change_pct >= 0 ? '+' : ''}${nav.nav_change_pct.toFixed(2)}%` : null,
+      color: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
+      borderColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
+      iconColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
+      subtitle: navCurrent ? `${navPct >= 0 ? '+' : ''}${navPct.toFixed(2)}% depuis lancement` : null,
     },
     {
       title: 'Valeur Totale',
-      value: nav?.net_asset_value ?? 0,
+      value: navCurrent?.net_asset_value ?? 0,
       format: 'currency' as const,
       icon: BarChart3,
       color: 'from-indigo-50 to-indigo-100',
       borderColor: 'border-indigo-200',
       iconColor: 'text-indigo-600',
-      subtitle: nav ? `${nav.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
+      subtitle: navCurrent ? `${navCurrent.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
     },
   ]
 

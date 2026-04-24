@@ -21,7 +21,6 @@ import BudgetDashboard from '@/components/BudgetDashboard'
 import UserGuide from '@/components/UserGuide'
 import NotesManager from '@/components/NotesManager'
 import ExchangeRateWidget from '@/components/ExchangeRateWidget'
-import SharePriceWidget from '@/components/SharePriceWidget'
 import PropertyValuationManager from '@/components/PropertyValuationManager'
 import SharePriceCalculator from '@/components/SharePriceCalculator'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
@@ -547,9 +546,8 @@ export default function DashboardPage() {
               {/* KPIs Cards - Utilise le nouveau composant FinancialKPIs avec vues SQL temps réel */}
               <FinancialKPIs year={null} className="mb-6 sm:mb-8" />
 
-              {/* Widget Prix des Parts et Taux de change */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                <SharePriceWidget />
+              {/* Taux de change */}
+              <div className="mb-6 sm:mb-8">
                 <ExchangeRateWidget />
               </div>
 

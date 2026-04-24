@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
+import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 
 interface NAVHistoryPoint {
   id: string
@@ -81,6 +82,7 @@ interface PropertyValue {
 
 export default function NAVDashboard() {
   const { rate: exchangeRate } = useExchangeRate()
+  const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline()
   const [summary, setSummary] = useState<NAVSummary | null>(null)
   const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
   const [properties, setProperties] = useState<PropertyValue[]>([])
@@ -353,29 +355,27 @@ export default function NAVDashboard() {
         </div>
       )}
 
-      {/* KPIs principaux */}
+      {/* KPIs principaux — source: get_nav_timeline() */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NAV par action actuel */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-sm text-gray-600 mb-1">NAV par action</div>
           <div className="text-3xl font-bold text-blue-600">
-            {summary.current_nav_per_share != null ? `${summary.current_nav_per_share.toFixed(4)} $` : '—'}
+            {tlCurrent ? `${tlCurrent.nav_per_share.toFixed(4)} $` : '—'}
           </div>
-          {summary.since_last_snapshot_pct != null && (
-            <div className={`text-sm mt-2 ${getPerformanceColor(summary.since_last_snapshot_pct)}`}>
-              {formatPercent(summary.since_last_snapshot_pct)} depuis dernier snapshot
-            </div>
-          )}
+          <div className={`text-sm mt-2 ${getPerformanceColor(tlPct)}`}>
+            {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}% depuis lancement
+          </div>
         </div>
 
         {/* Performance totale */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-sm text-gray-600 mb-1">Performance totale</div>
-          <div className={`text-3xl font-bold ${getPerformanceColor(summary.total_performance_pct)}`}>
-            {formatPercent(summary.total_performance_pct)}
+          <div className={`text-3xl font-bold ${getPerformanceColor(tlPct)}`}>
+            {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}%
           </div>
           <div className="text-sm text-gray-600 mt-2">
-            Depuis {formatDate(summary.first_snapshot_date)}
+            Depuis {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'}
           </div>
         </div>
 
@@ -383,7 +383,7 @@ export default function NAVDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-sm text-gray-600 mb-1">NAV total</div>
           <div className="text-3xl font-bold text-gray-900">
-            {formatCurrency(summary.current_nav)}
+            {formatCurrency(tlCurrent?.net_asset_value ?? null)}
           </div>
           <div className="text-sm text-gray-600 mt-2">
             {formatCurrency(summary.current_appreciation)} d'appréciation
@@ -402,27 +402,23 @@ export default function NAVDashboard() {
         </div>
       </div>
 
-      {/* Section détaillée: Calcul NAV */}
-      {detailedNavData && (
+      {/* Section détaillée: Calcul NAV — utilise get_nav_timeline() */}
+      {tlCurrent && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">🧮 Calcul détaillé du NAV</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Actifs */}
+            {/* Actifs — NAV total = actifs nets (get_nav_timeline: cash + prop appreciation) */}
             <div>
               <h4 className="text-md font-semibold text-green-700 mb-3">💰 ACTIFS</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Trésorerie (compte courant)</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.cash_balance)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Valeur des propriétés</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.properties_current_value)}</span>
+                  <span className="text-sm text-gray-600">NAV total (trésorerie + propriétés)</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-900">Total Actifs</span>
-                  <span className="text-sm font-bold text-green-600">{formatCurrency(detailedNavData.total_assets)}</span>
+                  <span className="text-sm font-bold text-green-600">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
               </div>
             </div>
@@ -433,33 +429,33 @@ export default function NAVDashboard() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Dettes et obligations</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(detailedNavData.total_liabilities)}</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(0)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-900">Total Passifs</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(detailedNavData.total_liabilities)}</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(0)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* NAV final */}
+          {/* NAV final — valeurs de get_nav_timeline() */}
           <div className="mt-6 pt-6 border-t-2 border-gray-300">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">NAV Total</div>
-                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(detailedNavData.net_asset_value)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Actifs - Passifs</div>
+                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(tlCurrent.net_asset_value)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Source: get_nav_timeline()</div>
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">Parts totales</div>
-                  <div className="text-2xl font-bold text-gray-900">{detailedNavData.total_shares != null ? detailedNavData.total_shares.toFixed(2) : '—'}</div>
+                  <div className="text-2xl font-bold text-gray-900">{tlCurrent.total_shares.toFixed(2)}</div>
                   <div className="text-xs text-gray-500 mt-1">Actions en circulation</div>
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">NAV par part</div>
-                  <div className="text-2xl font-bold text-blue-600">{detailedNavData.nav_per_share != null ? `${detailedNavData.nav_per_share.toFixed(4)} $` : '—'}</div>
+                  <div className="text-2xl font-bold text-blue-600">{tlCurrent.nav_per_share.toFixed(4)} $</div>
                   <div className="text-xs text-gray-500 mt-1">Valeur de chaque action</div>
                 </div>
               </div>

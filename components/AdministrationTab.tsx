@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
@@ -123,6 +124,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   } = useInvestment()
 
   const { t } = useLanguage()
+  const { current: navCurrent } = useNAVTimeline()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -938,16 +940,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <p className="text-xs text-white/70 mt-1">Par part</p>
           </div>
 
-          {/* Estimated Share Value - Read-only */}
+          {/* NAV actuel — source: get_nav_timeline() */}
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="text-white" size={20} />
-              <h3 className="text-sm font-medium text-white/90">Valeur Estimée (Selon ROI)</h3>
+              <h3 className="text-sm font-medium text-white/90">NAV / Part (Valeur actuelle)</h3>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-white">
-              {shareSettings?.estimated_share_value.toFixed(2) || '1.00'} CAD
+              {navCurrent ? navCurrent.nav_per_share.toFixed(4) : '1.0000'} CAD
             </p>
-            <p className="text-xs text-white/70 mt-1">Calculée automatiquement</p>
+            <p className="text-xs text-white/70 mt-1">Source: get_nav_timeline()</p>
           </div>
         </div>
       </div>
