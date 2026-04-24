@@ -22,25 +22,14 @@ export function useOwnerDays(): OwnerDaysResult {
   useEffect(() => {
     const load = async () => {
       try {
-        // Jours propriétaire totaux — projets livrés (livré > complete > actif > purchased)
+        // Jours propriétaire: seulement les projets actifs ou livrés (pas en_construction)
         const { data: props } = await supabase
           .from('properties')
-          .select('owner_occupation_days, status')
+          .select('owner_occupation_days')
           .in('status', ['livré', 'complete', 'actif'])
 
         const total = (props || []).reduce((sum, p) => sum + (p.owner_occupation_days || 0), 0)
-
-        // Fallback: if nothing yet marked livré, use all properties with owner_occupation_days
-        if (total === 0) {
-          const { data: allProps } = await supabase
-            .from('properties')
-            .select('owner_occupation_days')
-            .not('owner_occupation_days', 'is', null)
-          const fallback = (allProps || []).reduce((sum, p) => sum + (p.owner_occupation_days || 0), 0)
-          setTotalProjectDays(fallback)
-        } else {
-          setTotalProjectDays(total)
-        }
+        setTotalProjectDays(total)
 
         // Jours utilisés par investisseur cette année
         const { data: reservations } = await supabase
