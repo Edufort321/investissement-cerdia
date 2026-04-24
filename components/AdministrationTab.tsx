@@ -628,7 +628,6 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       // Convertir toutes les valeurs numériques en nombres
       const dataToSubmit = {
         ...transactionFormData,
-        // Convertir les valeurs qui peuvent être des strings en nombres
         amount: typeof transactionFormData.amount === 'string' ? parseFloat(transactionFormData.amount) || 0 : transactionFormData.amount,
         source_amount: typeof transactionFormData.source_amount === 'string' ? (transactionFormData.source_amount ? parseFloat(transactionFormData.source_amount) : null) : transactionFormData.source_amount,
         exchange_rate: typeof transactionFormData.exchange_rate === 'string' ? parseFloat(transactionFormData.exchange_rate) || 1 : transactionFormData.exchange_rate,
@@ -638,7 +637,12 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         ...attachmentData,
         investor_id: transactionFormData.investor_id || undefined,
         property_id: transactionFormData.property_id || undefined,
-        payment_schedule_id: transactionFormData.payment_schedule_id || undefined
+        payment_schedule_id: transactionFormData.payment_schedule_id || undefined,
+        // Champs frontend-only — jamais envoyés au DB
+        occurrence_type: undefined,
+        recurrence_frequency: undefined,
+        recurrence_end_date: undefined,
+        recurrence_no_end: undefined,
       }
 
       if (editingTransactionId) {
@@ -681,9 +685,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         }
 
         let errors = 0
-        const submitData = { ...dataToSubmit, occurrence_type: undefined, recurrence_frequency: undefined, recurrence_end_date: undefined, recurrence_no_end: undefined }
         for (const d of dates) {
-          const res = await addTransaction({ ...submitData, date: d })
+          const res = await addTransaction({ ...dataToSubmit, date: d })
           if (!res.success) errors++
         }
         if (errors > 0) {
