@@ -30,6 +30,7 @@ import CAPEXDashboard from '@/components/CAPEXDashboard'
 import CompteCourantDashboard from '@/components/CompteCourantDashboard'
 import NAVDashboard from '@/components/NAVDashboard'
 import NAVTimelineChart from '@/components/NAVTimelineChart'
+import { useOwnerDays } from '@/hooks/useOwnerDays'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes'
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, shareSettings, investorSummaries, loading } = useInvestment()
   const { t, language } = useLanguage()
   const { rate: exchangeRate } = useExchangeRate()
+  const { entitledDays: ownerEntitled, remainingDays: ownerRemaining, totalProjectDays } = useOwnerDays()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
@@ -190,12 +192,18 @@ export default function DashboardPage() {
     const nominalPrice = shareSettings?.nominal_share_value ?? 1
     const currentValue = totalShares * nominalPrice
 
+    const pct = investor.percentage_ownership ?? 0
+    const ownerDaysEntitled = ownerEntitled(pct)
+    const ownerDaysRemaining = ownerRemaining(investor.id, pct)
+
     return {
       ...investor,
       calculated_total_invested: totalFromTransactions,
       calculated_percentage: totalInvestisseurs > 0 ? (totalFromTransactions / totalInvestisseurs) * 100 : 0,
       calculated_current_value: currentValue,
       calculated_total_shares: totalShares,
+      owner_days_entitled: ownerDaysEntitled,
+      owner_days_remaining: ownerDaysRemaining,
     }
   })
 
@@ -665,26 +673,48 @@ export default function DashboardPage() {
                         .filter(investor => investor.calculated_total_invested > 0)
                         .sort((a, b) => b.calculated_total_invested - a.calculated_total_invested)
                         .map((investor) => (
-                        <div key={investor.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold">
-                              {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
+                        <div key={investor.id} className="py-3 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold">
+                                {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
+                                <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
+                                <p className="text-xs text-gray-400">
+                                  Investi: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
-                              <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
-                              <p className="text-xs text-gray-400">
-                                Investi: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                            <div className="text-right">
+                              <p className="font-semibold text-green-700">
+                                {investor.calculated_current_value.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </p>
+                              <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} parts</p>
+                              <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} $/part</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-700">
-                              {investor.calculated_current_value.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                            </p>
-                            <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} parts</p>
-                            <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} $/part</p>
-                          </div>
+                          {/* Jours propriétaire */}
+                          {totalProjectDays > 0 && investor.owner_days_entitled > 0 && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                {(() => {
+                                  const used = investor.owner_days_entitled - investor.owner_days_remaining
+                                  const pct = Math.round((used / investor.owner_days_entitled) * 100)
+                                  return (
+                                    <div
+                                      className={`h-full rounded-full ${pct > 75 ? 'bg-red-500' : pct > 50 ? 'bg-orange-500' : 'bg-green-500'}`}
+                                      style={{ width: `${Math.min(pct, 100)}%` }}
+                                    />
+                                  )
+                                })()}
+                              </div>
+                              <span className={`text-xs font-semibold whitespace-nowrap ${investor.owner_days_remaining <= 0 ? 'text-red-600' : investor.owner_days_remaining < investor.owner_days_entitled * 0.25 ? 'text-orange-600' : 'text-green-600'}`}>
+                                {investor.owner_days_remaining} / {investor.owner_days_entitled} j
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

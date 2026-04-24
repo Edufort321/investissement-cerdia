@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
+import { useOwnerDays } from '@/hooks/useOwnerDays'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
@@ -127,6 +128,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const { t } = useLanguage()
   const { current: navCurrent } = useNAVTimeline()
   const { summary: financialSummary } = useFinancialSummary(null)
+  const { entitledDays, remainingDays, totalProjectDays } = useOwnerDays()
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -1375,6 +1377,34 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(2)}%
                     </div>
                   </div>
+
+                  {/* Jours propriétaire — pleine largeur */}
+                  {totalProjectDays > 0 && (() => {
+                    const pct = investor.percentage_ownership ?? 0
+                    const entitled = entitledDays(pct)
+                    const remaining = remainingDays(investor.id, pct)
+                    const used = entitled - remaining
+                    const usedPct = entitled > 0 ? Math.round((used / entitled) * 100) : 0
+                    return (
+                      <div className="col-span-2 min-w-0 mt-1">
+                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-600 mb-0.5">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={10} className="flex-shrink-0" />
+                            Jours propriétaire {new Date().getFullYear()}
+                          </span>
+                          <span className={`font-bold text-xs ${remaining <= 0 ? 'text-red-600' : remaining < entitled * 0.25 ? 'text-orange-600' : 'text-green-600'}`}>
+                            {remaining} / {entitled} j
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${usedPct > 75 ? 'bg-red-500' : usedPct > 50 ? 'bg-orange-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min(usedPct, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 <div className="pt-1.5 sm:pt-2 border-t border-gray-100">

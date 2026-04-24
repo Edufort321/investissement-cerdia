@@ -124,7 +124,7 @@ export default function InvestorReservationsCalendar() {
       const { data: scenariosData, error: scenariosError } = await supabase
         .from('scenarios')
         .select('id, name, unit_number, status, owner_occupation_days, management_company_name, management_company_contact, management_company_email')
-        .eq('status', 'purchased')
+        .in('status', ['purchased', 'livré'])
         .order('name', { ascending: true })
 
       if (scenariosError) throw scenariosError
@@ -491,6 +491,7 @@ export default function InvestorReservationsCalendar() {
             className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
           >
             <option value="all">Tous les statuts</option>
+            <option value="livré">Livrés</option>
             <option value="purchased">Achetés</option>
           </select>
 

@@ -260,6 +260,7 @@ export default function ProjetTab() {
       reservation: { bg: 'bg-blue-100', text: 'text-blue-800', label: t('status.reservation') },
       en_construction: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: t('status.construction') },
       complete: { bg: 'bg-green-100', text: 'text-green-800', label: t('status.completed') },
+      livré: { bg: 'bg-teal-100', text: 'text-teal-800', label: 'Livré' },
       actif: { bg: 'bg-purple-100', text: 'text-purple-800', label: t('status.active') }
     }
     const badge = badges[status] || badges.reservation
@@ -404,6 +405,7 @@ export default function ProjetTab() {
                   <option value="reservation">Réservation</option>
                   <option value="en_construction">En construction</option>
                   <option value="complete">Complété</option>
+                  <option value="livré">Livré</option>
                   <option value="actif">Actif</option>
                   <option value="vendu">Vendu</option>
                 </select>
