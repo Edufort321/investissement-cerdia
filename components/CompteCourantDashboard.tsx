@@ -1,18 +1,41 @@
 /**
  * Dashboard Compte Courant dédié
  * Utilise la vue v_compte_courant_monthly (migration 95)
+ * Solde cumulatif toutes années via get_financial_summary()
  */
 
 'use client'
 
-import { useCompteCourantMonthly } from '@/hooks/useFinancialSummary'
-import { useState } from 'react'
+import { useCompteCourantMonthly, useFinancialSummary } from '@/hooks/useFinancialSummary'
+import { useState, useMemo } from 'react'
 import { Wallet, TrendingUp, TrendingDown, Calendar } from 'lucide-react'
 
 export default function CompteCourantDashboard() {
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState(currentYear)
-  const { data, loading, error } = useCompteCourantMonthly(selectedYear)
+
+  // Charger TOUTES les années (sans filtre) pour avoir le sélecteur complet
+  const { data: allData, loading, error } = useCompteCourantMonthly()
+  // Solde cumulatif toutes années — même source que FinancialKPIs
+  const { summary: globalSummary } = useFinancialSummary(null)
+
+  const monthNames = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ]
+
+  // Années disponibles depuis les données réelles
+  const uniqueYears = useMemo(() => {
+    const years = Array.from(new Set((allData || []).map(d => d.year))).sort((a, b) => b - a)
+    if (!years.includes(currentYear)) years.unshift(currentYear)
+    return years
+  }, [allData, currentYear])
+
+  // Filtrer pour l'année sélectionnée
+  const data = useMemo(
+    () => (allData || []).filter(d => d.year === selectedYear).sort((a, b) => b.month - a.month),
+    [allData, selectedYear]
+  )
 
   if (loading) {
     return (
@@ -31,42 +54,20 @@ export default function CompteCourantDashboard() {
     )
   }
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <p className="text-yellow-800">⚠️ Aucune donnée de compte courant pour {selectedYear}</p>
-        <p className="text-sm text-yellow-700 mt-2">
-          Créez des transactions avec affects_compte_courant = true pour voir les données.
-        </p>
-      </div>
-    )
-  }
-
-  const totalInflow = data.reduce((sum, d) => sum + d.total_inflow, 0)
+  // Totaux pour l'année sélectionnée
+  const totalInflow  = data.reduce((sum, d) => sum + d.total_inflow,  0)
   const totalOutflow = data.reduce((sum, d) => sum + d.total_outflow, 0)
-  const netBalance = data.reduce((sum, d) => sum + d.net_balance, 0)
+  const netBalance   = data.reduce((sum, d) => sum + d.net_balance,   0)
 
-  const totalCoutOperation = data.reduce((sum, d) => sum + d.cout_operation, 0)
+  const totalCoutOperation  = data.reduce((sum, d) => sum + d.cout_operation,  0)
   const totalCoutMaintenance = data.reduce((sum, d) => sum + d.cout_maintenance, 0)
-  const totalCoutAdmin = data.reduce((sum, d) => sum + d.cout_admin, 0)
-  const totalCoutProjet = data.reduce((sum, d) => sum + d.cout_projet, 0)
+  const totalCoutAdmin      = data.reduce((sum, d) => sum + d.cout_admin,      0)
+  const totalCoutProjet     = data.reduce((sum, d) => sum + d.cout_projet,     0)
 
-  // Années disponibles
-  const uniqueYears = Array.from(new Set(data.map(d => d.year))).sort((a, b) => b - a)
-  if (!uniqueYears.includes(currentYear)) {
-    uniqueYears.unshift(currentYear)
-  }
+  const fmt = (v: number) => v.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
+  const fmtSigned = (v: number) => v.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, signDisplay: 'always' })
 
-  // Ordre chronologique inversé (le plus récent en premier)
-  const sortedData = [...data].sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year
-    return b.month - a.month
-  })
-
-  const monthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ]
+  const globalBalance = globalSummary?.compte_courant_balance ?? null
 
   return (
     <div className="space-y-6">
@@ -93,50 +94,62 @@ export default function CompteCourantDashboard() {
         </div>
       </div>
 
+      {/* Solde cumulatif toutes années — source: get_financial_summary() */}
+      <div className={`rounded-xl p-6 border-2 ${(globalBalance ?? 0) >= 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-300' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Solde Cumulatif — Toutes Années</p>
+            <p className="text-xs text-gray-500 mt-1">Investissements + Revenus − Toutes dépenses</p>
+          </div>
+          <div className={`text-4xl font-bold ${(globalBalance ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            {globalBalance !== null ? fmt(globalBalance) : '—'}
+          </div>
+        </div>
+      </div>
+
       {/* KPIs Résumé Annuel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-700">Entrées Totales</p>
-            <TrendingUp className="w-5 h-5 text-green-600" />
+      <div>
+        <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Détail {selectedYear}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700">Entrées Totales</p>
+              <TrendingUp className="w-5 h-5 text-green-600" />
+            </div>
+            <p className="text-2xl font-bold text-green-600">+{fmt(totalInflow)}</p>
+            <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
           </div>
-          <p className="text-2xl font-bold text-green-600">
-            +{totalInflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
-        </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-700">Sorties Totales</p>
-            <TrendingDown className="w-5 h-5 text-red-600" />
+          <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700">Sorties Totales</p>
+              <TrendingDown className="w-5 h-5 text-red-600" />
+            </div>
+            <p className="text-2xl font-bold text-red-600">-{fmt(totalOutflow)}</p>
+            <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
           </div>
-          <p className="text-2xl font-bold text-red-600">
-            -{totalOutflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
-        </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-700">Balance Nette</p>
-            <Wallet className="w-5 h-5 text-blue-600" />
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700">Balance Nette {selectedYear}</p>
+              <Wallet className="w-5 h-5 text-blue-600" />
+            </div>
+            <p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {fmtSigned(netBalance)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">{selectedYear} seulement</p>
           </div>
-          <p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {netBalance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, signDisplay: 'always' })}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
-        </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-700">Transactions</p>
-            <Calendar className="w-5 h-5 text-purple-600" />
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700">Transactions</p>
+              <Calendar className="w-5 h-5 text-purple-600" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">
+              {data.reduce((sum, d) => sum + d.transaction_count, 0)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
-            {data.reduce((sum, d) => sum + d.transaction_count, 0)}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{selectedYear}</p>
         </div>
       </div>
 
@@ -146,27 +159,19 @@ export default function CompteCourantDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-xs text-gray-600 mb-1">Opération</p>
-            <p className="font-bold text-orange-600">
-              {totalCoutOperation.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="font-bold text-orange-600">{fmt(totalCoutOperation)}</p>
           </div>
           <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-xs text-gray-600 mb-1">Maintenance</p>
-            <p className="font-bold text-yellow-600">
-              {totalCoutMaintenance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="font-bold text-yellow-600">{fmt(totalCoutMaintenance)}</p>
           </div>
           <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
             <p className="text-xs text-gray-600 mb-1">Administration</p>
-            <p className="font-bold text-purple-600">
-              {totalCoutAdmin.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="font-bold text-purple-600">{fmt(totalCoutAdmin)}</p>
           </div>
           <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-xs text-gray-600 mb-1">Projet</p>
-            <p className="font-bold text-blue-600">
-              {totalCoutProjet.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="font-bold text-blue-600">{fmt(totalCoutProjet)}</p>
           </div>
         </div>
       </div>
@@ -174,56 +179,55 @@ export default function CompteCourantDashboard() {
       {/* Tableau mensuel */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Détails Mensuels - {selectedYear}</h3>
+          <h3 className="font-semibold text-gray-900">Détails Mensuels — {selectedYear}</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Mois</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Entrées</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Sorties</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Balance</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Trans.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {sortedData.map((monthData, index) => (
-                <tr key={`${monthData.year}-${monthData.month}`} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-3 font-semibold text-gray-900">
-                    {monthNames[monthData.month - 1]} {monthData.year}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-green-600">
-                    +{monthData.total_inflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-red-600">
-                    -{monthData.total_outflow.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-bold ${monthData.net_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {monthData.net_balance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, signDisplay: 'always' })}
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-600">
-                    {monthData.transaction_count}
-                  </td>
+        {data.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            Aucune transaction pour {selectedYear}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Mois</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Entrées</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Sorties</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Balance</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Trans.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {data.map((monthData, index) => (
+                  <tr key={`${monthData.year}-${monthData.month}`} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3 font-semibold text-gray-900">
+                      {monthNames[monthData.month - 1]} {monthData.year}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-green-600">
+                      +{fmt(monthData.total_inflow)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-red-600">
+                      -{fmt(monthData.total_outflow)}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-bold ${monthData.net_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {fmtSigned(monthData.net_balance)}
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {monthData.transaction_count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>ℹ️ Comment ça fonctionne:</strong>
+          <strong>ℹ️ Sources:</strong> Le solde cumulatif provient de <code>get_financial_summary()</code> (même source que les KPIs du tableau de bord). Le détail mensuel provient de la vue <code>v_compte_courant_monthly</code>.
         </p>
-        <ul className="text-sm text-blue-700 mt-2 ml-4 space-y-1">
-          <li>• <strong>Entrées:</strong> Transactions avec affects_compte_courant = true et montant positif</li>
-          <li>• <strong>Sorties:</strong> Transactions avec affects_compte_courant = true et montant négatif</li>
-          <li>• <strong>Balance:</strong> Entrées - Sorties</li>
-          <li>• Les transactions avec source = CAPEX ou investisseur_direct n'affectent PAS le compte courant</li>
-          <li>• Les données sont calculées en temps réel depuis la table transactions</li>
-        </ul>
       </div>
     </div>
   )

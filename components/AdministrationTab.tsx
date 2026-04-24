@@ -5,6 +5,7 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
+import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
@@ -125,6 +126,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const { t } = useLanguage()
   const { current: navCurrent } = useNAVTimeline()
+  const { summary: financialSummary } = useFinancialSummary(null)
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)
@@ -860,13 +862,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     )
   }
 
-  // Filtrer les transactions (avec vérification de sécurité)
+  // Filtrer les transactions (exclure cancelled pour cohérence avec SQL)
   const filteredTransactions = (transactions || []).filter(t => {
     if (!t) return false
+    if (t.status === 'cancelled') return false
     if (filterType !== 'all' && t.type !== filterType) return false
     if (filterCategory !== 'all' && t.category !== filterCategory) return false
     return true
   })
+
+  const isFiltered = filterType !== 'all' || filterCategory !== 'all'
 
   // Calculs statistiques pour transactions (avec vérifications de sécurité)
   const totalIn = filteredTransactions
@@ -1623,15 +1628,26 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           </p>
         </div>
 
-        <div className={`bg-gradient-to-br ${balance >= 0 ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-4 rounded-lg border`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde</span>
-            <DollarSign className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={20} />
-          </div>
-          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-            {balance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-          </p>
-        </div>
+        {(() => {
+          const displayBalance = isFiltered ? balance : (financialSummary?.compte_courant_balance ?? balance)
+          const isPos = displayBalance >= 0
+          return (
+            <div className={`bg-gradient-to-br ${isPos ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-4 rounded-lg border`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-sm font-medium ${isPos ? 'text-blue-700' : 'text-orange-700'}`}>
+                  {isFiltered ? 'Solde (filtré)' : 'Solde Compte Courant'}
+                </span>
+                <DollarSign className={isPos ? 'text-blue-600' : 'text-orange-600'} size={20} />
+              </div>
+              <p className={`text-2xl font-bold ${isPos ? 'text-blue-900' : 'text-orange-900'}`}>
+                {displayBalance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+              </p>
+              {isFiltered && (
+                <p className="text-xs text-gray-500 mt-1">Global: {(financialSummary?.compte_courant_balance ?? 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}</p>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Barre d'actions */}

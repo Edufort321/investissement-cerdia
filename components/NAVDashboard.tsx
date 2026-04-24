@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
+import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 
 interface NAVHistoryPoint {
   id: string
@@ -83,6 +84,7 @@ interface PropertyValue {
 export default function NAVDashboard() {
   const { rate: exchangeRate } = useExchangeRate()
   const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline()
+  const { summary: financialSummary } = useFinancialSummary(null)
   const [summary, setSummary] = useState<NAVSummary | null>(null)
   const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
   const [properties, setProperties] = useState<PropertyValue[]>([])
@@ -714,16 +716,16 @@ export default function NAVDashboard() {
             </div>
           </div>
 
-          {/* Solde compte courant */}
+          {/* Solde compte courant — source: get_financial_summary() identique à FinancialKPIs */}
           <div className="mt-6 pt-6 border-t-2 border-gray-300">
-            <div className={`rounded-lg p-4 ${(detailedNavData.cash_balance ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className={`rounded-lg p-4 ${(financialSummary?.compte_courant_balance ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm text-gray-600 mb-1">💰 Solde du compte courant</div>
-                  <div className="text-xs text-gray-500">Entrées - Sorties</div>
+                  <div className="text-xs text-gray-500">Entrées - Sorties (toutes années)</div>
                 </div>
-                <div className={`text-3xl font-bold ${(detailedNavData.cash_balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(detailedNavData.cash_balance)}
+                <div className={`text-3xl font-bold ${(financialSummary?.compte_courant_balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(financialSummary?.compte_courant_balance ?? null)}
                 </div>
               </div>
             </div>
