@@ -609,11 +609,42 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Add Transaction
   const addTransaction = useCallback(async (transaction: Partial<Transaction>) => {
     try {
-      const { error } = await supabase
+      const { data: txData, error } = await supabase
         .from('transactions')
         .insert([transaction])
+        .select()
+        .single()
 
       if (error) throw error
+
+      // Fallback explicite pour les transactions d'investissement:
+      // Le trigger DB devrait créer les parts automatiquement, mais si il échoue
+      // (trigger désactivé, company_settings manquant, etc.) on le fait ici.
+      if (transaction.type === 'investissement' && transaction.investor_id && txData?.id) {
+        // Vérifier si le trigger a déjà créé les parts
+        const { data: existingShares } = await supabase
+          .from('investor_investments')
+          .select('id')
+          .eq('transaction_id', txData.id)
+          .maybeSingle()
+
+        if (!existingShares) {
+          const amount = Math.abs(Number(transaction.amount) || 0)
+          const sharePrice = shareSettings?.nominal_share_value || 1.0
+          const numberOfShares = sharePrice > 0 ? amount / sharePrice : amount
+
+          await supabase.from('investor_investments').insert([{
+            investor_id:             transaction.investor_id,
+            transaction_id:          txData.id,
+            investment_date:         transaction.date,
+            amount_invested:         amount,
+            share_price_at_purchase: sharePrice,
+            number_of_shares:        numberOfShares,
+            currency:                transaction.currency || 'CAD',
+            status:                  'active',
+          }])
+        }
+      }
 
       // Recharger toutes les données liées
       await fetchTransactions()
@@ -624,7 +655,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     } catch (error: any) {
       return { success: false, error: error.message }
     }
-  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries])
+  }, [fetchTransactions, fetchInvestorInvestments, fetchInvestorSummaries, shareSettings])
 
   // Update Transaction
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
