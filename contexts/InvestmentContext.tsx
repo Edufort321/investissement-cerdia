@@ -584,7 +584,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       // Ajouter les calculs de valeur actuelle si on a les settings
       const enrichedData = (data || []).map((summary: any) => {
         const currentValue = shareSettings
-          ? summary.total_shares * shareSettings.estimated_share_value
+          ? summary.total_shares * shareSettings.nominal_share_value
           : 0
         const gainLoss = currentValue - summary.total_amount_invested
         const roiPercentage = summary.total_amount_invested > 0
@@ -861,15 +861,13 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Update Nominal Share Value (prix de vente actuel)
   const updateNominalShareValue = useCallback(async (newValue: number) => {
     try {
-      // Utiliser la fonction helper update_setting
-      const { error } = await supabase.rpc('update_setting', {
-        key_name: 'nominal_share_value',
-        new_value: newValue.toString()
-      })
+      const { error } = await supabase
+        .from('company_settings')
+        .update({ setting_value: newValue.toString() })
+        .eq('setting_key', 'nominal_share_value')
 
       if (error) throw error
 
-      // Rafraîchir les settings
       await fetchShareSettings()
       return { success: true }
     } catch (error: any) {
@@ -881,10 +879,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Update Estimated Share Value (valeur calculée selon ROI)
   const updateEstimatedShareValue = useCallback(async (newValue: number) => {
     try {
-      const { error } = await supabase.rpc('update_setting', {
-        key_name: 'estimated_share_value',
-        new_value: newValue.toString()
-      })
+      const { error } = await supabase
+        .from('company_settings')
+        .update({ setting_value: newValue.toString() })
+        .eq('setting_key', 'estimated_share_value')
 
       if (error) throw error
 
@@ -991,6 +989,13 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       setLoading(false)
     }
   }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
+
+  // Re-compute investor summaries once shareSettings loads (fixes race condition with Promise.all)
+  useEffect(() => {
+    if (shareSettings && hasLoadedRef.current) {
+      fetchInvestorSummaries()
+    }
+  }, [shareSettings, fetchInvestorSummaries])
 
   const value: InvestmentContextType = {
     investors,
