@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown } from 'lucide-react'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
@@ -152,6 +152,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterYear, setFilterYear] = useState<string>('all')
+  const [exportingPDF, setExportingPDF] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
 
@@ -867,16 +869,24 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     )
   }
 
+  // Années disponibles dérivées des transactions existantes
+  const availableYears = Array.from(new Set(
+    (transactions || [])
+      .filter(t => t && t.date)
+      .map(t => new Date(t.date).getFullYear())
+  )).sort((a, b) => b - a)
+
   // Filtrer les transactions (exclure cancelled pour cohérence avec SQL)
   const filteredTransactions = (transactions || []).filter(t => {
     if (!t) return false
     if (t.status === 'cancelled') return false
     if (filterType !== 'all' && t.type !== filterType) return false
     if (filterCategory !== 'all' && t.category !== filterCategory) return false
+    if (filterYear !== 'all' && new Date(t.date).getFullYear().toString() !== filterYear) return false
     return true
   })
 
-  const isFiltered = filterType !== 'all' || filterCategory !== 'all'
+  const isFiltered = filterType !== 'all' || filterCategory !== 'all' || filterYear !== 'all'
 
   // Calculs statistiques pour transactions (avec vérifications de sécurité)
   const totalIn = filteredTransactions
@@ -1637,6 +1647,214 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     </div>
   )
 
+  const exportTransactionsPDF = async () => {
+    setExportingPDF(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      const loadImageAsBase64 = async (url: string): Promise<string> => {
+        try {
+          const res = await fetch(url)
+          const blob = await res.blob()
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(blob)
+          })
+        } catch { return '' }
+      }
+
+      const addPageHeader = async (pageDoc: typeof doc, subtitle: string) => {
+        const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
+        if (logoBase64) {
+          try { pageDoc.addImage(logoBase64, 'PNG', 15, 10, 28, 10) } catch {}
+        }
+        pageDoc.setFontSize(18)
+        pageDoc.setTextColor(94, 94, 94)
+        pageDoc.text('Rapport de transactions', 200, 17, { align: 'right' })
+        pageDoc.setFontSize(9)
+        pageDoc.setTextColor(130, 130, 130)
+        pageDoc.text(subtitle, 200, 24, { align: 'right' })
+        pageDoc.setDrawColor(94, 94, 94)
+        pageDoc.setLineWidth(0.5)
+        pageDoc.line(15, 29, 195, 29)
+        return 36
+      }
+
+      const fmt = (n: number) =>
+        n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
+
+      const typeLabels: Record<string, string> = {
+        investissement: 'Investissement', loyer: 'Loyer', loyer_locatif: 'Revenu locatif',
+        revenu: 'Revenu', dividende: 'Dividende', paiement: 'Paiement',
+        depense: 'Dépense', capex: 'CAPEX', maintenance: 'Maintenance',
+        admin: 'Administration', remboursement_investisseur: 'Remboursement', transfert: 'Transfert',
+      }
+
+      const filterParts = [
+        filterYear !== 'all' ? `Année: ${filterYear}` : '',
+        filterType !== 'all' ? `Type: ${typeLabels[filterType] || filterType}` : '',
+        filterCategory !== 'all' ? `Catégorie: ${filterCategory}` : '',
+      ].filter(Boolean)
+      const filterLabel = filterParts.length > 0 ? filterParts.join(' | ') : 'Toutes les transactions'
+
+      let yPos = await addPageHeader(doc, filterLabel)
+
+      // Résumé financier
+      doc.setFontSize(11)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Résumé financier', 15, yPos)
+      yPos += 5
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Entrées totales', 'Sorties totales', 'Balance']],
+        body: [[fmt(totalIn), fmt(totalOut), fmt(balance)]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+        bodyStyles: { fontSize: 10, cellPadding: 4 },
+        columnStyles: { 0: { halign: 'right' }, 1: { halign: 'right' }, 2: { halign: 'right' } },
+      })
+
+      yPos = (doc as any).lastAutoTable.finalY + 10
+
+      // Table des transactions
+      doc.setFontSize(11)
+      doc.setTextColor(60, 60, 60)
+      doc.text(`Transactions (${filteredTransactions.length})`, 15, yPos)
+      yPos += 5
+
+      const rows = filteredTransactions.map(t => {
+        const investor = investors.find(i => i.id === t.investor_id)
+        const property = properties.find(p => p.id === t.property_id)
+        const desc = [
+          t.description,
+          investor ? `Investisseur: ${investor.first_name} ${investor.last_name}` : '',
+          property ? `Propriété: ${property.name}` : '',
+        ].filter(Boolean).join('\n')
+        const statut = t.status === 'complete' ? 'Complété' : t.status === 'en_attente' ? 'En attente' : 'Annulé'
+        return [
+          new Date(t.date).toLocaleDateString('fr-CA'),
+          typeLabels[t.type] || t.type,
+          desc,
+          fmt(t.amount),
+          statut,
+          t.attachment_name || '-',
+        ]
+      })
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Date', 'Type', 'Description', 'Montant', 'Statut', 'Pièce jointe']],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 26 },
+          2: { cellWidth: 62 },
+          3: { cellWidth: 25, halign: 'right' },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 30 },
+        },
+      })
+
+      // Pièces jointes : images embarquées, autres référencées
+      const withAttachments = filteredTransactions.filter(t => t.attachment_storage_path)
+      if (withAttachments.length > 0) {
+        const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
+        for (const t of withAttachments) {
+          try {
+            const { data, error } = await supabase.storage
+              .from('transaction-attachments')
+              .download(t.attachment_storage_path!)
+            if (error || !data) continue
+
+            const ext = (t.attachment_name || '').split('.').pop()?.toLowerCase() || ''
+            const isImage = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'].includes(ext)
+
+            doc.addPage()
+            // En-tête page pièce jointe
+            if (logoBase64) {
+              try { doc.addImage(logoBase64, 'PNG', 15, 10, 28, 10) } catch {}
+            }
+            doc.setFontSize(14)
+            doc.setTextColor(94, 94, 94)
+            doc.text('Pièce jointe', 200, 17, { align: 'right' })
+            doc.setFontSize(9)
+            doc.setTextColor(130, 130, 130)
+            doc.text(
+              `${new Date(t.date).toLocaleDateString('fr-CA')} — ${t.description}`,
+              200, 24, { align: 'right' }
+            )
+            doc.setDrawColor(94, 94, 94)
+            doc.setLineWidth(0.5)
+            doc.line(15, 29, 195, 29)
+
+            if (isImage) {
+              const imgBase64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(data)
+              })
+              // Calculer les dimensions en maintenant le ratio
+              const img = new Image()
+              img.src = imgBase64
+              await new Promise<void>(r => { img.onload = () => r() })
+              const maxW = 180
+              const maxH = 230
+              const ratio = img.width > 0 ? img.height / img.width : 1
+              const pdfW = maxW
+              const pdfH = Math.min(pdfW * ratio, maxH)
+              const format = ext === 'jpg' || ext === 'jpeg' ? 'JPEG' : 'PNG'
+              doc.addImage(imgBase64, format, 15, 36, pdfW, pdfH)
+            } else {
+              doc.setFontSize(10)
+              doc.setTextColor(80, 80, 80)
+              doc.text(
+                `Fichier: ${t.attachment_name}`,
+                15, 42
+              )
+              doc.setFontSize(9)
+              doc.setTextColor(130, 130, 130)
+              doc.text('(Fichier non prévisualisable — télécharger depuis l\'application)', 15, 50)
+            }
+          } catch {}
+        }
+      }
+
+      // Pied de page sur toutes les pages
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setDrawColor(200, 200, 200)
+        doc.setLineWidth(0.3)
+        doc.line(15, 280, 195, 280)
+        doc.setFontSize(8)
+        doc.setTextColor(130, 130, 130)
+        doc.text('CERDIA Investissement — Rapport de transactions confidentiel', 105, 285, { align: 'center' })
+        doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
+        doc.text(
+          `Généré le ${new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+          200, 290, { align: 'right' }
+        )
+      }
+
+      const yearSuffix = filterYear !== 'all' ? `_${filterYear}` : ''
+      doc.save(`transactions_cerdia${yearSuffix}_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err: any) {
+      alert('Erreur lors de la génération du PDF: ' + err.message)
+    } finally {
+      setExportingPDF(false)
+    }
+  }
+
   const renderTransactionsTab = () => (
     <div className="space-y-6">
       {/* Header avec statistiques */}
@@ -1684,35 +1902,37 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       </div>
 
       {/* Barre d'actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Filter size={20} className="text-gray-600 flex-shrink-0" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
-            >
-              <option value="all">Tous les types</option>
-              <option value="investissement">Investissement</option>
-              <option value="loyer">Loyer</option>
-              <option value="loyer_locatif">Revenu locatif</option>
-              <option value="revenu">Revenu</option>
-              <option value="dividende">Dividende</option>
-              <option value="paiement">Paiement</option>
-              <option value="depense">Dépense</option>
-              <option value="capex">CAPEX</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="admin">Administration</option>
-              <option value="remboursement_investisseur">Remboursement investisseur</option>
-              <option value="transfert">Transfert</option>
-            </select>
-          </div>
+      <div className="flex flex-col gap-3">
+        {/* Ligne 1 : filtres */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Filter size={18} className="text-gray-600 flex-shrink-0" />
 
+          {/* Filtre type */}
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
+          >
+            <option value="all">Tous les types</option>
+            <option value="investissement">Investissement</option>
+            <option value="loyer">Loyer</option>
+            <option value="loyer_locatif">Revenu locatif</option>
+            <option value="revenu">Revenu</option>
+            <option value="dividende">Dividende</option>
+            <option value="paiement">Paiement</option>
+            <option value="depense">Dépense</option>
+            <option value="capex">CAPEX</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="admin">Administration</option>
+            <option value="remboursement_investisseur">Remboursement investisseur</option>
+            <option value="transfert">Transfert</option>
+          </select>
+
+          {/* Filtre catégorie */}
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
           >
             <option value="all">Toutes les catégories</option>
             <option value="capital">Capital</option>
@@ -1720,15 +1940,39 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <option value="maintenance">Maintenance</option>
             <option value="admin">Administration</option>
           </select>
+
+          {/* Filtre année */}
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white text-sm"
+          >
+            <option value="all">Toutes les années</option>
+            {availableYears.map(y => (
+              <option key={y} value={y.toString()}>{y}</option>
+            ))}
+          </select>
         </div>
 
-        <button
-          onClick={() => setShowAddTransactionForm(!showAddTransactionForm)}
-          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center"
-        >
-          {showAddTransactionForm ? <X size={20} /> : <Plus size={20} />}
-          {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
-        </button>
+        {/* Ligne 2 : actions */}
+        <div className="flex flex-wrap items-center gap-3 justify-end">
+          <button
+            onClick={exportTransactionsPDF}
+            disabled={exportingPDF || filteredTransactions.length === 0}
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <FileDown size={18} />
+            {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+          </button>
+
+          <button
+            onClick={() => setShowAddTransactionForm(!showAddTransactionForm)}
+            className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors text-sm font-medium"
+          >
+            {showAddTransactionForm ? <X size={18} /> : <Plus size={18} />}
+            {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
+          </button>
+        </div>
       </div>
 
       {/* Formulaire */}
@@ -2607,7 +2851,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
           <p className="text-gray-600 mb-4">
-            {filterType !== 'all' || filterCategory !== 'all'
+            {isFiltered
               ? 'Aucune transaction ne correspond aux filtres sélectionnés'
               : 'Commencez par ajouter votre première transaction'}
           </p>
