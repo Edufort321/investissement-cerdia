@@ -530,7 +530,10 @@ export default function NAVDashboard() {
               const taux = exchangeRate
               const valueCad = (property.current_value ?? 0) * taux
               const appreciationCad = (property.appreciation_amount ?? 0) * taux
-              const initialCad = (property.initial_acquisition_cost ?? 0) * taux
+              // initial_acquisition_cost est NULL pour les propriétés en_construction (pas d'évaluation enregistrée)
+              // → fallback sur acquisition_cost qui vaut directement properties.total_cost
+              const purchaseCost = property.initial_acquisition_cost ?? property.acquisition_cost
+              const initialCad = (purchaseCost ?? 0) * taux
 
               return (
                 <div key={property.property_id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
@@ -572,8 +575,8 @@ export default function NAVDashboard() {
                       <div className="text-xs text-gray-600 mb-1">Valeur d'achat</div>
                       <div className="text-sm font-bold text-gray-900">
                         {property.currency === 'USD' ?
-                          `${formatCurrency(property.initial_acquisition_cost)} USD` :
-                          formatCurrency(property.initial_acquisition_cost)
+                          `${formatCurrency(purchaseCost)} USD` :
+                          formatCurrency(purchaseCost)
                         }
                       </div>
                       {property.currency === 'USD' && (
