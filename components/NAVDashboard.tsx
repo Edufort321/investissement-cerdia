@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
+import { FileDown } from 'lucide-react'
 
 interface NAVHistoryPoint {
   id: string
@@ -91,12 +92,313 @@ export default function NAVDashboard() {
   const [history, setHistory] = useState<NAVHistoryPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | '6m' | '3m' | '1m'>('all')
 
   useEffect(() => {
     loadNAVData()
   }, [])
+
+  async function exportNAVPDF() {
+    if (!summary || !tlCurrent) return
+    setExportingPDF(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const fmtCAD = (n: number | null | undefined) => {
+        if (n == null) return '—'
+        return new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
+      }
+      const fmtPct = (n: number | null | undefined) => {
+        if (n == null || isNaN(n)) return '—'
+        return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`
+      }
+      const fmtDate = (d: string | null) => {
+        if (!d) return '—'
+        return new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+      }
+
+      // ── Chargement logo ──────────────────────────────────────────────────────
+      const loadBase64 = async (url: string) => {
+        try {
+          const blob = await (await fetch(url)).blob()
+          return await new Promise<string>((res, rej) => {
+            const r = new FileReader(); r.onloadend = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(blob)
+          })
+        } catch { return '' }
+      }
+      const getLogoSize = (b64: string, maxH: number) => new Promise<{ w: number; h: number }>(resolve => {
+        const img = new Image()
+        img.onload = () => { const ratio = img.naturalHeight / (img.naturalWidth || 1); resolve({ w: maxH / ratio, h: maxH }) }
+        img.onerror = () => resolve({ w: maxH * 3, h: maxH })
+        img.src = b64
+      })
+      const logo = await loadBase64('/logo-cerdia3.png')
+
+      // ── En-tête réutilisable ─────────────────────────────────────────────────
+      const addHeader = async (pageDoc: typeof doc, subtitle: string) => {
+        if (logo) {
+          try { const { w, h } = await getLogoSize(logo, 12); pageDoc.addImage(logo, 'PNG', 15, 8, w, h) } catch {}
+        }
+        pageDoc.setFontSize(18); pageDoc.setTextColor(94, 94, 94)
+        pageDoc.text('Rapport NAV — Valeur Liquidative', 200, 15, { align: 'right' })
+        pageDoc.setFontSize(9); pageDoc.setTextColor(130, 130, 130)
+        pageDoc.text(subtitle, 200, 22, { align: 'right' })
+        pageDoc.setDrawColor(94, 94, 94); pageDoc.setLineWidth(0.5)
+        pageDoc.line(15, 27, 195, 27)
+        return 34
+      }
+
+      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+      const rateStr = exchangeRate ? `1 USD = ${exchangeRate.toFixed(4)} CAD` : ''
+      let y = await addHeader(doc, `${today} — Taux ${rateStr}`)
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 1. KPIs PRINCIPAUX
+      // ═══════════════════════════════════════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Indicateurs clés', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        head: [['NAV par action', 'Performance totale', 'NAV total', 'Valeur des propriétés']],
+        body: [[
+          `${tlCurrent.nav_per_share.toFixed(4)} $`,
+          fmtPct(tlPct),
+          fmtCAD(tlCurrent.net_asset_value),
+          fmtCAD(summary.properties_current_value),
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 10, cellPadding: 4, halign: 'center' },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 2. CALCUL DÉTAILLÉ DU NAV
+      // ═══════════════════════════════════════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Calcul détaillé du NAV', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        head: [['', 'Valeur (CAD)']],
+        body: [
+          ['NAV total (trésorerie + propriétés)', fmtCAD(tlCurrent.net_asset_value)],
+          ['Dettes et obligations', fmtCAD(0)],
+          ['Parts totales en circulation', tlCurrent.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })],
+          ['NAV par part', `${tlCurrent.nav_per_share.toFixed(4)} $`],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 50, halign: 'right' } },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 3. IMMEUBLES ET APPRÉCIATION
+      // ═══════════════════════════════════════════════════════════════════════
+      if (detailedNavData) {
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text('Immeubles et Appréciation (Total)', 15, y); y += 5
+
+        const initVal = detailedNavData.properties_initial_value ?? 0
+        const apprecPct = initVal > 0 && detailedNavData.properties_appreciation != null
+          ? fmtPct((detailedNavData.properties_appreciation / initVal) * 100)
+          : '—'
+
+        autoTable(doc, {
+          startY: y,
+          head: [['', 'Valeur (CAD)']],
+          body: [
+            ['Valeur d\'achat (USD → CAD)', fmtCAD(detailedNavData.properties_initial_value)],
+            ['Valeur actuelle (ROI projeté)', fmtCAD(detailedNavData.properties_current_value)],
+            [`Gain d'appréciation (${apprecPct})`, fmtCAD(detailedNavData.properties_appreciation)],
+          ],
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 9, cellPadding: 3 },
+          columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 50, halign: 'right' } },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 4. PORTFOLIO DE PROPRIÉTÉS (nouvelle page si peu de place)
+      // ═══════════════════════════════════════════════════════════════════════
+      if (properties.length > 0) {
+        if (y > 200) { doc.addPage(); y = await addHeader(doc, `${today} — Taux ${rateStr}`) }
+
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text(`Portfolio de Propriétés (${properties.length})`, 15, y); y += 5
+
+        const propRows = properties.map(p => {
+          const purchaseCost = p.initial_acquisition_cost ?? p.acquisition_cost
+          const cad = exchangeRate ?? 1
+          const purchaseCAD = purchaseCost != null ? purchaseCost * cad : null
+          const currentCAD = (p.current_value ?? 0) * cad
+          const appreciationCAD = (p.appreciation_amount ?? 0) * cad
+          const statusLabel =
+            p.status === 'en_location' ? 'En location' :
+            p.status === 'actif' ? 'Actif' :
+            p.status === 'complete' ? 'Complétée' :
+            p.status === 'acquired' ? 'Acquise' :
+            p.status === 'en_construction' ? 'En construction' :
+            p.status === 'reservation' ? 'Réservation' : p.status
+          return [
+            p.property_name,
+            fmtDate(p.acquisition_date),
+            statusLabel,
+            purchaseCost != null ? `${purchaseCost.toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(purchaseCAD)}` : '—',
+            `${(p.current_value ?? 0).toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(currentCAD)}`,
+            p.appreciation_percentage != null ? `+${p.appreciation_percentage.toFixed(2)}%` : '—',
+            `${(p.appreciation_amount ?? 0).toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(appreciationCAD)}`,
+          ]
+        })
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Propriété', 'Acquisition', 'Statut', 'Valeur achat', 'Valeur actuelle', '% Appréciation', 'Gain']],
+          body: propRows,
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 7.5, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 38 },
+            1: { cellWidth: 22 },
+            2: { cellWidth: 22 },
+            3: { cellWidth: 25, halign: 'right' },
+            4: { cellWidth: 25, halign: 'right' },
+            5: { cellWidth: 18, halign: 'center' },
+            6: { cellWidth: 25, halign: 'right' },
+          },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 5. FLUX DE TRÉSORERIE
+      // ═══════════════════════════════════════════════════════════════════════
+      if (detailedNavData) {
+        if (y > 220) { doc.addPage(); y = await addHeader(doc, `${today} — Taux ${rateStr}`) }
+
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text('Flux de trésorerie', 15, y); y += 5
+
+        const totalEntrees = (detailedNavData.total_investments ?? 0) + (detailedNavData.rental_income ?? 0)
+        const totalSorties = (detailedNavData.property_purchases ?? 0) + (detailedNavData.capex_expenses ?? 0) +
+          (detailedNavData.maintenance_expenses ?? 0) + (detailedNavData.admin_expenses ?? 0)
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Poste', 'Montant (CAD)']],
+          body: [
+            ['📥 ENTRÉES', ''],
+            ['Investissements des commanditaires', fmtCAD(detailedNavData.total_investments)],
+            ['Revenus locatifs', fmtCAD(detailedNavData.rental_income)],
+            ['Total Entrées', fmtCAD(totalEntrees)],
+            ['📤 SORTIES', ''],
+            ['Achats de propriétés', fmtCAD(detailedNavData.property_purchases)],
+            ['CAPEX (améliorations)', fmtCAD(detailedNavData.capex_expenses)],
+            ['Maintenance', fmtCAD(detailedNavData.maintenance_expenses)],
+            ['Administration', fmtCAD(detailedNavData.admin_expenses)],
+            ['Total Sorties', fmtCAD(totalSorties)],
+            ['💰 Solde du compte courant', fmtCAD(financialSummary?.compte_courant_balance ?? null)],
+          ],
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 9, cellPadding: 3 },
+          columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 50, halign: 'right' } },
+          didParseCell: (data) => {
+            const label = String(data.cell.raw ?? '')
+            if (label.startsWith('📥') || label.startsWith('📤')) {
+              data.cell.styles.fillColor = [240, 240, 240]
+              data.cell.styles.fontStyle = 'bold'
+            }
+            if (label.startsWith('Total') || label.startsWith('💰')) {
+              data.cell.styles.fontStyle = 'bold'
+            }
+          },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 6. HISTORIQUE MENSUEL DU NAV (nouvelle page)
+      // ═══════════════════════════════════════════════════════════════════════
+      if (tlData.length > 0) {
+        doc.addPage()
+        y = await addHeader(doc, `${today} — Historique complet`)
+
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text('Historique mensuel du NAV', 15, y); y += 5
+
+        const histRows = [...tlData].reverse().map((point, idx, arr) => {
+          const prevPoint = arr[idx + 1]
+          const firstPoint = tlData[0]
+          const periodPct = prevPoint
+            ? (point.nav_per_share - prevPoint.nav_per_share) / prevPoint.nav_per_share * 100
+            : null
+          const totalPct = firstPoint && firstPoint.nav_per_share > 0
+            ? (point.nav_per_share - firstPoint.nav_per_share) / firstPoint.nav_per_share * 100
+            : null
+          return [
+            new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' }) + (idx === 0 ? ' ★' : ''),
+            `${point.nav_per_share.toFixed(4)} $`,
+            periodPct == null ? '—' : `${periodPct >= 0 ? '+' : ''}${periodPct.toFixed(2)}%`,
+            totalPct == null ? '—' : `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`,
+            fmtCAD(point.net_asset_value),
+            point.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 }),
+          ]
+        })
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Mois', 'NAV / part', 'Var. mensuelle', 'Var. totale', 'NAV total', 'Parts']],
+          body: histRows,
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 8.5, cellPadding: 3 },
+          columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 28, halign: 'right' },
+            2: { cellWidth: 28, halign: 'right' },
+            3: { cellWidth: 28, halign: 'right' },
+            4: { cellWidth: 35, halign: 'right' },
+            5: { cellWidth: 22, halign: 'right' },
+          },
+          didParseCell: (data) => {
+            if (data.row.index === 0 && data.section === 'body') {
+              data.cell.styles.fillColor = [235, 245, 255]
+              data.cell.styles.fontStyle = 'bold'
+            }
+          },
+        })
+      }
+
+      // ── Pied de page ─────────────────────────────────────────────────────────
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3)
+        doc.line(15, 280, 195, 280)
+        doc.setFontSize(8); doc.setTextColor(130, 130, 130)
+        doc.text('CERDIA Investissement — Rapport NAV confidentiel', 105, 285, { align: 'center' })
+        doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
+        doc.text(`Généré le ${today}`, 200, 290, { align: 'right' })
+      }
+
+      doc.save(`NAV_CERDIA_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err: any) {
+      alert('Erreur lors de la génération du PDF: ' + err.message)
+    } finally {
+      setExportingPDF(false)
+    }
+  }
 
   async function loadNAVData() {
     try {
@@ -316,31 +618,41 @@ export default function NAVDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec bouton snapshot */}
-      <div className="flex items-center justify-between">
+      {/* En-tête avec boutons */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Valeur Liquidative (NAV)</h2>
           <p className="text-sm text-gray-600 mt-1">
             Calculé en temps réel — taux USD/CAD live: <strong>1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD</strong>
           </p>
         </div>
-        <button
-          onClick={createSnapshot}
-          disabled={snapshotLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {snapshotLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Création...
-            </>
-          ) : (
-            <>
-              <span>📸</span>
-              Créer un snapshot
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportNAVPDF}
+            disabled={exportingPDF || !summary}
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <FileDown size={18} />
+            {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+          </button>
+          <button
+            onClick={createSnapshot}
+            disabled={snapshotLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {snapshotLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Création...
+              </>
+            ) : (
+              <>
+                <span>📸</span>
+                Créer un snapshot
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Avertissement migration manquante */}
