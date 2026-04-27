@@ -108,16 +108,24 @@ export default function NAVDashboard() {
       const autoTable = (await import('jspdf-autotable')).default
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      // Formateur ASCII-safe : pas d'espaces insécables, pas de symboles Unicode
+      const safeNum = (n: number) =>
+        Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
       const fmtCAD = (n: number | null | undefined) => {
-        if (n == null) return '—'
-        return new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
+        if (n == null) return '-'
+        return safeNum(n) + ' $ CAD'
+      }
+      const fmtUSD = (n: number | null | undefined) => {
+        if (n == null) return '-'
+        return safeNum(n) + ' $ USD'
       }
       const fmtPct = (n: number | null | undefined) => {
-        if (n == null || isNaN(n)) return '—'
+        if (n == null || isNaN(n)) return '-'
         return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`
       }
       const fmtDate = (d: string | null) => {
-        if (!d) return '—'
+        if (!d) return '-'
         return new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
       }
 
@@ -164,7 +172,7 @@ export default function NAVDashboard() {
 
       autoTable(doc, {
         startY: y,
-        head: [['NAV par action', 'Performance totale', 'NAV total', 'Valeur des propriétés']],
+        head: [['NAV par action', 'Performance totale', 'NAV total', 'Valeur des proprietes']],
         body: [[
           `${tlCurrent.nav_per_share.toFixed(4)} $`,
           fmtPct(tlPct),
@@ -187,9 +195,9 @@ export default function NAVDashboard() {
         startY: y,
         head: [['', 'Valeur (CAD)']],
         body: [
-          ['NAV total (trésorerie + propriétés)', fmtCAD(tlCurrent.net_asset_value)],
+          ['NAV total (tresorerie + proprietes)', fmtCAD(tlCurrent.net_asset_value)],
           ['Dettes et obligations', fmtCAD(0)],
-          ['Parts totales en circulation', tlCurrent.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })],
+          ['Parts totales en circulation', safeNum(tlCurrent.total_shares)],
           ['NAV par part', `${tlCurrent.nav_per_share.toFixed(4)} $`],
         ],
         theme: 'striped',
@@ -215,9 +223,9 @@ export default function NAVDashboard() {
           startY: y,
           head: [['', 'Valeur (CAD)']],
           body: [
-            ['Valeur d\'achat (USD → CAD)', fmtCAD(detailedNavData.properties_initial_value)],
-            ['Valeur actuelle (ROI projeté)', fmtCAD(detailedNavData.properties_current_value)],
-            [`Gain d'appréciation (${apprecPct})`, fmtCAD(detailedNavData.properties_appreciation)],
+            ["Valeur d'achat (USD -> CAD)", fmtCAD(detailedNavData.properties_initial_value)],
+            ['Valeur actuelle (ROI projete)', fmtCAD(detailedNavData.properties_current_value)],
+            [`Gain d'appreciation (${apprecPct})`, fmtCAD(detailedNavData.properties_appreciation)],
           ],
           theme: 'striped',
           headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
@@ -236,7 +244,9 @@ export default function NAVDashboard() {
         doc.setFontSize(11); doc.setTextColor(60, 60, 60)
         doc.text(`Portfolio de Propriétés (${properties.length})`, 15, y); y += 5
 
-        const propRows = properties.map(p => {
+        // Chaque propriete = 2 lignes : devise native + equivalent CAD
+        const propRows: string[][] = []
+        properties.forEach(p => {
           const purchaseCost = p.initial_acquisition_cost ?? p.acquisition_cost
           const cad = exchangeRate ?? 1
           const purchaseCAD = purchaseCost != null ? purchaseCost * cad : null
@@ -245,36 +255,64 @@ export default function NAVDashboard() {
           const statusLabel =
             p.status === 'en_location' ? 'En location' :
             p.status === 'actif' ? 'Actif' :
-            p.status === 'complete' ? 'Complétée' :
+            p.status === 'complete' ? 'Completee' :
             p.status === 'acquired' ? 'Acquise' :
             p.status === 'en_construction' ? 'En construction' :
-            p.status === 'reservation' ? 'Réservation' : p.status
-          return [
+            p.status === 'reservation' ? 'Reservation' : p.status
+
+          // Ligne devise native
+          propRows.push([
             p.property_name,
             fmtDate(p.acquisition_date),
             statusLabel,
-            purchaseCost != null ? `${purchaseCost.toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(purchaseCAD)}` : '—',
-            `${(p.current_value ?? 0).toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(currentCAD)}`,
-            p.appreciation_percentage != null ? `+${p.appreciation_percentage.toFixed(2)}%` : '—',
-            `${(p.appreciation_amount ?? 0).toLocaleString('fr-CA')} ${p.currency}\n≈ ${fmtCAD(appreciationCAD)}`,
-          ]
+            purchaseCost != null ? (p.currency === 'USD' ? fmtUSD(purchaseCost) : fmtCAD(purchaseCost)) : '-',
+            p.currency === 'USD' ? fmtUSD(p.current_value) : fmtCAD(p.current_value),
+            p.appreciation_percentage != null ? `+${p.appreciation_percentage.toFixed(2)}%` : '-',
+            p.currency === 'USD' ? fmtUSD(p.appreciation_amount) : fmtCAD(p.appreciation_amount),
+          ])
+          // Ligne equivalent CAD (seulement si devise USD)
+          if (p.currency === 'USD') {
+            propRows.push([
+              '',
+              '',
+              '(equiv. CAD)',
+              purchaseCAD != null ? fmtCAD(purchaseCAD) : '-',
+              fmtCAD(currentCAD),
+              '',
+              fmtCAD(appreciationCAD),
+            ])
+          }
         })
 
         autoTable(doc, {
           startY: y,
-          head: [['Propriété', 'Acquisition', 'Statut', 'Valeur achat', 'Valeur actuelle', '% Appréciation', 'Gain']],
+          head: [['Propriete', 'Acquisition', 'Statut', 'Valeur achat', 'Valeur actuelle', '% Appréc.', 'Gain']],
           body: propRows,
           theme: 'striped',
           headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-          bodyStyles: { fontSize: 7.5, cellPadding: 2.5 },
+          bodyStyles: { fontSize: 8, cellPadding: 2.5 },
           columnStyles: {
             0: { cellWidth: 38 },
-            1: { cellWidth: 22 },
+            1: { cellWidth: 24 },
             2: { cellWidth: 22 },
-            3: { cellWidth: 25, halign: 'right' },
-            4: { cellWidth: 25, halign: 'right' },
-            5: { cellWidth: 18, halign: 'center' },
-            6: { cellWidth: 25, halign: 'right' },
+            3: { cellWidth: 27, halign: 'right' },
+            4: { cellWidth: 27, halign: 'right' },
+            5: { cellWidth: 16, halign: 'center' },
+            6: { cellWidth: 26, halign: 'right' },
+          },
+          didParseCell: (data) => {
+            // Ligne equiv. CAD : fond légèrement différent
+            if (data.section === 'body' && String(data.cell.raw ?? '') === '(equiv. CAD)') {
+              data.cell.styles.textColor = [130, 130, 130]
+              data.cell.styles.fontSize = 7.5
+            }
+            if (data.section === 'body' && data.column.index > 2) {
+              const raw = String(data.row.cells[2]?.raw ?? '')
+              if (raw === '(equiv. CAD)') {
+                data.cell.styles.textColor = [100, 130, 170]
+                data.cell.styles.fontSize = 7.5
+              }
+            }
           },
         })
         y = (doc as any).lastAutoTable.finalY + 8
@@ -297,17 +335,17 @@ export default function NAVDashboard() {
           startY: y,
           head: [['Poste', 'Montant (CAD)']],
           body: [
-            ['📥 ENTRÉES', ''],
+            ['>> ENTREES', ''],
             ['Investissements des commanditaires', fmtCAD(detailedNavData.total_investments)],
             ['Revenus locatifs', fmtCAD(detailedNavData.rental_income)],
-            ['Total Entrées', fmtCAD(totalEntrees)],
-            ['📤 SORTIES', ''],
-            ['Achats de propriétés', fmtCAD(detailedNavData.property_purchases)],
-            ['CAPEX (améliorations)', fmtCAD(detailedNavData.capex_expenses)],
+            ['Total Entrees', fmtCAD(totalEntrees)],
+            ['>> SORTIES', ''],
+            ['Achats de proprietes', fmtCAD(detailedNavData.property_purchases)],
+            ['CAPEX (ameliorations)', fmtCAD(detailedNavData.capex_expenses)],
             ['Maintenance', fmtCAD(detailedNavData.maintenance_expenses)],
             ['Administration', fmtCAD(detailedNavData.admin_expenses)],
             ['Total Sorties', fmtCAD(totalSorties)],
-            ['💰 Solde du compte courant', fmtCAD(financialSummary?.compte_courant_balance ?? null)],
+            ['Solde du compte courant', fmtCAD(financialSummary?.compte_courant_balance ?? null)],
           ],
           theme: 'striped',
           headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
@@ -315,11 +353,11 @@ export default function NAVDashboard() {
           columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 50, halign: 'right' } },
           didParseCell: (data) => {
             const label = String(data.cell.raw ?? '')
-            if (label.startsWith('📥') || label.startsWith('📤')) {
-              data.cell.styles.fillColor = [240, 240, 240]
+            if (label.startsWith('>>')) {
+              data.cell.styles.fillColor = [230, 230, 230]
               data.cell.styles.fontStyle = 'bold'
             }
-            if (label.startsWith('Total') || label.startsWith('💰')) {
+            if (label.startsWith('Total') || label === 'Solde du compte courant') {
               data.cell.styles.fontStyle = 'bold'
             }
           },
@@ -347,12 +385,12 @@ export default function NAVDashboard() {
             ? (point.nav_per_share - firstPoint.nav_per_share) / firstPoint.nav_per_share * 100
             : null
           return [
-            new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' }) + (idx === 0 ? ' ★' : ''),
+            new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' }) + (idx === 0 ? ' (actuel)' : ''),
             `${point.nav_per_share.toFixed(4)} $`,
-            periodPct == null ? '—' : `${periodPct >= 0 ? '+' : ''}${periodPct.toFixed(2)}%`,
-            totalPct == null ? '—' : `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`,
+            periodPct == null ? '-' : `${periodPct >= 0 ? '+' : ''}${periodPct.toFixed(2)}%`,
+            totalPct == null ? '-' : `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`,
             fmtCAD(point.net_asset_value),
-            point.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 }),
+            safeNum(point.total_shares),
           ]
         })
 
