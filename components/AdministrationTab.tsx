@@ -1668,10 +1668,26 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         } catch { return '' }
       }
 
+      const getImageSize = (base64: string, maxHeightMm: number): Promise<{ w: number; h: number }> =>
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => {
+            const ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 1
+            const h = maxHeightMm
+            const w = h / ratio
+            resolve({ w, h })
+          }
+          img.onerror = () => resolve({ w: maxHeightMm * 3, h: maxHeightMm })
+          img.src = base64
+        })
+
       const addPageHeader = async (pageDoc: typeof doc, subtitle: string) => {
         const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
         if (logoBase64) {
-          try { pageDoc.addImage(logoBase64, 'PNG', 15, 10, 28, 10) } catch {}
+          try {
+            const { w, h } = await getImageSize(logoBase64, 12)
+            pageDoc.addImage(logoBase64, 'PNG', 15, 8, w, h)
+          } catch {}
         }
         pageDoc.setFontSize(18)
         pageDoc.setTextColor(94, 94, 94)
@@ -1781,7 +1797,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             doc.addPage()
             // En-tête page pièce jointe
             if (logoBase64) {
-              try { doc.addImage(logoBase64, 'PNG', 15, 10, 28, 10) } catch {}
+              try {
+                const { w, h } = await getImageSize(logoBase64, 12)
+                doc.addImage(logoBase64, 'PNG', 15, 8, w, h)
+              } catch {}
             }
             doc.setFontSize(14)
             doc.setTextColor(94, 94, 94)
