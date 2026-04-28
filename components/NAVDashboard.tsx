@@ -69,17 +69,19 @@ interface DetailedNAVData {
 interface PropertyValue {
   property_id: string
   property_name: string
-  acquisition_cost: number | null
+  acquisition_cost: number | null      // p.total_cost — prix contractuel total
+  paid_amount: number | null           // p.paid_amount — montant versé à ce jour
   acquisition_date: string | null
   initial_acquisition_cost: number | null
   initial_market_value: number | null
   initial_valuation_date: string | null
-  current_value: number | null
+  current_value: number | null         // valeur appréciée de la base (peut être paid_amount)
   years_held: number | null
   appreciation_amount: number | null
   appreciation_percentage: number | null
   status: string
   currency: string
+  appreciation_rate_pct: number | null // taux annuel utilisé (ex: 6.93)
 }
 
 export default function NAVDashboard() {
@@ -236,22 +238,26 @@ export default function NAVDashboard() {
       }
 
       // ═══════════════════════════════════════════════════════════════════════
-      // 4. PORTFOLIO DE PROPRIÉTÉS (nouvelle page si peu de place)
+      // 4. PORTFOLIO DE PROPRIÉTÉS — prix contractuel / versé / marché / gain
       // ═══════════════════════════════════════════════════════════════════════
       if (properties.length > 0) {
-        if (y > 200) { doc.addPage(); y = await addHeader(doc, `${today} — Taux ${rateStr}`) }
+        doc.addPage(); y = await addHeader(doc, `${today} — Portfolio de proprietes`)
 
         doc.setFontSize(11); doc.setTextColor(60, 60, 60)
-        doc.text(`Portfolio de Propriétés (${properties.length})`, 15, y); y += 5
+        doc.text(`Portfolio de Proprietes (${properties.length})`, 15, y); y += 5
 
-        // Chaque propriete = 2 lignes : devise native + equivalent CAD
+        const fx = exchangeRate ?? 1
         const propRows: string[][] = []
+
         properties.forEach(p => {
-          const purchaseCost = p.initial_acquisition_cost ?? p.acquisition_cost
-          const cad = exchangeRate ?? 1
-          const purchaseCAD = purchaseCost != null ? purchaseCost * cad : null
-          const currentCAD = (p.current_value ?? 0) * cad
-          const appreciationCAD = (p.appreciation_amount ?? 0) * cad
+          const purchaseCost = (p.initial_acquisition_cost ?? p.acquisition_cost) ?? 0
+          const rate = (p.appreciation_rate_pct ?? 8) / 100
+          const years = p.years_held ?? 0
+          const estimatedValue = purchaseCost * Math.pow(1 + rate, years)
+          const estimatedGain = estimatedValue - purchaseCost
+          const gainPct = purchaseCost > 0 ? (estimatedGain / purchaseCost) * 100 : 0
+          const paidAmount = p.paid_amount ?? 0
+
           const statusLabel =
             p.status === 'en_location' ? 'En location' :
             p.status === 'actif' ? 'Actif' :
@@ -260,57 +266,52 @@ export default function NAVDashboard() {
             p.status === 'en_construction' ? 'En construction' :
             p.status === 'reservation' ? 'Reservation' : p.status
 
-          // Ligne devise native
+          const fmtNative = (n: number) => p.currency === 'USD' ? fmtUSD(n) : fmtCAD(n)
+          const cadLine = (n: number) => p.currency === 'USD' ? fmtCAD(n * fx) : ''
+
+          // Ligne principale: valeurs en devise native
           propRows.push([
-            p.property_name,
-            fmtDate(p.acquisition_date),
-            statusLabel,
-            purchaseCost != null ? (p.currency === 'USD' ? fmtUSD(purchaseCost) : fmtCAD(purchaseCost)) : '-',
-            p.currency === 'USD' ? fmtUSD(p.current_value) : fmtCAD(p.current_value),
-            p.appreciation_percentage != null ? `+${p.appreciation_percentage.toFixed(2)}%` : '-',
-            p.currency === 'USD' ? fmtUSD(p.appreciation_amount) : fmtCAD(p.appreciation_amount),
+            `${p.property_name}\n${fmtDate(p.acquisition_date)} | ${statusLabel} | ${(p.appreciation_rate_pct ?? 8).toFixed(2)}%/an`,
+            fmtNative(purchaseCost),
+            fmtNative(paidAmount),
+            fmtNative(estimatedValue),
+            fmtNative(estimatedGain),
+            `+${gainPct.toFixed(2)}%`,
           ])
-          // Ligne equivalent CAD (seulement si devise USD)
+          // Ligne équivalent CAD (si USD)
           if (p.currency === 'USD') {
             propRows.push([
+              '(equivalent CAD)',
+              cadLine(purchaseCost),
+              cadLine(paidAmount),
+              cadLine(estimatedValue),
+              cadLine(estimatedGain),
               '',
-              '',
-              '(equiv. CAD)',
-              purchaseCAD != null ? fmtCAD(purchaseCAD) : '-',
-              fmtCAD(currentCAD),
-              '',
-              fmtCAD(appreciationCAD),
             ])
           }
         })
 
         autoTable(doc, {
           startY: y,
-          head: [['Propriete', 'Acquisition', 'Statut', 'Valeur achat', 'Valeur actuelle', '% Appréc.', 'Gain']],
+          head: [['Propriete / Details', 'Prix contractuel', 'Verse a ce jour', 'Val. marchande estimee', 'Gain latent', '% Appréc.']],
           body: propRows,
           theme: 'striped',
           headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
           bodyStyles: { fontSize: 8, cellPadding: 2.5 },
           columnStyles: {
-            0: { cellWidth: 38 },
-            1: { cellWidth: 24 },
-            2: { cellWidth: 22 },
-            3: { cellWidth: 27, halign: 'right' },
+            0: { cellWidth: 55 },
+            1: { cellWidth: 27, halign: 'right' },
+            2: { cellWidth: 27, halign: 'right' },
+            3: { cellWidth: 32, halign: 'right' },
             4: { cellWidth: 27, halign: 'right' },
-            5: { cellWidth: 16, halign: 'center' },
-            6: { cellWidth: 26, halign: 'right' },
+            5: { cellWidth: 15, halign: 'center' },
           },
           didParseCell: (data) => {
-            // Ligne equiv. CAD : fond légèrement différent
-            if (data.section === 'body' && String(data.cell.raw ?? '') === '(equiv. CAD)') {
-              data.cell.styles.textColor = [130, 130, 130]
-              data.cell.styles.fontSize = 7.5
-            }
-            if (data.section === 'body' && data.column.index > 2) {
-              const raw = String(data.row.cells[2]?.raw ?? '')
-              if (raw === '(equiv. CAD)') {
+            if (data.section === 'body') {
+              const raw = String(data.cell.raw ?? '')
+              if (raw === '(equivalent CAD)' || (data.row.cells[0] && String(data.row.cells[0].raw ?? '') === '(equivalent CAD)')) {
                 data.cell.styles.textColor = [100, 130, 170]
-                data.cell.styles.fontSize = 7.5
+                data.cell.styles.fontSize = 7
               }
             }
           },
@@ -876,28 +877,39 @@ export default function NAVDashboard() {
           </div>
 
           <div className="space-y-4">
-            {properties.map((property, index) => {
-              const taux = exchangeRate
-              const valueCad = (property.current_value ?? 0) * taux
-              const appreciationCad = (property.appreciation_amount ?? 0) * taux
-              // initial_acquisition_cost est NULL pour les propriétés en_construction (pas d'évaluation enregistrée)
-              // → fallback sur acquisition_cost qui vaut directement properties.total_cost
-              const purchaseCost = property.initial_acquisition_cost ?? property.acquisition_cost
-              const initialCad = (purchaseCost ?? 0) * taux
+            {properties.map((property) => {
+              const fx = exchangeRate ?? 1
+              // Prix contractuel total (ce qui a été signé)
+              const purchaseCost = property.initial_acquisition_cost ?? property.acquisition_cost ?? 0
+              // Valeur marchande estimée = prix contractuel × (1 + taux annuel)^années
+              const rate = (property.appreciation_rate_pct ?? 8) / 100
+              const years = property.years_held ?? 0
+              const estimatedValue = purchaseCost * Math.pow(1 + rate, years)
+              const estimatedGain = estimatedValue - purchaseCost
+              const estimatedGainPct = purchaseCost > 0 ? (estimatedGain / purchaseCost) * 100 : 0
+              // Montant versé à ce jour
+              const paidAmount = property.paid_amount ?? 0
+
+              const fmtVal = (n: number) => {
+                const formatted = formatCurrency(n)
+                return property.currency === 'USD' ? `${formatted} USD` : formatted
+              }
+              const fmtCad = (n: number) => `≈ ${formatCurrency(n * fx)} CAD`
 
               return (
                 <div key={property.property_id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                  <div className="flex items-start justify-between mb-3">
+                  {/* En-tête propriété */}
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h4 className="text-md font-semibold text-gray-900">{property.property_name}</h4>
-                      <div className="flex items-center gap-4 mt-1">
+                      <h4 className="text-base font-semibold text-gray-900">{property.property_name}</h4>
+                      <div className="flex flex-wrap items-center gap-3 mt-1">
                         <span className="text-xs text-gray-500">
                           Acquise le {formatDate(property.acquisition_date)}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {property.years_held != null ? `${property.years_held.toFixed(1)} années détenues` : ''}
+                          {years > 0 ? `${years.toFixed(1)} an${years >= 2 ? 's' : ''} détenus` : ''}
                         </span>
-                        <span className={`text-xs px-2 py-1 rounded ${
+                        <span className={`text-xs px-2 py-1 rounded font-medium ${
                           property.status === 'en_location' || property.status === 'actif' ? 'bg-green-100 text-green-700' :
                           property.status === 'complete' || property.status === 'acquired' ? 'bg-blue-100 text-blue-700' :
                           property.status === 'en_construction' ? 'bg-orange-100 text-orange-700' :
@@ -911,81 +923,74 @@ export default function NAVDashboard() {
                            property.status === 'reservation' ? 'Réservation' :
                            property.status}
                         </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Devise</div>
-                      <div className="text-sm font-medium text-gray-700">{property.currency}</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    {/* Valeur d'achat */}
-                    <div className="bg-gray-50 rounded p-3">
-                      <div className="text-xs text-gray-600 mb-1">Valeur d'achat</div>
-                      <div className="text-sm font-bold text-gray-900">
-                        {property.currency === 'USD' ?
-                          `${formatCurrency(purchaseCost)} USD` :
-                          formatCurrency(purchaseCost)
-                        }
-                      </div>
-                      {property.currency === 'USD' && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          ≈ {formatCurrency(initialCad)} CAD
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Valeur actuelle */}
-                    <div className="bg-green-50 rounded p-3">
-                      <div className="text-xs text-gray-600 mb-1">Valeur actuelle (taux ROI projeté)</div>
-                      <div className="text-sm font-bold text-green-600">
-                        {property.currency === 'USD' ?
-                          `${formatCurrency(property.current_value)} USD` :
-                          formatCurrency(property.current_value)
-                        }
-                      </div>
-                      {property.currency === 'USD' && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          ≈ {formatCurrency(valueCad)} CAD
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Gain d'appréciation */}
-                    <div className="bg-blue-50 rounded p-3">
-                      <div className="text-xs text-gray-600 mb-1">Gain d'appréciation</div>
-                      <div className="text-sm font-bold text-blue-600">
-                        {property.currency === 'USD' ?
-                          `${formatCurrency(property.appreciation_amount)} USD` :
-                          formatCurrency(property.appreciation_amount)
-                        }
-                      </div>
-                      {property.currency === 'USD' && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          ≈ {formatCurrency(appreciationCad)} CAD
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Pourcentage */}
-                    <div className="bg-purple-50 rounded p-3">
-                      <div className="text-xs text-gray-600 mb-1">% Appréciation</div>
-                      <div className="text-lg font-bold text-purple-600">
-                        {property.appreciation_percentage != null ? `+${property.appreciation_percentage.toFixed(2)}%` : '—'}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Depuis acquisition
+                        <span className="text-xs text-gray-400">
+                          Taux: {(property.appreciation_rate_pct ?? 8).toFixed(2)}%/an · Devise: {property.currency}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Date évaluation initiale */}
+                  {/* 5 cartes de valeurs */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+
+                    {/* 1. Prix contractuel */}
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div className="text-xs font-medium text-gray-500 mb-1">Prix contractuel</div>
+                      <div className="text-sm font-bold text-gray-900">{fmtVal(purchaseCost)}</div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-gray-400 mt-1">{fmtCad(purchaseCost)}</div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">Valeur totale signée</div>
+                    </div>
+
+                    {/* 2. Montant versé */}
+                    <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                      <div className="text-xs font-medium text-yellow-700 mb-1">Versé à ce jour</div>
+                      <div className="text-sm font-bold text-yellow-900">{fmtVal(paidAmount)}</div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-yellow-600 mt-1">{fmtCad(paidAmount)}</div>
+                      )}
+                      <div className="text-xs text-yellow-600 mt-1">
+                        {purchaseCost > 0 ? `${((paidAmount / purchaseCost) * 100).toFixed(0)}% du total` : '—'}
+                      </div>
+                    </div>
+
+                    {/* 3. Valeur marchande estimée */}
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <div className="text-xs font-medium text-green-700 mb-1">Valeur marchande estimée</div>
+                      <div className="text-sm font-bold text-green-700">{fmtVal(estimatedValue)}</div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-green-500 mt-1">{fmtCad(estimatedValue)}</div>
+                      )}
+                      <div className="text-xs text-green-600 mt-1">Prix × (1 + {(property.appreciation_rate_pct ?? 8).toFixed(2)}%)^{years.toFixed(1)}an</div>
+                    </div>
+
+                    {/* 4. Gain latent */}
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="text-xs font-medium text-blue-700 mb-1">Gain latent</div>
+                      <div className="text-sm font-bold text-blue-700">{fmtVal(estimatedGain)}</div>
+                      {property.currency === 'USD' && (
+                        <div className="text-xs text-blue-500 mt-1">{fmtCad(estimatedGain)}</div>
+                      )}
+                      <div className="text-xs text-blue-600 mt-1">Sur prix contractuel</div>
+                    </div>
+
+                    {/* 5. % Appréciation */}
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                      <div className="text-xs font-medium text-purple-700 mb-1">% Appréciation</div>
+                      <div className="text-xl font-bold text-purple-700">
+                        {estimatedGainPct >= 0 ? '+' : ''}{estimatedGainPct.toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-purple-600 mt-1">Depuis acquisition</div>
+                    </div>
+                  </div>
+
+                  {/* Date évaluation initiale si disponible */}
                   {property.initial_valuation_date && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="text-xs text-gray-600">
-                        <span className="font-medium">Évaluation initiale:</span> {formatDate(property.initial_valuation_date)}
-                      </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-500">
+                        Évaluation initiale enregistrée : {formatDate(property.initial_valuation_date)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -993,16 +998,13 @@ export default function NAVDashboard() {
             })}
           </div>
 
-          {/* Note importante */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-lg">ℹ️</span>
-              <div className="flex-1 text-sm text-blue-800">
-                <strong>Note:</strong> Taux par propriété: <em>expected_roi</em> → <em>annual_appreciation</em> du scénario lié → 8% par défaut.
-                Les valeurs USD sont converties au taux en direct (1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD).
-                Pour un NAV précis: créez une évaluation initiale par propriété (Admin → Évaluations).
-              </div>
-            </div>
+          {/* Note */}
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-800">
+              <strong>Valeur marchande estimée</strong> = prix contractuel × (1 + taux annuel)^années détenues.
+              Taux par propriété : <em>expected_roi</em> → <em>annual_appreciation</em> du scénario lié → 8% par défaut.
+              Valeurs USD converties au taux live (1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD).
+            </p>
           </div>
         </div>
       )}
