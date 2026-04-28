@@ -154,6 +154,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
   const [exportingPDF, setExportingPDF] = useState(false)
+  const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
@@ -1964,6 +1965,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       doc.text(`Transactions (${filteredTransactions.length})`, 15, yPos)
       yPos += 5
 
+      // Générer des URLs signées (valides 1 an) si l'option est activée
+      const signedUrlMap: Record<string, string> = {}
+      if (pdfIncludeLinks) {
+        await Promise.all(
+          filteredTransactions
+            .filter(t => t.attachment_storage_path)
+            .map(async t => {
+              const { data } = await supabase.storage
+                .from('transaction-attachments')
+                .createSignedUrl(t.attachment_storage_path!, 60 * 60 * 24 * 365)
+              if (data?.signedUrl) signedUrlMap[t.id] = data.signedUrl
+            })
+        )
+      }
+
       const rows = filteredTransactions.map(t => {
         const investor = investors.find(i => i.id === t.investor_id)
         const property = properties.find(p => p.id === t.property_id)
@@ -1998,21 +2014,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           4: { cellWidth: 20 },
           5: { cellWidth: 30 },
         },
-        // Colorer en bleu les cellules "Pièce jointe" qui ont un URL
+        // Colorer en bleu les cellules "Pièce jointe" qui ont une URL signée
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 5) {
             const tx = filteredTransactions[data.row.index]
-            if (tx?.attachment_url) {
+            if (tx && signedUrlMap[tx.id]) {
               data.cell.styles.textColor = [0, 102, 204]
             }
           }
         },
-        // Ajouter un lien cliquable + soulignement sur les cellules avec URL
+        // Ajouter un lien cliquable + soulignement sur les cellules avec URL signée
         didDrawCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 5) {
             const tx = filteredTransactions[data.row.index]
-            if (tx?.attachment_url) {
-              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: tx.attachment_url })
+            const signedUrl = tx && signedUrlMap[tx.id]
+            if (signedUrl) {
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: signedUrl })
               doc.setDrawColor(0, 102, 204)
               doc.setLineWidth(0.15)
               const textY = data.cell.y + data.cell.height - 1.5
@@ -2078,13 +2095,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             } else {
               doc.setFontSize(10)
               doc.setTextColor(80, 80, 80)
-              doc.text(
-                `Fichier: ${t.attachment_name}`,
-                15, 42
-              )
-              doc.setFontSize(9)
-              doc.setTextColor(130, 130, 130)
-              doc.text('(Fichier non prévisualisable — télécharger depuis l\'application)', 15, 50)
+              doc.text(`Fichier: ${t.attachment_name}`, 15, 42)
+              const signedUrl = signedUrlMap[t.id]
+              if (signedUrl) {
+                doc.setFontSize(9)
+                doc.setTextColor(0, 102, 204)
+                doc.text('Cliquer ici pour ouvrir le fichier', 15, 52)
+                doc.link(15, 48, 80, 7, { url: signedUrl })
+                doc.setDrawColor(0, 102, 204)
+                doc.setLineWidth(0.15)
+                doc.line(15, 53.5, 75, 53.5)
+              } else {
+                doc.setFontSize(9)
+                doc.setTextColor(130, 130, 130)
+                doc.text('(Fichier non previsualisable — liens desactives)', 15, 50)
+              }
             }
           } catch {}
         }
@@ -2217,6 +2242,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
         {/* Ligne 2 : actions */}
         <div className="flex flex-wrap items-center gap-3 justify-end">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={pdfIncludeLinks}
+              onChange={e => setPdfIncludeLinks(e.target.checked)}
+              className="w-4 h-4 rounded accent-[#5e5e5e]"
+            />
+            Inclure liens pièces jointes
+          </label>
           <button
             onClick={exportTransactionsPDF}
             disabled={exportingPDF || filteredTransactions.length === 0}
