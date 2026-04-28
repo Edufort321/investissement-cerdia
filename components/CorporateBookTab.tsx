@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Download, Eye, Trash2, Edit2, X, Filter, ChevronDown, DollarSign } from 'lucide-react'
+import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Download, Eye, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown } from 'lucide-react'
 
 interface CorporateBookEntry {
   id: string
@@ -78,6 +78,8 @@ export default function CorporateBookTab() {
   const [existingDocuments, setExistingDocuments] = useState<any[]>([])
   const [uploadingDocs, setUploadingDocs] = useState(false)
   const [showFilterMenu, setShowFilterMenu] = useState(false)
+  const [exportingCorporateBookPDF, setExportingCorporateBookPDF] = useState(false)
+  const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
 
   const [formData, setFormData] = useState<FormData>({
     entry_type: 'property_acquisition',
@@ -493,6 +495,334 @@ export default function CorporateBookTab() {
     link.click()
   }
 
+  const exportCorporateBookPDF = async () => {
+    setExportingCorporateBookPDF(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      const C = {
+        dark:   [62,62,62]    as [number,number,number],
+        mid:    [94,94,94]    as [number,number,number],
+        white:  [255,255,255] as [number,number,number],
+        blue:   [37,99,235]   as [number,number,number],
+        blueL:  [239,246,255] as [number,number,number],
+        green:  [22,163,74]   as [number,number,number],
+        greenL: [240,253,244] as [number,number,number],
+        purple: [124,58,237]  as [number,number,number],
+        orange: [234,88,12]   as [number,number,number],
+        red:    [220,38,38]   as [number,number,number],
+        amber:  [217,119,6]   as [number,number,number],
+        indigo: [67,56,202]   as [number,number,number],
+        slate:  [71,85,105]   as [number,number,number],
+        gray:   [156,163,175] as [number,number,number],
+        grayL:  [243,244,246] as [number,number,number],
+        text:   [31,41,55]    as [number,number,number],
+        sub:    [107,114,128] as [number,number,number],
+      }
+
+      const box = (x: number, y: number, w: number, h: number, fill: [number,number,number], border?: [number,number,number]) => {
+        doc.setFillColor(...fill)
+        if (border) { doc.setDrawColor(...border); doc.rect(x, y, w, h, 'FD') }
+        else doc.rect(x, y, w, h, 'F')
+      }
+
+      const sectionTitle = (title: string, yPos: number, color: [number,number,number] = C.mid) => {
+        box(15, yPos, 180, 7, color)
+        doc.setTextColor(...C.white)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.text(title.toUpperCase(), 18, yPos + 5)
+        doc.setTextColor(...C.text)
+        return yPos + 10
+      }
+
+      const addFooter = (pageNum: number, totalPages: number) => {
+        const pageH = doc.internal.pageSize.getHeight()
+        box(0, pageH - 12, 210, 12, C.dark)
+        doc.setTextColor(...C.white)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        doc.text("CERDIA - Livre d'Entreprise", 15, pageH - 4)
+        doc.text(new Date().toLocaleDateString('fr-CA'), 105, pageH - 4, { align: 'center' })
+        doc.text(`Page ${pageNum} / ${totalPages}`, 190, pageH - 4, { align: 'right' })
+        doc.setTextColor(...C.text)
+      }
+
+      const typeColorMap: Record<string, [number,number,number]> = {
+        property_acquisition: C.blue,   property_sale: C.green,
+        share_issuance:       C.purple, share_transfer: C.orange,
+        share_redemption:     C.red,    general_meeting: C.indigo,
+        board_meeting:        C.slate,  resolution: C.amber,
+        legal_document:       C.gray,   other: C.gray,
+      }
+      const typeLabelMap: Record<string, string> = {
+        property_acquisition: 'Achat immobilier',    property_sale: 'Vente immobilier',
+        share_issuance:       'Emission de parts',   share_transfer: 'Transfert de parts',
+        share_redemption:     'Rachat de parts',     general_meeting: 'Assemblee generale',
+        board_meeting:        "Conseil d'admin.",    resolution: 'Resolution',
+        legal_document:       'Document legal',      other: 'Autre',
+      }
+
+      // Generate signed URLs for all documents
+      const signedUrlMap: Record<string, { name: string; url: string }[]> = {}
+      if (pdfIncludeLinks) {
+        await Promise.all(
+          filteredEntries.filter(e => e.has_documents).map(async entry => {
+            const { data: docs } = await supabase
+              .from('corporate_book_documents')
+              .select('id, file_name, storage_path')
+              .eq('corporate_book_id', entry.id)
+            if (!docs || docs.length === 0) return
+            const docUrls: { name: string; url: string }[] = []
+            await Promise.all(docs.map(async (d: any) => {
+              const { data: signed } = await supabase.storage
+                .from('corporate-documents')
+                .createSignedUrl(d.storage_path, 60 * 60 * 24 * 365)
+              if (signed?.signedUrl) docUrls.push({ name: d.file_name, url: signed.signedUrl })
+            }))
+            if (docUrls.length > 0) signedUrlMap[entry.id] = docUrls
+          })
+        )
+      }
+
+      // ─── PAGE 1: BANNIERE + STATS + TABLE ─────────────────────────────────
+
+      box(0, 0, 210, 38, C.dark)
+      doc.setTextColor(...C.white)
+      doc.setFontSize(22)
+      doc.setFont('helvetica', 'bold')
+      doc.text("LIVRE D'ENTREPRISE", 105, 15, { align: 'center' })
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.text('CERDIA - Registre corporatif officiel', 105, 23, { align: 'center' })
+      doc.setFontSize(9)
+      doc.text(`Exporte le ${new Date().toLocaleDateString('fr-CA')} - ${filteredEntries.length} entree(s)`, 105, 31, { align: 'center' })
+      doc.setTextColor(...C.text)
+
+      let y = 45
+
+      // Stats cards par type
+      const typeCounts: Record<string, number> = {}
+      filteredEntries.forEach(e => { typeCounts[e.entry_type] = (typeCounts[e.entry_type] || 0) + 1 })
+      const activeTypes = Object.entries(typeCounts).filter(([,c]) => c > 0)
+
+      if (activeTypes.length > 0) {
+        y = sectionTitle("Resume par type d'entree", y, C.dark)
+        const cardW = 55, cardH = 16, gap = 5
+        let cx = 15, cy = y
+        activeTypes.forEach(([type, count], i) => {
+          if (i > 0 && i % 3 === 0) { cx = 15; cy += cardH + gap }
+          const color = typeColorMap[type] || C.gray
+          const lightColor: [number,number,number] = [
+            Math.min(255, color[0] + 175),
+            Math.min(255, color[1] + 175),
+            Math.min(255, color[2] + 175),
+          ]
+          box(cx, cy, cardW, cardH, lightColor)
+          box(cx, cy, 4, cardH, color)
+          doc.setTextColor(...color)
+          doc.setFontSize(15)
+          doc.setFont('helvetica', 'bold')
+          doc.text(count.toString(), cx + 8, cy + 11)
+          doc.setFontSize(6.5)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...C.text)
+          doc.text(typeLabelMap[type] || type, cx + 8, cy + 15)
+          cx += cardW + gap
+        })
+        y = cy + cardH + gap + 3
+      }
+
+      // Table principale
+      y = sectionTitle('Registre des entrees', y, C.dark)
+
+      const tableRows = filteredEntries.map(entry => {
+        const docs = signedUrlMap[entry.id]
+        return [
+          new Date(entry.entry_date).toLocaleDateString('fr-CA'),
+          typeLabelMap[entry.entry_type] || entry.entry_type,
+          entry.title,
+          entry.amount ? `${entry.amount.toLocaleString('fr-CA')} ${entry.currency}` : '-',
+          STATUS_OPTIONS[entry.status as keyof typeof STATUS_OPTIONS]?.label || entry.status,
+          docs ? `${docs.length} doc.` : (entry.has_documents ? '...' : '-'),
+        ]
+      })
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Date', 'Type', 'Titre', 'Montant', 'Statut', 'Docs']],
+        body: tableRows,
+        margin: { left: 15, right: 15 },
+        styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+        headStyles: { fillColor: C.dark, textColor: C.white, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 38 },
+          2: { cellWidth: 57 },
+          3: { cellWidth: 27 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 16 },
+        },
+        didParseCell: (data: any) => {
+          if (data.section !== 'body') return
+          const entry = filteredEntries[data.row.index]
+          if (!entry) return
+          if (data.column.index === 4) {
+            if (entry.status === 'approved') { data.cell.styles.fillColor = [240,253,244]; data.cell.styles.textColor = [22,163,74] }
+            else if (entry.status === 'filed') { data.cell.styles.fillColor = [239,246,255]; data.cell.styles.textColor = [37,99,235] }
+            else { data.cell.styles.fillColor = [243,244,246]; data.cell.styles.textColor = [107,114,128] }
+          }
+          if (data.column.index === 5 && signedUrlMap[entry.id]) {
+            data.cell.styles.fillColor = [239,246,255]
+            data.cell.styles.textColor = [37,99,235]
+          }
+        },
+        didDrawCell: (data: any) => {
+          if (data.section !== 'body' || data.column.index !== 5) return
+          const entry = filteredEntries[data.row.index]
+          const docs = signedUrlMap[entry?.id]
+          if (docs && docs.length > 0) {
+            doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: docs[0].url })
+            doc.setDrawColor(37, 99, 235)
+            doc.setLineWidth(0.3)
+            doc.line(data.cell.x + 1, data.cell.y + data.cell.height - 1.5, data.cell.x + data.cell.width - 1, data.cell.y + data.cell.height - 1.5)
+          }
+        },
+      })
+
+      // ─── PAGE 2+: DETAILS ET DOCUMENTS ────────────────────────────────────
+
+      const detailedEntries = filteredEntries.filter(e => e.description || e.notes || e.legal_reference || signedUrlMap[e.id])
+
+      if (detailedEntries.length > 0) {
+        doc.addPage()
+        box(0, 0, 210, 22, C.dark)
+        doc.setTextColor(...C.white)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('DETAILS ET DOCUMENTS', 105, 14, { align: 'center' })
+        doc.setTextColor(...C.text)
+        y = 30
+
+        for (const entry of detailedEntries) {
+          const descLines  = entry.description ? doc.splitTextToSize(entry.description, 160) : []
+          const noteLines2 = entry.notes       ? doc.splitTextToSize(entry.notes, 155)       : []
+          const docCount   = signedUrlMap[entry.id]?.length || 0
+          const estimatedH = 18
+            + descLines.length * 4 + (descLines.length > 0 ? 3 : 0)
+            + (entry.legal_reference ? 5 : 0)
+            + noteLines2.length * 4 + (noteLines2.length > 0 ? 7 : 0)
+            + docCount * 6 + (docCount > 0 ? 10 : 0)
+            + 6
+
+          if (y + estimatedH > 272) {
+            doc.addPage()
+            box(0, 0, 210, 22, C.dark)
+            doc.setTextColor(...C.white)
+            doc.setFontSize(14)
+            doc.setFont('helvetica', 'bold')
+            doc.text('DETAILS ET DOCUMENTS (suite)', 105, 14, { align: 'center' })
+            doc.setTextColor(...C.text)
+            y = 30
+          }
+
+          const color = typeColorMap[entry.entry_type] || C.gray
+          const lightColor: [number,number,number] = [
+            Math.min(255, color[0] + 175),
+            Math.min(255, color[1] + 175),
+            Math.min(255, color[2] + 175),
+          ]
+
+          // En-tete de la fiche
+          box(15, y, 180, 14, lightColor)
+          box(15, y, 5,   14, color)
+          doc.setTextColor(...color)
+          doc.setFontSize(6.5)
+          doc.setFont('helvetica', 'bold')
+          doc.text((typeLabelMap[entry.entry_type] || entry.entry_type).toUpperCase(), 23, y + 5)
+          doc.setTextColor(...C.text)
+          doc.setFontSize(9.5)
+          doc.setFont('helvetica', 'bold')
+          const titleFit = doc.splitTextToSize(entry.title, 120)
+          doc.text(titleFit[0], 23, y + 11)
+          doc.setTextColor(...C.sub)
+          doc.setFontSize(7.5)
+          doc.setFont('helvetica', 'normal')
+          doc.text(new Date(entry.entry_date).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' }), 190, y + 5, { align: 'right' })
+          const statusInfo = STATUS_OPTIONS[entry.status as keyof typeof STATUS_OPTIONS]
+          doc.text(statusInfo?.label || entry.status, 190, y + 11, { align: 'right' })
+          y += 17
+
+          if (descLines.length > 0) {
+            doc.setTextColor(...C.text)
+            doc.setFontSize(8)
+            doc.setFont('helvetica', 'normal')
+            doc.text(descLines, 20, y)
+            y += descLines.length * 4 + 3
+          }
+
+          if (entry.legal_reference) {
+            doc.setTextColor(...C.sub)
+            doc.setFontSize(7)
+            doc.setFont('helvetica', 'italic')
+            doc.text(`Ref. legale: ${entry.legal_reference}`, 20, y)
+            y += 5
+          }
+
+          if (noteLines2.length > 0) {
+            box(20, y, 170, noteLines2.length * 4 + 4, C.grayL)
+            doc.setTextColor(...C.sub)
+            doc.setFontSize(7)
+            doc.setFont('helvetica', 'italic')
+            doc.text(noteLines2, 23, y + 3.5)
+            y += noteLines2.length * 4 + 7
+          }
+
+          const docs = signedUrlMap[entry.id]
+          if (docs && docs.length > 0) {
+            box(20, y, 170, docs.length * 6 + 8, C.blueL)
+            doc.setTextColor(...C.blue)
+            doc.setFontSize(7.5)
+            doc.setFont('helvetica', 'bold')
+            doc.text('Documents:', 23, y + 5)
+            y += 7
+            for (const d of docs) {
+              doc.setFont('helvetica', 'normal')
+              doc.setFontSize(7.5)
+              doc.setTextColor(...C.blue)
+              doc.text(d.name, 26, y + 3)
+              doc.link(20, y, 170, 6, { url: d.url })
+              const tw = doc.getTextWidth(d.name)
+              doc.setDrawColor(...C.blue)
+              doc.setLineWidth(0.3)
+              doc.line(26, y + 3.5, 26 + tw, y + 3.5)
+              y += 6
+            }
+            y += 2
+          }
+
+          y += 5
+        }
+      }
+
+      // Footer sur toutes les pages
+      const totalPages = (doc.internal as any).getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        addFooter(i, totalPages)
+      }
+
+      doc.save(`livre_entreprise_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err) {
+      console.error('Erreur export PDF:', err)
+      alert('Erreur lors de la generation du PDF')
+    } finally {
+      setExportingCorporateBookPDF(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -564,6 +894,26 @@ export default function CorporateBookTab() {
             <Download size={16} />
             Export CSV
           </button>
+
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={pdfIncludeLinks}
+                onChange={e => setPdfIncludeLinks(e.target.checked)}
+                className="rounded"
+              />
+              Liens docs
+            </label>
+            <button
+              onClick={exportCorporateBookPDF}
+              disabled={exportingCorporateBookPDF || filteredEntries.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <FileDown size={16} />
+              {exportingCorporateBookPDF ? 'Generation...' : 'Export PDF'}
+            </button>
+          </div>
 
           {/* Quick Action Menu */}
           <div className="relative dropdown-menu">
