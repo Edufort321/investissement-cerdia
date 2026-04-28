@@ -3216,25 +3216,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                               try {
                                 const { data, error } = await supabase.storage
                                   .from('transaction-attachments')
-                                  .download(transaction.attachment_storage_path!)
-
-                                if (error) throw error
-
-                                // Create blob URL and download
-                                const url = URL.createObjectURL(data)
-                                const a = document.createElement('a')
-                                a.href = url
-                                a.download = transaction.attachment_name || 'fichier'
-                                document.body.appendChild(a)
-                                a.click()
-                                document.body.removeChild(a)
-                                URL.revokeObjectURL(url)
+                                  .createSignedUrl(transaction.attachment_storage_path!, 60 * 60 * 2)
+                                if (error || !data?.signedUrl) throw error || new Error('URL non générée')
+                                window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
                               } catch (error: any) {
-                                alert('Erreur lors du téléchargement: ' + error.message)
+                                alert('Erreur lors de l\'ouverture: ' + error.message)
                               }
                             }}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
-                            title={`Télécharger: ${transaction.attachment_name}`}
+                            title={`Ouvrir: ${transaction.attachment_name}`}
                           >
                             <FileText size={16} />
                             <Download size={14} />
