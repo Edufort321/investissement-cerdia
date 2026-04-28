@@ -1,19 +1,18 @@
 -- ==========================================
--- MIGRATION 120: Respecter affects_compte_courant dans les vues
+-- MIGRATION 120: Respecter affects_compte_courant dans les vues (v3)
 -- ==========================================
--- Problème: v_compte_courant_monthly et compte_courant_mensuel filtrent
--- uniquement par type de transaction et ignorent la colonne
--- affects_compte_courant. Quand un investisseur paie une dépense avec
--- sa propre carte (investor_payment_type='achat_parts'), affects_compte_courant
--- est mis à FALSE par le frontend, mais la vue déduisait quand même du compte courant.
---
--- Fix: ajouter (affects_compte_courant IS NOT FALSE) dans tous les
--- prédicats WHERE — NULL est traité comme TRUE pour la rétrocompatibilité.
+-- Règle métier:
+--   • Entrées (investissement, loyer, dividende): TOUJOURS comptées
+--     Le flag affects_compte_courant NE filtre PAS les entrées — même quand
+--     investor_id est défini le frontend met affects_compte_courant=false, ce
+--     qui ne doit pas exclure l'investissement du compte courant.
+--   • Sorties (depense, capex, etc.): respectent affects_compte_courant.
+--     Quand un investisseur paie avec sa carte et est remboursé en parts,
+--     affects_compte_courant=false → la dépense n'est PAS déduite du compte.
+--   • Montants: stockés en valeur absolue positive → pas de filtre amount < 0.
 -- ==========================================
 
 -- ── 1. v_compte_courant_monthly ────────────────────────────────────────────
--- DROP requis car PostgreSQL refuse de changer le type d'une colonne existante
--- (numeric -> integer) avec CREATE OR REPLACE VIEW.
 
 DROP VIEW IF EXISTS v_compte_courant_yearly CASCADE;
 DROP VIEW IF EXISTS v_compte_courant_monthly CASCADE;
@@ -24,39 +23,32 @@ SELECT
   EXTRACT(MONTH FROM date)::INTEGER AS month,
   TO_CHAR(date, 'YYYY-MM')          AS period,
 
-  -- Entrées
+  -- Entrées : toujours comptées (investissements, loyers, etc.)
   COALESCE(SUM(CASE
     WHEN type IN ('investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende')
-     AND (affects_compte_courant IS NOT FALSE)
-    THEN ABS(amount)
-    ELSE 0
+    THEN ABS(amount) ELSE 0
   END), 0) AS total_inflow,
 
-  -- Sorties (seulement si affects_compte_courant n'est pas explicitement FALSE)
+  -- Sorties : seulement si affects_compte_courant n'est pas FALSE
   COALESCE(SUM(CASE
-    WHEN type IN (
-      'paiement', 'achat_propriete', 'capex', 'maintenance',
-      'admin', 'depense', 'remboursement_investisseur', 'courant', 'rnd'
-    )
+    WHEN type IN ('paiement','achat_propriete','capex','maintenance',
+                  'admin','depense','remboursement_investisseur','courant','rnd')
      AND (affects_compte_courant IS NOT FALSE)
-    THEN ABS(amount)
-    ELSE 0
+    THEN ABS(amount) ELSE 0
   END), 0) AS total_outflow,
 
   -- Balance nette
   COALESCE(SUM(CASE
-    WHEN type IN ('investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende')
-     AND (affects_compte_courant IS NOT FALSE)
+    WHEN type IN ('investissement','loyer','loyer_locatif','revenu','dividende')
     THEN ABS(amount)
-    WHEN type IN (
-      'paiement', 'achat_propriete', 'capex', 'maintenance',
-      'admin', 'depense', 'remboursement_investisseur', 'courant', 'rnd'
-    )
+    WHEN type IN ('paiement','achat_propriete','capex','maintenance',
+                  'admin','depense','remboursement_investisseur','courant','rnd')
      AND (affects_compte_courant IS NOT FALSE)
     THEN -ABS(amount)
     ELSE 0
   END), 0) AS net_balance,
 
+  -- Détails catégories (sorties seulement)
   COALESCE(SUM(CASE WHEN category = 'operation'   AND (affects_compte_courant IS NOT FALSE) THEN ABS(amount) ELSE 0 END), 0) AS cout_operation,
   COALESCE(SUM(CASE WHEN category = 'maintenance' AND (affects_compte_courant IS NOT FALSE) THEN ABS(amount) ELSE 0 END), 0) AS cout_maintenance,
   COALESCE(SUM(CASE WHEN category = 'admin'       AND (affects_compte_courant IS NOT FALSE) THEN ABS(amount) ELSE 0 END), 0) AS cout_admin,
@@ -66,17 +58,13 @@ SELECT
 
 FROM transactions
 WHERE status != 'cancelled'
-GROUP BY
-  EXTRACT(YEAR  FROM date),
-  EXTRACT(MONTH FROM date),
-  TO_CHAR(date, 'YYYY-MM')
+GROUP BY EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date), TO_CHAR(date, 'YYYY-MM')
 ORDER BY year DESC, month DESC;
 
 COMMENT ON VIEW v_compte_courant_monthly IS
-  'Compte courant mensuel — respecte affects_compte_courant (migration 120)';
+  'Compte courant mensuel v3 — entrées toujours comptées, sorties respectent affects_compte_courant';
 
 -- ── 2. v_compte_courant_yearly ─────────────────────────────────────────────
--- Recrée après v_compte_courant_monthly (a été droppée en CASCADE ci-dessus)
 
 CREATE VIEW v_compte_courant_yearly AS
 SELECT
@@ -93,7 +81,7 @@ FROM v_compte_courant_monthly
 GROUP BY year
 ORDER BY year DESC;
 
--- ── 3. compte_courant_mensuel (ancienne vue migration 10) ──────────────────
+-- ── 3. compte_courant_mensuel ──────────────────────────────────────────────
 
 DROP VIEW IF EXISTS compte_courant_par_projet CASCADE;
 DROP VIEW IF EXISTS compte_courant_mensuel CASCADE;
@@ -103,30 +91,14 @@ SELECT
   EXTRACT(YEAR  FROM t.date)::INTEGER AS year,
   EXTRACT(MONTH FROM t.date)::INTEGER AS month,
 
-  COALESCE(SUM(CASE
-    WHEN operation_type = 'revenu' AND (affects_compte_courant IS NOT FALSE)
-    THEN amount ELSE 0
-  END), 0) AS total_revenues,
+  -- Revenus : toujours comptés
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' THEN amount ELSE 0 END), 0) AS total_revenues,
+  -- Coûts opération : respect affects_compte_courant
+  COALESCE(SUM(CASE WHEN operation_type = 'cout_operation' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0) AS total_operational_costs,
+  COALESCE(SUM(CASE WHEN operation_type = 'depense_projet' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0) AS total_project_expenses,
 
-  COALESCE(SUM(CASE
-    WHEN operation_type = 'cout_operation' AND (affects_compte_courant IS NOT FALSE)
-    THEN amount ELSE 0
-  END), 0) AS total_operational_costs,
-
-  COALESCE(SUM(CASE
-    WHEN operation_type = 'depense_projet' AND (affects_compte_courant IS NOT FALSE)
-    THEN amount ELSE 0
-  END), 0) AS total_project_expenses,
-
-  COALESCE(SUM(CASE
-    WHEN operation_type = 'revenu' AND type = 'dividende' AND (affects_compte_courant IS NOT FALSE)
-    THEN amount ELSE 0
-  END), 0) AS rental_income,
-
-  COALESCE(SUM(CASE
-    WHEN operation_type = 'revenu' AND type != 'dividende' AND (affects_compte_courant IS NOT FALSE)
-    THEN amount ELSE 0
-  END), 0) AS other_income,
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type = 'dividende'  THEN amount ELSE 0 END), 0) AS rental_income,
+  COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND type != 'dividende' THEN amount ELSE 0 END), 0) AS other_income,
 
   COALESCE(SUM(CASE WHEN project_category = 'management'   AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0) AS management_fees,
   COALESCE(SUM(CASE WHEN project_category = 'utilities'    AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0) AS utilities,
@@ -138,7 +110,7 @@ SELECT
   COALESCE(SUM(CASE WHEN project_category = 'other_project' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0) AS other_project_costs,
 
   (
-    COALESCE(SUM(CASE WHEN operation_type = 'revenu' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0)
+    COALESCE(SUM(CASE WHEN operation_type = 'revenu' THEN amount ELSE 0 END), 0)
     - COALESCE(SUM(CASE WHEN operation_type = 'cout_operation' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0)
     - COALESCE(SUM(CASE WHEN operation_type = 'depense_projet' AND (affects_compte_courant IS NOT FALSE) THEN amount ELSE 0 END), 0)
   ) AS net_income,
@@ -151,9 +123,9 @@ GROUP BY EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC;
 
 COMMENT ON VIEW compte_courant_mensuel IS
-  'Compte courant mensuel — respecte affects_compte_courant (migration 120)';
+  'Compte courant mensuel v3 — entrées toujours comptées, sorties respectent affects_compte_courant';
 
--- Recrée compte_courant_par_projet (droppée en CASCADE ci-dessus)
+-- Recrée compte_courant_par_projet (droppée en CASCADE)
 CREATE VIEW compte_courant_par_projet AS
 SELECT
   p.id   AS property_id,
@@ -161,22 +133,23 @@ SELECT
   p.location,
   EXTRACT(YEAR  FROM t.date)::INTEGER AS year,
   EXTRACT(MONTH FROM t.date)::INTEGER AS month,
-  SUM(CASE WHEN t.operation_type = 'revenu'         AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS revenues,
+  -- Revenus : toujours comptés
+  SUM(CASE WHEN t.operation_type = 'revenu' THEN t.amount ELSE 0 END) AS revenues,
+  -- Coûts : respect affects_compte_courant
   SUM(CASE WHEN t.operation_type = 'cout_operation' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS operational_costs,
   SUM(CASE WHEN t.operation_type = 'depense_projet' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS project_expenses,
   SUM(
-    CASE WHEN t.operation_type = 'revenu'         AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
-  - CASE WHEN t.operation_type = 'cout_operation' AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
-  - CASE WHEN t.operation_type = 'depense_projet' AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
+    CASE WHEN t.operation_type = 'revenu' THEN t.amount ELSE 0 END
+    - CASE WHEN t.operation_type = 'cout_operation' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END
+    - CASE WHEN t.operation_type = 'depense_projet' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END
   ) AS net_income,
   COUNT(*) AS nombre_transactions
 FROM properties p
 LEFT JOIN transactions t ON t.property_id = p.id
-GROUP BY p.id, p.name, p.location,
-         EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
+GROUP BY p.id, p.name, p.location, EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
 ORDER BY year DESC, month DESC, p.name;
 
--- ── 4. get_financial_summary : ajouter le filtre ───────────────────────────
+-- ── 4. get_financial_summary ───────────────────────────────────────────────
 
 DROP FUNCTION IF EXISTS get_financial_summary(integer);
 DROP FUNCTION IF EXISTS get_financial_summary();
@@ -187,12 +160,12 @@ RETURNS TABLE (
   result_metric    TEXT,
   result_value     NUMERIC
 )
-LANGUAGE plpgsql
-STABLE
+LANGUAGE plpgsql STABLE
 AS $$
 BEGIN
   RETURN QUERY
 
+  -- Total investisseurs : toujours compté (pas de filtre affects_compte_courant)
   SELECT
     'investissement'::TEXT,
     'Total Investisseurs'::TEXT,
@@ -200,30 +173,31 @@ BEGIN
   FROM transactions t
   WHERE t.type = 'investissement'
     AND t.status != 'cancelled'
-    AND (affects_compte_courant IS NOT FALSE)
     AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year)
 
   UNION ALL
 
+  -- Compte courant : entrées toujours, sorties respectent affects_compte_courant
+  -- Les montants sont stockés en valeur absolue positive → pas de filtre amount < 0
   SELECT
     'compte_courant'::TEXT,
     'Compte Courant Balance'::TEXT,
     (
+      -- Entrées : toujours comptées
       COALESCE((
         SELECT SUM(t1.amount) FROM transactions t1
-        WHERE t1.type IN ('investissement', 'loyer', 'dividende')
+        WHERE t1.type IN ('investissement','loyer','loyer_locatif','revenu','dividende')
           AND t1.status != 'cancelled'
-          AND (t1.affects_compte_courant IS NOT FALSE)
           AND (p_year IS NULL OR EXTRACT(YEAR FROM t1.date)::INTEGER = p_year)
       ), 0)
       -
+      -- Sorties : seulement si affects_compte_courant IS NOT FALSE
       COALESCE((
-        SELECT SUM(ABS(t2.amount)) FROM transactions t2
+        SELECT SUM(t2.amount) FROM transactions t2
         WHERE t2.type IN (
-            'achat_propriete', 'capex', 'maintenance', 'admin',
-            'depense', 'remboursement_investisseur', 'paiement'
+            'achat_propriete','capex','maintenance','admin',
+            'depense','remboursement_investisseur','paiement','courant','rnd'
           )
-          AND t2.amount < 0
           AND t2.status != 'cancelled'
           AND (t2.affects_compte_courant IS NOT FALSE)
           AND (p_year IS NULL OR EXTRACT(YEAR FROM t2.date)::INTEGER = p_year)
@@ -235,7 +209,7 @@ BEGIN
   SELECT
     'capex'::TEXT,
     'CAPEX Réserve'::TEXT,
-    COALESCE(SUM(ABS(t.amount)), 0)::NUMERIC
+    COALESCE(SUM(t.amount), 0)::NUMERIC
   FROM transactions t
   WHERE t.type = 'capex'
     AND t.status != 'cancelled'
@@ -247,12 +221,12 @@ BEGIN
   SELECT
     'projet'::TEXT,
     'Dépenses Projets'::TEXT,
-    COALESCE(SUM(ABS(t.amount)), 0)::NUMERIC
+    COALESCE(SUM(t.amount), 0)::NUMERIC
   FROM transactions t
   WHERE t.property_id IS NOT NULL
-    AND t.amount < 0
     AND t.status != 'cancelled'
     AND (affects_compte_courant IS NOT FALSE)
+    AND t.type IN ('achat_propriete','capex','maintenance','admin','depense','paiement')
     AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year)
 
   UNION ALL
@@ -260,11 +234,10 @@ BEGIN
   SELECT
     'operation'::TEXT,
     'Coûts Opération'::TEXT,
-    COALESCE(SUM(ABS(t.amount)), 0)::NUMERIC
+    COALESCE(SUM(t.amount), 0)::NUMERIC
   FROM transactions t
-  WHERE t.type IN ('maintenance', 'admin', 'depense')
+  WHERE t.type IN ('maintenance','admin','depense')
     AND t.property_id IS NULL
-    AND t.amount < 0
     AND t.status != 'cancelled'
     AND (affects_compte_courant IS NOT FALSE)
     AND (p_year IS NULL OR EXTRACT(YEAR FROM t.date)::INTEGER = p_year);
@@ -273,10 +246,7 @@ $$;
 
 DO $$
 BEGIN
-  RAISE NOTICE '✅ Migration 120: affects_compte_courant respecté dans:';
-  RAISE NOTICE '   • v_compte_courant_monthly';
-  RAISE NOTICE '   • v_compte_courant_yearly';
-  RAISE NOTICE '   • compte_courant_mensuel';
-  RAISE NOTICE '   • get_financial_summary()';
-  RAISE NOTICE '   NULL = TRUE (rétrocompatibilité), FALSE = exclu du compte courant';
+  RAISE NOTICE '✅ Migration 120 v3: get_financial_summary + vues compte courant';
+  RAISE NOTICE '   Règle: entrées toujours comptées, sorties respectent affects_compte_courant';
+  RAISE NOTICE '   Montants positifs: pas de filtre amount < 0';
 END $$;
