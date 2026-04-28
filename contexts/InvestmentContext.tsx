@@ -641,7 +641,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   const shouldGenerateShares = (t: Partial<Transaction>) =>
     t.investor_id &&
     (t.type === 'investissement' ||
-     (t.type === 'paiement' && (t as any).investor_payment_type === 'achat_parts'))
+     ((t.type === 'paiement' || t.type === 'depense') && (t as any).investor_payment_type === 'achat_parts'))
 
   // Add Transaction
   const addTransaction = useCallback(async (transaction: Partial<Transaction>) => {
