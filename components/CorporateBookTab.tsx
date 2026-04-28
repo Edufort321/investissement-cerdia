@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown } from 'lucide-react'
+import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown, MoreVertical } from 'lucide-react'
 
 interface CorporateBookEntry {
   id: string
@@ -81,6 +81,7 @@ export default function CorporateBookTab() {
   const [exportingCorporateBookPDF, setExportingCorporateBookPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
     entry_type: 'property_acquisition',
@@ -113,6 +114,7 @@ export default function CorporateBookTab() {
       if (!target.closest('.dropdown-menu')) {
         setShowFilterMenu(false)
         setShowQuickActionMenu(false)
+        setShowHamburgerMenu(false)
       }
     }
 
@@ -818,53 +820,9 @@ export default function CorporateBookTab() {
             Registre officiel pour notaires, avocats et conformité légale • {filteredEntries.length} entrée{filteredEntries.length > 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {/* Filter Menu */}
-          <div className="relative dropdown-menu">
-            <button
-              onClick={() => setShowFilterMenu(!showFilterMenu)}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-full text-sm font-medium transition-colors"
-            >
-              <Filter size={16} />
-              Filtrer
-              <ChevronDown size={14} />
-            </button>
-            {showFilterMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto dropdown-menu">
-                <div className="py-2">
-                  <button
-                    onClick={() => { setSelectedFilter('all'); setShowFilterMenu(false); }}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between text-sm ${
-                      selectedFilter === 'all' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    <span>Tous</span>
-                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{entries.length}</span>
-                  </button>
-                  <div className="border-t border-gray-100 my-1"></div>
-                  {Object.entries(ENTRY_TYPES).map(([key, value]) => {
-                    const count = entries.filter(e => e.entry_type === key).length
-                    const Icon = value.icon
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => { setSelectedFilter(key); setShowFilterMenu(false); }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm ${
-                          selectedFilter === key ? `bg-${value.color}-50 text-${value.color}-700 font-medium` : 'text-gray-700'
-                        }`}
-                      >
-                        <Icon size={14} />
-                        <span className="flex-1">{value.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</span>
-                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{count}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
 
-          {/* Toggle vue */}
+          {/* Toggle vue Liste / Cartes */}
           <div className="flex rounded-full border border-gray-300 overflow-hidden">
             <button
               onClick={() => setViewMode('list')}
@@ -872,7 +830,7 @@ export default function CorporateBookTab() {
               title="Vue liste"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="2" width="16" height="2" rx="1"/><rect x="0" y="7" width="16" height="2" rx="1"/><rect x="0" y="12" width="16" height="2" rx="1"/></svg>
-              Liste
+              <span className="hidden sm:inline">Liste</span>
             </button>
             <button
               onClick={() => setViewMode('cards')}
@@ -880,82 +838,143 @@ export default function CorporateBookTab() {
               title="Vue cartes"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="1"/><rect x="9" y="0" width="7" height="7" rx="1"/><rect x="0" y="9" width="7" height="7" rx="1"/><rect x="9" y="9" width="7" height="7" rx="1"/></svg>
-              Cartes
+              <span className="hidden sm:inline">Cartes</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={pdfIncludeLinks}
-                onChange={e => setPdfIncludeLinks(e.target.checked)}
-                className="rounded"
-              />
-              Liens docs
-            </label>
-            <button
-              onClick={exportCorporateBookPDF}
-              disabled={exportingCorporateBookPDF || filteredEntries.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              <FileDown size={16} />
-              {exportingCorporateBookPDF ? 'Generation...' : 'Export PDF'}
-            </button>
-          </div>
-
-          {/* Quick Action Menu */}
+          {/* Hamburger menu */}
           <div className="relative dropdown-menu">
             <button
-              onClick={() => setShowQuickActionMenu(!showQuickActionMenu)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-medium transition-colors"
+              onClick={() => setShowHamburgerMenu(!showHamburgerMenu)}
+              className="flex items-center gap-2 px-3 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-full text-sm font-medium transition-colors"
             >
-              <Plus size={16} />
-              +Action
+              <MoreVertical size={16} />
+              <span className="hidden sm:inline">Menu</span>
             </button>
-            {showQuickActionMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 dropdown-menu">
-                <div className="py-2">
+
+            {showHamburgerMenu && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden dropdown-menu">
+
+                {/* ── Filtrer ─────────────────────────── */}
+                <div className="px-3 pt-3 pb-1">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-1">
+                    <Filter size={11} />
+                    Filtrer par type
+                    {selectedFilter !== 'all' && (
+                      <span className="ml-auto text-blue-600 text-xs font-normal normal-case cursor-pointer hover:underline"
+                        onClick={() => setSelectedFilter('all')}>
+                        Réinitialiser
+                      </span>
+                    )}
+                  </div>
                   <button
-                    onClick={() => handleQuickAction('general_meeting')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+                    onClick={() => { setSelectedFilter('all'); setShowHamburgerMenu(false); }}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between text-sm transition-colors ${selectedFilter === 'all' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
-                    <Calendar size={16} className="text-indigo-600" />
+                    <span>Tous</span>
+                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{entries.length}</span>
+                  </button>
+                  <div className="max-h-44 overflow-y-auto mt-1 space-y-0.5">
+                    {Object.entries(ENTRY_TYPES).map(([key, value]) => {
+                      const count = entries.filter(e => e.entry_type === key).length
+                      if (count === 0) return null
+                      const Icon = value.icon
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => { setSelectedFilter(key); setShowHamburgerMenu(false); }}
+                          className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm transition-colors ${selectedFilter === key ? `bg-${value.color}-50 text-${value.color}-700 font-medium` : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          <Icon size={13} />
+                          <span className="flex-1">{value.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</span>
+                          <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{count}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 my-2" />
+
+                {/* ── Export PDF ──────────────────────── */}
+                <div className="px-3 pb-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2 flex items-center gap-2">
+                    <FileDown size={11} />
+                    Export PDF
+                  </div>
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 cursor-pointer hover:bg-gray-50 rounded-lg select-none">
+                    <input
+                      type="checkbox"
+                      checked={pdfIncludeLinks}
+                      onChange={e => setPdfIncludeLinks(e.target.checked)}
+                      className="rounded"
+                    />
+                    Inclure les liens documents
+                  </label>
+                  <button
+                    onClick={() => { exportCorporateBookPDF(); setShowHamburgerMenu(false); }}
+                    disabled={exportingCorporateBookPDF || filteredEntries.length === 0}
+                    className="w-full mt-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <FileDown size={15} className="text-gray-500" />
+                    {exportingCorporateBookPDF ? 'Génération en cours...' : 'Exporter en PDF'}
+                  </button>
+                </div>
+
+                <div className="border-t border-gray-100 my-2" />
+
+                {/* ── +Action ─────────────────────────── */}
+                <div className="px-3 pb-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2 flex items-center gap-2">
+                    <Plus size={11} />
+                    Action rapide
+                  </div>
+                  <button
+                    onClick={() => { handleQuickAction('general_meeting'); setShowHamburgerMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
+                  >
+                    <Calendar size={15} className="text-indigo-600" />
                     Assemblée Générale
                   </button>
                   <button
-                    onClick={() => handleQuickAction('board_meeting')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+                    onClick={() => { handleQuickAction('board_meeting'); setShowHamburgerMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
-                    <Gavel size={16} className="text-slate-600" />
+                    <Gavel size={15} className="text-slate-600" />
                     Réunion du CA
                   </button>
                   <button
-                    onClick={() => handleQuickAction('resolution')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+                    onClick={() => { handleQuickAction('resolution'); setShowHamburgerMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
-                    <FileText size={16} className="text-amber-600" />
+                    <FileText size={15} className="text-amber-600" />
                     Résolution
                   </button>
                   <button
-                    onClick={() => handleQuickAction('share_issuance')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+                    onClick={() => { handleQuickAction('share_issuance'); setShowHamburgerMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
-                    <Users size={16} className="text-purple-600" />
+                    <Users size={15} className="text-purple-600" />
                     Émission de Parts
                   </button>
                 </div>
+
+                <div className="border-t border-gray-100 my-2" />
+
+                {/* ── Nouvelle entrée ──────────────────── */}
+                <div className="px-3 pb-3">
+                  <button
+                    onClick={() => { resetForm(); setShowAddForm(true); setEditingId(null); setShowHamburgerMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Plus size={15} />
+                    Nouvelle entrée
+                  </button>
+                </div>
+
               </div>
             )}
           </div>
-
-          <button
-            onClick={() => { resetForm(); setShowAddForm(true); setEditingId(null); }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-full text-sm font-medium transition-colors"
-          >
-            <Plus size={16} />
-            Nouvelle entrée
-          </button>
         </div>
       </div>
 
