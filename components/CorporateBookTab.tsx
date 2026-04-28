@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Download, Eye, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown } from 'lucide-react'
+import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown } from 'lucide-react'
 
 interface CorporateBookEntry {
   id: string
@@ -80,6 +80,7 @@ export default function CorporateBookTab() {
   const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [exportingCorporateBookPDF, setExportingCorporateBookPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
 
   const [formData, setFormData] = useState<FormData>({
     entry_type: 'property_acquisition',
@@ -469,30 +470,6 @@ export default function CorporateBookTab() {
     setShowQuickActionMenu(false)
     setShowAddForm(true)
     setEditingId(null)
-  }
-
-  const exportToCSV = () => {
-    const headers = ['Date', 'Type', 'Titre', 'Description', 'Montant', 'Statut', 'Référence légale']
-    const rows = filteredEntries.map(entry => [
-      entry.entry_date,
-      ENTRY_TYPES[entry.entry_type as keyof typeof ENTRY_TYPES]?.label || entry.entry_type,
-      entry.title,
-      entry.description || '',
-      entry.amount ? `${entry.amount} ${entry.currency}` : '',
-      STATUS_OPTIONS[entry.status as keyof typeof STATUS_OPTIONS]?.label || entry.status,
-      entry.legal_reference || ''
-    ])
-
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `livre_entreprise_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
   }
 
   const exportCorporateBookPDF = async () => {
@@ -887,13 +864,25 @@ export default function CorporateBookTab() {
             )}
           </div>
 
-          <button
-            onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-full text-sm font-medium transition-colors"
-          >
-            <Download size={16} />
-            Export CSV
-          </button>
+          {/* Toggle vue */}
+          <div className="flex rounded-full border border-gray-300 overflow-hidden">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-[#3e3e3e] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              title="Vue liste"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="2" width="16" height="2" rx="1"/><rect x="0" y="7" width="16" height="2" rx="1"/><rect x="0" y="12" width="16" height="2" rx="1"/></svg>
+              Liste
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'cards' ? 'bg-[#3e3e3e] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              title="Vue cartes"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="1"/><rect x="9" y="0" width="7" height="7" rx="1"/><rect x="0" y="9" width="7" height="7" rx="1"/><rect x="9" y="9" width="7" height="7" rx="1"/></svg>
+              Cartes
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
@@ -970,14 +959,129 @@ export default function CorporateBookTab() {
         </div>
       </div>
 
-      {/* Entries List */}
+      {/* Entries */}
       {filteredEntries.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md border border-gray-200 text-center">
           <FileText size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Aucune entrée dans le livre d'entreprise</h3>
           <p className="text-sm text-gray-500">Cliquez sur "Nouvelle entrée" ou "+Action" pour commencer</p>
         </div>
+      ) : viewMode === 'list' ? (
+
+        /* ── VUE LISTE ─────────────────────────────────────────────────────── */
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          {/* En-tête colonnes */}
+          <div className="hidden sm:grid grid-cols-[90px_160px_1fr_130px_100px_80px_80px] gap-3 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <span>Date</span>
+            <span>Type</span>
+            <span>Titre</span>
+            <span>Propriété</span>
+            <span>Montant</span>
+            <span>Statut</span>
+            <span className="text-right">Actions</span>
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {filteredEntries.map(entry => {
+              const typeInfo = ENTRY_TYPES[entry.entry_type as keyof typeof ENTRY_TYPES]
+              const statusInfo = STATUS_OPTIONS[entry.status as keyof typeof STATUS_OPTIONS]
+              const Icon = typeInfo?.icon || FileText
+
+              const statusColors: Record<string, string> = {
+                approved: 'bg-green-100 text-green-700',
+                filed:    'bg-blue-100 text-blue-700',
+                draft:    'bg-gray-100 text-gray-600',
+              }
+
+              return (
+                <div key={entry.id} className="grid grid-cols-1 sm:grid-cols-[90px_160px_1fr_130px_100px_100px_80px] gap-2 sm:gap-3 px-4 py-3 hover:bg-gray-50 transition-colors items-center">
+
+                  {/* Date */}
+                  <div className="text-xs text-gray-500 font-mono">
+                    {new Date(entry.entry_date).toLocaleDateString('fr-CA')}
+                  </div>
+
+                  {/* Type */}
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1 rounded bg-${typeInfo?.color || 'gray'}-100 flex-shrink-0`}>
+                      <Icon size={13} className={`text-${typeInfo?.color || 'gray'}-600`} />
+                    </div>
+                    <span className="text-xs text-gray-600 leading-tight">
+                      {typeInfo?.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}
+                    </span>
+                  </div>
+
+                  {/* Titre + description + docs */}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm text-gray-900 truncate">{entry.title}</div>
+                    {entry.description && (
+                      <div className="text-xs text-gray-500 truncate mt-0.5">{entry.description}</div>
+                    )}
+                    {entry.legal_reference && (
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                        <Gavel size={10} />
+                        <span className="truncate">{entry.legal_reference}</span>
+                      </div>
+                    )}
+                    {entry.has_documents && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-xs bg-purple-50 text-purple-600">
+                        <FileText size={10} />
+                        {entry.document_count} doc.
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Propriété */}
+                  <div className="text-xs text-gray-600 truncate">
+                    {entry.property_name ? (
+                      <span className="flex items-center gap-1">
+                        <Building2 size={11} className="text-purple-500 flex-shrink-0" />
+                        <span className="truncate">{entry.property_name}</span>
+                      </span>
+                    ) : <span className="text-gray-300">—</span>}
+                  </div>
+
+                  {/* Montant */}
+                  <div className="text-sm font-semibold text-gray-800">
+                    {entry.amount
+                      ? <span>{entry.amount.toLocaleString('fr-CA')} <span className="text-xs font-normal text-gray-500">{entry.currency}</span></span>
+                      : <span className="text-gray-300">—</span>
+                    }
+                  </div>
+
+                  {/* Statut */}
+                  <div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[entry.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {statusInfo?.label || entry.status}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-1 justify-end">
+                    <button
+                      onClick={() => handleEdit(entry)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Modifier"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(entry.id, entry.title)}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
       ) : (
+
+        /* ── VUE CARTES ────────────────────────────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {filteredEntries.map(entry => {
             const typeInfo = ENTRY_TYPES[entry.entry_type as keyof typeof ENTRY_TYPES]
@@ -986,7 +1090,6 @@ export default function CorporateBookTab() {
 
             return (
               <div key={entry.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Header with icon and status */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className={`p-2 rounded-lg bg-${typeInfo?.color || 'gray'}-50 flex-shrink-0`}>
@@ -1004,7 +1107,6 @@ export default function CorporateBookTab() {
                       )}
                     </div>
                   </div>
-
                   <div>
                     <div className="text-xs text-gray-500 mb-1">{typeInfo?.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</div>
                     <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">{entry.title}</h3>
@@ -1014,14 +1116,8 @@ export default function CorporateBookTab() {
                     </div>
                   </div>
                 </div>
-
-                {/* Body */}
                 <div className="p-4 sm:p-6 space-y-3">
-                  {entry.description && (
-                    <p className="text-sm text-gray-600 line-clamp-3">{entry.description}</p>
-                  )}
-
-                  {/* Details */}
+                  {entry.description && <p className="text-sm text-gray-600 line-clamp-3">{entry.description}</p>}
                   <div className="space-y-2 text-sm">
                     {entry.property_name && (
                       <div className="flex items-center gap-2 text-gray-600">
@@ -1042,8 +1138,6 @@ export default function CorporateBookTab() {
                       </div>
                     )}
                   </div>
-
-                  {/* Notes preview */}
                   {entry.notes && (
                     <div className="pt-3 border-t border-gray-100">
                       <div className="text-xs text-gray-500 mb-1">Notes</div>
@@ -1051,25 +1145,15 @@ export default function CorporateBookTab() {
                     </div>
                   )}
                 </div>
-
-                {/* Footer Actions */}
                 <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                   <div className="text-xs text-gray-500">
                     Créé le {new Date(entry.created_at).toLocaleDateString('fr-CA')}
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(entry)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Modifier"
-                    >
+                    <button onClick={() => handleEdit(entry)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Modifier">
                       <Edit2 size={16} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(entry.id, entry.title)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Supprimer"
-                    >
+                    <button onClick={() => handleDelete(entry.id, entry.title)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
                       <Trash2 size={16} />
                     </button>
                   </div>
