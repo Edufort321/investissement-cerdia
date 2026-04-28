@@ -630,23 +630,28 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       }
 
       // Convertir toutes les valeurs numériques en nombres
+      // Les champs frontend-only (occurrence_type, recurrence_*) sont supprimés par destructuration
+      // pour éviter que Supabase JS les inclue dans la liste "columns" et cause un 400
+      const {
+        occurrence_type: _ot,
+        recurrence_frequency: _rf,
+        recurrence_end_date: _red,
+        recurrence_no_end: _rne,
+        ...formBase
+      } = transactionFormData
+
       const dataToSubmit = {
-        ...transactionFormData,
-        amount: typeof transactionFormData.amount === 'string' ? parseFloat(transactionFormData.amount) || 0 : transactionFormData.amount,
-        source_amount: typeof transactionFormData.source_amount === 'string' ? (transactionFormData.source_amount ? parseFloat(transactionFormData.source_amount) : null) : transactionFormData.source_amount,
-        exchange_rate: typeof transactionFormData.exchange_rate === 'string' ? parseFloat(transactionFormData.exchange_rate) || 1 : transactionFormData.exchange_rate,
-        bank_fees: typeof transactionFormData.bank_fees === 'string' ? parseFloat(transactionFormData.bank_fees) || 0 : transactionFormData.bank_fees,
-        foreign_tax_paid: typeof transactionFormData.foreign_tax_paid === 'string' ? parseFloat(transactionFormData.foreign_tax_paid) || 0 : transactionFormData.foreign_tax_paid,
-        foreign_tax_rate: typeof transactionFormData.foreign_tax_rate === 'string' ? parseFloat(transactionFormData.foreign_tax_rate) || 0 : transactionFormData.foreign_tax_rate,
+        ...formBase,
+        amount: typeof formBase.amount === 'string' ? parseFloat(formBase.amount) || 0 : formBase.amount,
+        source_amount: typeof formBase.source_amount === 'string' ? (formBase.source_amount ? parseFloat(formBase.source_amount) : null) : formBase.source_amount,
+        exchange_rate: typeof formBase.exchange_rate === 'string' ? parseFloat(formBase.exchange_rate) || 1 : formBase.exchange_rate,
+        bank_fees: typeof formBase.bank_fees === 'string' ? parseFloat(formBase.bank_fees) || 0 : formBase.bank_fees,
+        foreign_tax_paid: typeof formBase.foreign_tax_paid === 'string' ? parseFloat(formBase.foreign_tax_paid) || 0 : formBase.foreign_tax_paid,
+        foreign_tax_rate: typeof formBase.foreign_tax_rate === 'string' ? parseFloat(formBase.foreign_tax_rate) || 0 : formBase.foreign_tax_rate,
         ...attachmentData,
-        investor_id: transactionFormData.investor_id || undefined,
-        property_id: transactionFormData.property_id || undefined,
-        payment_schedule_id: transactionFormData.payment_schedule_id || undefined,
-        // Champs frontend-only — jamais envoyés au DB
-        occurrence_type: undefined,
-        recurrence_frequency: undefined,
-        recurrence_end_date: undefined,
-        recurrence_no_end: undefined,
+        investor_id: formBase.investor_id || undefined,
+        property_id: formBase.property_id || undefined,
+        payment_schedule_id: formBase.payment_schedule_id || undefined,
       }
 
       if (editingTransactionId) {
