@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History, FileDown } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
 import PropertyFinancialSummary from './PropertyFinancialSummary'
@@ -70,6 +70,7 @@ export default function ProjetTab() {
   const [loadingRate, setLoadingRate] = useState(false)
   const [scenarios, setScenarios] = useState<any[]>([])
   const [scenarioResults, setScenarioResults] = useState<any[]>([])
+  const [exportingProjectId, setExportingProjectId] = useState<string | null>(null)
 
 
   const [formData, setFormData] = useState<PropertyFormData>({
@@ -342,6 +343,322 @@ export default function ProjetTab() {
     } else {
       // Si le contrat est en USD (ou autre), on prend le montant source USD
       return calculateTotalPaidUSD(propertyId)
+    }
+  }
+
+  const exportProjectPDF = async (property: any) => {
+    setExportingProjectId(property.id)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      // ── Helpers ──────────────────────────────────────────────────────────────
+      const safeNum = (n: number) =>
+        Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      const fmtCAD = (n: number | null | undefined) => n == null ? '-' : safeNum(n) + ' $ CAD'
+      const fmtUSD = (n: number | null | undefined) => n == null ? '-' : safeNum(n) + ' $ USD'
+      const fmtCurr = (n: number | null | undefined, cur: string) =>
+        cur === 'USD' ? fmtUSD(n) : fmtCAD(n)
+      const fmtPct = (n: number | null | undefined) =>
+        n == null ? '-' : `${Number(n).toFixed(1)} %`
+      const fmtDate = (d: string | null | undefined) =>
+        d ? new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+
+      const loadBase64 = async (url: string) => {
+        try {
+          const b = await (await fetch(url)).blob()
+          return await new Promise<string>((res, rej) => {
+            const r = new FileReader(); r.onloadend = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(b)
+          })
+        } catch { return '' }
+      }
+      const getImgSize = (b64: string, maxH: number) => new Promise<{ w: number; h: number }>(resolve => {
+        const img = new Image()
+        img.onload = () => { const ratio = img.naturalHeight / (img.naturalWidth || 1); resolve({ w: maxH / ratio, h: maxH }) }
+        img.onerror = () => resolve({ w: maxH * 3, h: maxH })
+        img.src = b64
+      })
+
+      const logo = await loadBase64('/logo-cerdia3.png')
+      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      const addHeader = async (subtitle: string) => {
+        if (logo) { try { const { w, h } = await getImgSize(logo, 12); doc.addImage(logo, 'PNG', 15, 8, w, h) } catch {} }
+        doc.setFontSize(16); doc.setTextColor(94, 94, 94)
+        doc.text('Fiche de Projet', 200, 14, { align: 'right' })
+        doc.setFontSize(9); doc.setTextColor(130, 130, 130)
+        doc.text(subtitle, 200, 21, { align: 'right' })
+        doc.setDrawColor(94, 94, 94); doc.setLineWidth(0.5); doc.line(15, 26, 195, 26)
+        return 33
+      }
+
+      const statusLabels: Record<string, string> = {
+        reservation: 'Reservation', en_construction: 'En construction',
+        acquired: 'Acquis', complete: 'Complete', actif: 'Actif',
+        en_location: 'En location', vendu: 'Vendu',
+      }
+
+      const currency = property.currency || 'CAD'
+      const totalPaidCurr = calculateTotalPaidInPropertyCurrency(property.id, currency)
+      const remaining = (property.total_cost || 0) - totalPaidCurr
+      const pctPaid = property.total_cost > 0 ? (totalPaidCurr / property.total_cost) * 100 : 0
+
+      let y = await addHeader(`${property.name} — ${today}`)
+
+      // ═══ 1. INFORMATIONS GENERALES ═══════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Informations generales', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        body: [
+          ['Projet', property.name, 'Statut', statusLabels[property.status] || property.status],
+          ['Localisation', property.location, 'Devise', currency],
+          ['Date reservation', fmtDate(property.reservation_date), 'Date livraison', fmtDate(property.completion_date)],
+          ['ROI attendu', fmtPct(property.expected_roi), 'Jours proprietaire', `${property.owner_occupation_days || 60} jours/an`],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          0: { cellWidth: 42, fontStyle: 'bold', fillColor: [245, 245, 245] },
+          1: { cellWidth: 58 },
+          2: { cellWidth: 42, fontStyle: 'bold', fillColor: [245, 245, 245] },
+          3: { cellWidth: 43 },
+        },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══ 2. PROGRESSION FINANCIERE ═══════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Progression financiere', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Prix contractuel', 'Verse a ce jour', 'Solde restant', 'Progression']],
+        body: [[
+          fmtCurr(property.total_cost, currency),
+          fmtCurr(totalPaidCurr, currency),
+          fmtCurr(remaining > 0 ? remaining : 0, currency),
+          fmtPct(pctPaid),
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 10, cellPadding: 4, halign: 'center' },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══ 3. CALENDRIER DE PAIEMENTS ══════════════════════════════════════
+      const propPayments = paymentSchedules
+        .filter(ps => ps.property_id === property.id)
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+
+      if (propPayments.length > 0) {
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text(`Calendrier de paiements (${propPayments.length} versements)`, 15, y); y += 5
+
+        const payRows = propPayments.map(ps => {
+          const statusMap: Record<string, string> = {
+            pending: 'En attente', paid: 'Paye', overdue: 'En retard',
+            partial: 'Partiel', cancelled: 'Annule',
+          }
+          return [
+            ps.term_label || `Versement ${ps.term_number}`,
+            fmtCurr(ps.amount, ps.currency || currency),
+            fmtDate(ps.due_date),
+            ps.paid_date ? fmtDate(ps.paid_date) : '-',
+            statusMap[ps.status] || ps.status,
+          ]
+        })
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Versement', 'Montant', 'Echeance', 'Date paiement', 'Statut']],
+          body: payRows,
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 55 },
+            1: { cellWidth: 35, halign: 'right' },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 25 },
+          },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 4) {
+              const status = propPayments[data.row.index]?.status
+              if (status === 'paid')     data.cell.styles.textColor = [22, 163, 74]
+              else if (status === 'overdue') data.cell.styles.textColor = [220, 38, 38]
+              else if (status === 'partial') data.cell.styles.textColor = [217, 119, 6]
+            }
+          },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══ 4. HISTORIQUE DES TRANSACTIONS ══════════════════════════════════
+      const propTx = transactions
+        .filter(t => t.property_id === property.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+      if (propTx.length > 0) {
+        if (y > 200) { doc.addPage(); y = await addHeader(`${property.name} — Transactions`) }
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text(`Historique transactions (${propTx.length})`, 15, y); y += 5
+
+        const txTypeLabels: Record<string, string> = {
+          paiement: 'Paiement', investissement: 'Investissement',
+          depense: 'Depense', capex: 'CAPEX', maintenance: 'Maintenance',
+          admin: 'Administration', loyer: 'Loyer', revenu: 'Revenu',
+        }
+
+        // Générer URLs signées pour pièces jointes des transactions
+        const txSignedUrls: Record<string, string> = {}
+        await Promise.all(propTx.filter(t => t.attachment_storage_path).map(async t => {
+          const { data } = await supabase.storage.from('transaction-attachments')
+            .createSignedUrl(t.attachment_storage_path!, 60 * 60 * 24 * 365)
+          if (data?.signedUrl) txSignedUrls[t.id] = data.signedUrl
+        }))
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Date', 'Type', 'Description', 'Montant', 'Piece jointe']],
+          body: propTx.map(t => [
+            new Date(t.date).toLocaleDateString('fr-CA'),
+            txTypeLabels[t.type] || t.type,
+            t.description || '-',
+            fmtCAD(t.amount),
+            t.attachment_name || '-',
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 24 }, 1: { cellWidth: 26 }, 2: { cellWidth: 70 },
+            3: { cellWidth: 28, halign: 'right' }, 4: { cellWidth: 37 },
+          },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 4) {
+              const tx = propTx[data.row.index]
+              if (tx && txSignedUrls[tx.id]) data.cell.styles.textColor = [0, 102, 204]
+            }
+          },
+          didDrawCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 4) {
+              const tx = propTx[data.row.index]
+              const url = tx && txSignedUrls[tx.id]
+              if (url) {
+                doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url })
+                doc.setDrawColor(0, 102, 204); doc.setLineWidth(0.15)
+                doc.line(data.cell.x + 1, data.cell.y + data.cell.height - 1.5, data.cell.x + data.cell.width - 1, data.cell.y + data.cell.height - 1.5)
+              }
+            }
+          },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══ 5. PIECES JOINTES DU PROJET ═════════════════════════════════════
+      const { data: attachments } = await supabase
+        .from('property_attachments')
+        .select('*')
+        .eq('property_id', property.id)
+        .order('uploaded_at', { ascending: false })
+
+      if (attachments && attachments.length > 0) {
+        doc.addPage(); y = await addHeader(`${property.name} — Pieces jointes`)
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text(`Pieces jointes (${attachments.length})`, 15, y); y += 5
+
+        const catLabels: Record<string, string> = {
+          photo: 'Photo', document: 'Document', plan: 'Plan',
+          contract: 'Contrat', invoice: 'Facture', general: 'General',
+        }
+
+        // Tableau récapitulatif + URLs signées
+        const attSignedUrls: Record<string, string> = {}
+        await Promise.all(attachments.map(async (att: any) => {
+          const { data } = await supabase.storage.from('property-attachments')
+            .createSignedUrl(att.storage_path, 60 * 60 * 24 * 365)
+          if (data?.signedUrl) attSignedUrls[att.id] = data.signedUrl
+        }))
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Nom du fichier', 'Categorie', 'Description', 'Lien']],
+          body: attachments.map((att: any) => [
+            att.file_name,
+            catLabels[att.attachment_category] || att.attachment_category,
+            att.description || '-',
+            attSignedUrls[att.id] ? 'Ouvrir' : '-',
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 65 }, 1: { cellWidth: 25 }, 2: { cellWidth: 65 }, 3: { cellWidth: 20 },
+          },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 3) {
+              const att = attachments[data.row.index]
+              if (att && attSignedUrls[att.id]) data.cell.styles.textColor = [0, 102, 204]
+            }
+          },
+          didDrawCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 3) {
+              const att = attachments[data.row.index]
+              const url = att && attSignedUrls[att.id]
+              if (url) {
+                doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url })
+                doc.setDrawColor(0, 102, 204); doc.setLineWidth(0.15)
+                doc.line(data.cell.x + 1, data.cell.y + data.cell.height - 1.5, data.cell.x + data.cell.width - 1, data.cell.y + data.cell.height - 1.5)
+              }
+            }
+          },
+        })
+        y = (doc as any).lastAutoTable.finalY + 10
+
+        // Intégrer les images sur des pages dédiées
+        for (const att of attachments) {
+          const ext = att.file_name.split('.').pop()?.toLowerCase() || ''
+          const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(ext)
+          if (!isImage || !attSignedUrls[att.id]) continue
+          try {
+            const imgB64 = await loadBase64(attSignedUrls[att.id])
+            if (!imgB64) continue
+            doc.addPage(); await addHeader(`${property.name} — ${att.file_name}`)
+            doc.setFontSize(9); doc.setTextColor(130, 130, 130)
+            doc.text(`${catLabels[att.attachment_category] || att.attachment_category}${att.description ? ' — ' + att.description : ''}`, 15, 32)
+            const img = new Image(); img.src = imgB64
+            await new Promise<void>(r => { img.onload = () => r() })
+            const maxW = 180; const maxH = 225
+            const ratio = img.width > 0 ? img.height / img.width : 1
+            const pdfH = Math.min(maxW * ratio, maxH)
+            const fmt = ext === 'jpg' || ext === 'jpeg' ? 'JPEG' : 'PNG'
+            doc.addImage(imgB64, fmt, 15, 36, maxW, pdfH)
+          } catch {}
+        }
+      }
+
+      // ── Pied de page ─────────────────────────────────────────────────────
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3); doc.line(15, 280, 195, 280)
+        doc.setFontSize(8); doc.setTextColor(130, 130, 130)
+        doc.text('CERDIA Investissement — Document confidentiel', 105, 285, { align: 'center' })
+        doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
+        doc.text(`Genere le ${today}`, 200, 290, { align: 'right' })
+      }
+
+      const safeName = property.name.replace(/[^a-zA-Z0-9]/g, '_')
+      doc.save(`fiche_projet_${safeName}_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err: any) {
+      alert('Erreur lors de la generation du PDF: ' + err.message)
+    } finally {
+      setExportingProjectId(null)
     }
   }
 
@@ -872,6 +1189,15 @@ export default function ProjetTab() {
                               >
                                 <Edit2 size={15} className="text-blue-500" />
                                 Modifier le projet
+                              </button>
+
+                              <button
+                                onClick={() => { exportProjectPDF(property); setOpenMenuPropertyId(null) }}
+                                disabled={exportingProjectId === property.id}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <FileDown size={15} className="text-gray-500" />
+                                {exportingProjectId === property.id ? 'Generation PDF...' : 'Exporter fiche PDF'}
                               </button>
 
                               <div className="border-t border-gray-100 my-1" />
