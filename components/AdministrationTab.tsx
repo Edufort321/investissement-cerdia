@@ -1998,6 +1998,28 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           4: { cellWidth: 20 },
           5: { cellWidth: 30 },
         },
+        // Colorer en bleu les cellules "Pièce jointe" qui ont un URL
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 5) {
+            const tx = filteredTransactions[data.row.index]
+            if (tx?.attachment_url) {
+              data.cell.styles.textColor = [0, 102, 204]
+            }
+          }
+        },
+        // Ajouter un lien cliquable + soulignement sur les cellules avec URL
+        didDrawCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 5) {
+            const tx = filteredTransactions[data.row.index]
+            if (tx?.attachment_url) {
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: tx.attachment_url })
+              doc.setDrawColor(0, 102, 204)
+              doc.setLineWidth(0.15)
+              const textY = data.cell.y + data.cell.height - 1.5
+              doc.line(data.cell.x + 1, textY, data.cell.x + data.cell.width - 1, textY)
+            }
+          }
+        },
       })
 
       // Pièces jointes : images embarquées, autres référencées
