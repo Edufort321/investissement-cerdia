@@ -154,6 +154,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
   const [exportingPDF, setExportingPDF] = useState(false)
+  const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
 
@@ -905,6 +906,209 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const balance = totalIn - totalOut
 
   // ==========================================
+  // EXPORT FICHE INVESTISSEUR PDF
+  // ==========================================
+
+  const exportInvestorPDF = async (investor: any) => {
+    setExportingInvestorId(investor.id)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      // ── Helpers ──────────────────────────────────────────────────────────────
+      const safeNum = (n: number) =>
+        Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      const fmtCAD = (n: number | null | undefined) =>
+        n == null ? '-' : safeNum(n) + ' $ CAD'
+      const fmtPct = (n: number | null | undefined) =>
+        n == null ? '-' : `${n >= 0 ? '+' : ''}${Number(n).toFixed(2)}%`
+      const fmtDate = (d: string | null | undefined) =>
+        d ? new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+
+      const loadBase64 = async (url: string) => {
+        try {
+          const blob = await (await fetch(url)).blob()
+          return await new Promise<string>((res, rej) => {
+            const r = new FileReader(); r.onloadend = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(blob)
+          })
+        } catch { return '' }
+      }
+      const getLogoSize = (b64: string, maxH: number) => new Promise<{ w: number; h: number }>(resolve => {
+        const img = new Image()
+        img.onload = () => { const ratio = img.naturalHeight / (img.naturalWidth || 1); resolve({ w: maxH / ratio, h: maxH }) }
+        img.onerror = () => resolve({ w: maxH * 3, h: maxH })
+        img.src = b64
+      })
+
+      const logo = await loadBase64('/logo-cerdia3.png')
+      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      const addHeader = async (pageDoc: typeof doc, subtitle: string) => {
+        if (logo) {
+          try { const { w, h } = await getLogoSize(logo, 12); pageDoc.addImage(logo, 'PNG', 15, 8, w, h) } catch {}
+        }
+        pageDoc.setFontSize(16); pageDoc.setTextColor(94, 94, 94)
+        pageDoc.text('Fiche Investisseur', 200, 14, { align: 'right' })
+        pageDoc.setFontSize(9); pageDoc.setTextColor(130, 130, 130)
+        pageDoc.text(subtitle, 200, 21, { align: 'right' })
+        pageDoc.setDrawColor(94, 94, 94); pageDoc.setLineWidth(0.5)
+        pageDoc.line(15, 26, 195, 26)
+        return 33
+      }
+
+      const fullName = `${investor.first_name} ${investor.last_name}`
+      let y = await addHeader(doc, `${fullName} — ${today}`)
+
+      // ── Données résumé ───────────────────────────────────────────────────────
+      const summary = investorSummaries.find((s: any) => s.investor_id === investor.id)
+      const investments = (investorInvestments || []).filter((i: any) => i.investor_id === investor.id)
+        .sort((a: any, b: any) => new Date(b.investment_date).getTime() - new Date(a.investment_date).getTime())
+
+      const entitled = entitledDays(investor.percentage_ownership ?? 0)
+      const remaining = remainingDays(investor.id, investor.percentage_ownership ?? 0)
+      const used = entitled - remaining
+      const usedPct = entitled > 0 ? Math.round((used / entitled) * 100) : 0
+
+      const statusLabel: Record<string, string> = {
+        actif: 'Actif', inactif: 'Inactif', suspendu: 'Suspendu', en_attente: 'En attente'
+      }
+      const accessLabel = investor.access_level === 'admin' ? 'Administrateur' : 'Investisseur'
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 1. INFORMATIONS PERSONNELLES
+      // ═══════════════════════════════════════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Informations personnelles', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        body: [
+          ['Nom complet', fullName, 'Identifiant', `@${investor.username}`],
+          ['Courriel', investor.email || '-', 'Telephone', investor.phone || '-'],
+          ['Date adhesion', fmtDate(investor.join_date), 'Statut', statusLabel[investor.status] || investor.status],
+          ["Type d'investissement", investor.investment_type || '-', 'Niveau acces', accessLabel],
+          ['Classe action', investor.action_class || '-', 'Droit de vote', investor.can_vote ? 'Oui' : 'Non'],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          0: { cellWidth: 45, fontStyle: 'bold', fillColor: [245, 245, 245] },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 45, fontStyle: 'bold', fillColor: [245, 245, 245] },
+          3: { cellWidth: 40 },
+        },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 2. KPIs FINANCIERS
+      // ═══════════════════════════════════════════════════════════════════════
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Indicateurs financiers', 15, y); y += 5
+
+      const roi = summary?.roi_percentage ?? null
+      autoTable(doc, {
+        startY: y,
+        head: [['Total investi', 'Valeur actuelle', 'Nombre de parts', 'ROI', 'Propriete (%)']],
+        body: [[
+          fmtCAD(summary?.total_amount_invested),
+          fmtCAD(summary?.current_value),
+          summary?.total_shares != null ? Number(summary.total_shares).toFixed(4) : '-',
+          fmtPct(roi),
+          `${Number(investor.percentage_ownership ?? 0).toFixed(4)}%`,
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 10, cellPadding: 4, halign: 'center' },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 3. JOURS PROPRIETAIRE
+      // ═══════════════════════════════════════════════════════════════════════
+      if (totalProjectDays > 0) {
+        doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+        doc.text('Jours proprietaire', 15, y); y += 5
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Jours attribues', 'Jours utilises', 'Jours restants', 'Taux utilisation']],
+          body: [[
+            `${entitled} jours`,
+            `${used} jours`,
+            `${remaining} jours`,
+            `${usedPct}%`,
+          ]],
+          theme: 'grid',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 10, cellPadding: 4, halign: 'center' },
+        })
+        y = (doc as any).lastAutoTable.finalY + 8
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // 4. HISTORIQUE DES INVESTISSEMENTS (nouvelle page si nécessaire)
+      // ═══════════════════════════════════════════════════════════════════════
+      if (investments.length > 0) {
+        if (y > 210) { doc.addPage(); y = await addHeader(doc, `${fullName} — Historique des investissements`) }
+        else {
+          doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+          doc.text(`Historique des investissements (${investments.length})`, 15, y); y += 5
+        }
+
+        const investRows = investments.map((inv: any) => [
+          fmtDate(inv.investment_date),
+          fmtCAD(inv.amount_invested),
+          `${Number(inv.share_price_at_purchase ?? 0).toFixed(4)} $`,
+          Number(inv.number_of_shares ?? 0).toFixed(4),
+          inv.payment_method || '-',
+          inv.reference_number || '-',
+          inv.notes || '-',
+        ])
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Date', 'Montant', 'Prix / part', 'Nb parts', 'Mode paiement', 'Reference', 'Notes']],
+          body: investRows,
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 26 },
+            1: { cellWidth: 28, halign: 'right' },
+            2: { cellWidth: 22, halign: 'right' },
+            3: { cellWidth: 18, halign: 'right' },
+            4: { cellWidth: 28 },
+            5: { cellWidth: 28 },
+            6: { cellWidth: 35 },
+          },
+        })
+      }
+
+      // ── Pied de page ─────────────────────────────────────────────────────────
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3)
+        doc.line(15, 280, 195, 280)
+        doc.setFontSize(8); doc.setTextColor(130, 130, 130)
+        doc.text('CERDIA Investissement — Document confidentiel', 105, 285, { align: 'center' })
+        doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
+        doc.text(`Genere le ${today}`, 200, 290, { align: 'right' })
+      }
+
+      const safeName = fullName.replace(/[^a-zA-Z0-9]/g, '_')
+      doc.save(`fiche_investisseur_${safeName}_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err: any) {
+      alert('Erreur lors de la generation du PDF: ' + err.message)
+    } finally {
+      setExportingInvestorId(null)
+    }
+  }
+
+  // ==========================================
   // SUB-TAB CONTENT RENDERERS
   // ==========================================
 
@@ -1536,6 +1740,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Footer Actions */}
               <div className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 bg-gray-50 border-t border-gray-100 flex flex-row gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => exportInvestorPDF(investor)}
+                  disabled={exportingInvestorId === investor.id}
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Exporter la fiche en PDF"
+                >
+                  <FileDown size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">
+                    {exportingInvestorId === investor.id ? '...' : 'PDF'}
+                  </span>
+                </button>
                 <button
                   onClick={() => setSelectedInvestorId(investor.id)}
                   className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
