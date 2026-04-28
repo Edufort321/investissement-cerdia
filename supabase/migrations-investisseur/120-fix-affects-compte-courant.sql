@@ -12,8 +12,13 @@
 -- ==========================================
 
 -- ── 1. v_compte_courant_monthly ────────────────────────────────────────────
+-- DROP requis car PostgreSQL refuse de changer le type d'une colonne existante
+-- (numeric -> integer) avec CREATE OR REPLACE VIEW.
 
-CREATE OR REPLACE VIEW v_compte_courant_monthly AS
+DROP VIEW IF EXISTS v_compte_courant_yearly CASCADE;
+DROP VIEW IF EXISTS v_compte_courant_monthly CASCADE;
+
+CREATE VIEW v_compte_courant_monthly AS
 SELECT
   EXTRACT(YEAR  FROM date)::INTEGER AS year,
   EXTRACT(MONTH FROM date)::INTEGER AS month,
@@ -71,9 +76,9 @@ COMMENT ON VIEW v_compte_courant_monthly IS
   'Compte courant mensuel — respecte affects_compte_courant (migration 120)';
 
 -- ── 2. v_compte_courant_yearly ─────────────────────────────────────────────
--- (dérivée de v_compte_courant_monthly, pas de changement nécessaire ici)
+-- Recrée après v_compte_courant_monthly (a été droppée en CASCADE ci-dessus)
 
-CREATE OR REPLACE VIEW v_compte_courant_yearly AS
+CREATE VIEW v_compte_courant_yearly AS
 SELECT
   year,
   SUM(total_inflow)      AS total_inflow,
@@ -90,7 +95,10 @@ ORDER BY year DESC;
 
 -- ── 3. compte_courant_mensuel (ancienne vue migration 10) ──────────────────
 
-CREATE OR REPLACE VIEW compte_courant_mensuel AS
+DROP VIEW IF EXISTS compte_courant_par_projet CASCADE;
+DROP VIEW IF EXISTS compte_courant_mensuel CASCADE;
+
+CREATE VIEW compte_courant_mensuel AS
 SELECT
   EXTRACT(YEAR  FROM t.date)::INTEGER AS year,
   EXTRACT(MONTH FROM t.date)::INTEGER AS month,
@@ -144,6 +152,29 @@ ORDER BY year DESC, month DESC;
 
 COMMENT ON VIEW compte_courant_mensuel IS
   'Compte courant mensuel — respecte affects_compte_courant (migration 120)';
+
+-- Recrée compte_courant_par_projet (droppée en CASCADE ci-dessus)
+CREATE VIEW compte_courant_par_projet AS
+SELECT
+  p.id   AS property_id,
+  p.name AS property_name,
+  p.location,
+  EXTRACT(YEAR  FROM t.date)::INTEGER AS year,
+  EXTRACT(MONTH FROM t.date)::INTEGER AS month,
+  SUM(CASE WHEN t.operation_type = 'revenu'         AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS revenues,
+  SUM(CASE WHEN t.operation_type = 'cout_operation' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS operational_costs,
+  SUM(CASE WHEN t.operation_type = 'depense_projet' AND (t.affects_compte_courant IS NOT FALSE) THEN t.amount ELSE 0 END) AS project_expenses,
+  SUM(
+    CASE WHEN t.operation_type = 'revenu'         AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
+  - CASE WHEN t.operation_type = 'cout_operation' AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
+  - CASE WHEN t.operation_type = 'depense_projet' AND (t.affects_compte_courant IS NOT FALSE) THEN  t.amount ELSE 0 END
+  ) AS net_income,
+  COUNT(*) AS nombre_transactions
+FROM properties p
+LEFT JOIN transactions t ON t.property_id = p.id
+GROUP BY p.id, p.name, p.location,
+         EXTRACT(YEAR FROM t.date), EXTRACT(MONTH FROM t.date)
+ORDER BY year DESC, month DESC, p.name;
 
 -- ── 4. get_financial_summary : ajouter le filtre ───────────────────────────
 
