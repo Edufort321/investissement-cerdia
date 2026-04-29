@@ -348,7 +348,7 @@ BEGIN
   RAISE NOTICE '  NAV actuel:       %$', v_nav.net_asset_value;
   RAISE NOTICE '  Passifs réels:    %$', v_nav.total_liabilities;
   RAISE NOTICE '  NAV/part:         %$', v_nav.nav_per_share;
-  RAISE NOTICE '  Variation NAV:    %%', v_nav.nav_change_pct;
+  RAISE NOTICE '  Variation NAV:    % %%', v_nav.nav_change_pct;
 
   RAISE NOTICE '═══════════════════════════════════════════════════════════════';
 END $$;
