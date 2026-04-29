@@ -180,7 +180,7 @@ interface InvestmentContextType {
 
   // CRUD operations - Transactions
   fetchTransactions: () => Promise<void>
-  addTransaction: (transaction: Partial<Transaction>) => Promise<{ success: boolean; error?: string }>
+  addTransaction: (transaction: Partial<Transaction>) => Promise<{ success: boolean; error?: string; data?: any }>
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<{ success: boolean; error?: string }>
   deleteTransaction: (id: string) => Promise<{ success: boolean; error?: string }>
 
@@ -669,7 +669,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       await fetchInvestorInvestments()
       await fetchInvestorSummaries()
 
-      return { success: true }
+      return { success: true, data: txData }
     } catch (error: any) {
       return { success: false, error: error.message }
     }

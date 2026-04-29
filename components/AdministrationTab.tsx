@@ -7,7 +7,8 @@ import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown, Paperclip } from 'lucide-react'
+import TransactionAttachmentsManager from './admin/TransactionAttachmentsManager'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
@@ -156,8 +157,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({})
 
   const [investorFormData, setInvestorFormData] = useState<InvestorFormData>({
     user_id: '',
@@ -226,6 +228,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       fetchDocuments(selectedInvestorId)
     }
   }, [selectedInvestorId])
+
+  useEffect(() => {
+    if (transactions.length === 0) return
+    const ids = transactions.map((t: any) => t.id).filter(Boolean)
+    supabase
+      .from('transaction_attachments')
+      .select('transaction_id')
+      .in('transaction_id', ids)
+      .then(({ data }) => {
+        if (!data) return
+        const counts: Record<string, number> = {}
+        data.forEach((row: any) => {
+          counts[row.transaction_id] = (counts[row.transaction_id] || 0) + 1
+        })
+        setAttachmentCounts(counts)
+      })
+  }, [transactions])
 
   const fetchDocuments = async (investorId: string) => {
     try {
@@ -579,56 +598,24 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     try {
       setUploadingAttachment(true)
 
-      let attachmentData: {
-        attachment_name?: string
-        attachment_url?: string
-        attachment_storage_path?: string
-        attachment_mime_type?: string
-        attachment_size?: number
-        attachment_uploaded_at?: string
-      } = {}
-
-      // Upload file to Supabase Storage if a file is selected
-      if (selectedFile) {
-        const year = new Date(transactionFormData.date).getFullYear()
-        const investorId = transactionFormData.investor_id || 'shared'
-
-        // Generate unique filename with transaction context
-        const fileExt = selectedFile.name.split('.').pop()
-        const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-        const timestamp = Date.now()
-        const storagePath = `${investorId}/${year}/${timestamp}-${cleanFileName}`
-
-        console.log('📤 Uploading file to:', storagePath)
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('transaction-attachments')
-          .upload(storagePath, selectedFile, {
-            cacheControl: '3600',
-            upsert: false
-          })
-
-        if (uploadError) {
-          console.error('❌ Upload error:', uploadError)
-          throw new Error(`Erreur d'upload: ${uploadError.message}`)
+      const uploadPendingFiles = async (transactionId: string) => {
+        for (const file of pendingFiles) {
+          const timestamp = Date.now()
+          const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+          const storagePath = `${transactionId}/${timestamp}-${cleanFileName}`
+          const { error: uploadError } = await supabase.storage
+            .from('transaction-documents')
+            .upload(storagePath, file, { cacheControl: '3600', upsert: false })
+          if (!uploadError) {
+            await supabase.from('transaction_attachments').insert([{
+              transaction_id: transactionId,
+              file_name: file.name,
+              file_size: file.size,
+              mime_type: file.type || 'application/octet-stream',
+              storage_path: storagePath
+            }])
+          }
         }
-
-        // Get public URL (will need signing for private buckets)
-        const { data: { publicUrl } } = supabase.storage
-          .from('transaction-attachments')
-          .getPublicUrl(storagePath)
-
-        attachmentData = {
-          attachment_name: selectedFile.name,
-          attachment_url: publicUrl,
-          attachment_storage_path: storagePath,
-          attachment_mime_type: selectedFile.type,
-          attachment_size: selectedFile.size,
-          attachment_uploaded_at: new Date().toISOString()
-        }
-
-        console.log('✅ File uploaded successfully')
       }
 
       // Convertir toutes les valeurs numériques en nombres
@@ -650,7 +637,6 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         bank_fees: typeof formBase.bank_fees === 'string' ? parseFloat(formBase.bank_fees) || 0 : formBase.bank_fees,
         foreign_tax_paid: typeof formBase.foreign_tax_paid === 'string' ? parseFloat(formBase.foreign_tax_paid) || 0 : formBase.foreign_tax_paid,
         foreign_tax_rate: typeof formBase.foreign_tax_rate === 'string' ? parseFloat(formBase.foreign_tax_rate) || 0 : formBase.foreign_tax_rate,
-        ...attachmentData,
         investor_id: formBase.investor_id || undefined,
         property_id: formBase.property_id || undefined,
         payment_schedule_id: formBase.payment_schedule_id || undefined,
@@ -710,6 +696,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       } else {
         const result = await addTransaction(dataToSubmit)
         if (result.success) {
+          if (pendingFiles.length > 0 && result.data?.id) {
+            await uploadPendingFiles(result.data.id)
+          }
           setShowAddTransactionForm(false)
           resetTransactionForm()
         } else {
@@ -823,7 +812,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       recurrence_end_date: null,
       recurrence_no_end: false
     })
-    setSelectedFile(null)
+    setPendingFiles([])
     setShowAddTransactionForm(false)
     setEditingTransactionId(null)
   }
@@ -3008,110 +2997,105 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
             </div>
 
-            {/* Section Pièce Jointe */}
+            {/* Section Pièces Jointes */}
             <div className="pt-4 border-t border-gray-200">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Upload size={18} />
-                Pièce Jointe (Facture, Reçu, Photo)
+                <Paperclip size={18} />
+                Pièces Jointes
               </h4>
 
-              {/* Existing attachment display (when editing) */}
-              {transactionFormData.attachment_storage_path && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <FileText size={20} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{transactionFormData.attachment_name}</p>
-                        <p className="text-sm text-gray-600">
-                          {transactionFormData.attachment_size
-                            ? `${(transactionFormData.attachment_size / 1024).toFixed(2)} KB`
-                            : 'N/A'}
-                          {' • '}
-                          {transactionFormData.attachment_uploaded_at
-                            ? new Date(transactionFormData.attachment_uploaded_at).toLocaleDateString('fr-CA')
-                            : ''}
-                        </p>
+              {editingTransactionId ? (
+                <div className="space-y-4">
+                  {/* Pièce jointe legacy (ancienne, 1 seul fichier) — rétrocompatibilité */}
+                  {transactionFormData.attachment_storage_path && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs font-medium text-yellow-700 mb-2">Ancienne pièce jointe (format précédent)</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <FileText size={18} className="text-yellow-600 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{transactionFormData.attachment_name}</p>
+                            <p className="text-xs text-gray-500">
+                              {transactionFormData.attachment_size
+                                ? `${(transactionFormData.attachment_size / 1024).toFixed(1)} KB`
+                                : ''}
+                              {transactionFormData.attachment_uploaded_at
+                                ? ` • ${new Date(transactionFormData.attachment_uploaded_at).toLocaleDateString('fr-CA')}`
+                                : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Supprimer cet ancien fichier ?')) {
+                              setTransactionFormData({
+                                ...transactionFormData,
+                                attachment_name: null,
+                                attachment_url: null,
+                                attachment_storage_path: null,
+                                attachment_mime_type: null,
+                                attachment_size: null,
+                                attachment_uploaded_at: null
+                              })
+                            }
+                          }}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Supprimer la pièce jointe actuelle ?')) {
-                          setTransactionFormData({
-                            ...transactionFormData,
-                            attachment_name: null,
-                            attachment_url: null,
-                            attachment_storage_path: null,
-                            attachment_mime_type: null,
-                            attachment_size: null,
-                            attachment_uploaded_at: null
-                          })
-                        }
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Supprimer la pièce jointe"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  )}
+                  {/* Gestionnaire multi-fichiers (nouveau système) */}
+                  <TransactionAttachmentsManager transactionId={editingTransactionId} />
                 </div>
-              )}
-
-              {/* File upload input */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {transactionFormData.attachment_storage_path
-                    ? 'Remplacer la pièce jointe (optionnel)'
-                    : 'Ajouter une pièce jointe (optionnel)'}
-                </label>
-                <div className="flex items-center gap-3">
+              ) : (
+                /* Mode création : sélecteur multi-fichiers en attente */
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">Les pièces jointes seront uploadées après la création de la transaction.</p>
                   <input
                     type="file"
+                    multiple
+                    accept="*/*"
                     onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        // Validate file size (10 MB max)
-                        if (file.size > 10 * 1024 * 1024) {
-                          alert('Fichier trop volumineux. Maximum 10 MB.')
-                          e.target.value = ''
-                          return
+                      const files = Array.from(e.target.files || [])
+                      const valid = files.filter(f => {
+                        if (f.size > 10 * 1024 * 1024) {
+                          alert(`"${f.name}" dépasse 10 MB et ne sera pas ajouté.`)
+                          return false
                         }
-                        // Validate file type
-                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-                        if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
-                          alert('Type de fichier non autorisé. Formats acceptés: Images, PDF, Word.')
-                          e.target.value = ''
-                          return
-                        }
-                        setSelectedFile(file)
-                      }
+                        return true
+                      })
+                      setPendingFiles(prev => [...prev, ...valid])
+                      e.target.value = ''
                     }}
-                    accept="image/*,application/pdf,.doc,.docx"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#5e5e5e] file:text-white hover:file:bg-[#3e3e3e] file:cursor-pointer"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#5e5e5e] file:text-white hover:file:bg-[#3e3e3e] file:cursor-pointer"
                   />
-                  {selectedFile && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedFile(null)}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Annuler la sélection"
-                    >
-                      <X size={18} />
-                    </button>
+                  {pendingFiles.length > 0 && (
+                    <div className="space-y-1.5">
+                      {pendingFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg text-sm">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText size={14} className="text-gray-400 flex-shrink-0" />
+                            <span className="truncate text-gray-900">{file.name}</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                  <p className="text-xs text-gray-400">Tous formats acceptés • Max 10 MB par fichier</p>
                 </div>
-                {selectedFile && (
-                  <p className="text-sm text-green-600 flex items-center gap-2">
-                    ✓ Fichier sélectionné: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
-                  </p>
-                )}
-                <p className="text-xs text-gray-500">
-                  Formats acceptés: Images (JPG, PNG, GIF), PDF, Word • Taille max: 10 MB
-                </p>
-              </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -3210,28 +3194,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         </span>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
-                        {transaction.attachment_storage_path ? (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const { data, error } = await supabase.storage
-                                  .from('transaction-attachments')
-                                  .createSignedUrl(transaction.attachment_storage_path!, 60 * 60 * 2)
-                                if (error || !data?.signedUrl) throw error || new Error('URL non générée')
-                                window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
-                              } catch (error: any) {
-                                alert('Erreur lors de l\'ouverture: ' + error.message)
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
-                            title={`Ouvrir: ${transaction.attachment_name}`}
-                          >
-                            <FileText size={16} />
-                            <Download size={14} />
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
+                        {(() => {
+                          const newCount = attachmentCounts[transaction.id] || 0
+                          const hasLegacy = !!transaction.attachment_storage_path
+                          const total = newCount + (hasLegacy ? 1 : 0)
+                          if (total === 0) return <span className="text-gray-400 text-xs">-</span>
+                          return (
+                            <button
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-xs font-medium"
+                              title={`${total} pièce(s) jointe(s) — cliquer pour gérer`}
+                            >
+                              <Paperclip size={14} />
+                              <span>{total}</span>
+                            </button>
+                          )
+                        })()}
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-1 sm:gap-2">
