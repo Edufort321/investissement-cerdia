@@ -805,6 +805,15 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     exchangeRate: number
   ) => {
     try {
+      // 1. Récupérer le paiement pour property_id et label
+      const { data: schedule, error: fetchError } = await supabase
+        .from('payment_schedules')
+        .select('property_id, term_label, currency')
+        .eq('id', id)
+        .single()
+      if (fetchError) throw fetchError
+
+      // 2. Marquer comme payé
       const { error } = await supabase
         .from('payment_schedules')
         .update({
@@ -814,14 +823,37 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
           exchange_rate_used: exchangeRate
         })
         .eq('id', id)
-
       if (error) throw error
+
+      // 3. Créer la transaction liée si elle n'existe pas déjà
+      const { data: existing } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('payment_schedule_id', id)
+        .maybeSingle()
+
+      if (!existing) {
+        await supabase.from('transactions').insert([{
+          date: paidDate,
+          type: 'achat_propriete',
+          amount: -Math.abs(amountPaidCad),
+          description: `Paiement: ${schedule.term_label}`,
+          property_id: schedule.property_id,
+          payment_schedule_id: id,
+          status: 'complete',
+          source_currency: schedule.currency || 'USD',
+          exchange_rate: exchangeRate,
+          affects_compte_courant: true,
+        }])
+      }
+
       await fetchPaymentSchedules()
+      await fetchTransactions()
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
-  }, [fetchPaymentSchedules])
+  }, [fetchPaymentSchedules, fetchTransactions])
 
   // ==========================================
   // SHARE SYSTEM FUNCTIONS
