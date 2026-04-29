@@ -5,11 +5,13 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History, FileDown } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
+import PropertyLinksManager from './PropertyLinksManager'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
 import PropertyFinancialSummary from './PropertyFinancialSummary'
 import PaymentScheduleManager from './PaymentScheduleManager'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface PropertyFormData {
   name: string
@@ -55,6 +57,8 @@ export default function ProjetTab() {
     loading
   } = useInvestment()
   const { t, language } = useLanguage()
+  const { currentUser } = useAuth()
+  const isAdmin = currentUser?.role === 'admin'
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -1365,6 +1369,9 @@ export default function ProjetTab() {
 
             return (
               <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                {/* Hyperliens du projet */}
+                <PropertyLinksManager propertyId={property.id} isAdmin={isAdmin} />
+
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
