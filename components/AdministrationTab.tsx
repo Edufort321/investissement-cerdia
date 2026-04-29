@@ -611,7 +611,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               transaction_id: transactionId,
               file_name: file.name,
               file_size: file.size,
-              mime_type: file.type || 'application/octet-stream',
+              file_type: file.type || 'application/octet-stream',
               storage_path: storagePath
             }])
           }
