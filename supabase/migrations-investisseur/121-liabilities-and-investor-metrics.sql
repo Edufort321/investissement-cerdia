@@ -263,7 +263,7 @@ SELECT
           + COALESCE(d.total_distributions, 0))
         / inv.total_invested,
         1.0 / GREATEST(
-          EXTRACT(EPOCH FROM (CURRENT_DATE - inv.first_investment_date)) / 31536000.0,
+          (CURRENT_DATE - inv.first_investment_date)::numeric / 365.25,
           0.01
         )
       ) - 1
