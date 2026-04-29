@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
-import { FileDown } from 'lucide-react'
+import { FileDown, ChevronDown, ChevronUp } from 'lucide-react'
+import LiabilitiesManager from './LiabilitiesManager'
 
 interface NAVHistoryPoint {
   id: string
@@ -84,6 +85,21 @@ interface PropertyValue {
   appreciation_rate_pct: number | null // taux annuel utilisé (ex: 6.93)
 }
 
+interface InvestorMetric {
+  investor_id: string
+  investor_name: string
+  total_invested: number
+  total_shares: number
+  first_investment_date: string
+  total_distributions: number
+  current_portfolio_value: number
+  moic: number
+  dpi: number
+  rvpi: number
+  annualized_return_pct: number | null
+  unrealized_gain: number
+}
+
 export default function NAVDashboard() {
   const { rate: exchangeRate } = useExchangeRate()
   const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline()
@@ -97,6 +113,9 @@ export default function NAVDashboard() {
   const [exportingPDF, setExportingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | '6m' | '3m' | '1m'>('all')
+  const [investorMetrics, setInvestorMetrics] = useState<InvestorMetric[]>([])
+  const [showLiabilities, setShowLiabilities] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(true)
 
   useEffect(() => {
     loadNAVData()
@@ -513,10 +532,15 @@ export default function NAVDashboard() {
 
       if (propertiesError) {
         console.error('Erreur chargement propriétés:', propertiesError)
-        // Ne pas bloquer l'affichage si les propriétés ne chargent pas
       } else {
         setProperties(propertiesData || [])
       }
+
+      // Métriques LP
+      const { data: metricsData } = await supabase
+        .from('investor_performance_metrics')
+        .select('*')
+      setInvestorMetrics(metricsData || [])
 
     } catch (err: any) {
       console.error('Error loading NAV data:', err)
@@ -781,12 +805,12 @@ export default function NAVDashboard() {
               <h4 className="text-md font-semibold text-red-700 mb-3">💳 PASSIFS</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Dettes et obligations</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(0)}</span>
+                  <span className="text-sm text-gray-600">Hypothèques et prêts actifs</span>
+                  <span className="text-sm font-medium text-red-700">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-900">Total Passifs</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(0)}</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
               </div>
             </div>
@@ -1255,6 +1279,97 @@ export default function NAVDashboard() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Section: Passifs (Liabilities Manager) */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <button
+          onClick={() => setShowLiabilities(v => !v)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h3 className="text-lg font-semibold text-gray-900">
+            💳 Gestion des passifs
+            {detailedNavData?.total_liabilities != null && detailedNavData.total_liabilities > 0 && (
+              <span className="ml-2 text-sm font-normal text-red-600">
+                ({formatCurrency(detailedNavData.total_liabilities)} actifs)
+              </span>
+            )}
+          </h3>
+          {showLiabilities ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+        </button>
+        {showLiabilities && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <LiabilitiesManager
+              exchangeRate={exchangeRate ?? 1.40}
+              onTotalChange={() => loadNAVData()}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Section: Métriques LP (MOIC, DPI, RVPI) */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <button
+          onClick={() => setShowMetrics(v => !v)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h3 className="text-lg font-semibold text-gray-900">
+            📊 Métriques investisseurs (MOIC / DPI / RVPI)
+          </h3>
+          {showMetrics ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+        </button>
+
+        {showMetrics && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {investorMetrics.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">
+                Aucun investisseur actif trouvé, ou la vue <code>investor_performance_metrics</code> n'est pas encore installée (migration 121).
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Investisseur</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Capital investi</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valeur actuelle</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Gain latent</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">MOIC</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">DPI</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">RVPI</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Rend. annualisé</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {investorMetrics.map(m => (
+                      <tr key={m.investor_id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 font-medium text-gray-900">{m.investor_name}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(m.total_invested)}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(m.current_portfolio_value)}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${m.unrealized_gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {m.unrealized_gain >= 0 ? '+' : ''}{formatCurrency(m.unrealized_gain)}
+                        </td>
+                        <td className={`px-3 py-2 text-right font-semibold ${m.moic >= 1 ? 'text-green-700' : 'text-red-600'}`}>
+                          {m.moic.toFixed(3)}×
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">{m.dpi.toFixed(3)}×</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{m.rvpi.toFixed(3)}×</td>
+                        <td className={`px-3 py-2 text-right font-medium ${m.annualized_return_pct == null ? 'text-gray-400' : m.annualized_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {m.annualized_return_pct == null
+                            ? '< 1 an'
+                            : `${m.annualized_return_pct >= 0 ? '+' : ''}${m.annualized_return_pct.toFixed(2)}%`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-gray-400 mt-3">
+                  MOIC = (Valeur actuelle + Distributions) / Capital investi · DPI = Distributions / Capital investi · RVPI = Valeur actuelle / Capital investi
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
