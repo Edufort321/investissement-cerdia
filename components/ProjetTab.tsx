@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History, FileDown } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, MapPin, Calendar, DollarSign, TrendingUp, X, AlertCircle, CheckCircle, Clock, FileImage, RefreshCw, Calculator, Menu, BarChart2, Wallet, CreditCard, History, FileDown, Link2 } from 'lucide-react'
 import ProjectAttachments from './ProjectAttachments'
 import PropertyLinksManager from './PropertyLinksManager'
 import PropertyPerformanceAnalysis from './PropertyPerformanceAnalysis'
@@ -69,6 +69,7 @@ export default function ProjetTab() {
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
   const [showFinancialSummaryPropertyId, setShowFinancialSummaryPropertyId] = useState<string | null>(null)
+  const [showLinksPropertyId, setShowLinksPropertyId] = useState<string | null>(null)
   const [openMenuPropertyId, setOpenMenuPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
@@ -1369,9 +1370,6 @@ export default function ProjetTab() {
 
             return (
               <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Hyperliens du projet */}
-                <PropertyLinksManager propertyId={property.id} isAdmin={isAdmin} />
-
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
@@ -1454,6 +1452,14 @@ export default function ProjetTab() {
                               >
                                 <FileImage size={15} className="text-purple-500" />
                                 Pièces jointes
+                              </button>
+
+                              <button
+                                onClick={() => { setShowLinksPropertyId(property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors"
+                              >
+                                <Link2 size={15} className="text-sky-500" />
+                                Hyperliens
                               </button>
 
                               <button
@@ -2211,6 +2217,28 @@ export default function ProjetTab() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Liens Modal */}
+      {showLinksPropertyId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+            <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Hyperliens</h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {properties.find(p => p.id === showLinksPropertyId)?.name}
+                </p>
+              </div>
+              <button onClick={() => setShowLinksPropertyId(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <PropertyLinksManager propertyId={showLinksPropertyId} isAdmin={isAdmin} />
+            </div>
+          </div>
         </div>
       )}
 

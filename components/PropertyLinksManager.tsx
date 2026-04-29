@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Link2, Plus, X, ExternalLink, Camera, HardHat, FileText, Globe, ChevronDown } from 'lucide-react'
+import { Plus, X, ExternalLink, Camera, HardHat, FileText, Globe } from 'lucide-react'
 
 interface PropertyLink {
   id: string
@@ -18,41 +18,26 @@ interface PropertyLinksManagerProps {
   isAdmin: boolean
 }
 
-const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ElementType; iconColor: string; headerColor: string }> = {
-  construction: { label: 'Construction', icon: HardHat, iconColor: 'text-orange-500', headerColor: 'text-orange-600' },
-  photos:       { label: 'Photos',       icon: Camera,   iconColor: 'text-purple-500', headerColor: 'text-purple-600' },
-  documents:    { label: 'Documents',    icon: FileText,  iconColor: 'text-blue-500',   headerColor: 'text-blue-600'   },
-  general:      { label: 'Général',      icon: Globe,     iconColor: 'text-gray-500',   headerColor: 'text-gray-600'   },
+const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ElementType; iconColor: string; headerBg: string; headerText: string }> = {
+  construction: { label: 'Construction', icon: HardHat,  iconColor: 'text-orange-500', headerBg: 'bg-orange-50', headerText: 'text-orange-700' },
+  photos:       { label: 'Photos',       icon: Camera,   iconColor: 'text-purple-500', headerBg: 'bg-purple-50', headerText: 'text-purple-700' },
+  documents:    { label: 'Documents',    icon: FileText,  iconColor: 'text-blue-500',   headerBg: 'bg-blue-50',   headerText: 'text-blue-700'   },
+  general:      { label: 'Général',      icon: Globe,     iconColor: 'text-gray-500',   headerBg: 'bg-gray-50',   headerText: 'text-gray-700'   },
 }
 
 const CATEGORY_ORDER = ['construction', 'photos', 'documents', 'general']
 
 export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLinksManagerProps) {
   const [links, setLinks] = useState<PropertyLink[]>([])
-  const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
   const [category, setCategory] = useState<PropertyLink['category']>('general')
   const [saving, setSaving] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadLinks()
   }, [propertyId])
-
-  // Fermer le panneau en cliquant ailleurs
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setShowForm(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   const loadLinks = async () => {
     const { data } = await supabase
@@ -89,16 +74,11 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
     }
   }
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce lien ?')) return
     await supabase.from('property_links').delete().eq('id', id)
     await loadLinks()
   }
-
-  // Ne rien afficher si pas de liens et pas admin
-  if (links.length === 0 && !isAdmin) return null
 
   // Grouper par catégorie
   const grouped = CATEGORY_ORDER.reduce<Record<string, PropertyLink[]>>((acc, cat) => {
@@ -107,138 +87,122 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
     return acc
   }, {})
 
+  const hasLinks = links.length > 0
+
   return (
-    <div ref={panelRef} className="relative">
-      {/* Bouton déclencheur */}
-      <div className="px-4 sm:px-6 py-2 flex justify-end border-b border-gray-100">
-        <button
-          onClick={() => { setOpen(!open); setShowForm(false) }}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-            open
-              ? 'bg-gray-900 text-white border-gray-900'
-              : links.length > 0
-                ? 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-                : 'border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400'
-          }`}
-        >
-          <Link2 size={12} />
-          {links.length > 0 ? (
-            <span>Liens <span className="font-bold">({links.length})</span></span>
-          ) : (
-            <span>Ajouter des liens</span>
-          )}
-          <ChevronDown size={11} className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {/* Panneau déroulant */}
-      {open && (
-        <div className="absolute right-4 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-hidden">
-          {/* Liens groupés par catégorie */}
-          {Object.keys(grouped).length > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {CATEGORY_ORDER.filter(cat => grouped[cat]).map(cat => {
-                const cfg = CATEGORY_CONFIG[cat]
-                const Icon = cfg.icon
-                return (
-                  <div key={cat} className="px-4 py-3">
-                    <div className={`flex items-center gap-1.5 text-xs font-semibold mb-2 ${cfg.headerColor}`}>
-                      <Icon size={12} />
-                      {cfg.label}
+    <div className="p-5 space-y-4">
+      {/* Liens groupés par catégorie */}
+      {hasLinks ? (
+        <div className="space-y-3">
+          {CATEGORY_ORDER.filter(cat => grouped[cat]).map(cat => {
+            const cfg = CATEGORY_CONFIG[cat]
+            const Icon = cfg.icon
+            return (
+              <div key={cat} className={`rounded-lg overflow-hidden border border-gray-100`}>
+                <div className={`flex items-center gap-2 px-3 py-2 ${cfg.headerBg}`}>
+                  <Icon size={13} className={cfg.iconColor} />
+                  <span className={`text-xs font-semibold ${cfg.headerText}`}>{cfg.label}</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {grouped[cat].map(link => (
+                    <div key={link.id} className="flex items-center justify-between px-3 py-2.5 group hover:bg-gray-50">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600 flex-1 min-w-0"
+                      >
+                        <ExternalLink size={13} className="flex-shrink-0 text-gray-400 group-hover:text-blue-500" />
+                        <span className="truncate">{link.title}</span>
+                      </a>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(link.id)}
+                          className="ml-3 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                          title="Supprimer"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      {grouped[cat].map(link => (
-                        <div key={link.id} className="flex items-center justify-between group">
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600 flex-1 min-w-0 py-0.5"
-                          >
-                            <ExternalLink size={12} className="flex-shrink-0 text-gray-400 group-hover:text-blue-500" />
-                            <span className="truncate">{link.title}</span>
-                          </a>
-                          {isAdmin && (
-                            <button
-                              onClick={(e) => handleDelete(link.id, e)}
-                              className="ml-2 p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                              title="Supprimer"
-                            >
-                              <X size={13} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="px-4 py-4 text-center text-sm text-gray-400">
-              Aucun lien ajouté
-            </div>
-          )}
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          Aucun lien ajouté pour ce projet.
+        </div>
+      )}
 
-          {/* Footer admin */}
-          {isAdmin && (
-            <div className="border-t border-gray-100">
-              {!showForm ? (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
+      {/* Formulaire d'ajout (admin) */}
+      {isAdmin && (
+        <div className="border-t border-gray-100 pt-4">
+          {!showForm ? (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <Plus size={15} />
+              Ajouter un lien
+            </button>
+          ) : (
+            <form onSubmit={handleAdd} className="space-y-3 bg-gray-50 rounded-lg p-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Suivi de chantier semaine 12"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">URL</label>
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Catégorie</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as PropertyLink['category'])}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-gray-400"
                 >
-                  <Plus size={14} />
-                  Ajouter un lien
+                  <option value="construction">🟠 Construction</option>
+                  <option value="photos">🟣 Photos</option>
+                  <option value="documents">🔵 Documents</option>
+                  <option value="general">⚪ Général</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                >
+                  {saving ? 'Ajout...' : 'Ajouter'}
                 </button>
-              ) : (
-                <form onSubmit={handleAdd} className="p-3 space-y-2 bg-gray-50">
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Titre"
-                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                    required
-                    autoFocus
-                  />
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                    required
-                  />
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as PropertyLink['category'])}
-                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-gray-400"
-                  >
-                    <option value="construction">🟠 Construction</option>
-                    <option value="photos">🟣 Photos</option>
-                    <option value="documents">🔵 Documents</option>
-                    <option value="general">⚪ Général</option>
-                  </select>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="flex-1 py-1.5 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors"
-                    >
-                      {saving ? '...' : 'Ajouter'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowForm(false); setTitle(''); setUrl('') }}
-                      className="flex-1 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setTitle(''); setUrl('') }}
+                  className="flex-1 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
