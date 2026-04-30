@@ -195,9 +195,15 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         verified_at: new Date().toISOString(),
       }, { onConflict: 'period_start,period_end' })
 
-      if (saveErr) throw saveErr
+      if (saveErr) {
+        if (saveErr.message?.includes('relation') || saveErr.code === '42P01') {
+          throw new Error('Table manquante — roulez la migration 123 dans Supabase SQL Editor (fichier: supabase/migrations-investisseur/123-monthly-verifications.sql)')
+        }
+        throw saveErr
+      }
       setSaved(true)
       await loadVerifications()
+      setTimeout(() => onClose?.(), 1200)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -230,9 +236,9 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
       } catch {}
 
       doc.setFontSize(16); doc.setTextColor(94, 94, 94)
-      doc.text('Contrôle Mensuel', 200, 17, { align: 'right' })
+      doc.text('Controle Mensuel', 200, 17, { align: 'right' })
       doc.setFontSize(9); doc.setTextColor(130, 130, 130)
-      doc.text(`Période: ${startDate} au ${endDate}  |  Vérifié le ${new Date().toLocaleDateString('fr-CA')}`, 200, 24, { align: 'right' })
+      doc.text(`Periode: ${startDate} au ${endDate}  |  Verifie le ${new Date().toLocaleDateString('fr-CA')}`, 200, 24, { align: 'right' })
       doc.setDrawColor(94, 94, 94); doc.setLineWidth(0.5); doc.line(15, 29, 195, 29)
 
       const ccActualVal = ccActual ? parseFloat(ccActual.replace(',', '.')) : null
@@ -240,20 +246,24 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
       const ccVar = ccActualVal !== null ? calcResult.cc.closing - ccActualVal : null
       const capexVar = capexActualVal !== null ? calcResult.capex.closing - capexActualVal : null
 
+      // Formatage PDF : eviter les caracteres non-Latin1 (emojis, tirets longs, accents complexes)
+      const fmtPDF = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $'
+      const dash = '-'
+
       let y = 36
       doc.setFontSize(11); doc.setTextColor(60, 60, 60)
-      doc.text('Récapitulatif des soldes', 15, y); y += 5
+      doc.text('Recapitulatif des soldes', 15, y); y += 5
 
       autoTable(doc, {
         startY: y,
         head: [['', 'Compte Courant', 'CAPEX']],
         body: [
-          ['Solde d\'ouverture', fmt(calcResult.cc.opening), fmt(calcResult.capex.opening)],
-          ['Entrées de la période', fmt(calcResult.cc.in), fmt(calcResult.capex.in)],
-          ['Sorties de la période', fmt(calcResult.cc.out), fmt(calcResult.capex.out)],
-          ['Solde calculé (système)', fmt(calcResult.cc.closing), fmt(calcResult.capex.closing)],
-          ['Solde réel (relevé)', ccActualVal !== null ? fmt(ccActualVal) : '—', capexActualVal !== null ? fmt(capexActualVal) : '—'],
-          ['Écart', ccVar !== null ? fmt(ccVar) : '—', capexVar !== null ? fmt(capexVar) : '—'],
+          ['Solde ouverture', fmtPDF(calcResult.cc.opening), fmtPDF(calcResult.capex.opening)],
+          ['Entrees periode', fmtPDF(calcResult.cc.in), fmtPDF(calcResult.capex.in)],
+          ['Sorties periode', fmtPDF(calcResult.cc.out), fmtPDF(calcResult.capex.out)],
+          ['Solde calcule (systeme)', fmtPDF(calcResult.cc.closing), fmtPDF(calcResult.capex.closing)],
+          ['Solde reel (releve)', ccActualVal !== null ? fmtPDF(ccActualVal) : dash, capexActualVal !== null ? fmtPDF(capexActualVal) : dash],
+          ['Ecart', ccVar !== null ? fmtPDF(ccVar) : dash, capexVar !== null ? fmtPDF(capexVar) : dash],
         ],
         theme: 'grid',
         headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
@@ -276,7 +286,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
       const isConform = (ccVar === null || Math.abs(ccVar) < 0.01) && (capexVar === null || Math.abs(capexVar) < 0.01)
       doc.setFontSize(12)
       doc.setTextColor(isConform ? 21 : 185, isConform ? 128 : 28, isConform ? 61 : 28)
-      doc.text(isConform ? '✓ CONFORME — Soldes vérifiés' : '⚠ ÉCART DÉTECTÉ — Vérification requise', 15, y)
+      doc.text(isConform ? 'CONFORME - Soldes verifies' : 'ECART DETECTE - Verification requise', 15, y)
       y += 8
 
       if (notes) {
@@ -284,13 +294,13 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         doc.text(`Notes: ${notes}`, 15, y); y += 8
       }
 
-      // Transactions de la période
+      // Transactions de la periode
       doc.setFontSize(11); doc.setTextColor(60, 60, 60)
-      doc.text(`Transactions de la période (${calcResult.txCount})`, 15, y); y += 4
+      doc.text(`Transactions de la periode (${calcResult.txCount})`, 15, y); y += 4
 
       const typeLabels: Record<string, string> = {
         investissement: 'Investissement', loyer: 'Loyer', loyer_locatif: 'Rev. locatif',
-        revenu: 'Revenu', dividende: 'Dividende', paiement: 'Paiement', depense: 'Dépense',
+        revenu: 'Revenu', dividende: 'Dividende', paiement: 'Paiement', depense: 'Depense',
         capex: 'CAPEX', maintenance: 'Maintenance', admin: 'Admin',
         remboursement_investisseur: 'Rembours.', transfert: 'Transfert', achat_propriete: 'Achat prop.',
       }
@@ -302,7 +312,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
           (t.date || '').slice(0, 10),
           typeLabels[t.type] || t.type,
           (t.description || '').slice(0, 60),
-          fmt(t.amount),
+          fmtPDF(t.amount),
         ]),
         theme: 'striped',
         headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
