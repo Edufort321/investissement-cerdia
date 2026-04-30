@@ -25,6 +25,7 @@ interface Transaction {
   accountant_notes?: string | null
   attachment_name?: string | null
   attachment_url?: string | null
+  attachment_storage_path?: string | null
 }
 
 interface Property {
@@ -70,6 +71,7 @@ export default function TaxReports() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [activeReport, setActiveReport] = useState<'T1135' | 'T2209' | 'comptable'>('T1135')
+  const [generatingPDF, setGeneratingPDF] = useState(false)
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -329,59 +331,250 @@ export default function TaxReports() {
 
   const allCategorized = FISCAL_GROUPS.flatMap(g => g.cats)
 
+  const generateComptablePDF = async () => {
+    setGeneratingPDF(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      const loadImageAsBase64 = async (url: string): Promise<string> => {
+        try {
+          const res = await fetch(url)
+          const blob = await res.blob()
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(blob)
+          })
+        } catch { return '' }
+      }
+
+      const getImageSize = (base64: string, maxH: number): Promise<{ w: number; h: number }> =>
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => {
+            const ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 1
+            resolve({ w: maxH / ratio, h: maxH })
+          }
+          img.onerror = () => resolve({ w: maxH * 3, h: maxH })
+          img.src = base64
+        })
+
+      const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
+
+      const addPageHeader = async (subtitle: string): Promise<number> => {
+        if (logoBase64) {
+          try {
+            const { w, h } = await getImageSize(logoBase64, 12)
+            doc.addImage(logoBase64, 'PNG', 15, 8, w, h)
+          } catch {}
+        }
+        doc.setFontSize(18)
+        doc.setTextColor(94, 94, 94)
+        doc.text('Rapport Comptable', 200, 17, { align: 'right' })
+        doc.setFontSize(9)
+        doc.setTextColor(130, 130, 130)
+        doc.text(subtitle, 200, 24, { align: 'right' })
+        doc.setDrawColor(94, 94, 94)
+        doc.setLineWidth(0.5)
+        doc.line(15, 29, 195, 29)
+        return 36
+      }
+
+      const fmt = (n: number) =>
+        n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
+
+      const fmtDate = (d: string) => {
+        const date = new Date(d)
+        return isNaN(date.getTime()) ? d : date.toLocaleDateString('fr-CA')
+      }
+
+      // Signed URLs for clickable links
+      const urlMap: Record<string, string> = {}
+      await Promise.all(
+        transactions
+          .filter(t => t.attachment_storage_path)
+          .map(async t => {
+            const { data } = await supabase.storage
+              .from('transaction-attachments')
+              .createSignedUrl(t.attachment_storage_path!, 60 * 60 * 24 * 365)
+            if (data?.signedUrl) urlMap[t.id] = data.signedUrl
+          })
+      )
+      // Fallback to public attachment_url if no storage path
+      transactions.forEach(t => {
+        if (!urlMap[t.id] && t.attachment_url) urlMap[t.id] = t.attachment_url
+      })
+
+      const subtitle = `Année fiscale ${selectedYear} — Généré le ${new Date().toLocaleDateString('fr-CA')}`
+      let yPos = await addPageHeader(subtitle)
+
+      // Summary table
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Résumé par groupe fiscal', 15, yPos)
+      yPos += 4
+
+      const summaryBody = FISCAL_GROUPS.map(group => {
+        const txs = transactions.filter(t => group.cats.includes(t.fiscal_category || ''))
+        return [group.label.split('—')[0].trim(), String(txs.length), fmt(txs.reduce((s, t) => s + t.amount, 0))]
+      })
+      const uncatTxs = transactions.filter(t => !allCategorized.includes(t.fiscal_category || ''))
+      if (uncatTxs.length > 0) summaryBody.push(['⚠ Sans catégorie', String(uncatTxs.length), fmt(uncatTxs.reduce((s, t) => s + t.amount, 0))])
+      summaryBody.push(['TOTAL GÉNÉRAL', String(transactions.length), fmt(transactions.reduce((s, t) => s + t.amount, 0))])
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Groupe', 'Transactions', 'Montant']],
+        body: summaryBody,
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.row.index === summaryBody.length - 1) {
+            data.cell.styles.fontStyle = 'bold'
+          }
+        },
+      })
+
+      yPos = (doc as any).lastAutoTable.finalY + 12
+
+      // Group colors [R, G, B]
+      const groupColors: Record<string, [number, number, number]> = {
+        green: [21, 128, 61], blue: [29, 78, 216], orange: [194, 65, 12], purple: [109, 40, 217],
+      }
+
+      const addGroupTable = async (groupLabel: string, color: [number, number, number], txs: Transaction[]) => {
+        if (yPos > 220) {
+          doc.addPage()
+          yPos = await addPageHeader(subtitle)
+        }
+
+        const groupTotal = txs.reduce((s, t) => s + t.amount, 0)
+        doc.setFontSize(10)
+        doc.setTextColor(color[0], color[1], color[2])
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${groupLabel}`, 15, yPos)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(60, 60, 60)
+        doc.setFontSize(9)
+        doc.text(`Total: ${fmt(groupTotal)}`, 195, yPos, { align: 'right' })
+        yPos += 3
+
+        const rows = txs.map(tx => {
+          const prop = properties.find(p => p.id === tx.property_id)
+          return [
+            fmtDate(tx.date),
+            FISCAL_LABELS[tx.fiscal_category || ''] || '—',
+            prop?.name || '—',
+            tx.description.replace(/\n/g, ' '),
+            tx.vendor_name || '—',
+            fmt(tx.amount),
+            urlMap[tx.id] ? (tx.attachment_name || 'Voir') : '—',
+          ]
+        })
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Date', 'Catégorie', 'Propriété', 'Description', 'Vendeur', 'Montant', 'Pièce jointe']],
+          body: rows,
+          theme: 'striped',
+          headStyles: { fillColor: color, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+          columnStyles: {
+            0: { cellWidth: 18 },
+            1: { cellWidth: 32 },
+            2: { cellWidth: 24 },
+            3: { cellWidth: 58 },
+            4: { cellWidth: 22 },
+            5: { cellWidth: 18, halign: 'right' },
+            6: { cellWidth: 28 },
+          },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 6) {
+              const tx = txs[data.row.index]
+              if (tx && urlMap[tx.id]) data.cell.styles.textColor = [0, 102, 204]
+            }
+          },
+          didDrawCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 6) {
+              const tx = txs[data.row.index]
+              const url = tx && urlMap[tx.id]
+              if (url) {
+                doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url })
+                doc.setDrawColor(0, 102, 204)
+                doc.setLineWidth(0.15)
+                doc.line(data.cell.x + 1, data.cell.y + data.cell.height - 1.5, data.cell.x + data.cell.width - 1, data.cell.y + data.cell.height - 1.5)
+              }
+            }
+          },
+        })
+
+        yPos = (doc as any).lastAutoTable.finalY + 10
+      }
+
+      for (const group of FISCAL_GROUPS) {
+        const txs = transactions
+          .filter(t => group.cats.includes(t.fiscal_category || ''))
+          .sort((a, b) => a.date.localeCompare(b.date))
+        if (txs.length > 0) await addGroupTable(group.label, groupColors[group.color], txs)
+      }
+
+      // Uncategorized
+      if (uncatTxs.length > 0) {
+        await addGroupTable('⚠ Sans catégorie fiscale — à compléter', [160, 100, 0], uncatTxs.sort((a, b) => a.date.localeCompare(b.date)))
+      }
+
+      doc.save(`rapport_comptable_${selectedYear}_CERDIA.pdf`)
+    } catch (e) {
+      console.error(e)
+      alert('Erreur lors de la génération du PDF')
+    } finally {
+      setGeneratingPDF(false)
+    }
+  }
+
   const generateComptableCSV = () => {
     const esc = (s: string | number | null | undefined) =>
       `"${String(s ?? '').replace(/"/g, '""')}"`
-
+    const fmtDate = (d: string) => {
+      const date = new Date(d)
+      return isNaN(date.getTime()) ? d : date.toLocaleDateString('fr-CA')
+    }
     const header = ['Date', 'Groupe Fiscal', 'Catégorie Fiscale', 'Propriété', 'Type', 'Description',
       'Vendeur/Compagnie', 'Montant (CAD)', 'Notes Comptable', 'Pièce jointe', 'URL Pièce jointe']
-
     const rows: string[] = [
       `"CERDIA Investment — Rapport Comptable ${selectedYear}"`,
       `"Généré le ${new Date().toLocaleDateString('fr-CA')}"`,
       '',
       header.map(esc).join(','),
     ]
-
     let grandTotal = 0
-
     for (const group of FISCAL_GROUPS) {
-      const txs = transactions
-        .filter(t => group.cats.includes(t.fiscal_category || ''))
-        .sort((a, b) => a.date.localeCompare(b.date))
+      const txs = transactions.filter(t => group.cats.includes(t.fiscal_category || '')).sort((a, b) => a.date.localeCompare(b.date))
       if (txs.length === 0) continue
       const groupTotal = txs.reduce((sum, t) => sum + t.amount, 0)
       grandTotal += groupTotal
-
       for (const tx of txs) {
         const prop = properties.find(p => p.id === tx.property_id)
-        rows.push([
-          tx.date, group.label,
-          FISCAL_LABELS[tx.fiscal_category || ''] || tx.fiscal_category || '',
-          prop?.name || '', tx.type, tx.description,
-          tx.vendor_name || '', tx.amount.toFixed(2),
-          tx.accountant_notes || '', tx.attachment_name || '', tx.attachment_url || '',
-        ].map(esc).join(','))
+        rows.push([fmtDate(tx.date), group.label, FISCAL_LABELS[tx.fiscal_category || ''] || '', prop?.name || '', tx.type, tx.description.replace(/\n/g, ' '), tx.vendor_name || '', tx.amount.toFixed(2), tx.accountant_notes || '', tx.attachment_name || '', tx.attachment_url || ''].map(esc).join(','))
       }
       rows.push(['', `SOUS-TOTAL — ${group.label}`, '', '', '', '', '', groupTotal.toFixed(2), '', '', ''].map(esc).join(','))
       rows.push('')
     }
-
     const uncategorized = transactions.filter(t => !allCategorized.includes(t.fiscal_category || ''))
     if (uncategorized.length > 0) {
       for (const tx of uncategorized.sort((a, b) => a.date.localeCompare(b.date))) {
         const prop = properties.find(p => p.id === tx.property_id)
-        rows.push([
-          tx.date, 'Sans catégorie', '', prop?.name || '', tx.type, tx.description,
-          tx.vendor_name || '', tx.amount.toFixed(2), tx.accountant_notes || '',
-          tx.attachment_name || '', tx.attachment_url || '',
-        ].map(esc).join(','))
+        rows.push([fmtDate(tx.date), 'Sans catégorie', '', prop?.name || '', tx.type, tx.description.replace(/\n/g, ' '), tx.vendor_name || '', tx.amount.toFixed(2), tx.accountant_notes || '', tx.attachment_name || '', tx.attachment_url || ''].map(esc).join(','))
       }
       rows.push('')
     }
-
     rows.push(['', 'TOTAL GÉNÉRAL', '', '', '', '', '', grandTotal.toFixed(2), '', '', ''].map(esc).join(','))
-
     const blob = new Blob(['﻿' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -696,13 +889,24 @@ export default function TaxReports() {
               <h4 className="text-base font-semibold text-gray-900">Rapport Comptable {selectedYear}</h4>
               <p className="text-xs text-gray-500 mt-0.5">Transactions groupées par catégorie fiscale — pièces jointes avec liens cliquables</p>
             </div>
-            <button
-              onClick={generateComptableCSV}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex-shrink-0"
-            >
-              <Download size={16} />
-              Exporter CSV (comptable)
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={generateComptablePDF}
+                disabled={generatingPDF}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <Download size={16} />
+                {generatingPDF ? 'Génération...' : 'Exporter PDF'}
+              </button>
+              <button
+                onClick={generateComptableCSV}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Export CSV brut pour import comptable"
+              >
+                <FileText size={14} />
+                CSV
+              </button>
+            </div>
           </div>
 
           {/* Résumé rapide */}
