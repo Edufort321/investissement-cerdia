@@ -65,7 +65,12 @@ const prevMonthEnd = () => {
 const fmt = (n: number) =>
   n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-export default function MonthlyControl() {
+interface Props {
+  onClose?: () => void
+  onStatusChange?: (status: 'ok' | 'late') => void
+}
+
+export default function MonthlyControl({ onClose, onStatusChange }: Props) {
   const [startDate, setStartDate] = useState(prevMonthStart())
   const [endDate, setEndDate] = useState(prevMonthEnd())
   const [ccActual, setCcActual] = useState('')
@@ -88,7 +93,13 @@ export default function MonthlyControl() {
       .select('*')
       .order('period_start', { ascending: false })
       .limit(24)
-    setVerifications(data || [])
+    const rows = data || []
+    setVerifications(rows)
+    if (onStatusChange) {
+      const ps = prevMonthStart()
+      const isOk = rows.some(v => v.period_start <= ps && v.period_end >= ps)
+      onStatusChange(isOk ? 'ok' : 'late')
+    }
   }
 
   const calculate = useCallback(async () => {
@@ -299,11 +310,6 @@ export default function MonthlyControl() {
     }
   }
 
-  // Vérifier si un rappel est nécessaire
-  const prevStart = prevMonthStart()
-  const needsReminder = verifications.length === 0 ||
-    !verifications.some(v => v.period_start <= prevStart && v.period_end >= prevStart)
-
   const ccActualVal = ccActual ? parseFloat(ccActual.replace(',', '.')) : null
   const capexActualVal = capexActual ? parseFloat(capexActual.replace(',', '.')) : null
   const ccVar = calcResult && ccActualVal !== null ? calcResult.cc.closing - ccActualVal : null
@@ -313,17 +319,6 @@ export default function MonthlyControl() {
 
   return (
     <div className="space-y-6">
-      {/* Bannière rappel */}
-      {needsReminder && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-lg p-4">
-          <AlertTriangle size={20} className="text-amber-600 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">Contrôle mensuel en retard</p>
-            <p className="text-xs text-amber-600">La vérification du mois précédent n'a pas encore été effectuée.</p>
-          </div>
-        </div>
-      )}
-
       {/* Sélection de la période */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">

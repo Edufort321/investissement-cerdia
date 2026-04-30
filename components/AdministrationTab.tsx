@@ -155,8 +155,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
-  const [txInnerTab, setTxInnerTab] = useState<'liste' | 'guide' | 'controle'>('liste')
+  const [txInnerTab, setTxInnerTab] = useState<'liste' | 'guide'>('liste')
   const [showTxMenu, setShowTxMenu] = useState(false)
+  const [showMonthlyControl, setShowMonthlyControl] = useState(false)
+  const [monthlyStatus, setMonthlyStatus] = useState<'ok' | 'late' | 'unknown'>('unknown')
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
@@ -248,6 +250,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         setAttachmentCounts(counts)
       })
   }, [transactions])
+
+  useEffect(() => {
+    const d = new Date()
+    const prevStart = new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().split('T')[0]
+    supabase
+      .from('monthly_verifications')
+      .select('period_start, period_end')
+      .lte('period_start', prevStart)
+      .gte('period_end', prevStart)
+      .limit(1)
+      .then(({ data }) => setMonthlyStatus(data && data.length > 0 ? 'ok' : 'late'))
+  }, [])
 
   const fetchDocuments = async (investorId: string) => {
     try {
@@ -2346,51 +2360,70 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const renderTransactionsTab = () => (
     <div className="space-y-6">
-      {/* Barre supérieure : hamburger + Nouvelle transaction */}
+      {/* Barre supérieure : hamburger + statut mensuel + Nouvelle transaction */}
       <div className="flex items-center justify-between gap-3">
-        {/* Hamburger menu */}
-        <div className="relative">
-          <button
-            onClick={() => setShowTxMenu(v => !v)}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Menu size={18} />
-            <span className="hidden sm:inline text-gray-700">Menu</span>
-          </button>
-          {showTxMenu && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setShowTxMenu(false)} />
-              <div className="absolute left-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg w-56 py-1 overflow-hidden">
-                <button
-                  onClick={() => { setTxInnerTab('controle'); setShowTxMenu(false) }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'controle' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
-                >
-                  🗓️ Contrôle mensuel
-                </button>
-                <button
-                  onClick={() => { setTxInnerTab('guide'); setShowTxMenu(false) }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
-                >
-                  📖 Guide de saisie
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button
-                  onClick={() => { exportTransactionsPDF(); setShowTxMenu(false) }}
-                  disabled={exportingPDF}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  <FileDown size={15} />
-                  {exportingPDF ? 'Génération...' : 'Exporter PDF'}
-                </button>
-                <div className="px-4 py-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
-                    <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="accent-gray-700 w-3.5 h-3.5" />
-                    Inclure liens PJ dans PDF
-                  </label>
+        {/* Gauche : hamburger + badge statut mensuel */}
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowTxMenu(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Menu size={18} />
+              <span className="hidden sm:inline text-gray-700">Menu</span>
+            </button>
+            {showTxMenu && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowTxMenu(false)} />
+                <div className="absolute left-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg w-56 py-1 overflow-hidden">
+                  <button
+                    onClick={() => { setShowMonthlyControl(true); setShowTxMenu(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    🗓️ Contrôle mensuel
+                  </button>
+                  <button
+                    onClick={() => { setTxInnerTab(txInnerTab === 'guide' ? 'liste' : 'guide'); setShowTxMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
+                  >
+                    📖 Guide de saisie
+                  </button>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    onClick={() => { exportTransactionsPDF(); setShowTxMenu(false) }}
+                    disabled={exportingPDF}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    <FileDown size={15} />
+                    {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+                  </button>
+                  <div className="px-4 py-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
+                      <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="accent-gray-700 w-3.5 h-3.5" />
+                      Inclure liens PJ dans PDF
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+
+          {/* Badge statut contrôle mensuel */}
+          <button
+            onClick={() => setShowMonthlyControl(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              monthlyStatus === 'ok'
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : monthlyStatus === 'late'
+                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 animate-pulse'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {monthlyStatus === 'ok' ? '✅' : monthlyStatus === 'late' ? '⚠️' : '🗓️'}
+            <span className="hidden sm:inline">
+              {monthlyStatus === 'ok' ? 'Solde validé' : monthlyStatus === 'late' ? 'Contrôle en retard' : 'Contrôle mensuel'}
+            </span>
+          </button>
         </div>
 
         {/* Bouton Nouvelle Transaction toujours visible */}
@@ -2403,9 +2436,31 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         </button>
       </div>
 
+      {/* Modal contrôle mensuel */}
+      {showMonthlyControl && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowMonthlyControl(false)} />
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 px-4 pointer-events-none">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl pointer-events-auto">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 className="text-base font-semibold text-gray-800">🗓️ Contrôle mensuel</h3>
+                <button onClick={() => setShowMonthlyControl(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="p-6">
+                <MonthlyControl
+                  onClose={() => setShowMonthlyControl(false)}
+                  onStatusChange={setMonthlyStatus}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Contenu selon onglet actif */}
       {txInnerTab === 'guide' && renderTransactionGuide()}
-      {txInnerTab === 'controle' && <MonthlyControl />}
 
       {/* Contenu onglet Liste (contenu existant) */}
       {txInnerTab === 'liste' && <div className="space-y-6">
