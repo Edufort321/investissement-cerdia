@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CheckCircle, AlertTriangle, Calendar, RefreshCw, FileDown, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Calendar, RefreshCw, FileDown, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
 interface Verification {
   id: string
@@ -24,6 +24,7 @@ interface Verification {
   notes: string | null
   status: 'verified' | 'discrepancy'
   verified_at: string
+  pdf_storage_path?: string | null
 }
 
 interface CalcResult {
@@ -38,21 +39,16 @@ const CC_INCOME = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'divide
 const CC_EXPENSE = ['paiement', 'achat_propriete', 'capex', 'maintenance', 'admin',
                     'depense', 'remboursement_investisseur', 'courant', 'rnd']
 
-// Contribution nette d'une transaction au compte courant
 function ccContrib(t: any): number {
   const amt = Math.abs(t.amount || 0)
-  // loyer_locatif ciblant CAPEX → pas dans CC
   if (t.type === 'loyer_locatif' && t.target_account === 'capex') return 0
-  // transfert CC→CAPEX : sort du CC
   if (t.type === 'transfert' && t.transfer_source === 'compte_courant' && t.target_account === 'capex') return -amt
-  // transfert CAPEX→CC : entre dans CC
   if (t.type === 'transfert' && t.transfer_source === 'capex' && t.target_account === 'compte_courant') return amt
   if (CC_INCOME.includes(t.type)) return amt
   if (CC_EXPENSE.includes(t.type) && t.affects_compte_courant !== false) return -amt
   return 0
 }
 
-// Contribution nette au compte CAPEX
 function capexContrib(t: any): number {
   const amt = Math.abs(t.amount || 0)
   if (t.type === 'loyer_locatif' && t.target_account === 'capex') return amt
@@ -75,9 +71,123 @@ const prevMonthEnd = () => {
 const fmt = (n: number) =>
   n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+const fmtPDF = (n: number) =>
+  n.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $'
+
 interface Props {
   onClose?: () => void
   onStatusChange?: (status: 'ok' | 'late') => void
+}
+
+// ─── Génération du document PDF (partagé entre export manuel et upload auto) ───
+async function buildPDFDoc(
+  result: CalcResult,
+  ccActualV: number | null,
+  capexActualV: number | null,
+  notesStr: string,
+  start: string,
+  end: string
+): Promise<any> {
+  const jsPDF = (await import('jspdf')).default
+  const autoTable = (await import('jspdf-autotable')).default
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  // Logo
+  try {
+    const res = await fetch('/logo-cerdia3.png')
+    const blob = await res.blob()
+    const b64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+    const img = new Image(); img.src = b64
+    await new Promise<void>(r => { img.onload = () => r() })
+    const ratio = img.naturalHeight / img.naturalWidth
+    doc.addImage(b64, 'PNG', 15, 8, 12 / ratio, 12)
+  } catch {}
+
+  doc.setFontSize(16); doc.setTextColor(94, 94, 94)
+  doc.text('Controle Mensuel', 200, 17, { align: 'right' })
+  doc.setFontSize(9); doc.setTextColor(130, 130, 130)
+  doc.text(`Periode: ${start} au ${end}  |  Verifie le ${new Date().toLocaleDateString('fr-CA')}`, 200, 24, { align: 'right' })
+  doc.setDrawColor(94, 94, 94); doc.setLineWidth(0.5); doc.line(15, 29, 195, 29)
+
+  const ccVar = ccActualV !== null ? result.cc.closing - ccActualV : null
+  const capexVar = capexActualV !== null ? result.capex.closing - capexActualV : null
+  const dash = '-'
+
+  let y = 36
+  doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+  doc.text('Recapitulatif des soldes', 15, y); y += 5
+
+  autoTable(doc, {
+    startY: y,
+    head: [['', 'Compte Courant', 'CAPEX']],
+    body: [
+      ['Solde ouverture',         fmtPDF(result.cc.opening),  fmtPDF(result.capex.opening)],
+      ['Entrees periode',         fmtPDF(result.cc.in),        fmtPDF(result.capex.in)],
+      ['Sorties periode',         fmtPDF(result.cc.out),       fmtPDF(result.capex.out)],
+      ['Solde calcule (systeme)', fmtPDF(result.cc.closing),   fmtPDF(result.capex.closing)],
+      ['Solde reel (releve)',     ccActualV  !== null ? fmtPDF(ccActualV)  : dash, capexActualV !== null ? fmtPDF(capexActualV) : dash],
+      ['Ecart',                   ccVar      !== null ? fmtPDF(ccVar)      : dash, capexVar     !== null ? fmtPDF(capexVar)     : dash],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    bodyStyles: { fontSize: 9, cellPadding: 3 },
+    columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 55, halign: 'right' }, 2: { cellWidth: 55, halign: 'right' } },
+    didParseCell: (data: any) => {
+      if (data.section === 'body' && data.row.index === 5) {
+        const val = data.column.index === 1 ? ccVar : capexVar
+        if (val !== null) data.cell.styles.textColor = Math.abs(val) < 0.01 ? [21, 128, 61] : [185, 28, 28]
+        data.cell.styles.fontStyle = 'bold'
+      }
+      if (data.section === 'body' && data.row.index === 3) data.cell.styles.fontStyle = 'bold'
+    },
+  })
+
+  y = (doc as any).lastAutoTable.finalY + 10
+
+  const isConform = (ccVar === null || Math.abs(ccVar) < 0.01) && (capexVar === null || Math.abs(capexVar) < 0.01)
+  doc.setFontSize(12)
+  doc.setTextColor(isConform ? 21 : 185, isConform ? 128 : 28, isConform ? 61 : 28)
+  doc.text(isConform ? 'CONFORME - Soldes verifies' : 'ECART DETECTE - Verification requise', 15, y)
+  y += 8
+
+  if (notesStr) {
+    doc.setFontSize(9); doc.setTextColor(80, 80, 80)
+    doc.text(`Notes: ${notesStr}`, 15, y); y += 8
+  }
+
+  doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+  doc.text(`Transactions de la periode (${result.txCount})`, 15, y); y += 4
+
+  const typeLabels: Record<string, string> = {
+    investissement: 'Investissement', loyer: 'Loyer', loyer_locatif: 'Rev. locatif',
+    revenu: 'Revenu', dividende: 'Dividende', paiement: 'Paiement', depense: 'Depense',
+    capex: 'CAPEX', maintenance: 'Maintenance', admin: 'Admin',
+    remboursement_investisseur: 'Rembours.', transfert: 'Transfert', achat_propriete: 'Achat prop.',
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Date', 'Type', 'Description', 'Montant']],
+    body: result.transactions.map(t => [
+      (t.date || '').slice(0, 10),
+      typeLabels[t.type] || t.type,
+      (t.description || '').slice(0, 60),
+      fmtPDF(t.amount),
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 22 }, 1: { cellWidth: 24 }, 2: { cellWidth: 110 }, 3: { cellWidth: 24, halign: 'right' },
+    },
+  })
+
+  return doc
 }
 
 export default function MonthlyControl({ onClose, onStatusChange }: Props) {
@@ -94,6 +204,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
   const [verifications, setVerifications] = useState<Verification[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [generatingPDF, setGeneratingPDF] = useState(false)
+  const [openingPDF, setOpeningPDF] = useState<string | null>(null)
 
   useEffect(() => { loadVerifications() }, [])
 
@@ -135,11 +246,9 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         return d >= startDate && d <= endDate
       })
 
-      // Solde d'ouverture = cumul de toutes les transactions avant la période
       const ccBefore = before.reduce((s, t) => s + ccContrib(t), 0)
       const capexBefore = before.reduce((s, t) => s + capexContrib(t), 0)
 
-      // Ventilation de la période : entrées positives, sorties = valeur absolue séparée
       const ccIn  = inPeriod.filter(t => ccContrib(t) > 0).reduce((s, t) => s + ccContrib(t), 0)
       const ccOut = inPeriod.filter(t => ccContrib(t) < 0).reduce((s, t) => s + Math.abs(ccContrib(t)), 0)
       const ccClosing = ccBefore + ccIn - ccOut
@@ -179,13 +288,13 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         period_end: endDate,
         cc_opening_balance: calcResult.cc.opening,
         cc_period_in: calcResult.cc.in,
-        cc_period_out: Math.abs(calcResult.cc.out),
+        cc_period_out: calcResult.cc.out,
         cc_calculated_balance: calcResult.cc.closing,
         cc_actual_balance: ccActualVal,
         cc_variance: ccVariance,
         capex_opening_balance: calcResult.capex.opening,
         capex_period_in: calcResult.capex.in,
-        capex_period_out: Math.abs(calcResult.capex.out),
+        capex_period_out: calcResult.capex.out,
         capex_calculated_balance: calcResult.capex.closing,
         capex_actual_balance: capexActualVal,
         capex_variance: capexVariance,
@@ -197,13 +306,32 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
 
       if (saveErr) {
         if (saveErr.message?.includes('relation') || saveErr.code === '42P01') {
-          throw new Error('Table manquante — roulez la migration 123 dans Supabase SQL Editor (fichier: supabase/migrations-investisseur/123-monthly-verifications.sql)')
+          throw new Error('Table manquante — roulez la migration 123 dans Supabase SQL Editor')
         }
         throw saveErr
       }
+
+      // Génération et upload automatique du PDF
+      try {
+        const doc = await buildPDFDoc(calcResult, ccActualVal, capexActualVal, notes, startDate, endDate)
+        const pdfBlob = doc.output('blob')
+        const pdfPath = `monthly-controls/${startDate}_${endDate}.pdf`
+        const { data: uploadData } = await supabase.storage
+          .from('transaction-attachments')
+          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true })
+        if (uploadData) {
+          await supabase.from('monthly_verifications')
+            .update({ pdf_storage_path: uploadData.path })
+            .eq('period_start', startDate)
+            .eq('period_end', endDate)
+        }
+      } catch (pdfErr) {
+        console.warn('PDF upload failed (non-blocking):', pdfErr)
+      }
+
       setSaved(true)
       await loadVerifications()
-      setTimeout(() => onClose?.(), 1200)
+      setTimeout(() => onClose?.(), 1500)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -215,118 +343,71 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
     if (!calcResult) return
     setGeneratingPDF(true)
     try {
-      const jsPDF = (await import('jspdf')).default
-      const autoTable = (await import('jspdf-autotable')).default
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-
-      // Logo
-      try {
-        const res = await fetch('/logo-cerdia3.png')
-        const blob = await res.blob()
-        const b64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
-        })
-        const img = new Image(); img.src = b64
-        await new Promise<void>(r => { img.onload = () => r() })
-        const ratio = img.naturalHeight / img.naturalWidth
-        doc.addImage(b64, 'PNG', 15, 8, 12 / ratio, 12)
-      } catch {}
-
-      doc.setFontSize(16); doc.setTextColor(94, 94, 94)
-      doc.text('Controle Mensuel', 200, 17, { align: 'right' })
-      doc.setFontSize(9); doc.setTextColor(130, 130, 130)
-      doc.text(`Periode: ${startDate} au ${endDate}  |  Verifie le ${new Date().toLocaleDateString('fr-CA')}`, 200, 24, { align: 'right' })
-      doc.setDrawColor(94, 94, 94); doc.setLineWidth(0.5); doc.line(15, 29, 195, 29)
-
       const ccActualVal = ccActual ? parseFloat(ccActual.replace(',', '.')) : null
       const capexActualVal = capexActual ? parseFloat(capexActual.replace(',', '.')) : null
-      const ccVar = ccActualVal !== null ? calcResult.cc.closing - ccActualVal : null
-      const capexVar = capexActualVal !== null ? calcResult.capex.closing - capexActualVal : null
-
-      // Formatage PDF : eviter les caracteres non-Latin1 (emojis, tirets longs, accents complexes)
-      const fmtPDF = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $'
-      const dash = '-'
-
-      let y = 36
-      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
-      doc.text('Recapitulatif des soldes', 15, y); y += 5
-
-      autoTable(doc, {
-        startY: y,
-        head: [['', 'Compte Courant', 'CAPEX']],
-        body: [
-          ['Solde ouverture', fmtPDF(calcResult.cc.opening), fmtPDF(calcResult.capex.opening)],
-          ['Entrees periode', fmtPDF(calcResult.cc.in), fmtPDF(calcResult.capex.in)],
-          ['Sorties periode', fmtPDF(calcResult.cc.out), fmtPDF(calcResult.capex.out)],
-          ['Solde calcule (systeme)', fmtPDF(calcResult.cc.closing), fmtPDF(calcResult.capex.closing)],
-          ['Solde reel (releve)', ccActualVal !== null ? fmtPDF(ccActualVal) : dash, capexActualVal !== null ? fmtPDF(capexActualVal) : dash],
-          ['Ecart', ccVar !== null ? fmtPDF(ccVar) : dash, capexVar !== null ? fmtPDF(capexVar) : dash],
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
-        bodyStyles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 55, halign: 'right' }, 2: { cellWidth: 55, halign: 'right' } },
-        didParseCell: (data: any) => {
-          if (data.section === 'body' && data.row.index === 5) {
-            const isCC = data.column.index === 1
-            const val = isCC ? ccVar : capexVar
-            if (val !== null) data.cell.styles.textColor = Math.abs(val) < 0.01 ? [21, 128, 61] : [185, 28, 28]
-            data.cell.styles.fontStyle = 'bold'
-          }
-          if (data.section === 'body' && data.row.index === 3) data.cell.styles.fontStyle = 'bold'
-        },
-      })
-
-      y = (doc as any).lastAutoTable.finalY + 10
-
-      // Statut
-      const isConform = (ccVar === null || Math.abs(ccVar) < 0.01) && (capexVar === null || Math.abs(capexVar) < 0.01)
-      doc.setFontSize(12)
-      doc.setTextColor(isConform ? 21 : 185, isConform ? 128 : 28, isConform ? 61 : 28)
-      doc.text(isConform ? 'CONFORME - Soldes verifies' : 'ECART DETECTE - Verification requise', 15, y)
-      y += 8
-
-      if (notes) {
-        doc.setFontSize(9); doc.setTextColor(80, 80, 80)
-        doc.text(`Notes: ${notes}`, 15, y); y += 8
-      }
-
-      // Transactions de la periode
-      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
-      doc.text(`Transactions de la periode (${calcResult.txCount})`, 15, y); y += 4
-
-      const typeLabels: Record<string, string> = {
-        investissement: 'Investissement', loyer: 'Loyer', loyer_locatif: 'Rev. locatif',
-        revenu: 'Revenu', dividende: 'Dividende', paiement: 'Paiement', depense: 'Depense',
-        capex: 'CAPEX', maintenance: 'Maintenance', admin: 'Admin',
-        remboursement_investisseur: 'Rembours.', transfert: 'Transfert', achat_propriete: 'Achat prop.',
-      }
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Date', 'Type', 'Description', 'Montant']],
-        body: calcResult.transactions.map(t => [
-          (t.date || '').slice(0, 10),
-          typeLabels[t.type] || t.type,
-          (t.description || '').slice(0, 60),
-          fmtPDF(t.amount),
-        ]),
-        theme: 'striped',
-        headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 7.5, cellPadding: 2 },
-        columnStyles: {
-          0: { cellWidth: 22 }, 1: { cellWidth: 24 }, 2: { cellWidth: 110 }, 3: { cellWidth: 24, halign: 'right' },
-        },
-      })
-
+      const doc = await buildPDFDoc(calcResult, ccActualVal, capexActualVal, notes, startDate, endDate)
       doc.save(`controle_mensuel_${startDate}_${endDate}_CERDIA.pdf`)
     } catch (e) {
       console.error(e)
     } finally {
       setGeneratingPDF(false)
+    }
+  }
+
+  const handleOpenPDF = async (storagePath: string, verificationId: string) => {
+    setOpeningPDF(verificationId)
+    try {
+      const { data } = await supabase.storage
+        .from('transaction-attachments')
+        .createSignedUrl(storagePath, 3600)
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setOpeningPDF(null)
+    }
+  }
+
+  const regeneratePDF = async (v: Verification) => {
+    setOpeningPDF(v.id)
+    try {
+      const { data: allTx } = await supabase
+        .from('transactions')
+        .select('*')
+        .lte('date', v.period_end + 'T23:59:59')
+        .neq('status', 'cancelled')
+        .order('date', { ascending: true })
+
+      const inPeriod = (allTx || []).filter(t => {
+        const d = (t.date || '').slice(0, 10)
+        return d >= v.period_start && d <= v.period_end
+      })
+
+      const result: CalcResult = {
+        cc:    { opening: v.cc_opening_balance,    in: v.cc_period_in,    out: v.cc_period_out,    closing: v.cc_calculated_balance },
+        capex: { opening: v.capex_opening_balance, in: v.capex_period_in, out: v.capex_period_out, closing: v.capex_calculated_balance },
+        txCount: inPeriod.length,
+        transactions: inPeriod,
+      }
+
+      const doc = await buildPDFDoc(result, v.cc_actual_balance, v.capex_actual_balance, v.notes || '', v.period_start, v.period_end)
+      const pdfBlob = doc.output('blob')
+      const pdfPath = `monthly-controls/${v.period_start}_${v.period_end}.pdf`
+
+      const { data: uploadData } = await supabase.storage
+        .from('transaction-attachments')
+        .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true })
+
+      if (uploadData) {
+        await supabase.from('monthly_verifications')
+          .update({ pdf_storage_path: uploadData.path })
+          .eq('id', v.id)
+        await loadVerifications()
+      }
+    } catch (e) {
+      console.error('regeneratePDF error:', e)
+    } finally {
+      setOpeningPDF(null)
     }
   }
 
@@ -475,7 +556,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
               />
             </div>
             {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
-            {saved && <p className="text-sm text-green-600 bg-green-50 rounded p-2">✅ Vérification enregistrée</p>}
+            {saved && <p className="text-sm text-green-600 bg-green-50 rounded p-2">✅ Vérification enregistrée et PDF sauvegardé</p>}
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={handleSave} disabled={saving}
@@ -488,7 +569,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 <FileDown size={14} />
-                {generatingPDF ? 'Génération...' : 'Exporter PDF'}
+                {generatingPDF ? 'Génération...' : 'Télécharger PDF'}
               </button>
             </div>
           </div>
@@ -510,38 +591,64 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-500">Période</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500">Solde CC calculé</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500">Solde CC réel</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500">Écart CC</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500">Solde CAPEX</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500">Écart CAPEX</th>
-                    <th className="px-4 py-2 text-center font-medium text-gray-500">Statut</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-500">Vérifié le</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-500">Période</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">CC calculé</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">CC réel</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">Écart CC</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">CAPEX calculé</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">Écart CAPEX</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-500">Statut</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-500">Vérifié le</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-500">Rapport</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {verifications.map(v => (
                     <tr key={v.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
                         {v.period_start} → {v.period_end}
                       </td>
-                      <td className="px-4 py-2 text-right">{fmt(v.cc_calculated_balance)}</td>
-                      <td className="px-4 py-2 text-right">{v.cc_actual_balance !== null ? fmt(v.cc_actual_balance) : '—'}</td>
-                      <td className={`px-4 py-2 text-right font-semibold ${v.cc_variance !== null && Math.abs(v.cc_variance) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className="px-3 py-2 text-right">{fmt(v.cc_calculated_balance)}</td>
+                      <td className="px-3 py-2 text-right">{v.cc_actual_balance !== null ? fmt(v.cc_actual_balance) : '—'}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${v.cc_variance !== null && Math.abs(v.cc_variance) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
                         {v.cc_variance !== null ? fmt(v.cc_variance) : '—'}
                       </td>
-                      <td className="px-4 py-2 text-right">{fmt(v.capex_calculated_balance)}</td>
-                      <td className={`px-4 py-2 text-right font-semibold ${v.capex_variance !== null && Math.abs(v.capex_variance) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className="px-3 py-2 text-right">{fmt(v.capex_calculated_balance)}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${v.capex_variance !== null && Math.abs(v.capex_variance) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
                         {v.capex_variance !== null ? fmt(v.capex_variance) : '—'}
                       </td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-3 py-2 text-center">
                         {v.status === 'verified'
                           ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">✅ Conforme</span>
                           : <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">⚠️ Écart</span>}
                       </td>
-                      <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
+                      <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                         {new Date(v.verified_at).toLocaleDateString('fr-CA')}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {v.pdf_storage_path ? (
+                          <button
+                            onClick={() => handleOpenPDF(v.pdf_storage_path!, v.id)}
+                            disabled={openingPDF === v.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                          >
+                            {openingPDF === v.id
+                              ? <RefreshCw size={11} className="animate-spin" />
+                              : <ExternalLink size={11} />}
+                            Ouvrir
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => regeneratePDF(v)}
+                            disabled={openingPDF === v.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
+                          >
+                            {openingPDF === v.id
+                              ? <RefreshCw size={11} className="animate-spin" />
+                              : <FileDown size={11} />}
+                            Générer
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
