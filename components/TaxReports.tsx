@@ -342,7 +342,7 @@ export default function TaxReports() {
       const jsPDF = (await import('jspdf')).default
       const autoTable = (await import('jspdf-autotable')).default
 
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
 
       const loadImageAsBase64 = async (url: string): Promise<string> => {
         try {
@@ -379,13 +379,13 @@ export default function TaxReports() {
         }
         doc.setFontSize(18)
         doc.setTextColor(94, 94, 94)
-        doc.text('Rapport Comptable', 200, 17, { align: 'right' })
+        doc.text('Rapport Comptable', 282, 17, { align: 'right' })
         doc.setFontSize(9)
         doc.setTextColor(130, 130, 130)
-        doc.text(subtitle, 200, 24, { align: 'right' })
+        doc.text(subtitle, 282, 24, { align: 'right' })
         doc.setDrawColor(94, 94, 94)
         doc.setLineWidth(0.5)
-        doc.line(15, 29, 195, 29)
+        doc.line(15, 29, 282, 29)
         return 36
       }
 
@@ -436,9 +436,10 @@ export default function TaxReports() {
         head: [['Groupe', 'Transactions', 'Montant']],
         body: summaryBody,
         theme: 'grid',
+        margin: { left: 15, right: 15 },
         headStyles: { fillColor: [94, 94, 94], textColor: 255, fontStyle: 'bold', fontSize: 9 },
         bodyStyles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
+        columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'center' }, 2: { cellWidth: 40, halign: 'right' } },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.row.index === summaryBody.length - 1) {
             data.cell.styles.fontStyle = 'bold'
@@ -454,7 +455,7 @@ export default function TaxReports() {
       }
 
       const addGroupTable = async (groupLabel: string, color: [number, number, number], txs: Transaction[]) => {
-        if (yPos > 220) {
+        if (yPos > 175) {
           doc.addPage()
           yPos = await addPageHeader(subtitle)
         }
@@ -467,7 +468,7 @@ export default function TaxReports() {
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(60, 60, 60)
         doc.setFontSize(9)
-        doc.text(`Total: ${fmt(groupTotal)}`, 195, yPos, { align: 'right' })
+        doc.text(`Total: ${fmt(groupTotal)}`, 282, yPos, { align: 'right' })
         yPos += 3
 
         const rows = txs.map(tx => {
@@ -490,15 +491,17 @@ export default function TaxReports() {
           theme: 'striped',
           headStyles: { fillColor: color, textColor: 255, fontStyle: 'bold', fontSize: 8 },
           bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+          margin: { left: 15, right: 15 },
           columnStyles: {
-            0: { cellWidth: 18 },
-            1: { cellWidth: 32 },
-            2: { cellWidth: 24 },
-            3: { cellWidth: 58 },
-            4: { cellWidth: 22 },
-            5: { cellWidth: 18, halign: 'right' },
-            6: { cellWidth: 28 },
+            0: { cellWidth: 20 },   // Date
+            1: { cellWidth: 42 },   // Catégorie
+            2: { cellWidth: 30 },   // Propriété
+            3: { cellWidth: 82 },   // Description
+            4: { cellWidth: 30 },   // Vendeur
+            5: { cellWidth: 22, halign: 'right' }, // Montant
+            6: { cellWidth: 21 },   // Pièce jointe
           },
+          // Total: 20+42+30+82+30+22+21 = 247mm dans 267mm utiles ✓
           didParseCell: (data: any) => {
             if (data.section === 'body' && data.column.index === 6) {
               const tx = txs[data.row.index]
