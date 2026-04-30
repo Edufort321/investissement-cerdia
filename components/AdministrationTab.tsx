@@ -2501,9 +2501,21 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         </div>
       </div>
 
-      {/* Formulaire */}
+      {/* Backdrop modal édition */}
+      {showAddTransactionForm && editingTransactionId && (
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={resetTransactionForm} />
+      )}
+
+      {/* Formulaire — inline pour ajout, modal pour édition */}
       {showAddTransactionForm && (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <div className={editingTransactionId
+          ? 'fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 pt-10 pb-8'
+          : 'bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200'
+        }>
+          <div className={editingTransactionId
+            ? 'bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-4xl p-4 sm:p-6 my-auto'
+            : 'w-full'
+          }>
           <h3 className="text-base sm:text-lg font-semibold mb-4">
             {editingTransactionId ? 'Modifier la transaction' : 'Nouvelle transaction'}
           </h3>
@@ -3388,6 +3400,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
