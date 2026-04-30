@@ -2509,7 +2509,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           </h3>
           <form onSubmit={handleTransactionSubmit} className="space-y-6">
             {/* SECTION 1: INFORMATIONS DE BASE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">📅 Date *</label>
                 <input
@@ -2555,6 +2555,50 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </optgroup>
                   <optgroup label="── Autre ──">
                     <option value="transfert">Transfert (courant ↔ CAPEX)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🧾 Catégorie fiscale</label>
+                <select
+                  value={transactionFormData.fiscal_category || ''}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="">— Aucune —</option>
+                  <optgroup label="── REVENUS ──">
+                    <option value="rental_income">Revenu locatif</option>
+                    <option value="dividend_income">Dividende / distribution</option>
+                    <option value="interest_income">Intérêts reçus</option>
+                    <option value="other_income">Autre revenu</option>
+                  </optgroup>
+                  <optgroup label="── OPEX (déduit immédiatement) ──">
+                    <option value="management_fee">Frais de gestion</option>
+                    <option value="insurance">Assurance propriété</option>
+                    <option value="property_tax">Taxes foncières</option>
+                    <option value="condo_fees">Frais de condo / charges</option>
+                    <option value="utilities">Services publics (eau, élec.)</option>
+                    <option value="maintenance_repair">Entretien & réparations</option>
+                    <option value="professional_fees">Honoraires prof. (comptable, notaire)</option>
+                    <option value="advertising">Publicité / location</option>
+                    <option value="travel">Frais de déplacement</option>
+                    <option value="interest_expense">Intérêts hypothécaires</option>
+                    <option value="bank_fees">Frais bancaires / conversion</option>
+                    <option value="other_opex">Autre OPEX</option>
+                  </optgroup>
+                  <optgroup label="── CAPEX (amorti sur plusieurs années) ──">
+                    <option value="renovation">Rénovation majeure</option>
+                    <option value="equipment">Équipements & appareils</option>
+                    <option value="furnishing">Ameublement</option>
+                    <option value="acquisition_costs">Frais d'acquisition (notaire, inspection)</option>
+                    <option value="land_improvement">Amélioration terrain</option>
+                    <option value="other_capex">Autre CAPEX</option>
+                  </optgroup>
+                  <optgroup label="── FINANCEMENT ──">
+                    <option value="loan_principal">Remboursement capital prêt</option>
+                    <option value="investor_capital">Capital investisseur</option>
+                    <option value="investor_repayment">Remboursement investisseur</option>
                   </optgroup>
                 </select>
               </div>
@@ -3181,50 +3225,6 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="0.00"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie fiscale</label>
-                  <select
-                    value={transactionFormData.fiscal_category || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                  >
-                    <option value="">— Aucune —</option>
-                    <optgroup label="── REVENUS ──">
-                      <option value="rental_income">Revenu locatif</option>
-                      <option value="dividend_income">Dividende / distribution</option>
-                      <option value="interest_income">Intérêts reçus</option>
-                      <option value="other_income">Autre revenu</option>
-                    </optgroup>
-                    <optgroup label="── OPEX (déduit immédiatement) ──">
-                      <option value="management_fee">Frais de gestion</option>
-                      <option value="insurance">Assurance propriété</option>
-                      <option value="property_tax">Taxes foncières</option>
-                      <option value="condo_fees">Frais de condo / charges</option>
-                      <option value="utilities">Services publics (eau, élec.)</option>
-                      <option value="maintenance_repair">Entretien & réparations</option>
-                      <option value="professional_fees">Honoraires prof. (comptable, notaire)</option>
-                      <option value="advertising">Publicité / location</option>
-                      <option value="travel">Frais de déplacement</option>
-                      <option value="interest_expense">Intérêts hypothécaires</option>
-                      <option value="bank_fees">Frais bancaires / conversion</option>
-                      <option value="other_opex">Autre OPEX</option>
-                    </optgroup>
-                    <optgroup label="── CAPEX (amorti sur plusieurs années) ──">
-                      <option value="renovation">Rénovation majeure</option>
-                      <option value="equipment">Équipements & appareils</option>
-                      <option value="furnishing">Ameublement</option>
-                      <option value="acquisition_costs">Frais d'acquisition (notaire, inspection)</option>
-                      <option value="land_improvement">Amélioration terrain</option>
-                      <option value="other_capex">Autre CAPEX</option>
-                    </optgroup>
-                    <optgroup label="── FINANCEMENT ──">
-                      <option value="loan_principal">Remboursement capital prêt</option>
-                      <option value="investor_capital">Capital investisseur</option>
-                      <option value="investor_repayment">Remboursement investisseur</option>
-                    </optgroup>
-                  </select>
                 </div>
 
                 <div>
