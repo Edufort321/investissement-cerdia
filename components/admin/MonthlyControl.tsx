@@ -33,24 +33,34 @@ interface CalcResult {
   transactions: any[]
 }
 
-// Types qui affectent le compte courant
-const CC_TYPES = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende',
-                  'paiement', 'depense', 'admin', 'maintenance', 'remboursement_investisseur', 'transfert']
-// Types qui affectent le CAPEX
-const CAPEX_TYPES = ['capex']
+// Logique identique à get_financial_summary (migration 120) — montants toujours positifs
+const CC_INCOME = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
+const CC_EXPENSE = ['paiement', 'achat_propriete', 'capex', 'maintenance', 'admin',
+                    'depense', 'remboursement_investisseur', 'courant', 'rnd']
 
-function isCCTx(t: any): boolean {
-  if (t.type === 'capex') return false
-  if (t.type === 'achat_propriete') return false
-  if (t.type === 'loyer_locatif' && t.target_account === 'capex') return false
-  return CC_TYPES.includes(t.type) || t.affects_compte_courant === true
+// Contribution nette d'une transaction au compte courant
+function ccContrib(t: any): number {
+  const amt = Math.abs(t.amount || 0)
+  // loyer_locatif ciblant CAPEX → pas dans CC
+  if (t.type === 'loyer_locatif' && t.target_account === 'capex') return 0
+  // transfert CC→CAPEX : sort du CC
+  if (t.type === 'transfert' && t.transfer_source === 'compte_courant' && t.target_account === 'capex') return -amt
+  // transfert CAPEX→CC : entre dans CC
+  if (t.type === 'transfert' && t.transfer_source === 'capex' && t.target_account === 'compte_courant') return amt
+  if (CC_INCOME.includes(t.type)) return amt
+  if (CC_EXPENSE.includes(t.type) && t.affects_compte_courant !== false) return -amt
+  return 0
 }
 
-function isCapexTx(t: any): boolean {
-  if (t.type === 'capex') return true
-  if (t.type === 'loyer_locatif' && t.target_account === 'capex') return true
-  if (t.type === 'transfert' && t.target_account === 'capex') return true
-  return false
+// Contribution nette au compte CAPEX
+function capexContrib(t: any): number {
+  const amt = Math.abs(t.amount || 0)
+  if (t.type === 'loyer_locatif' && t.target_account === 'capex') return amt
+  if (t.type === 'transfert' && t.target_account === 'capex') return amt
+  if (t.type === 'transfert' && t.transfer_source === 'capex') return -amt
+  if (t.type === 'capex' && t.affects_compte_courant !== false) return amt
+  if (t.type === 'achat_propriete' && t.target_account === 'capex') return -amt
+  return 0
 }
 
 const prevMonthStart = () => {
@@ -125,18 +135,18 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         return d >= startDate && d <= endDate
       })
 
-      const sum = (arr: any[], filter: (t: any) => boolean) =>
-        arr.filter(filter).reduce((s, t) => s + (t.amount || 0), 0)
+      // Solde d'ouverture = cumul de toutes les transactions avant la période
+      const ccBefore = before.reduce((s, t) => s + ccContrib(t), 0)
+      const capexBefore = before.reduce((s, t) => s + capexContrib(t), 0)
 
-      const ccBefore = sum(before, isCCTx)
-      const ccIn = sum(inPeriod.filter(t => isCCTx(t) && t.amount > 0), () => true)
-      const ccOut = sum(inPeriod.filter(t => isCCTx(t) && t.amount < 0), () => true)
-      const ccClosing = ccBefore + ccIn + ccOut  // ccOut is already negative
+      // Ventilation de la période : entrées positives, sorties = valeur absolue séparée
+      const ccIn  = inPeriod.filter(t => ccContrib(t) > 0).reduce((s, t) => s + ccContrib(t), 0)
+      const ccOut = inPeriod.filter(t => ccContrib(t) < 0).reduce((s, t) => s + Math.abs(ccContrib(t)), 0)
+      const ccClosing = ccBefore + ccIn - ccOut
 
-      const capexBefore = sum(before, isCapexTx)
-      const capexIn = sum(inPeriod.filter(t => isCapexTx(t) && t.amount > 0), () => true)
-      const capexOut = sum(inPeriod.filter(t => isCapexTx(t) && t.amount < 0), () => true)
-      const capexClosing = capexBefore + capexIn + capexOut
+      const capexIn  = inPeriod.filter(t => capexContrib(t) > 0).reduce((s, t) => s + capexContrib(t), 0)
+      const capexOut = inPeriod.filter(t => capexContrib(t) < 0).reduce((s, t) => s + Math.abs(capexContrib(t)), 0)
+      const capexClosing = capexBefore + capexIn - capexOut
 
       setCalcResult({
         cc: { opening: ccBefore, in: ccIn, out: ccOut, closing: ccClosing },
