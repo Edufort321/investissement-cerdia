@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown, Paperclip } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown, Paperclip, Menu } from 'lucide-react'
 import TransactionAttachmentsManager from './admin/TransactionAttachmentsManager'
+import MonthlyControl from './admin/MonthlyControl'
 import TaxReports from './TaxReports'
 import PerformanceTracker from './PerformanceTracker'
 import OccupationStats from './OccupationStats'
@@ -154,7 +155,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
-  const [txInnerTab, setTxInnerTab] = useState<'liste' | 'guide'>('liste')
+  const [txInnerTab, setTxInnerTab] = useState<'liste' | 'guide' | 'controle'>('liste')
+  const [showTxMenu, setShowTxMenu] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
@@ -2344,32 +2346,66 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const renderTransactionsTab = () => (
     <div className="space-y-6">
-      {/* Sous-onglets */}
-      <div className="flex gap-1 border-b border-gray-200 pb-0">
+      {/* Barre supérieure : hamburger + Nouvelle transaction */}
+      <div className="flex items-center justify-between gap-3">
+        {/* Hamburger menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowTxMenu(v => !v)}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Menu size={18} />
+            <span className="hidden sm:inline text-gray-700">Menu</span>
+          </button>
+          {showTxMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowTxMenu(false)} />
+              <div className="absolute left-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg w-56 py-1 overflow-hidden">
+                <button
+                  onClick={() => { setTxInnerTab('controle'); setShowTxMenu(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'controle' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
+                >
+                  🗓️ Contrôle mensuel
+                </button>
+                <button
+                  onClick={() => { setTxInnerTab('guide'); setShowTxMenu(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
+                >
+                  📖 Guide de saisie
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                <button
+                  onClick={() => { exportTransactionsPDF(); setShowTxMenu(false) }}
+                  disabled={exportingPDF}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  <FileDown size={15} />
+                  {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+                </button>
+                <div className="px-4 py-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
+                    <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="accent-gray-700 w-3.5 h-3.5" />
+                    Inclure liens PJ dans PDF
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Bouton Nouvelle Transaction toujours visible */}
         <button
-          onClick={() => setTxInnerTab('liste')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
-            txInnerTab === 'liste'
-              ? 'border-gray-800 text-gray-900 bg-white'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+          onClick={() => { setTxInnerTab('liste'); setShowAddTransactionForm(!showAddTransactionForm) }}
+          className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors text-sm font-medium"
         >
-          📋 Transactions
-        </button>
-        <button
-          onClick={() => setTxInnerTab('guide')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
-            txInnerTab === 'guide'
-              ? 'border-gray-800 text-gray-900 bg-white'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          📖 Guide de saisie
+          {showAddTransactionForm ? <X size={18} /> : <Plus size={18} />}
+          {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
         </button>
       </div>
 
-      {/* Contenu onglet Guide */}
+      {/* Contenu selon onglet actif */}
       {txInnerTab === 'guide' && renderTransactionGuide()}
+      {txInnerTab === 'controle' && <MonthlyControl />}
 
       {/* Contenu onglet Liste (contenu existant) */}
       {txInnerTab === 'liste' && <div className="space-y-6">
