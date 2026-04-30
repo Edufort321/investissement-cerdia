@@ -315,6 +315,7 @@ export default function TaxReports() {
     professional_fees: 'Honoraires prof. (comptable, notaire)', advertising: 'Publicité / location',
     travel: 'Frais de déplacement', interest_expense: 'Intérêts hypothécaires',
     bank_fees: 'Frais bancaires / conversion', other_opex: 'Autre OPEX',
+    property_purchase: 'Acquisition propriété (prix d\'achat)',
     renovation: 'Rénovation majeure', equipment: 'Équipements & appareils',
     furnishing: 'Ameublement', acquisition_costs: "Frais d'acquisition (notaire, inspection)",
     land_improvement: 'Amélioration terrain', other_capex: 'Autre CAPEX',
@@ -325,7 +326,7 @@ export default function TaxReports() {
   const FISCAL_GROUPS: { label: string; color: string; cats: string[] }[] = [
     { label: 'REVENUS', color: 'green', cats: ['rental_income', 'dividend_income', 'interest_income', 'other_income'] },
     { label: 'OPEX — Déduit immédiatement', color: 'blue', cats: ['management_fee', 'insurance', 'property_tax', 'condo_fees', 'utilities', 'maintenance_repair', 'professional_fees', 'advertising', 'travel', 'interest_expense', 'bank_fees', 'other_opex'] },
-    { label: 'CAPEX — Amorti sur plusieurs années', color: 'orange', cats: ['renovation', 'equipment', 'furnishing', 'acquisition_costs', 'land_improvement', 'other_capex'] },
+    { label: 'CAPEX — Amorti sur plusieurs années', color: 'orange', cats: ['property_purchase', 'renovation', 'equipment', 'furnishing', 'acquisition_costs', 'land_improvement', 'other_capex'] },
     { label: 'FINANCEMENT', color: 'purple', cats: ['loan_principal', 'investor_capital', 'investor_repayment'] },
   ]
 

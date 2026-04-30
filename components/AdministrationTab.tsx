@@ -2600,6 +2600,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     <option value="other_opex">Autre OPEX</option>
                   </optgroup>
                   <optgroup label="── CAPEX (amorti sur plusieurs années) ──">
+                    <option value="property_purchase">Acquisition propriété (prix d'achat)</option>
                     <option value="renovation">Rénovation majeure</option>
                     <option value="equipment">Équipements & appareils</option>
                     <option value="furnishing">Ameublement</option>
@@ -3451,7 +3452,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                               {({
                                 rental_income: 'Rev. locatif', dividend_income: 'Dividende', interest_income: 'Intérêts reçus', other_income: 'Autre revenu',
                                 management_fee: 'Gest.', insurance: 'Assurance', property_tax: 'Taxes fonc.', condo_fees: 'Condo', utilities: 'Services pub.', maintenance_repair: 'Entretien', professional_fees: 'Honoraires', advertising: 'Publicité', travel: 'Déplacement', interest_expense: 'Intérêts hyp.', bank_fees: 'Frais banc.', other_opex: 'Autre OPEX',
-                                renovation: 'Rénovation', equipment: 'Équipements', furnishing: 'Ameublement', acquisition_costs: "Frais acquis.", land_improvement: 'Amél. terrain', other_capex: 'Autre CAPEX',
+                                property_purchase: 'Achat propriété', renovation: 'Rénovation', equipment: 'Équipements', furnishing: 'Ameublement', acquisition_costs: "Frais acquis.", land_improvement: 'Amél. terrain', other_capex: 'Autre CAPEX',
                                 loan_principal: 'Rembours. prêt', investor_capital: 'Capital inv.', investor_repayment: 'Rembours. inv.',
                               } as Record<string, string>)[transaction.fiscal_category] || transaction.fiscal_category}
                             </span>
