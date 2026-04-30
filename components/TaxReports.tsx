@@ -79,6 +79,10 @@ export default function TaxReports() {
     fetchData()
   }, [selectedYear])
 
+  useEffect(() => {
+    if (activeReport === 'comptable') fetchData()
+  }, [activeReport])
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -886,14 +890,29 @@ export default function TaxReports() {
         <div className="space-y-4 sm:space-y-6">
           {/* Header + Export */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="text-base font-semibold text-gray-900">Rapport Comptable {selectedYear}</h4>
-              <p className="text-xs text-gray-500 mt-0.5">Transactions groupées par catégorie fiscale — pièces jointes avec liens cliquables</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h4 className="text-base font-semibold text-gray-900">Rapport Comptable</h4>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
+              >
+                {years.map(year => <option key={year} value={year}>{year}</option>)}
+              </select>
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                title="Recharger les données"
+              >
+                <Calendar size={14} className={loading ? 'animate-spin' : ''} />
+                {loading ? 'Chargement...' : 'Actualiser'}
+              </button>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={generateComptablePDF}
-                disabled={generatingPDF}
+                disabled={generatingPDF || loading}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 <Download size={16} />
@@ -901,7 +920,8 @@ export default function TaxReports() {
               </button>
               <button
                 onClick={generateComptableCSV}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={loading}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 title="Export CSV brut pour import comptable"
               >
                 <FileText size={14} />
@@ -909,6 +929,9 @@ export default function TaxReports() {
               </button>
             </div>
           </div>
+          {loading && (
+            <div className="text-center py-8 text-sm text-gray-500">Chargement des transactions...</div>
+          )}
 
           {/* Résumé rapide */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
