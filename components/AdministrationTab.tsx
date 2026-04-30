@@ -154,6 +154,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
+  const [txInnerTab, setTxInnerTab] = useState<'liste' | 'guide'>('liste')
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [exportingInvestorId, setExportingInvestorId] = useState<string | null>(null)
@@ -2130,8 +2131,249 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     }
   }
 
+  const renderTransactionGuide = () => (
+    <div className="space-y-6 max-w-3xl">
+
+      {/* Intro */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <h3 className="text-base font-bold text-blue-900 mb-1">Guide de saisie — Transactions</h3>
+        <p className="text-sm text-blue-800">
+          Ce guide explique comment enregistrer correctement une transaction pour que les rapports financiers,
+          le NAV et les déclarations fiscales soient exacts. Chaque transaction doit être accompagnée
+          d'une <strong>pièce jointe (facture ou reçu)</strong> comme preuve comptable.
+        </p>
+      </div>
+
+      {/* Étape 1 */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2">
+          <span className="bg-white text-gray-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">1</span>
+          <span className="font-semibold text-sm">Champs obligatoires</span>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { champ: '📅 Date', desc: 'Date réelle de la transaction (pas la date de saisie). Pour une facture reçue le 15 mars, inscrire 2025-03-15.' },
+              { champ: '📋 Type', desc: 'Catégorie principale de la transaction (ex: Dépense, Paiement, Investissement). Détermine l\'impact sur le compte courant.' },
+              { champ: '💰 Montant', desc: 'Montant dans la devise d\'origine (USD ou CAD). Le système convertit automatiquement en CAD via le taux du jour.' },
+              { champ: '📝 Description', desc: 'Description courte et précise. Ex: "Facture électricité mars 2025 — Plaza Colonia" (éviter "dépense" seul).' },
+            ].map(({ champ, desc }) => (
+              <div key={champ} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                <div className="font-semibold text-sm text-gray-800 mb-1">{champ}</div>
+                <div className="text-xs text-gray-600">{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Étape 2 */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2">
+          <span className="bg-white text-gray-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">2</span>
+          <span className="font-semibold text-sm">Catégorie fiscale — choisir le bon type</span>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-gray-600 mb-3">
+            La catégorie fiscale détermine le traitement comptable et fiscal. En cas de doute, consultez votre comptable.
+          </p>
+
+          {/* OPEX */}
+          <div>
+            <div className="text-xs font-bold text-green-700 uppercase tracking-wide mb-2">OPEX — Déduit l'année courante</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-green-50">
+                    <th className="text-left p-2 text-green-800 font-semibold border border-green-100">Catégorie</th>
+                    <th className="text-left p-2 text-green-800 font-semibold border border-green-100">Exemples</th>
+                    <th className="text-left p-2 text-green-800 font-semibold border border-green-100">Preuve requise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['Frais de gestion', 'Honoraires gestionnaire immobilier, commission agence', 'Facture + contrat'],
+                    ['Assurance propriété', 'Prime annuelle, assurance responsabilité', 'Police d\'assurance ou reçu'],
+                    ['Taxes foncières', 'Taxes municipales, scolaires', 'Avis de cotisation municipal'],
+                    ['Frais de condo', 'Charges mensuelles copropriété', 'Relevé de charges'],
+                    ['Services publics', 'Électricité, eau, gaz, internet', 'Facture du fournisseur'],
+                    ['Entretien & réparations', 'Peinture, plomberie mineure, nettoyage', 'Facture entrepreneur'],
+                    ['Intérêts hypothécaires', 'Intérêts sur prêt (pas le capital)', 'Relevé annuel prêteur'],
+                    ['Honoraires professionnels', 'Comptable, avocat, notaire (suivi)', 'Facture professionnelle'],
+                  ].map(([cat, ex, preuve]) => (
+                    <tr key={cat} className="border-b border-green-50 hover:bg-green-50/50">
+                      <td className="p-2 border border-green-100 font-medium text-gray-800">{cat}</td>
+                      <td className="p-2 border border-green-100 text-gray-600">{ex}</td>
+                      <td className="p-2 border border-green-100 text-gray-500 italic">{preuve}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* CAPEX */}
+          <div className="mt-4">
+            <div className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">CAPEX — Amorti sur plusieurs années</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-blue-50">
+                    <th className="text-left p-2 text-blue-800 font-semibold border border-blue-100">Catégorie</th>
+                    <th className="text-left p-2 text-blue-800 font-semibold border border-blue-100">Exemples</th>
+                    <th className="text-left p-2 text-blue-800 font-semibold border border-blue-100">Preuve requise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['Rénovation majeure', 'Refaire la toiture, fenêtres, fondations, salle de bain complète', 'Contrat + factures entrepreneur'],
+                    ['Équipements', 'Électroménagers, système HVAC, chauffe-eau', 'Facture d\'achat + bon de livraison'],
+                    ['Ameublement', 'Meubles, décorations pour location meublée', 'Factures d\'achat'],
+                    ['Frais d\'acquisition', 'Notaire, inspection, droits de mutation', 'Facture notaire + relevé'],
+                  ].map(([cat, ex, preuve]) => (
+                    <tr key={cat} className="border-b border-blue-50 hover:bg-blue-50/50">
+                      <td className="p-2 border border-blue-100 font-medium text-gray-800">{cat}</td>
+                      <td className="p-2 border border-blue-100 text-gray-600">{ex}</td>
+                      <td className="p-2 border border-blue-100 text-gray-500 italic">{preuve}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+            <p className="text-xs text-amber-800">
+              <strong>Règle clé OPEX vs CAPEX :</strong> Si la dépense <em>améliore ou prolonge la durée de vie</em> de la propriété → CAPEX.
+              Si elle <em>maintient l'état existant</em> → OPEX. En cas de doute pour un montant {'>'} 1 000 $, consultez votre comptable.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Étape 3 */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2">
+          <span className="bg-white text-gray-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">3</span>
+          <span className="font-semibold text-sm">Pièces jointes — preuve comptable obligatoire</span>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-gray-600">
+            Toute transaction doit être appuyée par un document justificatif. Sans preuve, la dépense peut être
+            refusée lors d'une vérification fiscale (ARC / RQ).
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { icon: '🧾', titre: 'Facture fournisseur', desc: 'Numéro de facture, date, description, montant, TPS/TVQ, nom fournisseur' },
+              { icon: '🏦', titre: 'Relevé bancaire', desc: 'Extrait montrant le débit avec date et montant correspondants' },
+              { icon: '📸', titre: 'Reçu photo', desc: 'Photo lisible du reçu. Assurez-vous que la date, le montant et le vendeur sont visibles' },
+            ].map(({ icon, titre, desc }) => (
+              <div key={titre} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="text-2xl mb-1">{icon}</div>
+                <div className="font-semibold text-sm text-gray-800 mb-1">{titre}</div>
+                <div className="text-xs text-gray-600">{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-2">
+            <div className="font-semibold text-sm text-gray-800 mb-2">Comment joindre un fichier :</div>
+            <ol className="text-xs text-gray-700 space-y-2">
+              <li className="flex items-start gap-2"><span className="bg-gray-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">1</span> Cliquer sur <strong>"Nouvelle transaction"</strong> ou ouvrir une transaction existante via le bouton pièce jointe 📎</li>
+              <li className="flex items-start gap-2"><span className="bg-gray-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">2</span> Défiler jusqu'à la section <strong>"Pièces jointes"</strong> en bas du formulaire</li>
+              <li className="flex items-start gap-2"><span className="bg-gray-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">3</span> Cliquer sur <strong>"Choisir des fichiers"</strong> ou glisser-déposer directement</li>
+              <li className="flex items-start gap-2"><span className="bg-gray-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">4</span> Formats acceptés : <strong>PDF, JPG, PNG, HEIC</strong> — taille max 10 MB par fichier</li>
+              <li className="flex items-start gap-2"><span className="bg-gray-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">5</span> Pour une transaction existante : les pièces jointes s'ajoutent immédiatement sans re-sauvegarder</li>
+            </ol>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-xs text-red-800">
+              <strong>Important :</strong> Joindre la facture <em>originale</em> du fournisseur (pas un relevé de carte de crédit seul).
+              Pour les transactions en USD, la facture en USD est suffisante — le système conserve le taux de conversion.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Étape 4 */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2">
+          <span className="bg-white text-gray-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">4</span>
+          <span className="font-semibold text-sm">Transactions en devise étrangère (USD)</span>
+        </div>
+        <div className="p-4 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { champ: 'Devise source', desc: 'Sélectionner USD si la facture est en dollars américains' },
+              { champ: 'Montant source', desc: 'Montant exact de la facture en USD (ex: 2 500,00)' },
+              { champ: 'Taux de change', desc: 'Taux USD/CAD au jour de la transaction (Banque du Canada). Le système propose le taux du jour automatiquement.' },
+              { champ: 'Pays source', desc: 'Pays de l\'émetteur de la facture (ex: Panama, États-Unis). Requis pour T1135.' },
+            ].map(({ champ, desc }) => (
+              <div key={champ} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                <div className="font-semibold text-sm text-gray-800 mb-1">{champ}</div>
+                <div className="text-xs text-gray-600">{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Raccourci */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div className="font-semibold text-sm text-gray-800 mb-2">Résumé — checklist avant de sauvegarder</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {[
+            '✅ Date = date réelle de la facture',
+            '✅ Type correspond au flux (entrée/sortie)',
+            '✅ Catégorie fiscale sélectionnée',
+            '✅ Description précise (propriété + nature)',
+            '✅ Propriété liée si applicable',
+            '✅ Pièce jointe (facture ou reçu) ajoutée',
+            '✅ Devise USD renseignée si facture en USD',
+            '✅ Notes comptable si situation particulière',
+          ].map(item => (
+            <div key={item} className="text-xs text-gray-700 bg-white rounded px-2 py-1.5 border border-gray-100">{item}</div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  )
+
   const renderTransactionsTab = () => (
     <div className="space-y-6">
+      {/* Sous-onglets */}
+      <div className="flex gap-1 border-b border-gray-200 pb-0">
+        <button
+          onClick={() => setTxInnerTab('liste')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+            txInnerTab === 'liste'
+              ? 'border-gray-800 text-gray-900 bg-white'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          📋 Transactions
+        </button>
+        <button
+          onClick={() => setTxInnerTab('guide')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+            txInnerTab === 'guide'
+              ? 'border-gray-800 text-gray-900 bg-white'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          📖 Guide de saisie
+        </button>
+      </div>
+
+      {/* Contenu onglet Guide */}
+      {txInnerTab === 'guide' && renderTransactionGuide()}
+
+      {/* Contenu onglet Liste (contenu existant) */}
+      {txInnerTab === 'liste' && <div className="space-y-6">
+
       {/* Header avec statistiques */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
@@ -2948,15 +3190,40 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
-                    <option value="">Aucune</option>
-                    <option value="rental_income">Revenu locatif</option>
-                    <option value="management_fee">Frais de gestion</option>
-                    <option value="utilities">Services publics</option>
-                    <option value="insurance">Assurance</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="property_tax">Taxe foncière</option>
-                    <option value="renovation">Rénovation (CAPEX)</option>
-                    <option value="furnishing">Ameublement (CAPEX)</option>
+                    <option value="">— Aucune —</option>
+                    <optgroup label="── REVENUS ──">
+                      <option value="rental_income">Revenu locatif</option>
+                      <option value="dividend_income">Dividende / distribution</option>
+                      <option value="interest_income">Intérêts reçus</option>
+                      <option value="other_income">Autre revenu</option>
+                    </optgroup>
+                    <optgroup label="── OPEX (déduit immédiatement) ──">
+                      <option value="management_fee">Frais de gestion</option>
+                      <option value="insurance">Assurance propriété</option>
+                      <option value="property_tax">Taxes foncières</option>
+                      <option value="condo_fees">Frais de condo / charges</option>
+                      <option value="utilities">Services publics (eau, élec.)</option>
+                      <option value="maintenance_repair">Entretien & réparations</option>
+                      <option value="professional_fees">Honoraires prof. (comptable, notaire)</option>
+                      <option value="advertising">Publicité / location</option>
+                      <option value="travel">Frais de déplacement</option>
+                      <option value="interest_expense">Intérêts hypothécaires</option>
+                      <option value="bank_fees">Frais bancaires / conversion</option>
+                      <option value="other_opex">Autre OPEX</option>
+                    </optgroup>
+                    <optgroup label="── CAPEX (amorti sur plusieurs années) ──">
+                      <option value="renovation">Rénovation majeure</option>
+                      <option value="equipment">Équipements & appareils</option>
+                      <option value="furnishing">Ameublement</option>
+                      <option value="acquisition_costs">Frais d'acquisition (notaire, inspection)</option>
+                      <option value="land_improvement">Amélioration terrain</option>
+                      <option value="other_capex">Autre CAPEX</option>
+                    </optgroup>
+                    <optgroup label="── FINANCEMENT ──">
+                      <option value="loan_principal">Remboursement capital prêt</option>
+                      <option value="investor_capital">Capital investisseur</option>
+                      <option value="investor_repayment">Remboursement investisseur</option>
+                    </optgroup>
                   </select>
                 </div>
 
@@ -3237,6 +3504,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           </div>
         </div>
       )}
+      </div>}
     </div>
   )
 
