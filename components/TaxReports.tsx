@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { FileText, Download, Calendar } from 'lucide-react'
+import { FileText, Download, Calendar, ExternalLink } from 'lucide-react'
 import jsPDF from 'jspdf'
 
 interface Transaction {
@@ -20,6 +20,11 @@ interface Transaction {
   foreign_tax_rate?: number
   estimated_tax_credit?: number
   property_id: string | null
+  fiscal_category?: string | null
+  vendor_name?: string | null
+  accountant_notes?: string | null
+  attachment_name?: string | null
+  attachment_url?: string | null
 }
 
 interface Property {
@@ -64,7 +69,7 @@ export default function TaxReports() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeReport, setActiveReport] = useState<'T1135' | 'T2209'>('T1135')
+  const [activeReport, setActiveReport] = useState<'T1135' | 'T2209' | 'comptable'>('T1135')
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -299,6 +304,93 @@ export default function TaxReports() {
     doc.save(`T2209_${data.year}_CERDIA.pdf`)
   }
 
+  const FISCAL_LABELS: Record<string, string> = {
+    rental_income: 'Revenu locatif', dividend_income: 'Dividende / distribution',
+    interest_income: 'Intérêts reçus', other_income: 'Autre revenu',
+    management_fee: 'Frais de gestion', insurance: 'Assurance propriété',
+    property_tax: 'Taxes foncières', condo_fees: 'Frais de condo / charges',
+    utilities: 'Services publics (eau, élec.)', maintenance_repair: 'Entretien & réparations',
+    professional_fees: 'Honoraires prof. (comptable, notaire)', advertising: 'Publicité / location',
+    travel: 'Frais de déplacement', interest_expense: 'Intérêts hypothécaires',
+    bank_fees: 'Frais bancaires / conversion', other_opex: 'Autre OPEX',
+    renovation: 'Rénovation majeure', equipment: 'Équipements & appareils',
+    furnishing: 'Ameublement', acquisition_costs: "Frais d'acquisition (notaire, inspection)",
+    land_improvement: 'Amélioration terrain', other_capex: 'Autre CAPEX',
+    loan_principal: 'Remboursement capital prêt', investor_capital: 'Capital investisseur',
+    investor_repayment: 'Remboursement investisseur',
+  }
+
+  const FISCAL_GROUPS: { label: string; color: string; cats: string[] }[] = [
+    { label: 'REVENUS', color: 'green', cats: ['rental_income', 'dividend_income', 'interest_income', 'other_income'] },
+    { label: 'OPEX — Déduit immédiatement', color: 'blue', cats: ['management_fee', 'insurance', 'property_tax', 'condo_fees', 'utilities', 'maintenance_repair', 'professional_fees', 'advertising', 'travel', 'interest_expense', 'bank_fees', 'other_opex'] },
+    { label: 'CAPEX — Amorti sur plusieurs années', color: 'orange', cats: ['renovation', 'equipment', 'furnishing', 'acquisition_costs', 'land_improvement', 'other_capex'] },
+    { label: 'FINANCEMENT', color: 'purple', cats: ['loan_principal', 'investor_capital', 'investor_repayment'] },
+  ]
+
+  const allCategorized = FISCAL_GROUPS.flatMap(g => g.cats)
+
+  const generateComptableCSV = () => {
+    const esc = (s: string | number | null | undefined) =>
+      `"${String(s ?? '').replace(/"/g, '""')}"`
+
+    const header = ['Date', 'Groupe Fiscal', 'Catégorie Fiscale', 'Propriété', 'Type', 'Description',
+      'Vendeur/Compagnie', 'Montant (CAD)', 'Notes Comptable', 'Pièce jointe', 'URL Pièce jointe']
+
+    const rows: string[] = [
+      `"CERDIA Investment — Rapport Comptable ${selectedYear}"`,
+      `"Généré le ${new Date().toLocaleDateString('fr-CA')}"`,
+      '',
+      header.map(esc).join(','),
+    ]
+
+    let grandTotal = 0
+
+    for (const group of FISCAL_GROUPS) {
+      const txs = transactions
+        .filter(t => group.cats.includes(t.fiscal_category || ''))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      if (txs.length === 0) continue
+      const groupTotal = txs.reduce((sum, t) => sum + t.amount, 0)
+      grandTotal += groupTotal
+
+      for (const tx of txs) {
+        const prop = properties.find(p => p.id === tx.property_id)
+        rows.push([
+          tx.date, group.label,
+          FISCAL_LABELS[tx.fiscal_category || ''] || tx.fiscal_category || '',
+          prop?.name || '', tx.type, tx.description,
+          tx.vendor_name || '', tx.amount.toFixed(2),
+          tx.accountant_notes || '', tx.attachment_name || '', tx.attachment_url || '',
+        ].map(esc).join(','))
+      }
+      rows.push(['', `SOUS-TOTAL — ${group.label}`, '', '', '', '', '', groupTotal.toFixed(2), '', '', ''].map(esc).join(','))
+      rows.push('')
+    }
+
+    const uncategorized = transactions.filter(t => !allCategorized.includes(t.fiscal_category || ''))
+    if (uncategorized.length > 0) {
+      for (const tx of uncategorized.sort((a, b) => a.date.localeCompare(b.date))) {
+        const prop = properties.find(p => p.id === tx.property_id)
+        rows.push([
+          tx.date, 'Sans catégorie', '', prop?.name || '', tx.type, tx.description,
+          tx.vendor_name || '', tx.amount.toFixed(2), tx.accountant_notes || '',
+          tx.attachment_name || '', tx.attachment_url || '',
+        ].map(esc).join(','))
+      }
+      rows.push('')
+    }
+
+    rows.push(['', 'TOTAL GÉNÉRAL', '', '', '', '', '', grandTotal.toFixed(2), '', '', ''].map(esc).join(','))
+
+    const blob = new Blob(['﻿' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport_comptable_${selectedYear}_CERDIA.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const t1135Data = calculateT1135Data()
   const t2209Data = calculateT2209Data()
 
@@ -365,6 +457,16 @@ export default function TaxReports() {
             }`}
           >
             T2209 - {t('taxReports.foreignTaxCredits')}
+          </button>
+          <button
+            onClick={() => setActiveReport('comptable')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
+              activeReport === 'comptable'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            📊 Rapport Comptable
           </button>
         </div>
       </div>
@@ -583,6 +685,160 @@ export default function TaxReports() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+      {/* Rapport Comptable */}
+      {activeReport === 'comptable' && (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Header + Export */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-base font-semibold text-gray-900">Rapport Comptable {selectedYear}</h4>
+              <p className="text-xs text-gray-500 mt-0.5">Transactions groupées par catégorie fiscale — pièces jointes avec liens cliquables</p>
+            </div>
+            <button
+              onClick={generateComptableCSV}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex-shrink-0"
+            >
+              <Download size={16} />
+              Exporter CSV (comptable)
+            </button>
+          </div>
+
+          {/* Résumé rapide */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {FISCAL_GROUPS.map(group => {
+              const total = transactions
+                .filter(t => group.cats.includes(t.fiscal_category || ''))
+                .reduce((sum, t) => sum + t.amount, 0)
+              const colorMap: Record<string, string> = {
+                green: 'bg-green-50 border-green-200 text-green-700 text-green-900',
+                blue: 'bg-blue-50 border-blue-200 text-blue-700 text-blue-900',
+                orange: 'bg-orange-50 border-orange-200 text-orange-700 text-orange-900',
+                purple: 'bg-purple-50 border-purple-200 text-purple-700 text-purple-900',
+              }
+              const [bg, border, labelColor, amtColor] = colorMap[group.color].split(' ')
+              return (
+                <div key={group.label} className={`${bg} border ${border} rounded-lg p-3`}>
+                  <p className={`text-xs font-medium ${labelColor} mb-1 leading-tight`}>{group.label.split('—')[0].trim()}</p>
+                  <p className={`text-base font-bold ${amtColor}`}>
+                    {formatCurrency(total)}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Groupes */}
+          {FISCAL_GROUPS.map(group => {
+            const txs = transactions
+              .filter(t => group.cats.includes(t.fiscal_category || ''))
+              .sort((a, b) => a.date.localeCompare(b.date))
+            if (txs.length === 0) return null
+            const groupTotal = txs.reduce((sum, t) => sum + t.amount, 0)
+            const borderColor = { green: 'border-green-300', blue: 'border-blue-300', orange: 'border-orange-300', purple: 'border-purple-300' }[group.color]
+            const headerBg = { green: 'bg-green-50', blue: 'bg-blue-50', orange: 'bg-orange-50', purple: 'bg-purple-50' }[group.color]
+
+            return (
+              <div key={group.label} className={`border ${borderColor} rounded-lg overflow-hidden`}>
+                <div className={`${headerBg} px-4 py-3 flex items-center justify-between`}>
+                  <h5 className="text-sm font-semibold text-gray-800">{group.label}</h5>
+                  <span className="text-sm font-bold text-gray-900">{formatCurrency(groupTotal)}</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Date</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Catégorie</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Propriété</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Description</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Vendeur</th>
+                        <th className="px-3 py-2 text-right font-medium text-gray-500 uppercase tracking-wide">Montant</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Pièce jointe</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {txs.map(tx => {
+                        const prop = properties.find(p => p.id === tx.property_id)
+                        return (
+                          <tr key={tx.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 whitespace-nowrap text-gray-700">{tx.date}</td>
+                            <td className="px-3 py-2 text-gray-600">{FISCAL_LABELS[tx.fiscal_category || ''] || '—'}</td>
+                            <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{prop?.name || '—'}</td>
+                            <td className="px-3 py-2 text-gray-800 max-w-[200px] truncate" title={tx.description}>{tx.description}</td>
+                            <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{tx.vendor_name || '—'}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-900 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
+                            <td className="px-3 py-2">
+                              {tx.attachment_url ? (
+                                <a
+                                  href={tx.attachment_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+                                >
+                                  <ExternalLink size={11} />
+                                  {tx.attachment_name || 'Voir'}
+                                </a>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Sans catégorie */}
+          {(() => {
+            const uncategorized = transactions.filter(t => !allCategorized.includes(t.fiscal_category || ''))
+            if (uncategorized.length === 0) return null
+            return (
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                  <h5 className="text-sm font-semibold text-gray-600">⚠️ Sans catégorie fiscale ({uncategorized.length})</h5>
+                  <span className="text-xs text-gray-400">À catégoriser avant envoi au comptable</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Description</th>
+                        <th className="px-3 py-2 text-right font-medium text-gray-500 uppercase">Montant</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Pièce jointe</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {uncategorized.map(tx => (
+                        <tr key={tx.id} className="hover:bg-yellow-50">
+                          <td className="px-3 py-2 whitespace-nowrap text-gray-700">{tx.date}</td>
+                          <td className="px-3 py-2 text-gray-600">{tx.type}</td>
+                          <td className="px-3 py-2 text-gray-800 max-w-[200px] truncate">{tx.description}</td>
+                          <td className="px-3 py-2 text-right font-medium text-gray-900 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
+                          <td className="px-3 py-2">
+                            {tx.attachment_url ? (
+                              <a href={tx.attachment_url} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline">
+                                <ExternalLink size={11} />
+                                {tx.attachment_name || 'Voir'}
+                              </a>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>
