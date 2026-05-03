@@ -7,11 +7,11 @@ export default function DevenirInvestisseurPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 pt-24 pb-16 text-gray-800">
       <h1 className="text-4xl font-bold text-center text-blue-900 mb-6 flex items-center justify-center gap-2">
-        <span>💼</span> Rejoindre l’investissement CERDIA
+        <span>💼</span> Rejoindre CERDIA
       </h1>
 
       <p className="text-center text-lg mb-8">
-        Investissement CERDIA ouvre ses portes à une sélection restreinte d’investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l’intelligence artificielle, avec une rentabilité durable à long terme — sans dette bancaire.
+        CERDIA ouvre ses portes à une sélection restreinte d’investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l’intelligence artificielle, avec une rentabilité durable à long terme — sans dette bancaire.
       </p>
 
       <div className="grid md:grid-cols-2 gap-6 mb-10">
@@ -33,7 +33,7 @@ export default function DevenirInvestisseurPage() {
 
       <div className="text-base space-y-5 leading-relaxed">
         <p>
-          Fondée en 2025, Investissement CERDIA inc. est une société québécoise qui repose sur une stratégie progressive, disciplinée et autofinancée. Le capital déjà en place permet d'acquérir plusieurs unités locatives dès 2025 dans des projets touristiques d’envergure, comme <strong>Secret Garden</strong> et <strong>Oasis Bay</strong> en République dominicaine.
+          Fondée en 2025, CERDIA inc. est une société québécoise qui repose sur une stratégie progressive, disciplinée et autofinancée. Le capital déjà en place permet d'acquérir plusieurs unités locatives dès 2025 dans des projets touristiques d’envergure, comme <strong>Secret Garden</strong> et <strong>Oasis Bay</strong> en République dominicaine.
         </p>
 
         <p>

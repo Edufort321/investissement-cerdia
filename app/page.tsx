@@ -15,7 +15,7 @@ export default function Home() {
       footer: "Tous droits réservés.",
       powered: "Version IA propulsée par OpenAI – Propulsé depuis le Québec 🇨🇦",
       visionTitle: "Notre vision stratégique 2025–2045",
-      visionDesc: "Investissement CERDIA vise la construction d'un portefeuille immobilier 100 % autofinancé, sans dette bancaire, optimisé par intelligence artificielle. Trois unités déjà sécurisées en République dominicaine. Objectif d'ici 2045 : 15 à 25 propriétés, rendement net annuel > 500 000 $, valeur nette projetée : 12 à 18 M$. Tous les profits du commerce électronique CERDIA Commerce sont réinjectés dans l'immobilier. Un jeton Allcoin intelligent permettra un accès privilégié à l'écosystème, incluant dividendes, utilité et conversion en actions.",
+      visionDesc: "CERDIA vise la construction d'un portefeuille immobilier 100 % autofinancé, sans dette bancaire, optimisé par intelligence artificielle. Trois unités déjà sécurisées en République dominicaine. Objectif d'ici 2045 : 15 à 25 propriétés, rendement net annuel > 500 000 $, valeur nette projetée : 12 à 18 M$. Tous les profits du commerce électronique CERDIA Commerce sont réinjectés dans l'immobilier. Un jeton Allcoin intelligent permettra un accès privilégié à l'écosystème, incluant dividendes, utilité et conversion en actions.",
       visionCTA: "En savoir plus sur la vision",
       // Nouvelles traductions
       immobilierTitle: "Immobilier d'exception",
@@ -35,7 +35,7 @@ export default function Home() {
       footer: "All rights reserved.",
       powered: "AI version powered by OpenAI – Operated from Quebec 🇨🇦",
       visionTitle: "Our Strategic Vision 2025–2045",
-      visionDesc: "Investissement CERDIA is building a fully self-financed real estate portfolio, debt-free, powered by artificial intelligence. Three units already secured in the Dominican Republic. By 2045: 15 to 25 premium properties, annual net revenue > $500,000, projected value: $12–18M. All profits from CERDIA Commerce (FBA) are reinvested into real estate. The Allcoin token offers privileged access, smart dividends, ecosystem utility, and convertible rights.",
+      visionDesc: "CERDIA is building a fully self-financed real estate portfolio, debt-free, powered by artificial intelligence. Three units already secured in the Dominican Republic. By 2045: 15 to 25 premium properties, annual net revenue > $500,000, projected value: $12–18M. All profits from CERDIA Commerce (FBA) are reinvested into real estate. The Allcoin token offers privileged access, smart dividends, ecosystem utility, and convertible rights.",
       visionCTA: "Discover the full vision",
       // New translations
       immobilierTitle: "Exceptional Real Estate",
@@ -176,7 +176,7 @@ export default function Home() {
         {/* FOOTER */}
         <footer className="bg-gray-900 dark:bg-black text-white py-6 mt-16">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
-            <p>&copy; 2025 Investissement CERDIA. {tr.footer}</p>
+            <p>&copy; 2025 CERDIA. {tr.footer}</p>
             <p>{tr.powered}</p>
           </div>
         </footer>

@@ -94,7 +94,7 @@ interface BankReconciliationExport {
 
 **1. État des résultats (Income Statement)**
 ```
-CERDIA INVESTISSEMENTS INC.
+CERDIA INC.
 État des résultats
 Pour l'exercice terminé le 31 décembre 2025
 
@@ -122,7 +122,7 @@ BÉNÉFICE NET                           35,500$
 
 **2. Bilan (Balance Sheet)**
 ```
-CERDIA INVESTISSEMENTS INC.
+CERDIA INC.
 Bilan
 Au 31 décembre 2025
 
@@ -165,7 +165,7 @@ TOTAL DU PASSIF ET AVOIR               498,000$
 
 **3. État des flux de trésorerie**
 ```
-CERDIA INVESTISSEMENTS INC.
+CERDIA INC.
 État des flux de trésorerie
 Pour l'exercice terminé le 31 décembre 2025
 

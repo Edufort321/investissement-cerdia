@@ -84,7 +84,7 @@ interface CompanySettings {
 }
 
 const DEFAULT_COMPANY: CompanySettings = {
-  name: 'CERDIA Investissement',
+  name: 'CERDIA',
   address: '',
   city: 'Québec',
   province: 'QC',

@@ -1,4 +1,4 @@
-// Types pour le système de gestion d'investissement CERDIA
+// Types pour le système de gestion CERDIA
 
 export type InvestmentType = 'immobilier' | 'actions' | 'mixte'
 export type TransactionType = 'investissement' | 'depense' | 'dividende' | 'capex' | 'courant' | 'rnd'

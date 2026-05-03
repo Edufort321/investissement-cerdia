@@ -431,7 +431,7 @@ INSERT INTO share_price_history (
   0, -- Pas de passifs
   1.00, -- 1 part initiale
   NULL, -- Pas de prix précédent
-  'Prix initial au lancement de CERDIA Investissements',
+  'Prix initial au lancement de CERDIA',
   TRUE
 )
 ON CONFLICT (effective_date) DO NOTHING;

@@ -1,4 +1,4 @@
-# 📋 CERDIA Investissement — TODO & État du Système
+# 📋 CERDIA — TODO & État du Système
 **Dernière mise à jour:** 2026-04-22
 
 ---

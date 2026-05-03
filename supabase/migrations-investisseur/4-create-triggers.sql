@@ -82,7 +82,7 @@ CREATE TRIGGER update_percentages_after_investment
 -- VUE pour le sommaire
 CREATE OR REPLACE VIEW summary_view AS
 SELECT
-  'Investissement CERDIA inc' AS company_name,
+  'CERDIA inc' AS company_name,
   COALESCE(SUM(i.current_value), 0) AS current_total_value,
   COALESCE(SUM(i.total_invested), 0) AS total_invested,
   COALESCE((SELECT SUM(amount) FROM transactions WHERE type = 'investissement'), 0) AS total_investment,

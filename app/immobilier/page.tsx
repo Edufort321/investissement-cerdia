@@ -15,7 +15,7 @@ export default function ImmobilierPage() {
     fr: {
       titre: '🏡 Projets Locatifs en Acquisition',
       description:
-        "Investissement CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme.",
+        "CERDIA concentre ses acquisitions sur des projets locatifs haut de gamme, dans des secteurs à fort potentiel de croissance et de rendement à long terme.",
       secretTitle: '🌴 Secret Garden',
       secretUnit: 'Unité acquise : H212',
       secretDelivery: 'Livraison prévue : Mars 2026',
@@ -30,7 +30,7 @@ export default function ImmobilierPage() {
     en: {
       titre: '🏡 Rental Projects in Acquisition',
       description:
-        "Investissement CERDIA focuses its acquisitions on high-end rental projects in areas with strong long-term growth and return potential.",
+        "CERDIA focuses its acquisitions on high-end rental projects in areas with strong long-term growth and return potential.",
       secretTitle: '🌴 Secret Garden',
       secretUnit: 'Unit acquired: H212',
       secretDelivery: 'Delivery expected: March 2026',

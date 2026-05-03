@@ -436,7 +436,7 @@ export default function ProjetTab() {
       const addFooter = (pageNum: number, total: number, titleStr: string) => {
         doc.setDrawColor(...C.gray); doc.setLineWidth(0.3); doc.line(15, 280, 195, 280)
         doc.setFontSize(7.5); doc.setTextColor(...C.sub)
-        doc.text('CERDIA Investissement — Document confidentiel', 105, 285, { align: 'center' })
+        doc.text('CERDIA — Document confidentiel', 105, 285, { align: 'center' })
         doc.text(`Page ${pageNum} / ${total}`, 195, 285, { align: 'right' })
         doc.text(titleStr, 15, 285)
       }
@@ -483,7 +483,7 @@ export default function ProjetTab() {
         try { const { w, h } = await getImgSize(logo, 14); doc.addImage(logo, 'PNG', 15, 12, w, h) } catch {}
       }
       doc.setFontSize(8); doc.setTextColor(...C.gray); doc.setFont('helvetica', 'normal')
-      doc.text('CERDIA Investissement', W - 15, 10, { align: 'right' })
+      doc.text('CERDIA', W - 15, 10, { align: 'right' })
       doc.setFontSize(16); doc.setTextColor(...C.white); doc.setFont('helvetica', 'bold')
       doc.text(property.name, W - 15, 20, { align: 'right' })
       doc.setFontSize(9); doc.setTextColor(196,196,196); doc.setFont('helvetica', 'normal')

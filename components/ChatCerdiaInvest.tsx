@@ -39,7 +39,7 @@ export default function ChatCerdiaInvest({ mode = 'investor' }: Props) {
   ) => {
     const intro =
       mode === 'investor'
-        ? 'Tu es l’assistant intelligent de Investissement CERDIA. Réponds aux questions d’un investisseur de manière claire, stratégique et professionnelle.'
+        ? ‘Tu es l’assistant intelligent de CERDIA. Réponds aux questions d’un investisseur de manière claire, stratégique et professionnelle.’
         : mode === 'admin'
         ? 'Tu es l’assistant présidentiel de CERDIA. Tu peux générer des pages, contrats, modules ou décisions stratégiques.'
         : 'Tu es un coach IA pour la formation CERDIA. Tu expliques les concepts comme à un étudiant motivé.'

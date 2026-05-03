@@ -44,7 +44,7 @@ export default function Navbar() {
         <Link href="/" className="flex items-center flex-shrink-0">
           <Image
             src="/logo-cerdia3.png"
-            alt="Logo officiel Investissement CERDIA"
+            alt="Logo officiel CERDIA"
             width={60}
             height={30}
             className={`h-auto transition-all duration-300 ${

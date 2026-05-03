@@ -15,7 +15,7 @@ export default function Header() {
     <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 transition-colors">
       <div className="flex items-center gap-2">
         <img src="/logo-cerdia.png" alt="Logo CERDIA" className="h-10 w-auto" />
-        <span className="font-bold text-lg text-[#001F3F] dark:text-gray-100">Investissement CERDIA</span>
+        <span className="font-bold text-lg text-[#001F3F] dark:text-gray-100">CERDIA</span>
       </div>
 
       <nav className="flex items-center space-x-6 text-[#001F3F] dark:text-gray-300 font-medium">

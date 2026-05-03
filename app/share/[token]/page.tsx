@@ -267,7 +267,7 @@ export default function SharePage() {
             {/* Branding */}
             <div className="bg-gray-50 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-600">Propulsé par</p>
-              <p className="text-lg font-bold text-gray-900">CERDIA Investissement</p>
+              <p className="text-lg font-bold text-gray-900">CERDIA</p>
             </div>
           </div>
         </div>

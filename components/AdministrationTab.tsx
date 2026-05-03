@@ -1101,7 +1101,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3)
         doc.line(15, 280, 195, 280)
         doc.setFontSize(8); doc.setTextColor(130, 130, 130)
-        doc.text('CERDIA Investissement — Document confidentiel', 105, 285, { align: 'center' })
+        doc.text('CERDIA — Document confidentiel', 105, 285, { align: 'center' })
         doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
         doc.text(`Genere le ${today}`, 200, 290, { align: 'right' })
       }
@@ -2130,7 +2130,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         doc.line(15, 280, 195, 280)
         doc.setFontSize(8)
         doc.setTextColor(130, 130, 130)
-        doc.text('CERDIA Investissement — Rapport de transactions confidentiel', 105, 285, { align: 'center' })
+        doc.text('CERDIA — Rapport de transactions confidentiel', 105, 285, { align: 'center' })
         doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' })
         doc.text(
           `Généré le ${new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`,

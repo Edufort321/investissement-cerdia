@@ -132,7 +132,7 @@ export function useExportPDF() {
       doc.setFontSize(8)
       doc.setTextColor(120, 120, 120)
       doc.text(
-        'CERDIA Investissement - Rapport genere automatiquement',
+        'CERDIA - Rapport genere automatiquement',
         105,
         285,
         { align: 'center' }

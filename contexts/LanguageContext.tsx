@@ -677,8 +677,8 @@ const translations = {
     'notes.edit': 'Modifier',
 
     // Investir Page
-    'invest.title': 'Rejoindre l\'investissement CERDIA',
-    'invest.intro': 'Investissement CERDIA ouvre ses portes à une sélection restreinte d\'investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l\'intelligence artificielle, avec une rentabilité durable à long terme.',
+    'invest.title': 'Rejoindre CERDIA',
+    'invest.intro': 'CERDIA ouvre ses portes à une sélection restreinte d\'investisseurs. Notre mission : bâtir un portefeuille immobilier locatif international, optimisé par l\'intelligence artificielle, avec une rentabilité durable à long terme.',
     'invest.p1': 'L\'entrée dans notre programme d\'investissement est conditionnelle à une entrevue avec l\'un des fondateurs. Seuls les candidats alignés avec notre vision stratégique et notre rigueur à long terme seront invités à participer.',
     'invest.p2': 'L\'investissement minimum est de 25 000 $, avec un engagement de 5 ans minimum. Aucun frais de retrait anticipé ne sera permis. Notre approche est conçue pour maximiser la valeur à long terme et la stabilité du capital.',
     'invest.p3': 'Chaque investisseur admis bénéficiera d\'un accès privilégié aux unités CERDIA, d\'un suivi personnalisé, et d\'un partage stratégique de la croissance.',
@@ -1445,7 +1445,7 @@ const translations = {
 
     // Investir Page
     'invest.title': 'Join the CERDIA Investment Program',
-    'invest.intro': 'Investissement CERDIA is opening its doors to a selective group of investors. Our mission: to build an international rental real estate portfolio powered by AI, with sustainable long-term returns.',
+    'invest.intro': 'CERDIA is opening its doors to a selective group of investors. Our mission: to build an international rental real estate portfolio powered by AI, with sustainable long-term returns.',
     'invest.p1': 'Entry into our investment program is subject to an interview with one of the founders. Only candidates aligned with our strategic vision and long-term discipline will be invited to participate.',
     'invest.p2': 'The minimum investment is $25,000, with a minimum commitment of 5 years. Early withdrawals are not permitted. Our approach is designed to maximize long-term value and capital stability.',
     'invest.p3': 'Approved investors will benefit from privileged access to CERDIA units, personalized support, and strategic growth sharing.',

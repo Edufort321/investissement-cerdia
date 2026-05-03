@@ -1,4 +1,4 @@
-# 🚀 PLAN D'AMÉLIORATION - CERDIA INVESTISSEMENT
+# 🚀 PLAN D'AMÉLIORATION - CERDIA
 ## Système de Gestion Avancé & Contrôle de Trésorerie
 
 **Date:** 2025-10-21

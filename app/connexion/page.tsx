@@ -172,7 +172,7 @@ function ConnexionForm() {
 
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 dark:text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
-              Investissement CERDIA • {new Date().getFullYear()} • Authentification sécurisée Supabase
+              CERDIA • {new Date().getFullYear()} • Authentification sécurisée Supabase
             </div>
           </div>
         </div>

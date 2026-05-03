@@ -5,7 +5,7 @@ import { Providers } from '../components/Providers'
 import Script from 'next/script'
 
 export const metadata = {
-  title: 'Investissement CERDIA',
+  title: 'CERDIA',
   description: 'Une vision d\'envergure alliant IA, immobilier et formation haut de gamme.',
   manifest: '/manifest.json',
   appleWebApp: {

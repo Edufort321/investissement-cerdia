@@ -3,7 +3,7 @@ export default function VisionStrategique() {
     <section className="py-10 max-w-3xl mx-auto text-gray-800">
       <h1 className="text-3xl font-bold mb-6">🌍 Vision stratégique CERDIA</h1>
       <p className="mb-4">
-        Investissement CERDIA vise à bâtir un empire immobilier intelligent propulsé par l’IA, avec
+        CERDIA vise à bâtir un empire immobilier intelligent propulsé par l’IA, avec
         comme objectif une capitalisation de 1 milliard $ d’ici 2045.
       </p>
       <p className="mb-4">
