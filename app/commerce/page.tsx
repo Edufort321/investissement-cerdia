@@ -281,80 +281,85 @@ export default function CommercePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
         </div>
 
-        {/* Hamburger menu admin — fixed below main navbar */}
-        <div id="commerce-menu" className="fixed top-[68px] right-4 z-40">
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            className="p-2.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full hover:bg-white/20 transition-all"
-            title="Menu"
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Navigation</p>
-              </div>
-              <div className="p-1.5 space-y-0.5">
-                <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
-                  <Home size={15} className="text-gray-500" /> Accueil
-                </Link>
-                <Link href="/investir" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
-                  <TrendingUp size={15} className="text-gray-500" /> Investir
-                </Link>
-              </div>
-              <div className="p-2 border-t border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Accès</p>
-                <Link
-                  href="/connexion?redirect=/dashboard"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-[#5e5e5e] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Shield size={15} className="text-[#5e5e5e]" /> Administrateur
-                </Link>
-                {!adminMode && (
-                  <button
-                    onClick={() => { setMenuOpen(false); setShowPasswordModal(true) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-                  >
-                    <Package size={15} /> Gérer les produits
-                  </button>
-                )}
-                {adminMode && (
-                  <button
-                    onClick={() => { setAdminMode(false); setMenuOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Lock size={15} /> Quitter le mode admin
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Hero content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 sm:py-28">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1 bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-semibold rounded-full uppercase tracking-wider">
-                Amazon FBA · E-Commerce
-              </span>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 sm:py-24">
+          <div className="flex items-start justify-between gap-4">
+
+            {/* Texte hero */}
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-semibold rounded-full uppercase tracking-wider">
+                  Amazon FBA · E-Commerce
+                </span>
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
+                Commerce<br />
+                <span className="text-orange-400">CERDIA</span>
+              </h1>
+              <p className="text-lg text-gray-300 leading-relaxed mb-6">
+                Découvrez notre sélection de produits soigneusement choisis — disponibles sur Amazon.
+                Chaque achat contribue à financer notre portefeuille immobilier international.
+              </p>
+              <div className="flex items-center gap-3 text-sm text-gray-400 flex-wrap">
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Livraison Amazon Prime</span>
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Retours faciles</span>
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Produits vérifiés</span>
+              </div>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-              Commerce<br />
-              <span className="text-orange-400">CERDIA</span>
-            </h1>
-            <p className="text-lg text-gray-300 leading-relaxed mb-6">
-              Découvrez notre sélection de produits soigneusement choisis — disponibles sur Amazon.
-              Chaque achat contribue à financer notre portefeuille immobilier international.
-            </p>
-            <div className="flex items-center gap-3 text-sm text-gray-400">
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Livraison Amazon Prime</span>
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Retours faciles</span>
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Produits vérifiés</span>
+
+            {/* Hamburger menu admin — aligné avec le badge */}
+            <div id="commerce-menu" className="relative flex-shrink-0">
+              <button
+                onClick={() => setMenuOpen(v => !v)}
+                className="p-2.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full hover:bg-white/20 transition-all"
+                title="Menu"
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Navigation</p>
+                  </div>
+                  <div className="p-1.5 space-y-0.5">
+                    <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
+                      <Home size={15} className="text-gray-500" /> Accueil
+                    </Link>
+                    <Link href="/investir" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
+                      <TrendingUp size={15} className="text-gray-500" /> Investir
+                    </Link>
+                  </div>
+                  <div className="p-2 border-t border-gray-100 dark:border-gray-700">
+                    <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Accès</p>
+                    <Link
+                      href="/connexion?redirect=/dashboard"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-[#5e5e5e] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Shield size={15} className="text-[#5e5e5e]" /> Administrateur
+                    </Link>
+                    {!adminMode && (
+                      <button
+                        onClick={() => { setMenuOpen(false); setShowPasswordModal(true) }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                      >
+                        <Package size={15} /> Gérer les produits
+                      </button>
+                    )}
+                    {adminMode && (
+                      <button
+                        onClick={() => { setAdminMode(false); setMenuOpen(false) }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Lock size={15} /> Quitter le mode admin
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
