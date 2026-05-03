@@ -84,7 +84,7 @@ interface CompanySettings {
 }
 
 const DEFAULT_COMPANY: CompanySettings = {
-  name: 'CERDIA',
+  name: 'Commerce CERDIA inc.',
   address: '',
   city: 'Québec',
   province: 'QC',
@@ -204,7 +204,7 @@ export default function InvoiceGenerator() {
   // ─── Numéro de facture auto ─────────────────────────────────────────────────
   const generateInvoiceNumber = useCallback(async () => {
     const year = new Date().getFullYear()
-    const prefix = `CERDIA-${year}-`
+    const prefix = `C-CERDIA-${year}-`
     const yearInvoices = invoices.filter(i => i.invoice_number.startsWith(prefix))
     const maxNum = yearInvoices.reduce((max, i) => {
       const num = parseInt(i.invoice_number.replace(prefix, '')) || 0
