@@ -241,7 +241,7 @@ export default function CommerceAdminPage() {
       )}
 
       {/* Header admin */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-[68px] z-30 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 fixed top-[68px] left-0 right-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
@@ -286,7 +286,7 @@ export default function CommerceAdminPage() {
       </div>
 
       {/* Contenu des onglets */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pt-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pt-[7rem]">
         {tab === 'produits' && <ProduitsTab toast={setToast} />}
         {tab === 'transactions' && <TransactionsTab toast={setToast} />}
         {tab === 'rapports' && <RapportsTab />}
