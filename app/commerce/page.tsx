@@ -9,6 +9,7 @@ import {
   Tag, Package, Search, Check, Home, TrendingUp, Settings
 } from 'lucide-react'
 
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Product {
   id: string
@@ -161,20 +162,12 @@ export default function CommercePage() {
                     </Link>
                   </div>
                   <div className="p-2 border-t border-gray-100 dark:border-gray-700">
-                    <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Admin Commerce</p>
                     <Link
                       href="/commerce/admin"
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                       onClick={() => setMenuOpen(false)}
                     >
-                      <Package size={15} /> Gérer les produits
-                    </Link>
-                    <Link
-                      href="/commerce/admin"
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Settings size={15} /> Transactions &amp; Rapports
+                      <Settings size={15} /> Administration
                     </Link>
                   </div>
                 </div>
