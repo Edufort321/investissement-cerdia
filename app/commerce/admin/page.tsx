@@ -11,7 +11,7 @@ import {
   Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
-  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown
+  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, SlidersHorizontal
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ interface CommerceTx {
   attachment_name?: string
   attachment_url?: string
   attachment_storage_path?: string
+  transfer_to_account?: string
   created_at: string
 }
 
@@ -76,7 +77,7 @@ const FISCAL_GROUPS = {
     label: 'Financement', color: [168, 85, 247] as [number,number,number],
     bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200',
     text: 'text-purple-700',
-    cats: ['financement_apport', 'financement_avance', 'financement_pret'],
+    cats: ['financement_apport', 'financement_avance', 'financement_pret', 'transfert_interne'],
   },
 }
 
@@ -97,6 +98,7 @@ const FISCAL_CATS: Record<string, { label: string; group: keyof typeof FISCAL_GR
   financement_apport:  { label: 'Apport personnel',              group: 'FINANCEMENT' },
   financement_avance:  { label: 'Avance de fonds (fondateur)',   group: 'FINANCEMENT' },
   financement_pret:    { label: 'Prêt / Ligne de crédit',        group: 'FINANCEMENT' },
+  transfert_interne:   { label: 'Transfert entre comptes',       group: 'FINANCEMENT' },
 }
 
 // ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
@@ -113,7 +115,7 @@ function toDirectImg(url: string): string {
 const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
 
-const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'autre'] as const
+const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'transfert', 'autre'] as const
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
 const TX_ACCOUNTS = [
@@ -137,6 +139,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   fiscal_category: 'revenu_ventes',
   platform: 'Amazon', product_ref: '', status: 'complété', notes: '',
   attachment_name: '', attachment_url: '', attachment_storage_path: '',
+  transfer_to_account: '',
 }
 
 type Tab = 'produits' | 'transactions' | 'rapports' | 'factures'
@@ -158,7 +161,7 @@ function txTypeLabel(t: string) {
     vente: 'Vente', remboursement: 'Remboursement',
     frais_amazon: 'Frais Amazon', publicite: 'Publicité',
     avance_fonds: 'Avance de fonds', frais_bancaires: 'Frais bancaires',
-    autre: 'Autre',
+    transfert: 'Transfert', autre: 'Autre',
   }
   return m[t] || t
 }
@@ -170,10 +173,11 @@ function txTypeColor(t: string) {
   if (t === 'publicite') return 'bg-blue-100 text-blue-700'
   if (t === 'avance_fonds') return 'bg-purple-100 text-purple-700'
   if (t === 'frais_bancaires') return 'bg-slate-100 text-slate-600'
+  if (t === 'transfert') return 'bg-indigo-100 text-indigo-700'
   return 'bg-gray-100 text-gray-600'
 }
 
-// Retourne true si la transaction est une entrée d'argent dans l'entreprise
+// Retourne true si la transaction est une entrée d'argent (hors transferts)
 function isInflow(type: string) {
   return type === 'vente' || type === 'avance_fonds'
 }
@@ -181,6 +185,18 @@ function isInflow(type: string) {
 // Retourne true si le type compte dans le bénéfice net (revenus d'exploitation seulement)
 function isRevenue(type: string) {
   return type === 'vente'
+}
+
+// Retourne l'effet net d'une transaction sur un compte spécifique
+function txAccountEffect(tx: CommerceTx, account: string): number {
+  const src = tx.account || 'compte_courant'
+  if (tx.type === 'transfert') {
+    if (src === account) return -tx.amount
+    if (tx.transfer_to_account === account) return tx.amount
+    return 0
+  }
+  if (src !== account) return 0
+  return isInflow(tx.type) ? tx.amount : -tx.amount
 }
 
 function fmtCAD(n: number) {
@@ -743,6 +759,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [form, setForm] = useState({ ...EMPTY_TX })
   const [saving, setSaving] = useState(false)
   const [filterType, setFilterType] = useState('tous')
+  const [filterAccount, setFilterAccount] = useState('tous')
+  const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
@@ -774,18 +792,26 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       attachment_name: tx.attachment_name || '',
       attachment_url: tx.attachment_url || '',
       attachment_storage_path: tx.attachment_storage_path || '',
+      transfer_to_account: tx.transfer_to_account || '',
     })
     setShowForm(true)
   }
 
   const save = async () => {
     if (!form.description.trim()) { toast({ msg: 'Description requise.', type: 'error' }); return }
+    if (form.type === 'transfert' && !form.transfer_to_account) {
+      toast({ msg: 'Sélectionnez le compte de destination.', type: 'error' }); return
+    }
+    if (form.type === 'transfert' && form.transfer_to_account === form.account) {
+      toast({ msg: 'Les comptes source et destination doivent être différents.', type: 'error' }); return
+    }
     setSaving(true)
     const payload = {
       ...form, amount: Number(form.amount) || 0,
       attachment_name: form.attachment_name || null,
       attachment_url: form.attachment_url || null,
       attachment_storage_path: form.attachment_storage_path || null,
+      transfer_to_account: form.type === 'transfert' ? (form.transfer_to_account || null) : null,
     }
     try {
       if (editingId) {
@@ -865,7 +891,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
       // Sommaire
       const totalRev = filtered.filter(t => isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
-      const totalDep = filtered.filter(t => !isInflow(t.type)).reduce((s, t) => s + t.amount, 0)
+      const totalDep = filtered.filter(t => !isInflow(t.type) && t.type !== 'transfert').reduce((s, t) => s + t.amount, 0)
       autoTable(doc, {
         startY: 32,
         head: [['Entrées (revenus)', 'Sorties (dépenses)', 'Balance nette']],
@@ -968,22 +994,24 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     toast({ msg: 'CSV exporté !', type: 'success' })
   }
 
-  const filtered = txs.filter(t => filterType === 'tous' || t.type === filterType)
+  const filtered = txs.filter(t => {
+    if (filterType !== 'tous' && t.type !== filterType) return false
+    if (filterAccount !== 'tous') {
+      const src = t.account || 'compte_courant'
+      const dst = t.transfer_to_account
+      if (src !== filterAccount && dst !== filterAccount) return false
+    }
+    return true
+  })
 
   const totalVentes = txs.filter(t => isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
-  const totalDepenses = txs.filter(t => !isInflow(t.type)).reduce((s, t) => s + t.amount, 0)
+  const totalDepenses = txs.filter(t => !isInflow(t.type) && t.type !== 'transfert').reduce((s, t) => s + t.amount, 0)
   const benefice = totalVentes - totalDepenses
 
   // Soldes par compte
-  const soldeCourant = txs
-    .filter(t => (t.account || 'compte_courant') === 'compte_courant')
-    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
-  const soldeCarte = txs
-    .filter(t => t.account === 'carte_credit')
-    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
-  const soldeCapex = txs
-    .filter(t => t.account === 'capex')
-    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
+  const soldeCourant = txs.reduce((s, t) => s + txAccountEffect(t, 'compte_courant'), 0)
+  const soldeCarte   = txs.reduce((s, t) => s + txAccountEffect(t, 'carte_credit'), 0)
+  const soldeCapex   = txs.reduce((s, t) => s + txAccountEffect(t, 'capex'), 0)
 
   return (
     <div>
@@ -1021,27 +1049,97 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {['tous', ...TX_TYPES].map(t => (
-            <button key={t} onClick={() => setFilterType(t)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterType === t ? 'bg-[#5e5e5e] text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400'}`}>
-              {t === 'tous' ? 'Tous' : txTypeLabel(t)}
-            </button>
-          ))}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        {/* Active filter badges */}
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          {filterType !== 'tous' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-[#5e5e5e] text-white text-xs rounded-full">
+              {txTypeLabel(filterType)}
+              <button onClick={() => setFilterType('tous')} className="hover:text-gray-300 ml-0.5"><X size={10} /></button>
+            </span>
+          )}
+          {filterAccount !== 'tous' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
+              {TX_ACCOUNTS.find(a => a.value === filterAccount)?.label}
+              <button onClick={() => setFilterAccount('tous')} className="hover:text-gray-300 ml-0.5"><X size={10} /></button>
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
-            <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="w-3.5 h-3.5 rounded" />
-            PJ dans PDF
-          </label>
-          <button onClick={exportCSV} className="flex items-center gap-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <Download size={12} /> CSV
-          </button>
-          <button onClick={exportPDF} disabled={exportingPDF} className="flex items-center gap-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50">
-            <FileDown size={12} /> {exportingPDF ? 'PDF...' : 'PDF'}
-          </button>
-          <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Hamburger menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterMenu(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                showFilterMenu || filterType !== 'tous' || filterAccount !== 'tous'
+                  ? 'bg-[#5e5e5e] text-white border-[#5e5e5e]'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <SlidersHorizontal size={13} />
+              Filtres
+              {(filterType !== 'tous' || filterAccount !== 'tous') && (
+                <span className="ml-0.5 bg-white text-[#5e5e5e] rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
+                  {(filterType !== 'tous' ? 1 : 0) + (filterAccount !== 'tous' ? 1 : 0)}
+                </span>
+              )}
+            </button>
+
+            {showFilterMenu && (
+              <div className="absolute right-0 top-full mt-2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-72">
+                {/* Filter by type */}
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Type de transaction</p>
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {(['tous', ...TX_TYPES] as string[]).map(t => (
+                    <button key={t} onClick={() => setFilterType(t)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${filterType === t ? 'bg-[#5e5e5e] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                      {t === 'tous' ? 'Tous' : txTypeLabel(t)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Filter by account */}
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Compte</p>
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {([{ value: 'tous', label: 'Tous' }, ...TX_ACCOUNTS]).map(a => (
+                    <button key={a.value} onClick={() => setFilterAccount(a.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${filterAccount === a.value ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Exports */}
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-2.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export</p>
+                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                    <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="w-3.5 h-3.5 rounded" />
+                    Inclure les PJ dans le PDF
+                  </label>
+                  <div className="flex gap-2">
+                    <button onClick={() => { exportCSV(); setShowFilterMenu(false) }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <Download size={12} /> CSV
+                    </button>
+                    <button onClick={() => { exportPDF(); setShowFilterMenu(false) }} disabled={exportingPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#5e5e5e] text-white rounded-xl text-xs hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
+                      <FileDown size={12} /> {exportingPDF ? 'PDF...' : 'PDF'}
+                    </button>
+                  </div>
+                </div>
+
+                {(filterType !== 'tous' || filterAccount !== 'tous') && (
+                  <button onClick={() => { setFilterType('tous'); setFilterAccount('tous') }}
+                    className="mt-3 w-full text-xs text-red-500 hover:text-red-700 transition-colors text-center">
+                    Réinitialiser les filtres
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button onClick={startNew} className="flex items-center gap-1.5 bg-[#5e5e5e] text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
             <Plus size={13} /> Nouvelle transaction
           </button>
         </div>
@@ -1075,22 +1173,38 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
             </div>
             <div>
               <label className="label">Catégorie fiscale</label>
-              <select className="input" value={form.fiscal_category} onChange={e => setForm(f => ({ ...f, fiscal_category: e.target.value }))}>
-                {(Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([gKey, g]) => (
-                  <optgroup key={gKey} label={g.label}>
-                    {g.cats.map(cat => (
-                      <option key={cat} value={cat}>{FISCAL_CATS[cat]?.label ?? cat}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              {form.type === 'transfert' ? (
+                <div className="input bg-gray-50 dark:bg-gray-700 text-gray-500 cursor-default">Transfert entre comptes</div>
+              ) : (
+                <select className="input" value={form.fiscal_category} onChange={e => setForm(f => ({ ...f, fiscal_category: e.target.value }))}>
+                  {(Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([gKey, g]) => (
+                    <optgroup key={gKey} label={g.label}>
+                      {g.cats.filter(c => c !== 'transfert_interne').map(cat => (
+                        <option key={cat} value={cat}>{FISCAL_CATS[cat]?.label ?? cat}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
-              <label className="label">Compte</label>
+              <label className="label">{form.type === 'transfert' ? 'Compte source' : 'Compte'}</label>
               <select className="input" value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))}>
                 {TX_ACCOUNTS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
             </div>
+            {form.type === 'transfert' && (
+              <div>
+                <label className="label">Compte destination</label>
+                <select className="input" value={form.transfer_to_account}
+                  onChange={e => setForm(f => ({ ...f, transfer_to_account: e.target.value }))}>
+                  <option value="">— Sélectionner —</option>
+                  {TX_ACCOUNTS.filter(a => a.value !== form.account).map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="label">Plateforme</label>
               <select className="input" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
@@ -1181,9 +1295,13 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="space-y-1">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${txTypeColor(tx.type)}`}>{txTypeLabel(tx.type)}</span>
-                        {tx.fiscal_category && (
+                        {tx.type === 'transfert' && tx.transfer_to_account ? (
+                          <p className="text-xs text-indigo-500">
+                            {TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label} → {TX_ACCOUNTS.find(a => a.value === tx.transfer_to_account)?.label}
+                          </p>
+                        ) : tx.fiscal_category ? (
                           <p className="text-xs text-gray-400">{FISCAL_CATS[tx.fiscal_category]?.label ?? tx.fiscal_category}</p>
-                        )}
+                        ) : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -1205,9 +1323,13 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`font-semibold ${isInflow(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {isInflow(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
-                      </span>
+                      {tx.type === 'transfert' ? (
+                        <span className="font-semibold text-indigo-600">{fmtCAD(tx.amount)}</span>
+                      ) : (
+                        <span className={`font-semibold ${isInflow(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {isInflow(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
