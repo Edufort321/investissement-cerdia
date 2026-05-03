@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -18,6 +18,7 @@ interface Product {
   currency: string
   amazon_url: string
   image_url?: string
+  image_urls?: string[]
   badge?: string
   category?: string
   rating: number
@@ -59,9 +60,27 @@ export default function CommercePage() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    supabase.from('commerce_products').select('*').eq('active', true)
-      .order('sort_order').order('created_at', { ascending: false })
-      .then(({ data }) => { setProducts(data || []); setLoading(false) })
+    let cancelled = false
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('commerce_products')
+          .select('*')
+          .order('sort_order')
+          .order('created_at', { ascending: false })
+        if (!cancelled) {
+          if (error) console.error('Commerce load error:', error)
+          // Filter active client-side (belt-and-suspenders with RLS)
+          setProducts((data || []).filter((p: Product) => p.active !== false))
+        }
+      } catch (e) {
+        console.error('Commerce fetch failed:', e)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
   }, [])
 
   // Fermer le menu au clic extérieur
@@ -104,7 +123,8 @@ export default function CommercePage() {
                 </span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-                Commerce<br /><span className="text-orange-400">CERDIA</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400">Commerce</span><br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-400 via-gray-200 to-gray-500">CERDIA</span>
               </h1>
               <p className="text-lg text-gray-300 leading-relaxed mb-6">
                 Découvrez notre sélection de produits soigneusement choisis — disponibles sur Amazon.
@@ -237,6 +257,12 @@ export default function CommercePage() {
 
 // ─── Composant ProductCard ─────────────────────────────────────────────────────
 function ProductCard({ product }: { product: Product }) {
+  const allImages = product.image_urls?.length
+    ? product.image_urls
+    : (product.image_url ? [product.image_url] : [])
+  const [activeImg, setActiveImg] = useState(0)
+  const mainImg = allImages[activeImg] || allImages[0] || ''
+
   return (
     <a
       href={product.amazon_url}
@@ -250,10 +276,15 @@ function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Image */}
+      {/* Image principale */}
       <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
-        {product.image_url ? (
-          <img src={product.image_url} alt={product.title} className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110" />
+        {mainImg ? (
+          <img
+            src={mainImg}
+            alt={product.title}
+            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
         ) : (
           <div className="flex items-center justify-center h-full">
             <Package size={48} className="text-gray-300 dark:text-gray-500" />
@@ -261,6 +292,24 @@ function ProductCard({ product }: { product: Product }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
+
+      {/* Miniatures (si plusieurs images) */}
+      {allImages.length > 1 && (
+        <div className="flex gap-1.5 px-3 pt-2" onClick={e => e.preventDefault()}>
+          {allImages.map((img, i) => (
+            <button
+              key={i}
+              onClick={e => { e.preventDefault(); setActiveImg(i) }}
+              className={`w-10 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
+                i === activeImg ? 'border-orange-400 scale-105' : 'border-gray-200 dark:border-gray-600 opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={img} alt="" className="w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Contenu */}
       <div className="p-4">

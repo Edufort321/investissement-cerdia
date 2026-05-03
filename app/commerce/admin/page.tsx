@@ -21,6 +21,7 @@ interface Product {
   currency: string
   amazon_url: string
   image_url?: string
+  image_urls?: string[]
   badge?: string
   category?: string
   rating: number
@@ -56,7 +57,7 @@ const CATEGORIES = ['Maison & Cuisine', 'Électronique', 'Mode', 'Sport', 'Beaut
 
 const EMPTY_PRODUCT = {
   title: '', description: '', price: '', currency: 'CAD',
-  amazon_url: '', image_url: '', badge: '', category: '',
+  amazon_url: '', image_urls: [] as string[], badge: '', category: '',
   rating: 0, review_count: 0, active: true, sort_order: 0,
 }
 
@@ -312,10 +313,13 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
 
   const startEdit = (p: Product) => {
     setEditingId(p.id)
+    const imgs = p.image_urls?.length
+      ? p.image_urls
+      : (p.image_url ? [p.image_url] : [])
     setForm({
       title: p.title, description: p.description || '',
       price: p.price?.toString() || '', currency: p.currency,
-      amazon_url: p.amazon_url, image_url: p.image_url || '',
+      amazon_url: p.amazon_url, image_urls: imgs,
       badge: p.badge || '', category: p.category || '',
       rating: p.rating, review_count: p.review_count,
       active: p.active, sort_order: p.sort_order,
@@ -330,18 +334,20 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     if (!form.amazon_url.trim()) { setFormError('Le lien Amazon est requis.'); return }
     setSaving(true)
     try {
+      const cleanUrls = form.image_urls.map(u => u.trim()).filter(Boolean)
       const payload = {
         title: form.title.trim(),
         description: form.description.trim() || null,
         price: form.price ? parseFloat(form.price as string) : null,
         currency: form.currency,
         amazon_url: form.amazon_url.trim(),
-        image_url: form.image_url.trim() || null,
+        image_url: cleanUrls[0] || null,
+        image_urls: cleanUrls,
         badge: form.badge || null,
         category: form.category || null,
         rating: Number(form.rating) || 0,
         review_count: Number(form.review_count) || 0,
-        active: form.active,
+        active: Boolean(form.active),
         sort_order: Number(form.sort_order) || 0,
       }
       if (editingId) {
@@ -377,14 +383,14 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     setUploadingImg(true)
     try {
       const ext = file.name.split('.').pop()
-      const path = `commerce/${Date.now()}.${ext}`
+      const path = `commerce/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
       if (error) throw error
       const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-      setForm(f => ({ ...f, image_url: urlData.publicUrl }))
+      setForm(f => ({ ...f, image_urls: [...f.image_urls, urlData.publicUrl] }))
       toast({ msg: 'Image uploadée !', type: 'success' })
     } catch {
-      toast({ msg: "Erreur d'upload.", type: 'error' })
+      toast({ msg: "Erreur d'upload. Vérifiez que le bucket 'attachments' est public dans Supabase Storage.", type: 'error' })
     } finally {
       setUploadingImg(false)
     }
@@ -431,16 +437,59 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
               <input className="input font-mono text-xs" placeholder="https://amazon.ca/dp/..." value={form.amazon_url} onChange={e => setForm(f => ({ ...f, amazon_url: e.target.value }))} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Image (URL ou fichier)</label>
-              <div className="flex gap-2">
-                <input className="input flex-1" placeholder="https://..." value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} />
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingImg}
-                  className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition-colors disabled:opacity-50 whitespace-nowrap">
-                  {uploadingImg ? '...' : '📁'}
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+              <label className="label">Images du produit ({form.image_urls.length})</label>
+              <div className="space-y-2">
+                {form.image_urls.map((url, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <span className="text-xs text-gray-400 w-5 flex-shrink-0">{idx + 1}.</span>
+                    <input
+                      className="input flex-1 text-xs"
+                      placeholder="https://..."
+                      value={url}
+                      onChange={e => setForm(f => {
+                        const arr = [...f.image_urls]; arr[idx] = e.target.value; return { ...f, image_urls: arr }
+                      })}
+                    />
+                    {url && (
+                      <img
+                        src={url}
+                        alt=""
+                        className="h-9 w-9 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                    )}
+                    <button type="button" onClick={() => setForm(f => ({ ...f, image_urls: f.image_urls.filter((_, i) => i !== idx) }))}
+                      className="text-red-400 hover:text-red-600 flex-shrink-0 transition-colors">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-1">
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, image_urls: [...f.image_urls, ''] }))}
+                    className="flex items-center gap-1.5 text-sm text-[#5e5e5e] dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-xl hover:border-orange-400 hover:text-orange-600 transition-colors">
+                    <Plus size={13} /> Ajouter une URL
+                  </button>
+                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingImg}
+                    className="flex items-center gap-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    {uploadingImg ? '⏳ Upload...' : '📁 Uploader fichier(s)'}
+                  </button>
+                  <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+                    onChange={e => e.target.files && Array.from(e.target.files).forEach(handleUpload)} />
+                </div>
               </div>
-              {form.image_url && <img src={form.image_url} alt="preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-gray-200" />}
+              {/* Aperçu galerie */}
+              {form.image_urls.filter(Boolean).length > 0 && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {form.image_urls.filter(Boolean).map((url, i) => (
+                    <div key={i} className="relative">
+                      {i === 0 && <span className="absolute -top-1 -left-1 z-10 bg-orange-500 text-white text-[9px] font-bold px-1 rounded">MAIN</span>}
+                      <img src={url} alt="" className="h-16 w-16 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-600"
+                        onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="label">Prix</label>
@@ -524,10 +573,13 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {p.image_url
-                          ? <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-100 flex-shrink-0" />
-                          : <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><Package size={16} className="text-gray-400" /></div>
-                        }
+                        {(() => {
+                          const thumb = (p.image_urls?.[0] || p.image_url) ?? ''
+                          return thumb
+                            ? <img src={thumb} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-100 flex-shrink-0"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            : <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><Package size={16} className="text-gray-400" /></div>
+                        })()}
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 dark:text-white truncate max-w-[180px]">{p.title}</p>
                           {p.badge && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeColor(p.badge)}`}>{p.badge}</span>}
