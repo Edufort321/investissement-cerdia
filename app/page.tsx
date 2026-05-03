@@ -26,7 +26,10 @@ export default function Home() {
       locationCTA: "Explorer nos locations",
       voyageTitle: "Mon Voyage",
       voyageDesc: "Planifiez votre voyage parfait avec l'IA. Timeline 24/7, gestion de budget, suggestions intelligentes et mode partage.",
-      voyageCTA: "Planifier mon voyage"
+      voyageCTA: "Planifier mon voyage",
+      commerceTitle: "Commerce CERDIA",
+      commerceDesc: "CERDIA Commerce réinvestit ses profits directement dans l'immobilier. Boutique en ligne, Amazon FBA et stratégies e-commerce optimisées par intelligence artificielle — un moteur de croissance au service du portefeuille.",
+      commerceCTA: "Découvrir CERDIA Commerce"
     },
     en: {
       title: "A bold vision combining AI, real estate, education and luxury rentals",
@@ -46,7 +49,10 @@ export default function Home() {
       locationCTA: "Explore our rentals",
       voyageTitle: "My Journey",
       voyageDesc: "Plan your perfect trip with AI. 24/7 timeline, budget management, smart suggestions and share mode.",
-      voyageCTA: "Plan my trip"
+      voyageCTA: "Plan my trip",
+      commerceTitle: "CERDIA Commerce",
+      commerceDesc: "CERDIA Commerce reinvests all its profits directly into real estate. Online store, Amazon FBA and AI-optimized e-commerce strategies — a growth engine fueling the portfolio.",
+      commerceCTA: "Discover CERDIA Commerce"
     }
   }
 
@@ -171,6 +177,39 @@ export default function Home() {
               </div>
             </div>
           </Link>
+        </section>
+
+        {/* COMMERCE CERDIA SECTION - Image + Text */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="block group">
+            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+              {/* Texte - à gauche pour alterner avec Mon Voyage */}
+              <div className="p-8 md:p-12 order-2 md:order-1">
+                <span className="inline-block bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+                  E-Commerce & Amazon FBA
+                </span>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
+                  {tr.commerceTitle}
+                </h2>
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                  {tr.commerceDesc}
+                </p>
+                <span className="inline-flex items-center gap-2 text-orange-700 dark:text-orange-400 font-semibold group-hover:gap-3 transition-all">
+                  {tr.commerceCTA}
+                  <span className="text-xl">→</span>
+                </span>
+              </div>
+              {/* Image */}
+              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden order-1 md:order-2">
+                <Image
+                  src="/cerdia-slide-ecommerce.png"
+                  alt="Commerce CERDIA"
+                  fill
+                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* FOOTER */}

@@ -37,12 +37,12 @@ export default function ChatCerdiaInvest({ mode = 'investor' }: Props) {
     messages: { role: string; content: string }[],
     mode: 'investor' | 'admin' | 'formation'
   ) => {
-    const intro =
-      mode === 'investor'
-        ? ‘Tu es l’assistant intelligent de CERDIA. Réponds aux questions d’un investisseur de manière claire, stratégique et professionnelle.’
-        : mode === 'admin'
-        ? 'Tu es l’assistant présidentiel de CERDIA. Tu peux générer des pages, contrats, modules ou décisions stratégiques.'
-        : 'Tu es un coach IA pour la formation CERDIA. Tu expliques les concepts comme à un étudiant motivé.'
+    const introMap: Record<string, string> = {
+      investor: "Tu es l’assistant intelligent de CERDIA. Réponds aux questions d’un investisseur de manière claire, stratégique et professionnelle.",
+      admin: "Tu es l’assistant présidentiel de CERDIA. Tu peux générer des pages, contrats, modules ou décisions stratégiques.",
+      formation: "Tu es un coach IA pour la formation CERDIA. Tu expliques les concepts comme à un étudiant motivé.",
+    }
+    const intro = introMap[mode] ?? introMap.investor
 
     const historique = messages.map((m) => `${m.role === 'user' ? 'Utilisateur' : 'IA'} : ${m.content}`).join('\n')
 
