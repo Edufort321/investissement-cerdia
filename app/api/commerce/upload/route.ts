@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Fresh anon client — no session inheritance, truly anonymous
-const supabaseAnon = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
-)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  // Use service_role key to bypass RLS — commerce admin has its own auth
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,25 +20,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Fichier ou chemin manquant' }, { status: 400 })
     }
 
+    const supabase = getSupabaseAdmin()
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const uint8 = new Uint8Array(arrayBuffer)
 
-    const { error } = await supabaseAnon.storage
+    const { error } = await supabase.storage
       .from('attachments')
-      .upload(path, buffer, {
+      .upload(path, uint8, {
         contentType: file.type || 'application/octet-stream',
         upsert: true,
       })
 
     if (error) {
+      console.error('[commerce/upload] Supabase error:', error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const { data: urlData } = supabaseAnon.storage.from('attachments').getPublicUrl(path)
+    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
 
     return NextResponse.json({ url: urlData.publicUrl, path })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
+    console.error('[commerce/upload] Caught error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
