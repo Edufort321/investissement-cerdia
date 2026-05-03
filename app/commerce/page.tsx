@@ -361,13 +361,6 @@ function ProductCard({ product }: { product: Product }) {
             )}
           </div>
         )}
-        {product.price && (
-          <div className="mb-3">
-            <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {product.price.toLocaleString('fr-CA', { style: 'currency', currency: product.currency, minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        )}
         <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-semibold rounded-xl transition-all duration-200 group-hover:shadow-md">
           <ShoppingCart size={15} />
           Voir sur Amazon
