@@ -214,6 +214,16 @@ function fmtCAD(n: number) {
   return n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })
 }
 
+async function uploadViaApi(file: File, path: string): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('path', path)
+  const res = await fetch('/api/commerce/upload', { method: 'POST', body: fd })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+  return json.url as string
+}
+
 // ─── Mini Stars ────────────────────────────────────────────────────────────────
 function Stars({ r }: { r: number }) {
   return (
@@ -507,16 +517,6 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
   const toggleActive = async (p: Product) => {
     await supabase.from('commerce_products').update({ active: !p.active }).eq('id', p.id)
     await load()
-  }
-
-  const uploadViaApi = async (file: File, path: string): Promise<string> => {
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('path', path)
-    const res = await fetch('/api/commerce/upload', { method: 'POST', body: fd })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
-    return json.url as string
   }
 
   const handleUpload = async (file: File) => {
