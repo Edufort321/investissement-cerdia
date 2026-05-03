@@ -28,6 +28,18 @@ interface Product {
   sort_order: number
 }
 
+// ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
+function toDirectImg(url: string): string {
+  if (!url) return url
+  // Format: https://drive.google.com/file/d/FILE_ID/view...
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/)
+  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`
+  // Format: https://drive.google.com/open?id=FILE_ID
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`
+  return url
+}
+
 // ─── Badge couleur ─────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
   const map: Record<string, string> = {
@@ -261,10 +273,12 @@ export default function CommercePage() {
 
 // ─── Composant ProductCard ─────────────────────────────────────────────────────
 function ProductCard({ product }: { product: Product }) {
-  const allImages = product.image_urls?.length
+  const allImages = (product.image_urls?.length
     ? product.image_urls
     : (product.image_url ? [product.image_url] : [])
+  ).map(toDirectImg)
   const [activeImg, setActiveImg] = useState(0)
+  const [imgError, setImgError] = useState(false)
   const mainImg = allImages[activeImg] || allImages[0] || ''
 
   return (
@@ -280,40 +294,50 @@ function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Image principale */}
-      <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
-        {mainImg ? (
-          <img
-            src={mainImg}
-            alt={product.title}
-            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <Package size={48} className="text-gray-300 dark:text-gray-500" />
+      {/* Zone image : principale à gauche + miniatures à droite */}
+      <div className="flex gap-2 p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 min-h-[13rem]">
+
+        {/* Image principale */}
+        <div className="relative flex-1 rounded-xl overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center">
+          {mainImg && !imgError ? (
+            <img
+              src={mainImg}
+              alt={product.title}
+              className="w-full h-48 object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-48 gap-2">
+              <Package size={40} className="text-gray-300 dark:text-gray-500" />
+              <span className="text-xs text-gray-400">Aucune image</span>
+            </div>
+          )}
+        </div>
+
+        {/* Miniatures verticales à droite (seulement si plusieurs images) */}
+        {allImages.length > 1 && (
+          <div className="flex flex-col gap-1.5 w-14 flex-shrink-0" onClick={e => e.preventDefault()}>
+            {allImages.map((img, i) => (
+              <button
+                key={i}
+                onClick={e => { e.preventDefault(); setActiveImg(i); setImgError(false) }}
+                className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all bg-white dark:bg-gray-700 ${
+                  i === activeImg
+                    ? 'border-orange-400 shadow-md scale-105'
+                    : 'border-gray-200 dark:border-gray-600 opacity-50 hover:opacity-90 hover:border-orange-200'
+                }`}
+              >
+                <img
+                  src={img}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).parentElement!.style.opacity = '0.3' }}
+                />
+              </button>
+            ))}
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-
-      {/* Miniatures (si plusieurs images) */}
-      {allImages.length > 1 && (
-        <div className="flex gap-1.5 px-3 pt-2" onClick={e => e.preventDefault()}>
-          {allImages.map((img, i) => (
-            <button
-              key={i}
-              onClick={e => { e.preventDefault(); setActiveImg(i) }}
-              className={`w-10 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
-                i === activeImg ? 'border-orange-400 scale-105' : 'border-gray-200 dark:border-gray-600 opacity-60 hover:opacity-100'
-              }`}
-            >
-              <img src={img} alt="" className="w-full h-full object-cover"
-                onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }} />
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Contenu */}
       <div className="p-4">

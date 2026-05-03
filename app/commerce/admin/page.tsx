@@ -44,6 +44,16 @@ interface CommerceTx {
   created_at: string
 }
 
+// ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
+function toDirectImg(url: string): string {
+  if (!url) return url
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/)
+  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`
+  return url
+}
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
@@ -497,7 +507,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                   {form.image_urls.filter(Boolean).map((url, i) => (
                     <div key={i} className="relative">
                       {i === 0 && <span className="absolute -top-1 -left-1 z-10 bg-orange-500 text-white text-[9px] font-bold px-1 rounded">MAIN</span>}
-                      <img src={url} alt="" className="h-16 w-16 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-600"
+                      <img src={toDirectImg(url)} alt="" className="h-16 w-16 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-600"
                         onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }} />
                     </div>
                   ))}
@@ -587,7 +597,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {(() => {
-                          const thumb = (p.image_urls?.[0] || p.image_url) ?? ''
+                          const thumb = toDirectImg((p.image_urls?.[0] || p.image_url) ?? '')
                           return thumb
                             ? <img src={thumb} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-100 flex-shrink-0"
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
