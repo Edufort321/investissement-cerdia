@@ -81,6 +81,11 @@ export default function Navbar() {
               Vision
             </button>
           </Link>
+          <Link href="/commerce">
+            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+              Commerce
+            </button>
+          </Link>
           <Link href="/connexion">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
               Connexion
@@ -126,6 +131,11 @@ export default function Navbar() {
             <Link href="/vision-cerdia" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
                 Vision
+              </button>
+            </Link>
+            <Link href="/commerce" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+                Commerce
               </button>
             </Link>
             <Link href="/connexion" onClick={() => setMobileMenuOpen(false)}>

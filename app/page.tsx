@@ -181,7 +181,7 @@ export default function Home() {
 
         {/* COMMERCE CERDIA SECTION - Image + Text */}
         <section className="max-w-7xl mx-auto px-6 py-16">
-          <div className="block group">
+          <Link href="/commerce" className="block group">
             <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
               {/* Texte - à gauche pour alterner avec Mon Voyage */}
               <div className="p-8 md:p-12 order-2 md:order-1">
@@ -209,7 +209,7 @@ export default function Home() {
                 />
               </div>
             </div>
-          </div>
+          </Link>
         </section>
 
         {/* FOOTER */}
