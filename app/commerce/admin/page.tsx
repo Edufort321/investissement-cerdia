@@ -64,7 +64,7 @@ const FISCAL_GROUPS = {
     label: 'Dépenses opérationnelles (OPEX)', color: [59, 130, 246] as [number,number,number],
     bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200',
     text: 'text-blue-700',
-    cats: ['opex_amazon', 'opex_pub', 'opex_expedition', 'opex_retours', 'opex_logiciels', 'opex_autre'],
+    cats: ['opex_amazon', 'opex_pub', 'opex_expedition', 'opex_retours', 'opex_logiciels', 'opex_bancaire', 'opex_autre'],
   },
   CAPEX: {
     label: 'Investissements (CAPEX)', color: [249, 115, 22] as [number,number,number],
@@ -76,7 +76,7 @@ const FISCAL_GROUPS = {
     label: 'Financement', color: [168, 85, 247] as [number,number,number],
     bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200',
     text: 'text-purple-700',
-    cats: ['financement_apport', 'financement_pret'],
+    cats: ['financement_apport', 'financement_avance', 'financement_pret'],
   },
 }
 
@@ -89,12 +89,14 @@ const FISCAL_CATS: Record<string, { label: string; group: keyof typeof FISCAL_GR
   opex_expedition:    { label: 'Expédition & logistique',    group: 'OPEX' },
   opex_retours:       { label: 'Retours clients',            group: 'OPEX' },
   opex_logiciels:     { label: 'Abonnements & logiciels',    group: 'OPEX' },
+  opex_bancaire:      { label: 'Frais bancaires',            group: 'OPEX' },
   opex_autre:         { label: 'Autres dépenses OPEX',       group: 'OPEX' },
   capex_stock:        { label: 'Achat de stock',             group: 'CAPEX' },
   capex_equipement:   { label: 'Équipement & matériel',      group: 'CAPEX' },
   capex_autre:        { label: 'Autres investissements',     group: 'CAPEX' },
-  financement_apport: { label: 'Apport personnel',          group: 'FINANCEMENT' },
-  financement_pret:   { label: 'Prêt / Ligne de crédit',    group: 'FINANCEMENT' },
+  financement_apport:  { label: 'Apport personnel',              group: 'FINANCEMENT' },
+  financement_avance:  { label: 'Avance de fonds (fondateur)',   group: 'FINANCEMENT' },
+  financement_pret:    { label: 'Prêt / Ligne de crédit',        group: 'FINANCEMENT' },
 }
 
 // ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
@@ -111,7 +113,7 @@ function toDirectImg(url: string): string {
 const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
 
-const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'autre'] as const
+const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'autre'] as const
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
 const TX_ACCOUNTS = [
@@ -154,7 +156,9 @@ function badgeColor(badge?: string) {
 function txTypeLabel(t: string) {
   const m: Record<string, string> = {
     vente: 'Vente', remboursement: 'Remboursement',
-    frais_amazon: 'Frais Amazon', publicite: 'Publicité', autre: 'Autre',
+    frais_amazon: 'Frais Amazon', publicite: 'Publicité',
+    avance_fonds: 'Avance de fonds', frais_bancaires: 'Frais bancaires',
+    autre: 'Autre',
   }
   return m[t] || t
 }
@@ -164,9 +168,17 @@ function txTypeColor(t: string) {
   if (t === 'remboursement') return 'bg-red-100 text-red-700'
   if (t === 'frais_amazon') return 'bg-amber-100 text-amber-700'
   if (t === 'publicite') return 'bg-blue-100 text-blue-700'
+  if (t === 'avance_fonds') return 'bg-purple-100 text-purple-700'
+  if (t === 'frais_bancaires') return 'bg-slate-100 text-slate-600'
   return 'bg-gray-100 text-gray-600'
 }
 
+// Retourne true si la transaction est une entrée d'argent dans l'entreprise
+function isInflow(type: string) {
+  return type === 'vente' || type === 'avance_fonds'
+}
+
+// Retourne true si le type compte dans le bénéfice net (revenus d'exploitation seulement)
 function isRevenue(type: string) {
   return type === 'vente'
 }
@@ -853,7 +865,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
       // Sommaire
       const totalRev = filtered.filter(t => isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
-      const totalDep = filtered.filter(t => !isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
+      const totalDep = filtered.filter(t => !isInflow(t.type)).reduce((s, t) => s + t.amount, 0)
       autoTable(doc, {
         startY: 32,
         head: [['Entrées (revenus)', 'Sorties (dépenses)', 'Balance nette']],
@@ -872,7 +884,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
         FISCAL_CATS[tx.fiscal_category || 'opex_autre']?.label ?? '—',
         tx.description + (tx.product_ref ? `\n${tx.product_ref}` : ''),
         TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '—',
-        (isRevenue(tx.type) ? '+' : '-') + fmtCAD(tx.amount),
+        (isInflow(tx.type) ? '+' : '-') + fmtCAD(tx.amount),
         tx.status,
         pdfIncludeLinks && tx.attachment_url ? tx.attachment_name || 'PJ' : (tx.attachment_name ? '📎' : ''),
       ])
@@ -942,7 +954,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       tx.product_ref || '',
       TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '',
       tx.platform,
-      (isRevenue(tx.type) ? '' : '-') + tx.amount.toFixed(2),
+      (isInflow(tx.type) ? '' : '-') + tx.amount.toFixed(2),
       tx.status,
       tx.notes || '',
       tx.attachment_name || '',
@@ -958,20 +970,20 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
   const filtered = txs.filter(t => filterType === 'tous' || t.type === filterType)
 
-  const totalVentes = txs.filter(t => t.type === 'vente').reduce((s, t) => s + t.amount, 0)
-  const totalDepenses = txs.filter(t => t.type !== 'vente').reduce((s, t) => s + t.amount, 0)
+  const totalVentes = txs.filter(t => isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
+  const totalDepenses = txs.filter(t => !isInflow(t.type)).reduce((s, t) => s + t.amount, 0)
   const benefice = totalVentes - totalDepenses
 
   // Soldes par compte
   const soldeCourant = txs
     .filter(t => (t.account || 'compte_courant') === 'compte_courant')
-    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
   const soldeCarte = txs
     .filter(t => t.account === 'carte_credit')
-    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
   const soldeCapex = txs
     .filter(t => t.account === 'capex')
-    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+    .reduce((s, t) => s + (isInflow(t.type) ? t.amount : -t.amount), 0)
 
   return (
     <div>
@@ -1193,8 +1205,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`font-semibold ${isRevenue(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {isRevenue(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
+                      <span className={`font-semibold ${isInflow(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {isInflow(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
