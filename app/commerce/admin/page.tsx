@@ -296,7 +296,14 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
 
   const load = async () => {
     setLoading(true)
-    const { data } = await supabase.from('commerce_products').select('*').order('sort_order').order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('commerce_products')
+      .select('*')
+      .order('sort_order')
+      .order('created_at', { ascending: false })
+    if (error) {
+      setFormError(`Erreur de chargement : ${error.message} — Avez-vous exécuté la migration SQL 126 dans Supabase ?`)
+    }
     setProducts(data || [])
     setLoading(false)
   }
@@ -333,6 +340,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     if (!form.title.trim()) { setFormError('Le titre est requis.'); return }
     if (!form.amazon_url.trim()) { setFormError('Le lien Amazon est requis.'); return }
     setSaving(true)
+    setFormError('')
     try {
       const cleanUrls = form.image_urls.map(u => u.trim()).filter(Boolean)
       const payload = {
@@ -350,18 +358,23 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
         active: Boolean(form.active),
         sort_order: Number(form.sort_order) || 0,
       }
-      if (editingId) {
-        await supabase.from('commerce_products').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
-      } else {
-        await supabase.from('commerce_products').insert(payload)
+
+      const { error } = editingId
+        ? await supabase.from('commerce_products').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
+        : await supabase.from('commerce_products').insert(payload)
+
+      if (error) {
+        setFormError(`Erreur Supabase : ${error.message}${error.code === '42P01' ? ' — La table n\'existe pas, exécutez la migration SQL 126.' : ''}${error.code === '42501' ? ' — Permission refusée. Vérifiez les politiques RLS dans Supabase.' : ''}`)
+        return
       }
+
       await load()
       setShowForm(false)
       setEditingId(null)
       setForm({ ...EMPTY_PRODUCT })
       toast({ msg: editingId ? 'Produit mis à jour !' : 'Produit ajouté !', type: 'success' })
-    } catch {
-      setFormError('Erreur lors de la sauvegarde.')
+    } catch (e: unknown) {
+      setFormError(`Erreur inattendue : ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setSaving(false)
     }
