@@ -269,6 +269,45 @@ export default function InvoiceGenerator() {
     setView('form')
   }
 
+  // ─── Ouvrir Gmail Compose avec message pré-rempli ────────────────────────────
+  const openGmailCompose = (inv: Invoice) => {
+    const client = (inv.client_snapshot || {}) as any
+    const clientEmail = client.email || ''
+    const dateEmission = new Date(inv.issue_date).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+    const dateEcheance = inv.due_date
+      ? new Date(inv.due_date).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'Sur réception'
+
+    const subject = `Facture ${inv.invoice_number} — ${company.name}`
+    const body = [
+      `Bonjour ${client.name || ''},`,
+      ``,
+      `Veuillez trouver ci-joint la facture ${inv.invoice_number} pour un montant total de ${fmt(inv.total)}.`,
+      ``,
+      `Détails de la facture :`,
+      `  • Numéro       : ${inv.invoice_number}`,
+      `  • Date         : ${dateEmission}`,
+      `  • Échéance     : ${dateEcheance}`,
+      `  • Termes       : ${inv.payment_terms || '30 jours'}`,
+      `  • Sous-total   : ${fmt(inv.subtotal)}`,
+      ...(inv.tps_amount > 0 ? [`  • TPS (5%)     : ${fmt(inv.tps_amount)}`] : []),
+      ...(inv.tvq_amount > 0 ? [`  • TVQ (9,975%) : ${fmt(inv.tvq_amount)}`] : []),
+      `  • TOTAL        : ${fmt(inv.total)}`,
+      ``,
+      `Pour effectuer votre paiement, veuillez utiliser les coordonnées bancaires indiquées sur la facture.`,
+      ``,
+      `Pour toute question, n'hésitez pas à nous contacter.`,
+      ``,
+      `Cordialement,`,
+      `${company.name}`,
+      ...(company.email ? [company.email] : ['eric.dufort@cerdia.ai']),
+      ...(company.phone ? [company.phone] : []),
+    ].join('\n')
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&from=eric.dufort%40cerdia.ai&to=${encodeURIComponent(clientEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.open(gmailUrl, '_blank')
+  }
+
   // ─── Sauvegarder (draft ou send) ─────────────────────────────────────────────
   const saveInvoice = async (targetStatus: 'draft' | 'sent') => {
     if (!selectedClientId) { setError('Veuillez sélectionner un client.'); return }
@@ -324,7 +363,24 @@ export default function InvoiceGenerator() {
       }
 
       await loadData()
-      setSuccess(targetStatus === 'sent' ? 'Facture envoyée et archivée !' : 'Brouillon sauvegardé !')
+
+      if (targetStatus === 'sent') {
+        // Construire l'objet complet pour PDF + Gmail
+        const fullInvoice: Invoice = {
+          ...(invoiceData as any),
+          id: invoiceId!,
+          created_at: new Date().toISOString(),
+          items: itemsToInsert as any,
+        }
+        // Générer + télécharger le PDF automatiquement
+        await generatePDF(fullInvoice, true)
+        // Ouvrir Gmail Compose avec le message pré-rempli
+        openGmailCompose(fullInvoice)
+        setSuccess('PDF téléchargé — attachez-le dans Gmail qui vient de s\'ouvrir !')
+      } else {
+        setSuccess('Brouillon sauvegardé !')
+      }
+
       setView('list')
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la sauvegarde.')
@@ -927,6 +983,15 @@ export default function InvoiceGenerator() {
             {inv.status === 'cancelled' && (
               <button onClick={() => rectifyInvoice(inv)} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
                 <RotateCcw size={14} /> Rectifier
+              </button>
+            )}
+            {(inv.status === 'sent' || inv.status === 'draft') && (
+              <button
+                onClick={async () => { await generatePDF(inv, true); openGmailCompose(inv) }}
+                disabled={generatingPDF}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Send size={14} /> {generatingPDF ? '...' : 'Envoyer par Gmail'}
               </button>
             )}
             <button onClick={() => generatePDF(inv)} disabled={generatingPDF} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
