@@ -537,8 +537,9 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
       const att: ProductAttachment = { name: file.name, url: urlData.publicUrl, path }
       setForm(f => ({ ...f, product_attachments: [...(f.product_attachments || []), att] }))
       toast({ msg: 'Document joint !', type: 'success' })
-    } catch {
-      toast({ msg: "Erreur d'upload.", type: 'error' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast({ msg: `Erreur upload: ${msg}`, type: 'error' })
     } finally {
       setUploadingDoc(false)
     }
