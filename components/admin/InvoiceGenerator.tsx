@@ -1195,12 +1195,13 @@ export default function InvoiceGenerator() {
                     onClick={async () => {
                       if (!clientForm.name?.trim()) { setError('Nom requis'); return }
                       setSaving(true)
-                      const { data } = await supabase.from('invoice_clients').insert({ ...clientForm }).select().single()
+                      const { data, error: err } = await supabase.from('invoice_clients').insert({ ...clientForm }).select().single()
+                      setSaving(false)
+                      if (err) { setError(`Erreur Supabase : ${err.message}${err.code === '42501' ? ' — Exécutez la migration 132 dans Supabase.' : ''}`); return }
                       await loadData()
                       if (data) setSelectedClientId(data.id)
                       setShowClientForm(false)
                       setClientForm({ province: 'QC', country: 'Canada' })
-                      setSaving(false)
                       setSuccess('Client créé !')
                     }}
                     disabled={saving}
