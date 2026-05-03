@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -56,32 +56,25 @@ function Stars({ rating }: { rating: number }) {
 export default function CommercePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [dbError, setDbError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Tous')
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('commerce_products')
-          .select('*')
-          .order('sort_order')
-          .order('created_at', { ascending: false })
-        if (!cancelled) {
-          if (error) console.error('Commerce load error:', error)
-          // Filter active client-side (belt-and-suspenders with RLS)
-          setProducts((data || []).filter((p: Product) => p.active !== false))
+    supabase
+      .from('commerce_products')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        setLoading(false)
+        if (error) {
+          setDbError(error.message)
+          return
         }
-      } catch (e) {
-        console.error('Commerce fetch failed:', e)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
+        setProducts((data ?? []).filter(p => p.active !== false))
+      })
   }, [])
 
   // Fermer le menu au clic extérieur
@@ -177,6 +170,17 @@ export default function CommercePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Erreur DB visible ────────────────────────────────────────────────── */}
+      {dbError && (
+        <div className="max-w-3xl mx-auto px-6 pt-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            <p className="font-semibold mb-1">Erreur de chargement des produits :</p>
+            <p className="font-mono text-xs">{dbError}</p>
+            <p className="mt-2 text-xs">→ Vérifiez que la migration SQL 129 a été exécutée dans Supabase.</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Filtres & Recherche ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6 py-8">
