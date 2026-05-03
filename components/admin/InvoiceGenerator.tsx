@@ -8,7 +8,7 @@ import {
   Edit2, X, FileText, Users, Copy, ExternalLink, CreditCard,
   Phone, Mail, Settings, Search, ChevronDown, ChevronUp,
   Building2, Calendar, Hash, DollarSign, Save, AlertCircle,
-  Clock, Ban
+  Clock, Ban, RotateCcw
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -372,10 +372,19 @@ export default function InvoiceGenerator() {
     }
   }
 
-  // ─── Annuler une facture ─────────────────────────────────────────────────────
+  // ─── Annuler une facture (avec confirmation) ─────────────────────────────────
   const cancelInvoice = async (inv: Invoice) => {
+    if (!confirm(`Annuler la facture ${inv.invoice_number} ?\n\nCette action peut être rectifiée plus tard.`)) return
     await supabase.from('invoices').update({ status: 'cancelled' }).eq('id', inv.id)
     await loadData()
+    setSuccess(`Facture ${inv.invoice_number} annulée.`)
+  }
+
+  // ─── Rectifier une facture annulée → retour en brouillon ─────────────────────
+  const rectifyInvoice = async (inv: Invoice) => {
+    await supabase.from('invoices').update({ status: 'draft' }).eq('id', inv.id)
+    await loadData()
+    setSuccess(`Facture ${inv.invoice_number} remise en brouillon — vous pouvez la modifier.`)
   }
 
   // ─── Prévisualiser ────────────────────────────────────────────────────────────
@@ -913,6 +922,11 @@ export default function InvoiceGenerator() {
             {inv.status === 'sent' && (
               <button onClick={() => markAsPaid(inv)} disabled={saving} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50">
                 <CheckCircle size={14} /> Marquer payée
+              </button>
+            )}
+            {inv.status === 'cancelled' && (
+              <button onClick={() => rectifyInvoice(inv)} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
+                <RotateCcw size={14} /> Rectifier
               </button>
             )}
             <button onClick={() => generatePDF(inv)} disabled={generatingPDF} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
@@ -1580,8 +1594,13 @@ export default function InvoiceGenerator() {
                             <Download size={14} />
                           </button>
                           {(inv.status === 'draft' || inv.status === 'sent') && (
-                            <button onClick={() => cancelInvoice(inv)} title="Annuler" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <button onClick={() => cancelInvoice(inv)} title="Annuler la facture" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                               <Ban size={14} />
+                            </button>
+                          )}
+                          {inv.status === 'cancelled' && (
+                            <button onClick={() => rectifyInvoice(inv)} title="Rectifier — remettre en brouillon" className="p-1.5 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors">
+                              <RotateCcw size={14} />
                             </button>
                           )}
                         </div>
