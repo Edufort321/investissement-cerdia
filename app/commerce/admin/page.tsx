@@ -286,7 +286,7 @@ export default function CommerceAdminPage() {
       </div>
 
       {/* Contenu des onglets */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pt-12">
         {tab === 'produits' && <ProduitsTab toast={setToast} />}
         {tab === 'transactions' && <TransactionsTab toast={setToast} />}
         {tab === 'rapports' && <RapportsTab />}
