@@ -5,11 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
   Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
-  Check, ChevronDown, Shield, Home
+  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -39,11 +41,60 @@ interface CommerceTx {
   amount: number
   type: string
   account: string
+  fiscal_category: string
   platform: string
   product_ref?: string
   status: string
   notes?: string
+  attachment_name?: string
+  attachment_url?: string
+  attachment_storage_path?: string
   created_at: string
+}
+
+// ─── Groupes fiscaux eCommerce ─────────────────────────────────────────────────
+const FISCAL_GROUPS = {
+  REVENUS: {
+    label: 'Revenus', color: [34, 197, 94] as [number,number,number],
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200',
+    text: 'text-emerald-700',
+    cats: ['revenu_ventes', 'revenu_affilie', 'revenu_autre'],
+  },
+  OPEX: {
+    label: 'Dépenses opérationnelles (OPEX)', color: [59, 130, 246] as [number,number,number],
+    bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200',
+    text: 'text-blue-700',
+    cats: ['opex_amazon', 'opex_pub', 'opex_expedition', 'opex_retours', 'opex_logiciels', 'opex_autre'],
+  },
+  CAPEX: {
+    label: 'Investissements (CAPEX)', color: [249, 115, 22] as [number,number,number],
+    bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200',
+    text: 'text-orange-700',
+    cats: ['capex_stock', 'capex_equipement', 'capex_autre'],
+  },
+  FINANCEMENT: {
+    label: 'Financement', color: [168, 85, 247] as [number,number,number],
+    bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200',
+    text: 'text-purple-700',
+    cats: ['financement_apport', 'financement_pret'],
+  },
+}
+
+const FISCAL_CATS: Record<string, { label: string; group: keyof typeof FISCAL_GROUPS }> = {
+  revenu_ventes:      { label: 'Ventes produits',            group: 'REVENUS' },
+  revenu_affilie:     { label: 'Commissions affilié',        group: 'REVENUS' },
+  revenu_autre:       { label: 'Autres revenus',             group: 'REVENUS' },
+  opex_amazon:        { label: 'Frais Amazon / plateforme',  group: 'OPEX' },
+  opex_pub:           { label: 'Publicité & Marketing',      group: 'OPEX' },
+  opex_expedition:    { label: 'Expédition & logistique',    group: 'OPEX' },
+  opex_retours:       { label: 'Retours clients',            group: 'OPEX' },
+  opex_logiciels:     { label: 'Abonnements & logiciels',    group: 'OPEX' },
+  opex_autre:         { label: 'Autres dépenses OPEX',       group: 'OPEX' },
+  capex_stock:        { label: 'Achat de stock',             group: 'CAPEX' },
+  capex_equipement:   { label: 'Équipement & matériel',      group: 'CAPEX' },
+  capex_autre:        { label: 'Autres investissements',     group: 'CAPEX' },
+  financement_apport: { label: 'Apport personnel',          group: 'FINANCEMENT' },
+  financement_pret:   { label: 'Prêt / Ligne de crédit',    group: 'FINANCEMENT' },
 }
 
 // ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
@@ -81,7 +132,9 @@ const EMPTY_PRODUCT = {
 const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   date: new Date().toISOString().split('T')[0],
   description: '', amount: 0, type: 'vente', account: 'compte_courant',
+  fiscal_category: 'revenu_ventes',
   platform: 'Amazon', product_ref: '', status: 'complété', notes: '',
+  attachment_name: '', attachment_url: '', attachment_storage_path: '',
 }
 
 type Tab = 'produits' | 'transactions' | 'rapports' | 'factures'
@@ -678,6 +731,10 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [form, setForm] = useState({ ...EMPTY_TX })
   const [saving, setSaving] = useState(false)
   const [filterType, setFilterType] = useState('tous')
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
+  const attachRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     setLoading(true)
@@ -696,14 +753,28 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
   const startEdit = (tx: CommerceTx) => {
     setEditingId(tx.id)
-    setForm({ date: tx.date, description: tx.description, amount: tx.amount, type: tx.type, account: tx.account || 'compte_courant', platform: tx.platform, product_ref: tx.product_ref || '', status: tx.status, notes: tx.notes || '' })
+    setForm({
+      date: tx.date, description: tx.description, amount: tx.amount,
+      type: tx.type, account: tx.account || 'compte_courant',
+      fiscal_category: tx.fiscal_category || 'opex_autre',
+      platform: tx.platform, product_ref: tx.product_ref || '',
+      status: tx.status, notes: tx.notes || '',
+      attachment_name: tx.attachment_name || '',
+      attachment_url: tx.attachment_url || '',
+      attachment_storage_path: tx.attachment_storage_path || '',
+    })
     setShowForm(true)
   }
 
   const save = async () => {
     if (!form.description.trim()) { toast({ msg: 'Description requise.', type: 'error' }); return }
     setSaving(true)
-    const payload = { ...form, amount: Number(form.amount) || 0 }
+    const payload = {
+      ...form, amount: Number(form.amount) || 0,
+      attachment_name: form.attachment_name || null,
+      attachment_url: form.attachment_url || null,
+      attachment_storage_path: form.attachment_storage_path || null,
+    }
     try {
       if (editingId) {
         await supabase.from('commerce_transactions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
@@ -723,9 +794,166 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
   const del = async (id: string) => {
     if (!confirm('Supprimer cette transaction ?')) return
+    // Supprimer la pièce jointe du storage si elle existe
+    const tx = txs.find(t => t.id === id)
+    if (tx?.attachment_storage_path) {
+      await supabase.storage.from('attachments').remove([tx.attachment_storage_path])
+    }
     await supabase.from('commerce_transactions').delete().eq('id', id)
     await load()
     toast({ msg: 'Supprimée.', type: 'success' })
+  }
+
+  const handleAttachmentUpload = async (file: File) => {
+    setUploadingAttachment(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `commerce/tx/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
+      setForm(f => ({ ...f, attachment_name: file.name, attachment_url: urlData.publicUrl, attachment_storage_path: path }))
+      toast({ msg: 'Pièce jointe uploadée !', type: 'success' })
+    } catch {
+      toast({ msg: "Erreur upload. Vérifiez que le bucket 'attachments' est public.", type: 'error' })
+    } finally {
+      setUploadingAttachment(false)
+    }
+  }
+
+  const removeAttachment = async () => {
+    if (form.attachment_storage_path) {
+      await supabase.storage.from('attachments').remove([form.attachment_storage_path])
+    }
+    setForm(f => ({ ...f, attachment_name: '', attachment_url: '', attachment_storage_path: '' }))
+  }
+
+  const exportPDF = async () => {
+    setExportingPDF(true)
+    try {
+      const doc = new jsPDF()
+      const pageW = doc.internal.pageSize.getWidth()
+      const year = new Date().getFullYear()
+
+      // Logo
+      try {
+        const r = await fetch('/logo-cerdia3.png')
+        const blob = await r.blob()
+        const b64: string = await new Promise(res => { const fr = new FileReader(); fr.onloadend = () => res(fr.result as string); fr.readAsDataURL(blob) })
+        doc.addImage(b64, 'PNG', 15, 10, 24, 8)
+      } catch {}
+
+      // En-tête
+      doc.setFontSize(18); doc.setTextColor(94, 94, 94)
+      doc.text('Registre des transactions', pageW - 15, 16, { align: 'right' })
+      doc.setFontSize(10); doc.setTextColor(150, 150, 150)
+      doc.text(`Commerce CERDIA inc. — Généré le ${new Date().toLocaleDateString('fr-CA')}`, pageW - 15, 22, { align: 'right' })
+      doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.4)
+      doc.line(15, 27, pageW - 15, 27)
+
+      // Sommaire
+      const totalRev = filtered.filter(t => isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
+      const totalDep = filtered.filter(t => !isRevenue(t.type)).reduce((s, t) => s + t.amount, 0)
+      autoTable(doc, {
+        startY: 32,
+        head: [['Entrées (revenus)', 'Sorties (dépenses)', 'Balance nette']],
+        body: [[fmtCAD(totalRev), fmtCAD(totalDep), fmtCAD(totalRev - totalDep)]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], fontSize: 9, halign: 'center' },
+        bodyStyles: { fontSize: 10, halign: 'center', fontStyle: 'bold' },
+        columnStyles: { 0: { textColor: [34, 197, 94] }, 1: { textColor: [239, 68, 68] }, 2: { textColor: totalRev - totalDep >= 0 ? [34, 197, 94] : [239, 68, 68] } },
+        margin: { left: 15, right: 15 },
+      })
+
+      // Table transactions
+      const rows = filtered.map(tx => [
+        new Date(tx.date + 'T12:00:00').toLocaleDateString('fr-CA'),
+        txTypeLabel(tx.type),
+        FISCAL_CATS[tx.fiscal_category || 'opex_autre']?.label ?? '—',
+        tx.description + (tx.product_ref ? `\n${tx.product_ref}` : ''),
+        TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '—',
+        (isRevenue(tx.type) ? '+' : '-') + fmtCAD(tx.amount),
+        tx.status,
+        pdfIncludeLinks && tx.attachment_url ? tx.attachment_name || 'PJ' : (tx.attachment_name ? '📎' : ''),
+      ])
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 6,
+        head: [['Date', 'Type', 'Cat. fiscale', 'Description', 'Compte', 'Montant', 'Statut', 'PJ']],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [94, 94, 94], fontSize: 8, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 20 }, 1: { cellWidth: 18 }, 2: { cellWidth: 28 },
+          3: { cellWidth: 50 }, 4: { cellWidth: 22 }, 5: { halign: 'right', cellWidth: 22 },
+          6: { cellWidth: 16 }, 7: { cellWidth: 20 },
+        },
+        didParseCell: (data) => {
+          if (data.column.index === 5) {
+            const val = String(data.cell.raw || '')
+            data.cell.styles.textColor = val.startsWith('+') ? [34, 197, 94] : [239, 68, 68]
+          }
+          if (pdfIncludeLinks && data.column.index === 7 && data.section === 'body') {
+            const tx = filtered[data.row.index]
+            if (tx?.attachment_url) {
+              data.cell.styles.textColor = [59, 130, 246]
+            }
+          }
+        },
+        didDrawCell: (data) => {
+          if (pdfIncludeLinks && data.column.index === 7 && data.section === 'body') {
+            const tx = filtered[data.row.index]
+            if (tx?.attachment_url) {
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: tx.attachment_url })
+            }
+          }
+        },
+        margin: { left: 15, right: 15 },
+      })
+
+      // Footer sur chaque page
+      const totalPages = (doc as any).internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        const pH = doc.internal.pageSize.getHeight()
+        doc.setDrawColor(220, 220, 220); doc.line(15, pH - 15, pageW - 15, pH - 15)
+        doc.setFontSize(7); doc.setTextColor(150, 150, 150)
+        doc.text('Commerce CERDIA inc. — Rapport généré automatiquement', pageW / 2, pH - 9, { align: 'center' })
+        doc.text(`Page ${i} sur ${totalPages}`, pageW - 15, pH - 9, { align: 'right' })
+      }
+
+      doc.save(`Transactions_Commerce_CERDIA_${year}.pdf`)
+      toast({ msg: 'PDF exporté !', type: 'success' })
+    } catch (e) {
+      toast({ msg: 'Erreur export PDF.', type: 'error' })
+    } finally {
+      setExportingPDF(false)
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = ['Date', 'Type', 'Catégorie fiscale', 'Description', 'Référence', 'Compte', 'Plateforme', 'Montant CAD', 'Statut', 'Notes', 'Pièce jointe', 'URL PJ']
+    const rows = filtered.map(tx => [
+      tx.date,
+      txTypeLabel(tx.type),
+      FISCAL_CATS[tx.fiscal_category || 'opex_autre']?.label ?? '',
+      tx.description,
+      tx.product_ref || '',
+      TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '',
+      tx.platform,
+      (isRevenue(tx.type) ? '' : '-') + tx.amount.toFixed(2),
+      tx.status,
+      tx.notes || '',
+      tx.attachment_name || '',
+      tx.attachment_url || '',
+    ])
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = `Transactions_Commerce_CERDIA_${new Date().getFullYear()}.csv`; a.click()
+    URL.revokeObjectURL(url)
+    toast({ msg: 'CSV exporté !', type: 'success' })
   }
 
   const filtered = txs.filter(t => filterType === 'tous' || t.type === filterType)
@@ -790,9 +1018,21 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
             </button>
           ))}
         </div>
-        <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm flex-shrink-0">
-          <Plus size={15} /> Nouvelle transaction
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+            <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="w-3.5 h-3.5 rounded" />
+            PJ dans PDF
+          </label>
+          <button onClick={exportCSV} className="flex items-center gap-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Download size={12} /> CSV
+          </button>
+          <button onClick={exportPDF} disabled={exportingPDF} className="flex items-center gap-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50">
+            <FileDown size={12} /> {exportingPDF ? 'PDF...' : 'PDF'}
+          </button>
+          <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
+            <Plus size={13} /> Nouvelle transaction
+          </button>
+        </div>
       </div>
 
       {/* Form */}
@@ -822,6 +1062,18 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               </select>
             </div>
             <div>
+              <label className="label">Catégorie fiscale</label>
+              <select className="input" value={form.fiscal_category} onChange={e => setForm(f => ({ ...f, fiscal_category: e.target.value }))}>
+                {(Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([gKey, g]) => (
+                  <optgroup key={gKey} label={g.label}>
+                    {g.cats.map(cat => (
+                      <option key={cat} value={cat}>{FISCAL_CATS[cat]?.label ?? cat}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="label">Compte</label>
               <select className="input" value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))}>
                 {TX_ACCOUNTS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
@@ -842,6 +1094,31 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <select className="input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 {TX_STATUSES.map(s => <option key={s}>{s}</option>)}
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Pièce jointe (facture, reçu, relevé...)</label>
+              {form.attachment_name ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <Paperclip size={15} className="text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{form.attachment_name}</p>
+                    {form.attachment_url && (
+                      <a href={form.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">Voir le fichier</a>
+                    )}
+                  </div>
+                  <button type="button" onClick={removeAttachment} className="text-red-400 hover:text-red-600 flex-shrink-0 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => attachRef.current?.click()} disabled={uploadingAttachment}
+                  className="flex items-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors disabled:opacity-50">
+                  <Paperclip size={15} />
+                  {uploadingAttachment ? 'Upload en cours...' : 'Joindre un fichier (PDF, image, CSV...)'}
+                </button>
+              )}
+              <input ref={attachRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.csv,.xlsx,.xls" className="hidden"
+                onChange={e => e.target.files?.[0] && handleAttachmentUpload(e.target.files[0])} />
             </div>
             <div className="sm:col-span-2">
               <label className="label">Notes</label>
@@ -873,9 +1150,10 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Date</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Description</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Type</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Type / Cat.</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Compte</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Plateforme</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">PJ</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Montant</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Actions</th>
                 </tr>
@@ -889,7 +1167,12 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                       {tx.product_ref && <p className="text-xs text-gray-400">{tx.product_ref}</p>}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${txTypeColor(tx.type)}`}>{txTypeLabel(tx.type)}</span>
+                      <div className="space-y-1">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${txTypeColor(tx.type)}`}>{txTypeLabel(tx.type)}</span>
+                        {tx.fiscal_category && (
+                          <p className="text-xs text-gray-400">{FISCAL_CATS[tx.fiscal_category]?.label ?? tx.fiscal_category}</p>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -901,6 +1184,14 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{tx.platform}</td>
+                    <td className="px-4 py-3 text-center hidden sm:table-cell">
+                      {tx.attachment_url ? (
+                        <a href={tx.attachment_url} target="_blank" rel="noopener noreferrer" title={tx.attachment_name}
+                          className="inline-flex items-center justify-center p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                          <Paperclip size={13} />
+                        </a>
+                      ) : <span className="text-gray-300">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <span className={`font-semibold ${isRevenue(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
                         {isRevenue(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
@@ -930,6 +1221,7 @@ function RapportsTab() {
   const [txs, setTxs] = useState<CommerceTx[]>([])
   const [loading, setLoading] = useState(true)
   const [year, setYear] = useState(new Date().getFullYear())
+  const [exportingPDF, setExportingPDF] = useState(false)
 
   useEffect(() => {
     supabase.from('commerce_transactions').select('*').then(({ data }) => {
@@ -939,50 +1231,200 @@ function RapportsTab() {
   }, [])
 
   const yearTxs = txs.filter(t => new Date(t.date).getFullYear() === year)
-  const ventes = yearTxs.filter(t => t.type === 'vente').reduce((s, t) => s + t.amount, 0)
-  const fraisAmazon = yearTxs.filter(t => t.type === 'frais_amazon').reduce((s, t) => s + t.amount, 0)
-  const publicite = yearTxs.filter(t => t.type === 'publicite').reduce((s, t) => s + t.amount, 0)
-  const remboursements = yearTxs.filter(t => t.type === 'remboursement').reduce((s, t) => s + t.amount, 0)
-  const autre = yearTxs.filter(t => t.type === 'autre').reduce((s, t) => s + t.amount, 0)
-  const totalDepenses = fraisAmazon + publicite + remboursements + autre
-  const benefice = ventes - totalDepenses
-  const TPS = ventes * 0.05
-  const TVQ = ventes * 0.09975
+
+  const groupTotals = (Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([gKey, g]) => {
+    const gTxs = yearTxs.filter(t => g.cats.includes(t.fiscal_category || 'opex_autre'))
+    const total = gTxs.reduce((s, t) => s + t.amount, 0)
+    return { key: gKey, ...g, txs: gTxs, total }
+  })
+
+  const totalRevenus = groupTotals.find(g => g.key === 'REVENUS')?.total ?? 0
+  const totalOPEX = groupTotals.find(g => g.key === 'OPEX')?.total ?? 0
+  const totalCAPEX = groupTotals.find(g => g.key === 'CAPEX')?.total ?? 0
+  const totalFinancement = groupTotals.find(g => g.key === 'FINANCEMENT')?.total ?? 0
+  const beneficeNet = totalRevenus - totalOPEX - totalCAPEX
+  const marge = totalRevenus > 0 ? (beneficeNet / totalRevenus * 100) : 0
+  const TPS = totalRevenus * 0.05
+  const TVQ = totalRevenus * 0.09975
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const label = new Date(year, i, 1).toLocaleDateString('fr-CA', { month: 'short' })
-    const mv = yearTxs.filter(t => new Date(t.date).getMonth() === i && t.type === 'vente').reduce((s, t) => s + t.amount, 0)
-    const md = yearTxs.filter(t => new Date(t.date).getMonth() === i && t.type !== 'vente').reduce((s, t) => s + t.amount, 0)
-    return { label, ventes: mv, depenses: md }
+    const rev = yearTxs.filter(t => new Date(t.date).getMonth() === i && FISCAL_GROUPS.REVENUS.cats.includes(t.fiscal_category || '')).reduce((s, t) => s + t.amount, 0)
+    const dep = yearTxs.filter(t => new Date(t.date).getMonth() === i && !FISCAL_GROUPS.REVENUS.cats.includes(t.fiscal_category || '') && !FISCAL_GROUPS.FINANCEMENT.cats.includes(t.fiscal_category || '')).reduce((s, t) => s + t.amount, 0)
+    return { label, rev, dep }
   })
-  const maxVal = Math.max(...months.map(m => Math.max(m.ventes, m.depenses)), 1)
+  const maxVal = Math.max(...months.map(m => Math.max(m.rev, m.dep)), 1)
+
+  const exportPDF = async () => {
+    setExportingPDF(true)
+    try {
+      const doc = new jsPDF()
+      const pageW = doc.internal.pageSize.getWidth()
+
+      try {
+        const r = await fetch('/logo-cerdia3.png')
+        const blob = await r.blob()
+        const b64: string = await new Promise(res => { const fr = new FileReader(); fr.onloadend = () => res(fr.result as string); fr.readAsDataURL(blob) })
+        doc.addImage(b64, 'PNG', 15, 10, 24, 8)
+      } catch {}
+
+      doc.setFontSize(16); doc.setTextColor(94, 94, 94)
+      doc.text(`Rapport fiscal eCommerce — ${year}`, pageW - 15, 14, { align: 'right' })
+      doc.setFontSize(9); doc.setTextColor(150, 150, 150)
+      doc.text(`Commerce CERDIA inc. — Généré le ${new Date().toLocaleDateString('fr-CA')}`, pageW - 15, 20, { align: 'right' })
+      doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.4)
+      doc.line(15, 25, pageW - 15, 25)
+
+      autoTable(doc, {
+        startY: 30,
+        head: [['Revenus bruts', 'OPEX', 'CAPEX', 'Bénéfice net', 'Marge nette']],
+        body: [[fmtCAD(totalRevenus), fmtCAD(totalOPEX), fmtCAD(totalCAPEX), fmtCAD(beneficeNet), `${marge.toFixed(1)} %`]],
+        theme: 'grid',
+        headStyles: { fillColor: [94, 94, 94], fontSize: 8, halign: 'center' },
+        bodyStyles: { fontSize: 10, halign: 'center', fontStyle: 'bold' },
+        columnStyles: {
+          0: { textColor: [34, 197, 94] as [number,number,number] },
+          1: { textColor: [59, 130, 246] as [number,number,number] },
+          2: { textColor: [249, 115, 22] as [number,number,number] },
+          3: { textColor: (beneficeNet >= 0 ? [34, 197, 94] : [239, 68, 68]) as [number,number,number] },
+          4: { textColor: [168, 85, 247] as [number,number,number] },
+        },
+        margin: { left: 15, right: 15 },
+      })
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 4,
+        head: [['TPS fédérale (5 %)', 'TVQ provinciale (9,975 %)', 'Total taxes estimées']],
+        body: [[fmtCAD(TPS), fmtCAD(TVQ), fmtCAD(TPS + TVQ)]],
+        theme: 'grid',
+        headStyles: { fillColor: [180, 120, 40], fontSize: 8, halign: 'center' },
+        bodyStyles: { fontSize: 9, halign: 'center' },
+        margin: { left: 15, right: 15 },
+      })
+
+      for (const grp of groupTotals) {
+        if (grp.txs.length === 0) continue
+        const [r, g, b] = grp.color
+        const y = (doc as any).lastAutoTable.finalY + 8
+        doc.setFontSize(11); doc.setTextColor(r, g, b)
+        doc.text(`${grp.label} — ${fmtCAD(grp.total)}`, 15, y)
+        autoTable(doc, {
+          startY: y + 3,
+          head: [['Date', 'Catégorie', 'Description', 'Compte', 'Plateforme', 'Montant']],
+          body: grp.txs.map(tx => [
+            new Date(tx.date + 'T12:00:00').toLocaleDateString('fr-CA'),
+            FISCAL_CATS[tx.fiscal_category || 'opex_autre']?.label ?? '—',
+            tx.description + (tx.notes ? `\n${tx.notes}` : ''),
+            TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '—',
+            tx.platform,
+            fmtCAD(tx.amount),
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [r, g, b] as [number,number,number], fontSize: 7, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 7.5 },
+          columnStyles: {
+            0: { cellWidth: 20 }, 1: { cellWidth: 32 }, 2: { cellWidth: 55 },
+            3: { cellWidth: 28 }, 4: { cellWidth: 20 }, 5: { halign: 'right', cellWidth: 22 },
+          },
+          foot: [[{ content: 'TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8 } }, { content: fmtCAD(grp.total), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: [r, g, b] as [number,number,number] } }]],
+          footStyles: { fillColor: [245, 245, 245] },
+          showFoot: 'lastPage',
+          margin: { left: 15, right: 15 },
+        })
+      }
+
+      const totalPages = (doc as any).internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        const pH = doc.internal.pageSize.getHeight()
+        doc.setDrawColor(220, 220, 220); doc.line(15, pH - 15, pageW - 15, pH - 15)
+        doc.setFontSize(7); doc.setTextColor(150, 150, 150)
+        doc.text('Commerce CERDIA inc. — Rapport fiscal confidentiel — À usage comptable uniquement', pageW / 2, pH - 9, { align: 'center' })
+        doc.text(`Page ${i} sur ${totalPages}`, pageW - 15, pH - 9, { align: 'right' })
+      }
+
+      doc.save(`Rapport_Fiscal_Commerce_CERDIA_${year}.pdf`)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setExportingPDF(false)
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = ['Date', 'Groupe fiscal', 'Catégorie fiscale', 'Description', 'Référence', 'Compte', 'Plateforme', 'Montant CAD', 'Statut', 'Notes', 'Pièce jointe', 'URL PJ']
+    const rows = yearTxs.map(tx => {
+      const cat = FISCAL_CATS[tx.fiscal_category || 'opex_autre']
+      return [
+        tx.date,
+        cat ? FISCAL_GROUPS[cat.group].label : '—',
+        cat?.label ?? tx.fiscal_category ?? '',
+        tx.description,
+        tx.product_ref || '',
+        TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '',
+        tx.platform,
+        tx.amount.toFixed(2),
+        tx.status,
+        tx.notes || '',
+        tx.attachment_name || '',
+        tx.attachment_url || '',
+      ]
+    })
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = `Rapport_Fiscal_Commerce_CERDIA_${year}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (loading) return <div className="py-20 text-center text-gray-400">Chargement...</div>
 
   return (
     <div className="space-y-6">
-      {/* Year selector */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rapport fiscal {year}</h2>
-        <div className="flex gap-2">
-          {[year - 1, year, year + 1].map(y => (
-            <button key={y} onClick={() => setYear(y)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${y === year ? 'bg-[#5e5e5e] text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400'}`}>
-              {y}
-            </button>
-          ))}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rapport fiscal eCommerce — {year}</h2>
+          <p className="text-sm text-gray-500">{yearTxs.length} transaction{yearTxs.length !== 1 ? 's' : ''} · Commerce CERDIA inc.</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1">
+            {[year - 1, year, year + 1].map(y => (
+              <button key={y} onClick={() => setYear(y)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${y === year ? 'bg-[#5e5e5e] text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400'}`}>
+                {y}
+              </button>
+            ))}
+          </div>
+          <button onClick={exportCSV} className="flex items-center gap-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Download size={12} /> CSV comptable
+          </button>
+          <button onClick={exportPDF} disabled={exportingPDF} className="flex items-center gap-1.5 text-xs bg-[#5e5e5e] text-white px-3 py-1.5 rounded-full hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
+            <FileDown size={12} /> {exportingPDF ? 'PDF...' : 'Rapport PDF'}
+          </button>
         </div>
       </div>
 
-      {/* KPI grid */}
+      {/* Fiscal group summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {groupTotals.map(grp => (
+          <div key={grp.key} className={`rounded-2xl p-5 border ${grp.border} ${grp.bg} shadow-sm`}>
+            <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${grp.text}`}>{grp.label.split(' ')[0]}</p>
+            <p className={`text-xl font-bold ${grp.text}`}>{fmtCAD(grp.total)}</p>
+            <p className="text-xs text-gray-500 mt-1">{grp.txs.length} transaction{grp.txs.length !== 1 ? 's' : ''}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Revenus bruts', value: ventes, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-          { label: 'Total dépenses', value: totalDepenses, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
-          { label: 'Bénéfice net', value: benefice, color: benefice >= 0 ? 'text-blue-600' : 'text-red-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-          { label: 'Marge nette', value: ventes > 0 ? (benefice / ventes * 100) : 0, isPct: true, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+          { label: 'Revenus bruts', value: totalRevenus, color: 'text-emerald-600' },
+          { label: 'Total OPEX', value: totalOPEX, color: 'text-blue-600' },
+          { label: 'Bénéfice net', value: beneficeNet, color: beneficeNet >= 0 ? 'text-emerald-600' : 'text-red-600' },
+          { label: 'Marge nette', value: marge, isPct: true, color: marge >= 0 ? 'text-purple-600' : 'text-red-600' },
         ].map(k => (
-          <div key={k.label} className={`rounded-2xl p-5 border border-gray-100 dark:border-gray-700 ${k.bg}`}>
+          <div key={k.label} className="rounded-2xl p-5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
             <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">{k.label}</p>
             <p className={`text-xl font-bold ${k.color}`}>
               {k.isPct ? `${(k.value as number).toFixed(1)} %` : fmtCAD(k.value as number)}
@@ -991,49 +1433,48 @@ function RapportsTab() {
         ))}
       </div>
 
-      {/* Détail dépenses */}
+      {/* Détail catégories + Taxes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Détail des dépenses</h3>
-          <div className="space-y-3">
-            {[
-              { label: 'Frais Amazon', val: fraisAmazon },
-              { label: 'Publicité', val: publicite },
-              { label: 'Remboursements', val: remboursements },
-              { label: 'Autres', val: autre },
-            ].map(row => (
-              <div key={row.label} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{row.label}</span>
-                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(row.val)}</span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">Total dépenses</span>
-              <span className="font-bold text-red-500">{fmtCAD(totalDepenses)}</span>
-            </div>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Détail par catégorie fiscale</h3>
+          <div className="space-y-2">
+            {Object.entries(FISCAL_CATS).map(([cat, info]) => {
+              const total = yearTxs.filter(t => (t.fiscal_category || 'opex_autre') === cat).reduce((s, t) => s + t.amount, 0)
+              if (total === 0) return null
+              const grp = FISCAL_GROUPS[info.group]
+              return (
+                <div key={cat} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: `rgb(${grp.color.join(',')})` }} />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{info.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-900 dark:text-white ml-4">{fmtCAD(total)}</span>
+                </div>
+              )
+            })}
+            {yearTxs.length === 0 && <p className="text-xs text-gray-400">Aucune transaction pour {year}</p>}
           </div>
         </div>
 
-        {/* Taxes estimées */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">Taxes estimées (QC)</h3>
-          <p className="text-xs text-gray-400 mb-4">Sur les ventes au Québec — à titre indicatif seulement</p>
+          <p className="text-xs text-gray-400 mb-4">Sur les revenus — à titre indicatif seulement</p>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">TPS fédérale (5 %)</p>
-              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">TPS fédérale (5 %)</p>
               <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(TPS)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">TVQ provinciale (9,975 %)</p>
-              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">TVQ provinciale (9,975 %)</p>
               <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(TVQ)}</span>
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
               <span className="text-sm font-semibold text-gray-900 dark:text-white">Total taxes</span>
               <span className="font-bold text-amber-600">{fmtCAD(TPS + TVQ)}</span>
+            </div>
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-xs text-gray-500 mb-1">Financement reçu</p>
+              <p className={`font-bold text-lg ${FISCAL_GROUPS.FINANCEMENT.text}`}>{fmtCAD(totalFinancement)}</p>
             </div>
           </div>
         </div>
@@ -1041,23 +1482,86 @@ function RapportsTab() {
 
       {/* Bar chart mensuel */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Ventes vs Dépenses — {year}</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Revenus vs Dépenses — {year}</h3>
         <div className="flex items-end gap-1.5 h-40">
           {months.map(m => (
             <div key={m.label} className="flex-1 flex flex-col items-center gap-0.5">
               <div className="w-full flex items-end gap-0.5 justify-center h-32">
-                <div className="flex-1 bg-emerald-400 dark:bg-emerald-500 rounded-t-sm transition-all" style={{ height: `${(m.ventes / maxVal) * 100}%`, minHeight: m.ventes > 0 ? '4px' : '0' }} />
-                <div className="flex-1 bg-red-300 dark:bg-red-400 rounded-t-sm transition-all" style={{ height: `${(m.depenses / maxVal) * 100}%`, minHeight: m.depenses > 0 ? '4px' : '0' }} />
+                <div className="flex-1 bg-emerald-400 dark:bg-emerald-500 rounded-t-sm transition-all" style={{ height: `${(m.rev / maxVal) * 100}%`, minHeight: m.rev > 0 ? '4px' : '0' }} />
+                <div className="flex-1 bg-blue-300 dark:bg-blue-400 rounded-t-sm transition-all" style={{ height: `${(m.dep / maxVal) * 100}%`, minHeight: m.dep > 0 ? '4px' : '0' }} />
               </div>
               <span className="text-[10px] text-gray-400 capitalize">{m.label}</span>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-emerald-400 rounded-sm" /><span className="text-xs text-gray-500">Ventes</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-300 rounded-sm" /><span className="text-xs text-gray-500">Dépenses</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-emerald-400 rounded-sm" /><span className="text-xs text-gray-500">Revenus</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-blue-300 rounded-sm" /><span className="text-xs text-gray-500">Dépenses (OPEX + CAPEX)</span></div>
         </div>
       </div>
+
+      {/* Tables détaillées par groupe fiscal */}
+      {groupTotals.filter(g => g.txs.length > 0).map(grp => (
+        <div key={grp.key} className={`rounded-2xl border ${grp.border} overflow-hidden shadow-sm`}>
+          <div className={`px-5 py-3 ${grp.bg} flex items-center justify-between`}>
+            <h3 className={`font-semibold text-sm ${grp.text}`}>{grp.label}</h3>
+            <span className={`font-bold text-sm ${grp.text}`}>{fmtCAD(grp.total)}</span>
+          </div>
+          <div className="overflow-x-auto bg-white dark:bg-gray-800">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500">Date</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500">Catégorie</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500">Description</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 hidden sm:table-cell">Compte</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 hidden md:table-cell">Plateforme</th>
+                  <th className="text-center px-4 py-2.5 font-medium text-gray-500 hidden sm:table-cell">PJ</th>
+                  <th className="text-right px-4 py-2.5 font-medium text-gray-500">Montant</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {grp.txs.map(tx => (
+                  <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{new Date(tx.date + 'T12:00:00').toLocaleDateString('fr-CA')}</td>
+                    <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{FISCAL_CATS[tx.fiscal_category || 'opex_autre']?.label ?? '—'}</td>
+                    <td className="px-4 py-2.5">
+                      <p className="font-medium text-gray-900 dark:text-white">{tx.description}</p>
+                      {tx.notes && <p className="text-gray-400">{tx.notes}</p>}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500 hidden sm:table-cell">
+                      {TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500 hidden md:table-cell">{tx.platform}</td>
+                    <td className="px-4 py-2.5 text-center hidden sm:table-cell">
+                      {tx.attachment_url ? (
+                        <a href={tx.attachment_url} target="_blank" rel="noopener noreferrer" title={tx.attachment_name}
+                          className="inline-flex items-center justify-center p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors">
+                          <Paperclip size={11} />
+                        </a>
+                      ) : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-gray-900 dark:text-white">{fmtCAD(tx.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className={`${grp.bg} border-t ${grp.border}`}>
+                <tr>
+                  <td colSpan={6} className={`px-4 py-2.5 text-xs font-bold ${grp.text} text-right`}>TOTAL {grp.label.split(' ')[0].toUpperCase()}</td>
+                  <td className={`px-4 py-2.5 text-right text-sm font-bold ${grp.text}`}>{fmtCAD(grp.total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      ))}
+
+      {yearTxs.length === 0 && (
+        <div className="py-16 text-center text-gray-400">
+          <BarChart2 size={40} className="mx-auto mb-3 opacity-40" />
+          <p>Aucune transaction pour {year}</p>
+        </div>
+      )}
     </div>
   )
 }
