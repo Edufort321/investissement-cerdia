@@ -28,6 +28,7 @@ interface Product {
   review_count: number
   active: boolean
   sort_order: number
+  inventory: number
   created_at: string
 }
 
@@ -37,6 +38,7 @@ interface CommerceTx {
   description: string
   amount: number
   type: string
+  account: string
   platform: string
   product_ref?: string
   status: string
@@ -61,6 +63,11 @@ const SESSION_KEY = 'commerce_admin_auth'
 const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'autre'] as const
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
+const TX_ACCOUNTS = [
+  { value: 'compte_courant', label: 'Compte courant' },
+  { value: 'carte_credit', label: 'Carte de crédit' },
+  { value: 'capex', label: 'Compte CAPEX' },
+]
 
 const BADGE_OPTIONS = ['', 'Nouveau', 'Bestseller', 'Populaire', 'Promo', 'Exclusif']
 const CATEGORIES = ['Maison & Cuisine', 'Électronique', 'Mode', 'Sport', 'Beauté', 'Livres', 'Autre']
@@ -68,12 +75,12 @@ const CATEGORIES = ['Maison & Cuisine', 'Électronique', 'Mode', 'Sport', 'Beaut
 const EMPTY_PRODUCT = {
   title: '', description: '', price: '', currency: 'CAD',
   amazon_url: '', image_urls: [] as string[], badge: '', category: '',
-  rating: 0, review_count: 0, active: true, sort_order: 0,
+  rating: 0, review_count: 0, active: true, sort_order: 0, inventory: 0,
 }
 
 const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   date: new Date().toISOString().split('T')[0],
-  description: '', amount: 0, type: 'vente',
+  description: '', amount: 0, type: 'vente', account: 'compte_courant',
   platform: 'Amazon', product_ref: '', status: 'complété', notes: '',
 }
 
@@ -339,7 +346,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
       amazon_url: p.amazon_url, image_urls: imgs,
       badge: p.badge || '', category: p.category || '',
       rating: p.rating, review_count: p.review_count,
-      active: p.active, sort_order: p.sort_order,
+      active: p.active, sort_order: p.sort_order, inventory: p.inventory ?? 0,
     })
     setFormError('')
     setShowForm(true)
@@ -367,6 +374,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
         review_count: Number(form.review_count) || 0,
         active: Boolean(form.active),
         sort_order: Number(form.sort_order) || 0,
+        inventory: Number(form.inventory) || 0,
       }
 
       const { error } = editingId
@@ -548,6 +556,10 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
               <label className="label">Ordre d'affichage</label>
               <input type="number" min="0" className="input" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))} />
             </div>
+            <div>
+              <label className="label">Inventaire (unités en stock)</label>
+              <input type="number" min="0" className="input" placeholder="0" value={form.inventory} onChange={e => setForm(f => ({ ...f, inventory: parseInt(e.target.value) || 0 }))} />
+            </div>
             <div className="flex items-center gap-2 pt-4">
               <input type="checkbox" id="active-check" className="w-4 h-4 rounded" checked={form.active} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
               <label htmlFor="active-check" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Produit actif (visible sur la boutique)</label>
@@ -586,6 +598,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Produit</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Catégorie</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Prix</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Stock</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Note</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Statut</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Actions</th>
@@ -612,6 +625,15 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{p.category || '—'}</td>
                     <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white hidden md:table-cell">
                       {p.price ? `${p.price.toFixed(2)} ${p.currency}` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        (p.inventory ?? 0) === 0 ? 'bg-red-100 text-red-700' :
+                        (p.inventory ?? 0) <= 5 ? 'bg-amber-100 text-amber-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {p.inventory ?? 0}
+                      </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       {p.rating > 0 ? <Stars r={p.rating} /> : <span className="text-gray-400">—</span>}
@@ -674,7 +696,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
   const startEdit = (tx: CommerceTx) => {
     setEditingId(tx.id)
-    setForm({ date: tx.date, description: tx.description, amount: tx.amount, type: tx.type, platform: tx.platform, product_ref: tx.product_ref || '', status: tx.status, notes: tx.notes || '' })
+    setForm({ date: tx.date, description: tx.description, amount: tx.amount, type: tx.type, account: tx.account || 'compte_courant', platform: tx.platform, product_ref: tx.product_ref || '', status: tx.status, notes: tx.notes || '' })
     setShowForm(true)
   }
 
@@ -712,8 +734,36 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const totalDepenses = txs.filter(t => t.type !== 'vente').reduce((s, t) => s + t.amount, 0)
   const benefice = totalVentes - totalDepenses
 
+  // Soldes par compte
+  const soldeCourant = txs
+    .filter(t => (t.account || 'compte_courant') === 'compte_courant')
+    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+  const soldeCarte = txs
+    .filter(t => t.account === 'carte_credit')
+    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+  const soldeCapex = txs
+    .filter(t => t.account === 'capex')
+    .reduce((s, t) => s + (isRevenue(t.type) ? t.amount : -t.amount), 0)
+
   return (
     <div>
+      {/* Soldes par compte */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        {[
+          { label: 'Compte courant', solde: soldeCourant, icon: DollarSign, color: 'text-blue-600', border: 'border-blue-200 dark:border-blue-800', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { label: 'Carte de crédit', solde: soldeCarte, icon: TrendingDown, color: soldeCarte >= 0 ? 'text-emerald-600' : 'text-red-600', border: 'border-purple-200 dark:border-purple-800', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+          { label: 'Compte CAPEX', solde: soldeCapex, icon: TrendingUp, color: 'text-orange-600', border: 'border-orange-200 dark:border-orange-800', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+        ].map(card => (
+          <div key={card.label} className={`rounded-2xl p-5 border ${card.border} ${card.bg} shadow-sm`}>
+            <div className="flex items-center gap-2 mb-1">
+              <card.icon size={15} className={card.color} />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{card.label}</span>
+            </div>
+            <p className={`text-2xl font-bold ${card.color}`}>{fmtCAD(card.solde)}</p>
+          </div>
+        ))}
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -772,6 +822,12 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               </select>
             </div>
             <div>
+              <label className="label">Compte</label>
+              <select className="input" value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))}>
+                {TX_ACCOUNTS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="label">Plateforme</label>
               <select className="input" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
                 {TX_PLATFORMS.map(p => <option key={p}>{p}</option>)}
@@ -818,7 +874,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Date</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Description</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Type</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Plateforme</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Compte</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Plateforme</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Montant</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Actions</th>
                 </tr>
@@ -834,7 +891,16 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${txTypeColor(tx.type)}`}>{txTypeLabel(tx.type)}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{tx.platform}</td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        tx.account === 'carte_credit' ? 'bg-purple-100 text-purple-700' :
+                        tx.account === 'capex' ? 'bg-orange-100 text-orange-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {TX_ACCOUNTS.find(a => a.value === (tx.account || 'compte_courant'))?.label ?? 'Compte courant'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{tx.platform}</td>
                     <td className="px-4 py-3 text-right">
                       <span className={`font-semibold ${isRevenue(tx.type) ? 'text-emerald-600' : 'text-red-500'}`}>
                         {isRevenue(tx.type) ? '+' : '-'}{fmtCAD(tx.amount)}
