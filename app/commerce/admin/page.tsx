@@ -1079,7 +1079,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     toast({ msg: 'CSV exporté !', type: 'success' })
   }
 
-  const availableYears = [...new Set(txs.map(t => new Date(t.date).getFullYear()))].sort((a, b) => b - a)
+  const availableYears = Array.from(new Set(txs.map(t => new Date(t.date).getFullYear()))).sort((a, b) => b - a)
 
   const filtered = txs.filter(t => {
     if (filterType !== 'tous' && t.type !== filterType) return false
