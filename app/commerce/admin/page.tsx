@@ -509,18 +509,27 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     await load()
   }
 
+  const uploadViaApi = async (file: File, path: string): Promise<string> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('path', path)
+    const res = await fetch('/api/commerce/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+    return json.url as string
+  }
+
   const handleUpload = async (file: File) => {
     setUploadingImg(true)
     try {
       const ext = file.name.split('.').pop()
       const path = `commerce/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
-      if (error) throw error
-      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-      setForm(f => ({ ...f, image_urls: [...f.image_urls, urlData.publicUrl] }))
+      const url = await uploadViaApi(file, path)
+      setForm(f => ({ ...f, image_urls: [...f.image_urls, url] }))
       toast({ msg: 'Image uploadée !', type: 'success' })
-    } catch {
-      toast({ msg: "Erreur d'upload. Vérifiez que le bucket 'attachments' est public dans Supabase Storage.", type: 'error' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast({ msg: `Erreur upload: ${msg}`, type: 'error' })
     } finally {
       setUploadingImg(false)
     }
@@ -531,10 +540,8 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     try {
       const ext = file.name.split('.').pop()
       const path = `commerce/products/docs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
-      if (error) throw error
-      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-      const att: ProductAttachment = { name: file.name, url: urlData.publicUrl, path }
+      const url = await uploadViaApi(file, path)
+      const att: ProductAttachment = { name: file.name, url, path }
       setForm(f => ({ ...f, product_attachments: [...(f.product_attachments || []), att] }))
       toast({ msg: 'Document joint !', type: 'success' })
     } catch (err: unknown) {
@@ -933,13 +940,12 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     try {
       const ext = file.name.split('.').pop()
       const path = `commerce/tx/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
-      if (error) throw error
-      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-      setForm(f => ({ ...f, attachment_name: file.name, attachment_url: urlData.publicUrl, attachment_storage_path: path }))
+      const url = await uploadViaApi(file, path)
+      setForm(f => ({ ...f, attachment_name: file.name, attachment_url: url, attachment_storage_path: path }))
       toast({ msg: 'Pièce jointe uploadée !', type: 'success' })
-    } catch {
-      toast({ msg: "Erreur upload. Vérifiez que le bucket 'attachments' est public.", type: 'error' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast({ msg: `Erreur upload: ${msg}`, type: 'error' })
     } finally {
       setUploadingAttachment(false)
     }
