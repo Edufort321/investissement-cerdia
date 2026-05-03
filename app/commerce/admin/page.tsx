@@ -11,7 +11,7 @@ import {
   Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
-  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, SlidersHorizontal
+  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -760,7 +760,10 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [saving, setSaving] = useState(false)
   const [filterType, setFilterType] = useState('tous')
   const [filterAccount, setFilterAccount] = useState('tous')
-  const [showFilterMenu, setShowFilterMenu] = useState(false)
+  const [filterFiscalGroup, setFilterFiscalGroup] = useState('tous')
+  const [filterYear, setFilterYear] = useState('tous')
+  const [showTxMenu, setShowTxMenu] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
@@ -994,6 +997,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     toast({ msg: 'CSV exporté !', type: 'success' })
   }
 
+  const availableYears = [...new Set(txs.map(t => new Date(t.date).getFullYear()))].sort((a, b) => b - a)
+
   const filtered = txs.filter(t => {
     if (filterType !== 'tous' && t.type !== filterType) return false
     if (filterAccount !== 'tous') {
@@ -1001,6 +1006,11 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       const dst = t.transfer_to_account
       if (src !== filterAccount && dst !== filterAccount) return false
     }
+    if (filterFiscalGroup !== 'tous') {
+      const grp = FISCAL_GROUPS[filterFiscalGroup as keyof typeof FISCAL_GROUPS]
+      if (!grp || !grp.cats.includes(t.fiscal_category || 'opex_autre')) return false
+    }
+    if (filterYear !== 'tous' && new Date(t.date).getFullYear().toString() !== filterYear) return false
     return true
   })
 
@@ -1049,101 +1059,147 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 mb-4">
-        {/* Active filter badges */}
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          {filterType !== 'tous' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-[#5e5e5e] text-white text-xs rounded-full">
-              {txTypeLabel(filterType)}
-              <button onClick={() => setFilterType('tous')} className="hover:text-gray-300 ml-0.5"><X size={10} /></button>
-            </span>
-          )}
-          {filterAccount !== 'tous' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
-              {TX_ACCOUNTS.find(a => a.value === filterAccount)?.label}
-              <button onClick={() => setFilterAccount('tous')} className="hover:text-gray-300 ml-0.5"><X size={10} /></button>
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Hamburger menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilterMenu(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                showFilterMenu || filterType !== 'tous' || filterAccount !== 'tous'
-                  ? 'bg-[#5e5e5e] text-white border-[#5e5e5e]'
-                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              <SlidersHorizontal size={13} />
-              Filtres
-              {(filterType !== 'tous' || filterAccount !== 'tous') && (
-                <span className="ml-0.5 bg-white text-[#5e5e5e] rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
-                  {(filterType !== 'tous' ? 1 : 0) + (filterAccount !== 'tous' ? 1 : 0)}
-                </span>
-              )}
-            </button>
-
-            {showFilterMenu && (
-              <div className="absolute right-0 top-full mt-2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-72">
-                {/* Filter by type */}
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Type de transaction</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {(['tous', ...TX_TYPES] as string[]).map(t => (
-                    <button key={t} onClick={() => setFilterType(t)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${filterType === t ? 'bg-[#5e5e5e] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
-                      {t === 'tous' ? 'Tous' : txTypeLabel(t)}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Filter by account */}
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Compte</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {([{ value: 'tous', label: 'Tous' }, ...TX_ACCOUNTS]).map(a => (
-                    <button key={a.value} onClick={() => setFilterAccount(a.value)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${filterAccount === a.value ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Exports */}
-                <div className="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-2.5">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export</p>
-                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-                    <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="w-3.5 h-3.5 rounded" />
-                    Inclure les PJ dans le PDF
-                  </label>
-                  <div className="flex gap-2">
-                    <button onClick={() => { exportCSV(); setShowFilterMenu(false) }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <Download size={12} /> CSV
-                    </button>
-                    <button onClick={() => { exportPDF(); setShowFilterMenu(false) }} disabled={exportingPDF}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#5e5e5e] text-white rounded-xl text-xs hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
-                      <FileDown size={12} /> {exportingPDF ? 'PDF...' : 'PDF'}
-                    </button>
-                  </div>
-                </div>
-
-                {(filterType !== 'tous' || filterAccount !== 'tous') && (
-                  <button onClick={() => { setFilterType('tous'); setFilterAccount('tous') }}
-                    className="mt-3 w-full text-xs text-red-500 hover:text-red-700 transition-colors text-center">
-                    Réinitialiser les filtres
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <button onClick={startNew} className="flex items-center gap-1.5 bg-[#5e5e5e] text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
-            <Plus size={13} /> Nouvelle transaction
+      <div className="flex items-center justify-end gap-2 mb-4">
+        <div className="relative">
+          <button
+            onClick={() => setShowTxMenu(v => !v)}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Menu size={18} className="text-gray-700 dark:text-gray-300" />
+            <span className="hidden sm:inline text-gray-700 dark:text-gray-300">Menu</span>
           </button>
+
+          {showTxMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowTxMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg w-72 py-1 overflow-hidden">
+
+                {/* Filtres */}
+                <div className="px-4 pt-3 pb-3 space-y-2 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Filtres</p>
+                  <select
+                    value={filterType} onChange={e => setFilterType(e.target.value)}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-gray-400"
+                  >
+                    <option value="tous">Tous les types</option>
+                    {TX_TYPES.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                  </select>
+                  <select
+                    value={filterFiscalGroup} onChange={e => setFilterFiscalGroup(e.target.value)}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-gray-400"
+                  >
+                    <option value="tous">Toutes les catégories</option>
+                    {(Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([k, g]) => (
+                      <option key={k} value={k}>{g.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterAccount} onChange={e => setFilterAccount(e.target.value)}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-gray-400"
+                  >
+                    <option value="tous">Tous les comptes</option>
+                    {TX_ACCOUNTS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+                  </select>
+                  <select
+                    value={filterYear} onChange={e => setFilterYear(e.target.value)}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-gray-400"
+                  >
+                    <option value="tous">Toutes les années</option>
+                    {availableYears.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                  </select>
+                </div>
+
+                {/* Actions */}
+                <button
+                  onClick={() => { setShowGuide(v => !v); setShowTxMenu(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${showGuide ? 'text-gray-900 dark:text-white font-semibold bg-gray-50 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300'}`}
+                >
+                  📖 Guide de saisie
+                </button>
+
+                <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+
+                {/* Export */}
+                <button
+                  onClick={() => { exportPDF(); setShowTxMenu(false) }}
+                  disabled={exportingPDF}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  <FileDown size={15} />
+                  {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+                </button>
+                <button
+                  onClick={() => { exportCSV(); setShowTxMenu(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Download size={15} />
+                  Exporter CSV
+                </button>
+                <div className="px-4 py-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500 dark:text-gray-400">
+                    <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="accent-gray-700 w-3.5 h-3.5" />
+                    Inclure liens PJ dans PDF
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
         </div>
+
+        <button onClick={startNew} className="flex items-center gap-1.5 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
+          <Plus size={14} /> Nouvelle transaction
+        </button>
       </div>
+
+      {/* Guide de saisie */}
+      {showGuide && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 mb-5">
+          <div className="flex items-start justify-between mb-3">
+            <h3 className="text-base font-bold text-blue-900 dark:text-blue-200">📖 Guide de saisie — Transactions eCommerce</h3>
+            <button onClick={() => setShowGuide(false)} className="text-blue-400 hover:text-blue-700"><X size={16} /></button>
+          </div>
+          <div className="space-y-4 text-sm text-blue-800 dark:text-blue-300">
+            <div>
+              <p className="font-semibold mb-1">① Champs obligatoires</p>
+              <ul className="list-disc list-inside space-y-0.5 text-blue-700 dark:text-blue-400">
+                <li><strong>Date</strong> — date réelle de la transaction (pas d&apos;aujourd&apos;hui par défaut)</li>
+                <li><strong>Description</strong> — nom du produit, service ou référence</li>
+                <li><strong>Montant</strong> — toujours positif, le type détermine le sens</li>
+                <li><strong>Compte</strong> — compte depuis lequel la transaction a eu lieu</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">② Catégorie fiscale</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-white dark:bg-blue-900/30 rounded-lg p-2.5">
+                  <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1">REVENUS</p>
+                  <p>Ventes Amazon, commissions affilié, autres revenus</p>
+                </div>
+                <div className="bg-white dark:bg-blue-900/30 rounded-lg p-2.5">
+                  <p className="font-bold text-blue-700 dark:text-blue-400 mb-1">OPEX</p>
+                  <p>Frais Amazon, pub, expédition, logiciels, bancaires</p>
+                </div>
+                <div className="bg-white dark:bg-blue-900/30 rounded-lg p-2.5">
+                  <p className="font-bold text-orange-700 dark:text-orange-400 mb-1">CAPEX</p>
+                  <p>Achat de stock, équipement — actifs durables</p>
+                </div>
+                <div className="bg-white dark:bg-blue-900/30 rounded-lg p-2.5">
+                  <p className="font-bold text-purple-700 dark:text-purple-400 mb-1">FINANCEMENT</p>
+                  <p>Apport fondateur, avance de fonds, prêt, transfert</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">③ Pièces jointes</p>
+              <p className="text-blue-700 dark:text-blue-400">Joindre le reçu ou la facture à chaque transaction de dépense. Formats acceptés : PDF, JPG, PNG, CSV, XLSX.</p>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">④ Transferts entre comptes</p>
+              <p className="text-blue-700 dark:text-blue-400">Un transfert est neutre pour le P&amp;L. Sélectionner type <em>Transfert</em>, puis compte source et destination. Les deux soldes sont ajustés automatiquement.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
