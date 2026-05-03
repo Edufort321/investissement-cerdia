@@ -401,7 +401,8 @@ export default function InvoiceGenerator() {
         const base64: string = await new Promise(r => {
           const fr = new FileReader(); fr.onloadend = () => r(fr.result as string); fr.readAsDataURL(blob)
         })
-        doc.addImage(base64, 'PNG', 15, 12, 30, 10)
+        // Ratio 3:1 identique à useExportPDF (24×8 à y=10)
+        doc.addImage(base64, 'PNG', 15, 10, 24, 8)
       } catch {}
 
       doc.setFontSize(22)
