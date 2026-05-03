@@ -15,6 +15,12 @@ import {
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+interface ProductAttachment {
+  name: string
+  url: string
+  path: string
+}
+
 interface Product {
   id: string
   title: string
@@ -31,6 +37,9 @@ interface Product {
   active: boolean
   sort_order: number
   inventory: number
+  gs1_code?: string
+  asin?: string
+  product_attachments?: ProductAttachment[]
   created_at: string
 }
 
@@ -131,6 +140,8 @@ const EMPTY_PRODUCT = {
   title: '', description: '', price: '', currency: 'CAD',
   amazon_url: '', image_urls: [] as string[], badge: '', category: '',
   rating: 0, review_count: 0, active: true, sort_order: 0, inventory: 0,
+  gs1_code: '', asin: '',
+  product_attachments: [] as ProductAttachment[],
 }
 
 const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
@@ -390,7 +401,9 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [uploadingImg, setUploadingImg] = useState(false)
+  const [uploadingDoc, setUploadingDoc] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const docRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     setLoading(true)
@@ -428,6 +441,8 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
       badge: p.badge || '', category: p.category || '',
       rating: p.rating, review_count: p.review_count,
       active: p.active, sort_order: p.sort_order, inventory: p.inventory ?? 0,
+      gs1_code: p.gs1_code || '', asin: p.asin || '',
+      product_attachments: p.product_attachments || [],
     })
     setFormError('')
     setShowForm(true)
@@ -456,6 +471,9 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
         active: Boolean(form.active),
         sort_order: Number(form.sort_order) || 0,
         inventory: Number(form.inventory) || 0,
+        gs1_code: (form.gs1_code as string).trim() || null,
+        asin: (form.asin as string).trim() || null,
+        product_attachments: form.product_attachments || [],
       }
 
       const { error } = editingId
@@ -506,6 +524,30 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
     } finally {
       setUploadingImg(false)
     }
+  }
+
+  const handleDocUpload = async (file: File) => {
+    setUploadingDoc(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `commerce/products/docs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
+      const att: ProductAttachment = { name: file.name, url: urlData.publicUrl, path }
+      setForm(f => ({ ...f, product_attachments: [...(f.product_attachments || []), att] }))
+      toast({ msg: 'Document joint !', type: 'success' })
+    } catch {
+      toast({ msg: "Erreur d'upload.", type: 'error' })
+    } finally {
+      setUploadingDoc(false)
+    }
+  }
+
+  const removeDoc = async (idx: number) => {
+    const att = form.product_attachments?.[idx]
+    if (att?.path) await supabase.storage.from('attachments').remove([att.path])
+    setForm(f => ({ ...f, product_attachments: (f.product_attachments || []).filter((_, i) => i !== idx) }))
   }
 
   const filtered = products.filter(p =>
@@ -641,6 +683,38 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
               <label className="label">Inventaire (unités en stock)</label>
               <input type="number" min="0" className="input" placeholder="0" value={form.inventory} onChange={e => setForm(f => ({ ...f, inventory: parseInt(e.target.value) || 0 }))} />
             </div>
+            <div>
+              <label className="label">Code GS1 / GTIN / EAN</label>
+              <input className="input font-mono" placeholder="Ex: 00614141000036" value={form.gs1_code as string} onChange={e => setForm(f => ({ ...f, gs1_code: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">ASIN Amazon</label>
+              <input className="input font-mono" placeholder="Ex: B08N5WRWNW" value={form.asin as string} onChange={e => setForm(f => ({ ...f, asin: e.target.value }))} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Pièces jointes (certificat GS1, fiche produit, photos...)</label>
+              <div className="space-y-2">
+                {(form.product_attachments as ProductAttachment[]).map((att, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <Paperclip size={14} className="text-blue-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{att.name}</p>
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">Voir le fichier</a>
+                    </div>
+                    <button type="button" onClick={() => removeDoc(idx)} className="text-red-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => docRef.current?.click()} disabled={uploadingDoc}
+                  className="flex items-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors disabled:opacity-50">
+                  <Paperclip size={15} />
+                  {uploadingDoc ? 'Upload en cours...' : 'Joindre un document (PDF, image, Excel...)'}
+                </button>
+                <input ref={docRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.csv,.xlsx,.xls,.doc,.docx" multiple className="hidden"
+                  onChange={e => e.target.files && Array.from(e.target.files).forEach(handleDocUpload)} />
+              </div>
+            </div>
             <div className="flex items-center gap-2 pt-4">
               <input type="checkbox" id="active-check" className="w-4 h-4 rounded" checked={form.active} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
               <label htmlFor="active-check" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Produit actif (visible sur la boutique)</label>
@@ -699,7 +773,15 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                         })()}
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 dark:text-white truncate max-w-[180px]">{p.title}</p>
-                          {p.badge && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeColor(p.badge)}`}>{p.badge}</span>}
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {p.badge && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeColor(p.badge)}`}>{p.badge}</span>}
+                            {p.asin && <span className="text-[10px] font-mono text-gray-400">{p.asin}</span>}
+                            {(p.product_attachments?.length ?? 0) > 0 && (
+                              <span className="flex items-center gap-0.5 text-[10px] text-blue-500">
+                                <Paperclip size={9} />{p.product_attachments!.length}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
