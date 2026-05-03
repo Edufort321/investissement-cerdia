@@ -257,7 +257,7 @@ export default function CommercePage() {
   // ── RENDU ──────────────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
 
       {/* ── Toast ─────────────────────────────────────────────────────────── */}
       {toast && (
@@ -281,8 +281,8 @@ export default function CommercePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
         </div>
 
-        {/* Hamburger menu admin — top right */}
-        <div id="commerce-menu" className="absolute top-4 right-4 z-20">
+        {/* Hamburger menu admin — fixed below main navbar */}
+        <div id="commerce-menu" className="fixed top-[68px] right-4 z-40">
           <button
             onClick={() => setMenuOpen(v => !v)}
             className="p-2.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full hover:bg-white/20 transition-all"
