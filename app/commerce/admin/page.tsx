@@ -1440,17 +1440,25 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <label className="label">Catégorie fiscale</label>
               {form.type === 'transfert' ? (
                 <div className="input bg-gray-50 dark:bg-gray-700 text-gray-500 cursor-default">Transfert entre comptes</div>
-              ) : (
-                <select className="input" value={form.fiscal_category} onChange={e => setForm(f => ({ ...f, fiscal_category: e.target.value }))}>
-                  {(Object.entries(FISCAL_GROUPS) as [keyof typeof FISCAL_GROUPS, typeof FISCAL_GROUPS[keyof typeof FISCAL_GROUPS]][]).map(([gKey, g]) => (
-                    <optgroup key={gKey} label={g.label}>
-                      {g.cats.filter(c => c !== 'transfert_interne').map(cat => (
-                        <option key={cat} value={cat}>{FISCAL_CATS[cat]?.label ?? cat}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              )}
+              ) : (() => {
+                const dir = isInflow(form.type) ? 'entree' : form.type === 'autre' ? 'neutre' : 'sortie'
+                const visibleGroups = dir === 'entree'
+                  ? (['REVENUS'] as const)
+                  : dir === 'sortie'
+                  ? (['OPEX', 'CAPEX'] as const)
+                  : (['FINANCEMENT'] as const)
+                return (
+                  <select className="input" value={form.fiscal_category} onChange={e => setForm(f => ({ ...f, fiscal_category: e.target.value }))}>
+                    {visibleGroups.map(gKey => (
+                      <optgroup key={gKey} label={FISCAL_GROUPS[gKey].label}>
+                        {FISCAL_GROUPS[gKey].cats.filter(c => c !== 'transfert_interne').map(cat => (
+                          <option key={cat} value={cat}>{FISCAL_CATS[cat]?.label ?? cat}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                )
+              })()}
             </div>
             <div>
               <label className="label">{form.type === 'transfert' ? 'Compte source' : 'Compte'}</label>
