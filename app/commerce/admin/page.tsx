@@ -147,19 +147,32 @@ const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
 
 const TX_TYPES = [
-  // Revenus
   'vente',
-  // Dépenses opérationnelles
   'remboursement', 'frais_amazon', 'publicite', 'frais_expedition',
   'frais_stockage', 'emballage', 'abonnement', 'telecom', 'frais_bancaires',
   'salaire', 'sous_traitance', 'frais_professionnel', 'assurance', 'fournitures',
-  // Investissements
   'achat_inventaire', 'frais_importation', 'achat_equipement',
-  // Financement
-  'avance_fonds',
-  // Neutre
-  'transfert', 'autre',
+  'avance_fonds', 'transfert', 'autre',
 ] as const
+
+const TX_TYPE_GROUPS = [
+  {
+    label: '⬆️ Entrées',
+    types: ['vente', 'avance_fonds'],
+  },
+  {
+    label: '⬇️ Sorties — OPEX',
+    types: ['remboursement', 'frais_amazon', 'publicite', 'frais_expedition', 'frais_stockage', 'emballage', 'abonnement', 'telecom', 'frais_bancaires', 'salaire', 'sous_traitance', 'frais_professionnel', 'assurance', 'fournitures'],
+  },
+  {
+    label: '⬇️ Sorties — CAPEX',
+    types: ['achat_inventaire', 'frais_importation', 'achat_equipement'],
+  },
+  {
+    label: '↔️ Neutre',
+    types: ['transfert', 'autre'],
+  },
+]
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
 const TX_ACCOUNTS = [
@@ -1228,7 +1241,11 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                     className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-gray-400"
                   >
                     <option value="tous">Tous les types</option>
-                    {TX_TYPES.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                    {TX_TYPE_GROUPS.map(g => (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.types.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                   <select
                     value={filterFiscalGroup} onChange={e => setFilterFiscalGroup(e.target.value)}
@@ -1396,7 +1413,11 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                 }
                 setForm(f => ({ ...f, type: t, fiscal_category: defaultCat[t] ?? f.fiscal_category }))
               }}>
-                {TX_TYPES.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                {TX_TYPE_GROUPS.map(g => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.types.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </div>
             <div>
