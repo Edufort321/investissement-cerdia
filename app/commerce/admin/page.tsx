@@ -124,7 +124,7 @@ function toDirectImg(url: string): string {
 const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
 
-const TX_TYPES = ['vente', 'remboursement', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'transfert', 'autre'] as const
+const TX_TYPES = ['vente', 'remboursement', 'achat_inventaire', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'transfert', 'autre'] as const
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
 const TX_ACCOUNTS = [
@@ -170,6 +170,7 @@ function badgeColor(badge?: string) {
 function txTypeLabel(t: string) {
   const m: Record<string, string> = {
     vente: 'Vente', remboursement: 'Remboursement',
+    achat_inventaire: 'Achat inventaire',
     frais_amazon: 'Frais Amazon', publicite: 'Publicité',
     avance_fonds: 'Avance de fonds', frais_bancaires: 'Frais bancaires',
     transfert: 'Transfert', autre: 'Autre',
@@ -180,6 +181,7 @@ function txTypeLabel(t: string) {
 function txTypeColor(t: string) {
   if (t === 'vente') return 'bg-emerald-100 text-emerald-700'
   if (t === 'remboursement') return 'bg-red-100 text-red-700'
+  if (t === 'achat_inventaire') return 'bg-orange-100 text-orange-700'
   if (t === 'frais_amazon') return 'bg-amber-100 text-amber-700'
   if (t === 'publicite') return 'bg-blue-100 text-blue-700'
   if (t === 'avance_fonds') return 'bg-purple-100 text-purple-700'
@@ -1312,7 +1314,16 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
             </div>
             <div>
               <label className="label">Type</label>
-              <select className="input" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+              <select className="input" value={form.type} onChange={e => {
+                const t = e.target.value
+                const defaultCat: Record<string, string> = {
+                  vente: 'revenu_ventes', remboursement: 'opex_retours',
+                  achat_inventaire: 'capex_stock', frais_amazon: 'opex_amazon',
+                  publicite: 'opex_pub', avance_fonds: 'financement_avance',
+                  frais_bancaires: 'opex_bancaire', transfert: 'transfert_interne',
+                }
+                setForm(f => ({ ...f, type: t, fiscal_category: defaultCat[t] ?? f.fiscal_category }))
+              }}>
                 {TX_TYPES.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
               </select>
             </div>
