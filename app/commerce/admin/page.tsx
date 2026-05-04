@@ -74,13 +74,18 @@ const FISCAL_GROUPS = {
     label: 'Dépenses opérationnelles (OPEX)', color: [59, 130, 246] as [number,number,number],
     bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200',
     text: 'text-blue-700',
-    cats: ['opex_amazon', 'opex_pub', 'opex_expedition', 'opex_retours', 'opex_logiciels', 'opex_bancaire', 'opex_autre'],
+    cats: [
+      'opex_amazon', 'opex_pub', 'opex_expedition', 'opex_stockage', 'opex_emballage',
+      'opex_retours', 'opex_logiciels', 'opex_telecom', 'opex_bancaire',
+      'opex_salaire', 'opex_sous_traitance', 'opex_professionnel',
+      'opex_assurance', 'opex_fournitures', 'opex_autre',
+    ],
   },
   CAPEX: {
     label: 'Investissements (CAPEX)', color: [249, 115, 22] as [number,number,number],
     bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200',
     text: 'text-orange-700',
-    cats: ['capex_stock', 'capex_equipement', 'capex_autre'],
+    cats: ['capex_stock', 'capex_importation', 'capex_equipement', 'capex_autre'],
   },
   FINANCEMENT: {
     label: 'Financement', color: [168, 85, 247] as [number,number,number],
@@ -91,23 +96,40 @@ const FISCAL_GROUPS = {
 }
 
 const FISCAL_CATS: Record<string, { label: string; group: keyof typeof FISCAL_GROUPS }> = {
-  revenu_ventes:      { label: 'Ventes produits',            group: 'REVENUS' },
-  revenu_affilie:     { label: 'Commissions affilié',        group: 'REVENUS' },
-  revenu_autre:       { label: 'Autres revenus',             group: 'REVENUS' },
-  opex_amazon:        { label: 'Frais Amazon / plateforme',  group: 'OPEX' },
-  opex_pub:           { label: 'Publicité & Marketing',      group: 'OPEX' },
-  opex_expedition:    { label: 'Expédition & logistique',    group: 'OPEX' },
-  opex_retours:       { label: 'Retours clients',            group: 'OPEX' },
-  opex_logiciels:     { label: 'Abonnements & logiciels',    group: 'OPEX' },
-  opex_bancaire:      { label: 'Frais bancaires',            group: 'OPEX' },
-  opex_autre:         { label: 'Autres dépenses OPEX',       group: 'OPEX' },
-  capex_stock:        { label: 'Achat de stock',             group: 'CAPEX' },
-  capex_equipement:   { label: 'Équipement & matériel',      group: 'CAPEX' },
-  capex_autre:        { label: 'Autres investissements',     group: 'CAPEX' },
-  financement_apport:  { label: 'Apport personnel',              group: 'FINANCEMENT' },
-  financement_avance:  { label: 'Avance de fonds (fondateur)',   group: 'FINANCEMENT' },
-  financement_pret:    { label: 'Prêt / Ligne de crédit',        group: 'FINANCEMENT' },
-  transfert_interne:   { label: 'Transfert entre comptes',       group: 'FINANCEMENT' },
+  // Revenus
+  revenu_ventes:        { label: 'Ventes produits',              group: 'REVENUS' },
+  revenu_affilie:       { label: 'Commissions affilié',          group: 'REVENUS' },
+  revenu_autre:         { label: 'Autres revenus',               group: 'REVENUS' },
+  // OPEX — Plateformes & Marketing
+  opex_amazon:          { label: 'Frais Amazon / plateforme',    group: 'OPEX' },
+  opex_pub:             { label: 'Publicité & Marketing',        group: 'OPEX' },
+  // OPEX — Logistique
+  opex_expedition:      { label: 'Expédition & livraison',       group: 'OPEX' },
+  opex_stockage:        { label: 'Stockage / entreposage (FBA)', group: 'OPEX' },
+  opex_emballage:       { label: 'Emballage & matériaux',        group: 'OPEX' },
+  opex_retours:         { label: 'Retours & remboursements',     group: 'OPEX' },
+  // OPEX — Services & Abonnements
+  opex_logiciels:       { label: 'Abonnements & logiciels',      group: 'OPEX' },
+  opex_telecom:         { label: 'Téléphone & internet',         group: 'OPEX' },
+  opex_bancaire:        { label: 'Frais bancaires',              group: 'OPEX' },
+  // OPEX — Ressources humaines
+  opex_salaire:         { label: 'Salaires & RH',                group: 'OPEX' },
+  opex_sous_traitance:  { label: 'Sous-traitance / freelance',   group: 'OPEX' },
+  // OPEX — Frais professionnels
+  opex_professionnel:   { label: 'Comptabilité / légal',         group: 'OPEX' },
+  opex_assurance:       { label: 'Assurance',                    group: 'OPEX' },
+  opex_fournitures:     { label: 'Fournitures & bureau',         group: 'OPEX' },
+  opex_autre:           { label: 'Autres dépenses OPEX',         group: 'OPEX' },
+  // CAPEX
+  capex_stock:          { label: 'Achat de stock / inventaire',  group: 'CAPEX' },
+  capex_importation:    { label: 'Douane & importation',         group: 'CAPEX' },
+  capex_equipement:     { label: 'Équipement & matériel',        group: 'CAPEX' },
+  capex_autre:          { label: 'Autres investissements',       group: 'CAPEX' },
+  // Financement
+  financement_apport:   { label: 'Apport personnel',             group: 'FINANCEMENT' },
+  financement_avance:   { label: 'Avance de fonds (fondateur)',  group: 'FINANCEMENT' },
+  financement_pret:     { label: 'Prêt / Ligne de crédit',       group: 'FINANCEMENT' },
+  transfert_interne:    { label: 'Transfert entre comptes',      group: 'FINANCEMENT' },
 }
 
 // ─── Convertit un lien Google Drive en URL d'image directe ───────────────────
@@ -124,7 +146,20 @@ function toDirectImg(url: string): string {
 const ADMIN_PASSWORD = '321Eduf!$'
 const SESSION_KEY = 'commerce_admin_auth'
 
-const TX_TYPES = ['vente', 'remboursement', 'achat_inventaire', 'frais_amazon', 'publicite', 'avance_fonds', 'frais_bancaires', 'transfert', 'autre'] as const
+const TX_TYPES = [
+  // Revenus
+  'vente',
+  // Dépenses opérationnelles
+  'remboursement', 'frais_amazon', 'publicite', 'frais_expedition',
+  'frais_stockage', 'emballage', 'abonnement', 'telecom', 'frais_bancaires',
+  'salaire', 'sous_traitance', 'frais_professionnel', 'assurance', 'fournitures',
+  // Investissements
+  'achat_inventaire', 'frais_importation', 'achat_equipement',
+  // Financement
+  'avance_fonds',
+  // Neutre
+  'transfert', 'autre',
+] as const
 const TX_PLATFORMS = ['Amazon', 'Shopify', 'Etsy', 'Site web', 'Autre']
 const TX_STATUSES = ['complété', 'en attente', 'annulé']
 const TX_ACCOUNTS = [
@@ -169,24 +204,44 @@ function badgeColor(badge?: string) {
 
 function txTypeLabel(t: string) {
   const m: Record<string, string> = {
-    vente: 'Vente', remboursement: 'Remboursement',
+    vente: 'Vente',
+    remboursement: 'Remboursement client',
+    frais_amazon: 'Frais Amazon / plateforme',
+    publicite: 'Publicité & Marketing',
+    frais_expedition: 'Expédition & livraison',
+    frais_stockage: 'Stockage / FBA',
+    emballage: 'Emballage',
+    abonnement: 'Abonnement / logiciel',
+    telecom: 'Téléphone & internet',
+    frais_bancaires: 'Frais bancaires',
+    salaire: 'Salaire',
+    sous_traitance: 'Sous-traitance / freelance',
+    frais_professionnel: 'Comptabilité / légal',
+    assurance: 'Assurance',
+    fournitures: 'Fournitures & bureau',
     achat_inventaire: 'Achat inventaire',
-    frais_amazon: 'Frais Amazon', publicite: 'Publicité',
-    avance_fonds: 'Avance de fonds', frais_bancaires: 'Frais bancaires',
-    transfert: 'Transfert', autre: 'Autre',
+    frais_importation: 'Douane & importation',
+    achat_equipement: 'Achat équipement',
+    avance_fonds: 'Avance de fonds',
+    transfert: 'Transfert entre comptes',
+    autre: 'Autre dépense',
   }
   return m[t] || t
 }
 
 function txTypeColor(t: string) {
   if (t === 'vente') return 'bg-emerald-100 text-emerald-700'
+  if (t === 'avance_fonds') return 'bg-purple-100 text-purple-700'
+  if (t === 'transfert') return 'bg-indigo-100 text-indigo-700'
   if (t === 'remboursement') return 'bg-red-100 text-red-700'
-  if (t === 'achat_inventaire') return 'bg-orange-100 text-orange-700'
   if (t === 'frais_amazon') return 'bg-amber-100 text-amber-700'
   if (t === 'publicite') return 'bg-blue-100 text-blue-700'
-  if (t === 'avance_fonds') return 'bg-purple-100 text-purple-700'
+  if (t === 'achat_inventaire' || t === 'frais_importation' || t === 'achat_equipement') return 'bg-orange-100 text-orange-700'
+  if (t === 'frais_expedition' || t === 'frais_stockage' || t === 'emballage') return 'bg-cyan-100 text-cyan-700'
+  if (t === 'salaire' || t === 'sous_traitance') return 'bg-rose-100 text-rose-700'
+  if (t === 'abonnement' || t === 'telecom') return 'bg-violet-100 text-violet-700'
+  if (t === 'frais_professionnel' || t === 'assurance') return 'bg-teal-100 text-teal-700'
   if (t === 'frais_bancaires') return 'bg-slate-100 text-slate-600'
-  if (t === 'transfert') return 'bg-indigo-100 text-indigo-700'
   return 'bg-gray-100 text-gray-600'
 }
 
@@ -1317,10 +1372,27 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <select className="input" value={form.type} onChange={e => {
                 const t = e.target.value
                 const defaultCat: Record<string, string> = {
-                  vente: 'revenu_ventes', remboursement: 'opex_retours',
-                  achat_inventaire: 'capex_stock', frais_amazon: 'opex_amazon',
-                  publicite: 'opex_pub', avance_fonds: 'financement_avance',
-                  frais_bancaires: 'opex_bancaire', transfert: 'transfert_interne',
+                  vente: 'revenu_ventes',
+                  remboursement: 'opex_retours',
+                  frais_amazon: 'opex_amazon',
+                  publicite: 'opex_pub',
+                  frais_expedition: 'opex_expedition',
+                  frais_stockage: 'opex_stockage',
+                  emballage: 'opex_emballage',
+                  abonnement: 'opex_logiciels',
+                  telecom: 'opex_telecom',
+                  frais_bancaires: 'opex_bancaire',
+                  salaire: 'opex_salaire',
+                  sous_traitance: 'opex_sous_traitance',
+                  frais_professionnel: 'opex_professionnel',
+                  assurance: 'opex_assurance',
+                  fournitures: 'opex_fournitures',
+                  achat_inventaire: 'capex_stock',
+                  frais_importation: 'capex_importation',
+                  achat_equipement: 'capex_equipement',
+                  avance_fonds: 'financement_avance',
+                  transfert: 'transfert_interne',
+                  autre: 'opex_autre',
                 }
                 setForm(f => ({ ...f, type: t, fiscal_category: defaultCat[t] ?? f.fiscal_category }))
               }}>
