@@ -1384,41 +1384,57 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <label className="label">Montant (CAD)</label>
               <input type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} />
             </div>
-            <div>
-              <label className="label">Type</label>
-              <select className="input" value={form.type} onChange={e => {
-                const t = e.target.value
+            <div className="sm:col-span-2">
+              <label className="label">Type de transaction</label>
+              {(() => {
                 const defaultCat: Record<string, string> = {
-                  vente: 'revenu_ventes',
-                  remboursement: 'opex_retours',
-                  frais_amazon: 'opex_amazon',
-                  publicite: 'opex_pub',
-                  frais_expedition: 'opex_expedition',
-                  frais_stockage: 'opex_stockage',
-                  emballage: 'opex_emballage',
-                  abonnement: 'opex_logiciels',
-                  telecom: 'opex_telecom',
-                  frais_bancaires: 'opex_bancaire',
-                  salaire: 'opex_salaire',
-                  sous_traitance: 'opex_sous_traitance',
-                  frais_professionnel: 'opex_professionnel',
-                  assurance: 'opex_assurance',
-                  fournitures: 'opex_fournitures',
-                  achat_inventaire: 'capex_stock',
-                  frais_importation: 'capex_importation',
-                  achat_equipement: 'capex_equipement',
-                  avance_fonds: 'financement_avance',
-                  transfert: 'transfert_interne',
+                  vente: 'revenu_ventes', remboursement: 'opex_retours',
+                  frais_amazon: 'opex_amazon', publicite: 'opex_pub',
+                  frais_expedition: 'opex_expedition', frais_stockage: 'opex_stockage',
+                  emballage: 'opex_emballage', abonnement: 'opex_logiciels',
+                  telecom: 'opex_telecom', frais_bancaires: 'opex_bancaire',
+                  salaire: 'opex_salaire', sous_traitance: 'opex_sous_traitance',
+                  frais_professionnel: 'opex_professionnel', assurance: 'opex_assurance',
+                  fournitures: 'opex_fournitures', achat_inventaire: 'capex_stock',
+                  frais_importation: 'capex_importation', achat_equipement: 'capex_equipement',
+                  avance_fonds: 'financement_avance', transfert: 'transfert_interne',
                   autre: 'opex_autre',
                 }
-                setForm(f => ({ ...f, type: t, fiscal_category: defaultCat[t] ?? f.fiscal_category }))
-              }}>
-                {TX_TYPE_GROUPS.map(g => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.types.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+                const entreeTypes = TX_TYPE_GROUPS.filter(g => g.label.includes('Entrée'))
+                const sortieTypes = TX_TYPE_GROUPS.filter(g => g.label.includes('Sortie'))
+                const neutralTypes = TX_TYPE_GROUPS.filter(g => g.label.includes('Neutre'))
+                const currentDir = isInflow(form.type) ? 'entree' : form.type === 'transfert' || form.type === 'autre' ? 'neutre' : 'sortie'
+                return (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      {[
+                        { key: 'entree', label: '⬆️ Entrée', color: 'bg-emerald-500 text-white border-emerald-500', inactive: 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-emerald-400 hover:text-emerald-600' },
+                        { key: 'sortie', label: '⬇️ Sortie', color: 'bg-red-500 text-white border-red-500', inactive: 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-600' },
+                        { key: 'neutre', label: '↔️ Neutre', color: 'bg-indigo-500 text-white border-indigo-500', inactive: 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-400 hover:text-indigo-600' },
+                      ].map(({ key, label, color, inactive }) => (
+                        <button key={key} type="button"
+                          className={`flex-1 py-2 text-sm font-medium rounded-xl border transition-colors ${currentDir === key ? color : `bg-white dark:bg-gray-800 ${inactive}`}`}
+                          onClick={() => {
+                            const firstType = key === 'entree' ? entreeTypes[0].types[0] : key === 'sortie' ? sortieTypes[0].types[0] : neutralTypes[0].types[0]
+                            setForm(f => ({ ...f, type: firstType, fiscal_category: defaultCat[firstType] ?? f.fiscal_category }))
+                          }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <select className="input" value={form.type} onChange={e => {
+                      const t = e.target.value
+                      setForm(f => ({ ...f, type: t, fiscal_category: defaultCat[t] ?? f.fiscal_category }))
+                    }}>
+                      {(currentDir === 'entree' ? entreeTypes : currentDir === 'sortie' ? sortieTypes : neutralTypes).map(g => (
+                        <optgroup key={g.label} label={g.label.replace(/^[⬆️⬇️↔️]\s*/, '').replace('Sorties — ', '')}>
+                          {g.types.map(t => <option key={t} value={t}>{txTypeLabel(t)}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                )
+              })()}
             </div>
             <div>
               <label className="label">Catégorie fiscale</label>
