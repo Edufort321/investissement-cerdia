@@ -5,13 +5,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
+import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
-  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu
+  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -201,7 +202,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -440,6 +441,7 @@ export default function CommerceAdminPage() {
               { key: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
               { key: 'rapports', label: 'Rapports', icon: BarChart2 },
               { key: 'factures', label: 'Factures', icon: FileText },
+              { key: 'factures_gmail', label: '📬 Gmail', icon: Mail },
             ] as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -463,6 +465,12 @@ export default function CommerceAdminPage() {
         {tab === 'transactions' && <TransactionsTab toast={setToast} />}
         {tab === 'rapports' && <RapportsTab />}
         {tab === 'factures' && <FacturesTab />}
+        {tab === 'factures_gmail' && (
+          <GmailFacturesTab
+            filterCompanies={['Commerce CERDIA']}
+            title="Factures Gmail — Commerce CERDIA"
+          />
+        )}
       </div>
     </div>
   )

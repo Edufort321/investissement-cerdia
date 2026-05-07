@@ -166,6 +166,20 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({})
 
+  // Gmail invoice linking
+  const [gmailInvoices, setGmailInvoices] = useState<Array<{ id: string; vendor_name: string | null; document_date: string | null; amount: number | null; currency: string | null; category: string }>>([])
+  const [linkedGmailId, setLinkedGmailId] = useState<string>('')
+  const [linkedGmailCompany, setLinkedGmailCompany] = useState<string>('CERDIA Globale')
+
+  useEffect(() => {
+    if (!showAddTransactionForm) return
+    supabase.from('gmail_invoices').select('id,vendor_name,document_date,amount,currency,category')
+      .in('category', ['FACTURE', 'RECU_PAIEMENT'])
+      .is('cerdia_company', null)
+      .order('document_date', { ascending: false })
+      .then(({ data }) => setGmailInvoices(data ?? []))
+  }, [showAddTransactionForm])
+
   const [investorFormData, setInvestorFormData] = useState<InvestorFormData>({
     user_id: '',
     first_name: '',
@@ -715,6 +729,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         if (result.success) {
           if (pendingFiles.length > 0 && result.data?.id) {
             await uploadPendingFiles(result.data.id)
+          }
+          // Link gmail invoice if selected
+          if (linkedGmailId) {
+            await supabase.from('gmail_invoices')
+              .update({ cerdia_company: linkedGmailCompany, synced_at: new Date().toISOString() })
+              .eq('id', linkedGmailId)
+            setLinkedGmailId('')
           }
           setShowAddTransactionForm(false)
           resetTransactionForm()
@@ -3290,6 +3311,58 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     placeholder="0.00"
                   />
                 </div>
+
+                {/* Lier une facture Gmail */}
+                {gmailInvoices.length > 0 && (
+                  <div className="sm:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
+                    <label className="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-3">
+                      📬 Associer une facture Gmail (optionnel)
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Facture Gmail non assignée</label>
+                        <select
+                          value={linkedGmailId}
+                          onChange={e => {
+                            const id = e.target.value
+                            setLinkedGmailId(id)
+                            if (id) {
+                              const inv = gmailInvoices.find(i => i.id === id)
+                              if (inv && !transactionFormData.vendor_name) {
+                                setTransactionFormData(f => ({ ...f, vendor_name: inv.vendor_name }))
+                              }
+                            }
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                          <option value="">— Aucune —</option>
+                          {gmailInvoices.map(inv => (
+                            <option key={inv.id} value={inv.id}>
+                              {inv.document_date ?? '?'} · {inv.vendor_name ?? 'Inconnu'} · {inv.amount ? `${inv.amount} ${inv.currency ?? 'CAD'}` : '—'} [{inv.category === 'FACTURE' ? 'Facture' : 'Reçu'}]
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {linkedGmailId && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assigner à la compagnie</label>
+                          <select
+                            value={linkedGmailCompany}
+                            onChange={e => setLinkedGmailCompany(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                          >
+                            <option value="CERDIA Globale">CERDIA Globale</option>
+                            <option value="CERDIA S.E.C.">CERDIA S.E.C.</option>
+                            <option value="Commerce CERDIA">Commerce CERDIA</option>
+                          </select>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            ✓ La facture sera assignée et retirée de la liste "À classer"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nom du vendeur/compagnie</label>
