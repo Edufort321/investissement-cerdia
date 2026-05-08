@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import {
   Mail, ExternalLink, RefreshCw, Search, Filter,
   FileText, Receipt, AlertTriangle, CheckCircle, XCircle, Minus,
-  Building2, TrendingUp, DollarSign,
+  Building2, TrendingUp, DollarSign, Trash2,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -81,6 +81,9 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
   const [invoices, setInvoices] = useState<GmailInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // id unique ou 'bulk'
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<CategoryFilter>('all')
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +110,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
 
   useEffect(() => { load() }, [load])
 
-  // Assign company and save to Supabase
+  // Assign company
   const assignCompany = async (id: string, company: string) => {
     setSaving(id)
     const { error: err } = await supabase
@@ -118,6 +121,36 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     if (err) { setError(err.message); return }
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, cerdia_company: company || null } : inv))
   }
+
+  // Supprimer une seule facture
+  const deleteOne = async (id: string) => {
+    setDeleting(id)
+    const { error: err } = await supabase.from('gmail_invoices').delete().eq('id', id)
+    setDeleting(null)
+    setConfirmDelete(null)
+    if (err) { setError(err.message); return }
+    setInvoices(prev => prev.filter(inv => inv.id !== id))
+    setSelected(prev => { const s = new Set(prev); s.delete(id); return s })
+  }
+
+  // Supprimer la sélection multiple
+  const deleteSelected = async () => {
+    const ids = Array.from(selected)
+    setDeleting('bulk')
+    const { error: err } = await supabase.from('gmail_invoices').delete().in('id', ids)
+    setDeleting(null)
+    setConfirmDelete(null)
+    if (err) { setError(err.message); return }
+    setInvoices(prev => prev.filter(inv => !ids.includes(inv.id)))
+    setSelected(new Set())
+  }
+
+  // Toggle sélection
+  const toggleSelect = (id: string) =>
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+
+  const toggleSelectAll = () =>
+    setSelected(prev => prev.size === filtered.length ? new Set() : new Set(filtered.map(i => i.id)))
 
   // ── Filtered list ─────────────────────────────────────────────────────────
   const filtered = invoices.filter(inv => {
@@ -157,6 +190,46 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
 
   return (
     <div className="space-y-5">
+      {/* Modal confirmation suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                <Trash2 size={18} className="text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Confirmer la suppression</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {confirmDelete === 'bulk'
+                    ? `Supprimer ${selected.size} facture${selected.size > 1 ? 's' : ''} sélectionnée${selected.size > 1 ? 's' : ''} ?`
+                    : 'Supprimer cette facture ?'}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-red-600 dark:text-red-400 mb-5 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+              ⚠️ Cette action est irréversible. La facture sera supprimée de Supabase.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => confirmDelete === 'bulk' ? deleteSelected() : deleteOne(confirmDelete)}
+                disabled={deleting !== null}
+                className="flex-1 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {deleting ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -168,13 +241,23 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
             Factures et reçus classifiés automatiquement depuis Gmail · {filterCompanies.join(' / ')}
           </p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Actualiser
-        </button>
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={() => setConfirmDelete('bulk')}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              <Trash2 size={13} /> Supprimer {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
+            </button>
+          )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Actualiser
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -246,6 +329,15 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && selected.size === filtered.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      title="Tout sélectionner"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Date</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Fournisseur</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Catégorie</th>
@@ -256,6 +348,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                     <span className="flex items-center gap-1"><Building2 size={12} /> Compagnie CERDIA</span>
                   </th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Gmail</th>
+                  <th className="px-3 py-3 w-8"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -263,11 +356,22 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                   <tr
                     key={inv.id}
                     className={`transition-colors hover:bg-blue-50/30 dark:hover:bg-blue-900/10 ${
+                      selected.has(inv.id) ? 'bg-red-50/40 dark:bg-red-900/10' :
                       idx % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'
                     } ${!inv.cerdia_company && (inv.category === 'FACTURE' || inv.category === 'RECU_PAIEMENT')
                         ? 'border-l-2 border-l-orange-400' : ''
                     }`}
                   >
+                    {/* Checkbox */}
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(inv.id)}
+                        onChange={() => toggleSelect(inv.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+
                     {/* Date */}
                     <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400 font-mono text-xs">
                       {inv.document_date ?? '—'}
@@ -343,6 +447,20 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                           <ExternalLink size={13} />
                         </a>
                       ) : '—'}
+                    </td>
+
+                    {/* Delete button */}
+                    <td className="px-3 py-3 text-center">
+                      <button
+                        onClick={() => setConfirmDelete(inv.id)}
+                        disabled={deleting === inv.id}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                        title="Supprimer"
+                      >
+                        {deleting === inv.id
+                          ? <RefreshCw size={13} className="animate-spin" />
+                          : <Trash2 size={13} />}
+                      </button>
                     </td>
                   </tr>
                 ))}
