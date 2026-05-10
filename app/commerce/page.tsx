@@ -261,6 +261,7 @@ export default function CommercePage() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Accueil</Link>
+            <Link href="/privacy" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Confidentialité</Link>
             <Link href="/connexion" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Connexion</Link>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <span>© 2025 CERDIA</span>

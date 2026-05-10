@@ -216,7 +216,13 @@ export default function Home() {
         <footer className="bg-gray-900 dark:bg-black text-white py-6 mt-16">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
             <p>&copy; 2025 CERDIA. {tr.footer}</p>
-            <p>{tr.powered}</p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="text-gray-300 hover:text-white transition-colors">
+                Politique de confidentialité
+              </Link>
+              <span className="text-gray-500">|</span>
+              <p>{tr.powered}</p>
+            </div>
           </div>
         </footer>
     </div>
