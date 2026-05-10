@@ -3,28 +3,30 @@
 /**
  * Layout client-side de /commerce/admin
  *
- * Vérifie que l'utilisateur est connecté Supabase ET a un role 'owner' ou 'admin'
- * dans la table profiles (migration 139). Sinon → redirect vers /connexion.
+ * Utilise le AuthContext existant (memes session/cookies que /dashboard).
+ * Une seule connexion Supabase pour toute l'app.
  *
- * Pourquoi client-side et pas server-side ?
- * Le projet utilise un client Supabase standard (lib/supabase.ts) avec session
- * stockée en localStorage. Les cookies de session ne sont donc pas disponibles
- * côté server pour @supabase/auth-helpers-nextjs. Faire le check côté client
- * matche le pattern existant (AuthContext).
+ * Flow :
+ *   1. AuthContext encore loading → loader "Vérification..."
+ *   2. Pas de supabaseUser (non connecte) → redirect /connexion?redirect=...
+ *   3. Connecte mais role insuffisant dans profiles → ecran "Acces refuse"
+ *   4. Connecte + role IN (owner, admin) → render children
  *
- * Sécurité : ce check est cosmétique (un utilisateur malveillant peut le bypasser
- * via DevTools). La vraie protection vient des RLS Supabase sur les tables
- * sensibles (amazon_*, profiles, etc.) qui exigent profiles.role IN ('owner','admin').
+ * Securite : le check cote client est cosmetique. La vraie protection
+ * vient des RLS Supabase sur les tables sensibles (amazon_*) qui exigent
+ * profiles.role IN ('owner','admin') pour SELECT/INSERT/UPDATE.
  */
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Lock, RefreshCw } from 'lucide-react'
 
-type CheckState = 'checking' | 'allowed' | 'denied'
+type CheckState = 'checking' | 'allowed' | 'denied' | 'redirecting'
 
 export default function CommerceAdminLayout({ children }: { children: React.ReactNode }) {
+  const { supabaseUser, loading } = useAuth()
   const router   = useRouter()
   const pathname = usePathname()
   const [state, setState] = useState<CheckState>('checking')
@@ -33,41 +35,52 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
     let cancelled = false
 
     async function check() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (cancelled) return
+      // 1. Attendre que AuthContext finisse son initialisation
+      if (loading) return
 
-      if (!session?.user) {
-        setState('denied')
-        router.replace(`/connexion?redirect=${encodeURIComponent(pathname)}`)
+      // 2. Pas connecté → redirect
+      if (!supabaseUser) {
+        if (!cancelled) {
+          setState('redirecting')
+          router.replace(`/connexion?redirect=${encodeURIComponent(pathname)}`)
+        }
         return
       }
 
-      const { data: profile } = await supabase
+      // 3. Connecté → query profiles.role
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', supabaseUser.id)
         .maybeSingle()
 
       if (cancelled) return
+
+      if (error) {
+        console.error('[admin layout] profile query error:', error.message)
+        setState('denied')
+        return
+      }
 
       if (profile && ['owner', 'admin'].includes(profile.role)) {
         setState('allowed')
       } else {
         setState('denied')
-        // Ne pas rediriger : afficher un message clair
       }
     }
 
     check()
     return () => { cancelled = true }
-  }, [router, pathname])
+  }, [loading, supabaseUser, router, pathname])
 
-  if (state === 'checking') {
+  if (state === 'checking' || state === 'redirecting') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20">
         <div className="text-center">
           <RefreshCw size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Vérification de l&apos;accès admin…</p>
+          <p className="text-sm text-gray-500">
+            {state === 'redirecting' ? 'Redirection vers la connexion…' : 'Vérification de l’accès admin…'}
+          </p>
         </div>
       </div>
     )
