@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Image from 'next/image'
 
 function ConnexionForm() {
-  const { login, loading } = useAuth()
+  const { login, supabaseUser } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get('redirect') || '/dashboard'
@@ -17,6 +17,16 @@ function ConnexionForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // Si une session Supabase est deja active, rediriger directement
+  // (evite de rester bloque sur le formulaire pendant que AuthContext
+  // charge en arriere-plan les donnees investor)
+  useEffect(() => {
+    if (supabaseUser) {
+      router.replace(redirectUrl)
+    }
+  }, [supabaseUser, redirectUrl, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,11 +37,15 @@ function ConnexionForm() {
       return
     }
 
-    const result = await login(email, password)
+    setSubmitting(true)
+    try {
+      const result = await login(email, password)
 
-    if (!result.success) {
-      setError(result.error || 'Erreur de connexion')
-    } else {
+      if (!result.success) {
+        setError(result.error || 'Erreur de connexion')
+        return
+      }
+
       // Stocker la durée de session selon "Se souvenir de moi"
       const sessionDuration = rememberMe ? 24 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000 // 24h ou 2h
       const expiresAt = Date.now() + sessionDuration
@@ -40,6 +54,8 @@ function ConnexionForm() {
 
       // Rediriger vers l'URL demandée ou le dashboard par défaut
       router.push(redirectUrl)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -143,10 +159,10 @@ function ConnexionForm() {
               {/* Bouton de connexion - Même style que le header */}
               <button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={submitting || !email || !password}
                 className="w-full py-3 px-4 bg-[#5e5e5e] hover:bg-[#3e3e3e] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-full transition-colors text-lg flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {submitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Connexion...
