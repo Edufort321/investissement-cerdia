@@ -176,6 +176,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     supabase.from('gmail_invoices').select('id,vendor_name,document_date,amount,currency,category')
       .in('category', ['FACTURE', 'RECU_PAIEMENT'])
       .is('cerdia_company', null)
+      .is('deleted_at', null)
       .order('document_date', { ascending: false })
       .then(({ data }) => setGmailInvoices(data ?? []))
   }, [showAddTransactionForm])

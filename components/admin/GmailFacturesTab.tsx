@@ -81,6 +81,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
   const [invoices, setInvoices] = useState<GmailInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [savingCat, setSavingCat] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // id unique ou 'bulk'
@@ -96,6 +97,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
       const { data, error: err } = await supabase
         .from('gmail_invoices')
         .select('*')
+        .is('deleted_at', null)
         .or(`cerdia_company.in.(${companyList}),cerdia_company.is.null`)
         .order('document_date', { ascending: false })
 
@@ -122,10 +124,25 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, cerdia_company: company || null } : inv))
   }
 
-  // Supprimer une seule facture
+  // Reclasser la catégorie (utile pour corriger un "À réviser" en Facture/Reçu)
+  const assignCategory = async (id: string, category: GmailInvoice['category']) => {
+    setSavingCat(id)
+    const { error: err } = await supabase
+      .from('gmail_invoices')
+      .update({ category, synced_at: new Date().toISOString() })
+      .eq('id', id)
+    setSavingCat(null)
+    if (err) { setError(err.message); return }
+    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, category } : inv))
+  }
+
+  // Supprimer une seule facture (soft-delete : tombstone respecté par le sync Python)
   const deleteOne = async (id: string) => {
     setDeleting(id)
-    const { error: err } = await supabase.from('gmail_invoices').delete().eq('id', id)
+    const { error: err } = await supabase
+      .from('gmail_invoices')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
     setDeleting(null)
     setConfirmDelete(null)
     if (err) { setError(err.message); return }
@@ -133,11 +150,14 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setSelected(prev => { const s = new Set(prev); s.delete(id); return s })
   }
 
-  // Supprimer la sélection multiple
+  // Supprimer la sélection multiple (soft-delete)
   const deleteSelected = async () => {
     const ids = Array.from(selected)
     setDeleting('bulk')
-    const { error: err } = await supabase.from('gmail_invoices').delete().in('id', ids)
+    const { error: err } = await supabase
+      .from('gmail_invoices')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', ids)
     setDeleting(null)
     setConfirmDelete(null)
     if (err) { setError(err.message); return }
@@ -207,8 +227,9 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                 </p>
               </div>
             </div>
-            <p className="text-xs text-red-600 dark:text-red-400 mb-5 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-              ⚠️ Cette action est irréversible. La facture sera supprimée de Supabase.
+            <p className="text-xs text-orange-700 dark:text-orange-400 mb-5 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+              La facture sera masquée de la liste et le sync Gmail ne la réinsèrera plus.
+              Réversible via Supabase Studio si besoin.
             </p>
             <div className="flex gap-2">
               <button
@@ -387,8 +408,32 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                       )}
                     </td>
 
-                    {/* Catégorie */}
-                    <td className="px-4 py-3 whitespace-nowrap">{catBadge(inv.category)}</td>
+                    {/* Catégorie — éditable inline pour reclasser un À réviser */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="relative">
+                        <select
+                          value={inv.category}
+                          onChange={e => assignCategory(inv.id, e.target.value as GmailInvoice['category'])}
+                          disabled={savingCat === inv.id}
+                          className={`text-xs font-medium px-2 py-1 rounded-full border outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
+                            inv.category === 'FACTURE'       ? 'bg-blue-50   text-blue-700   border-blue-200   dark:bg-blue-900/40   dark:text-blue-300   dark:border-blue-700' :
+                            inv.category === 'RECU_PAIEMENT' ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/40 dark:text-violet-300 dark:border-violet-700' :
+                            inv.category === 'DOC_PROJET'    ? 'bg-gray-50   text-gray-600   border-gray-200   dark:bg-gray-700      dark:text-gray-300   dark:border-gray-600' :
+                            'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700'
+                          } ${savingCat === inv.id ? 'opacity-50 cursor-wait' : ''}`}
+                        >
+                          <option value="FACTURE">Facture</option>
+                          <option value="RECU_PAIEMENT">Reçu</option>
+                          <option value="DOC_PROJET">Document</option>
+                          <option value="A_REVISER">À réviser</option>
+                        </select>
+                        {savingCat === inv.id && (
+                          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                            <RefreshCw size={9} className="animate-spin text-blue-500" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
 
                     {/* Montant */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
