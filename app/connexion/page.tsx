@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,12 +18,15 @@ function ConnexionForm() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const redirectedRef = useRef(false)
 
-  // Si une session Supabase est deja active, rediriger directement
-  // (evite de rester bloque sur le formulaire pendant que AuthContext
-  // charge en arriere-plan les donnees investor)
+  // Si une session Supabase est deja active, rediriger directement.
+  // useRef pour ne declencher router.replace QU'UNE FOIS (l'AuthContext
+  // peut emettre plusieurs SIGNED_IN successifs sans que ce soit reellement
+  // un nouveau login → sans guard, Chrome throttle les navigations).
   useEffect(() => {
-    if (supabaseUser) {
+    if (supabaseUser && !redirectedRef.current) {
+      redirectedRef.current = true
       router.replace(redirectUrl)
     }
   }, [supabaseUser, redirectUrl, router])
