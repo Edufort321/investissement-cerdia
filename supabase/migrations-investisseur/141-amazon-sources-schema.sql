@@ -212,9 +212,13 @@ CREATE TABLE IF NOT EXISTS amazon_search_terms (
     clicks          INTEGER,
     spend_cents     INTEGER,
     orders_7d       INTEGER,
-    sales_cents_7d  INTEGER,
-    UNIQUE (marketplace_id, date, campaign_id, ad_group_id, COALESCE(keyword_id, 0), search_term)
+    sales_cents_7d  INTEGER
 );
+
+-- UNIQUE inline ne supporte pas les expressions ; on utilise un index unique
+-- avec COALESCE pour traiter keyword_id NULL comme 0 et eviter les doublons.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_search_terms_dedupe
+    ON amazon_search_terms (marketplace_id, date, campaign_id, ad_group_id, COALESCE(keyword_id, 0), search_term);
 
 CREATE INDEX IF NOT EXISTS idx_st_date  ON amazon_search_terms (date DESC);
 CREATE INDEX IF NOT EXISTS idx_st_term  ON amazon_search_terms (search_term);

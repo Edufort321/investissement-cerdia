@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
 export async function POST(request: NextRequest) {
   try {
     const { destination, dateDebut, dateFin, budget, devise = 'CAD', language = 'fr' } = await request.json()
@@ -76,7 +77,7 @@ Return ONLY valid JSON with this exact format (no markdown, no text before or af
 
     console.log('🤖 Génération itinéraire avec GPT-4...')
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

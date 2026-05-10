@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
 export async function POST(request: NextRequest) {
   try {
     const { titre, language = 'fr' } = await request.json()
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
       ? `Une belle image de couverture pour un voyage intitulé "${titre}". Style photographique, panoramique, inspirant, lumineux, haute qualité.`
       : `A beautiful cover image for a trip titled "${titre}". Photographic style, panoramic, inspiring, bright, high quality.`
 
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: "dall-e-3",
       prompt: prompt,
       n: 1,

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
 export async function POST(request: NextRequest) {
   try {
     const { from, to, language = 'fr' } = await request.json()
@@ -62,7 +63,7 @@ Sort suggestions by relevance (first is best option).`
 
     console.log('🚗 Génération suggestions transport...')
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
