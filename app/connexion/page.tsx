@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useRef, Suspense } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import Image from 'next/image'
 
 function ConnexionForm() {
-  const { login, supabaseUser } = useAuth()
+  const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get('redirect') || '/dashboard'
@@ -18,18 +18,13 @@ function ConnexionForm() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const redirectedRef = useRef(false)
 
-  // Si une session Supabase est deja active, rediriger directement.
-  // useRef pour ne declencher router.replace QU'UNE FOIS (l'AuthContext
-  // peut emettre plusieurs SIGNED_IN successifs sans que ce soit reellement
-  // un nouveau login → sans guard, Chrome throttle les navigations).
-  useEffect(() => {
-    if (supabaseUser && !redirectedRef.current) {
-      redirectedRef.current = true
-      router.replace(redirectUrl)
-    }
-  }, [supabaseUser, redirectUrl, router])
+  // Note : pas de redirect auto si une session est deja active. Le AuthContext
+  // emet plusieurs SIGNED_IN successifs (initial session + recovery + refresh),
+  // et chaque router.replace demonte/remonte les composants → race conditions
+  // entre supabaseUser null/defini → Chrome throttling. Plutot, on laisse
+  // l'utilisateur cliquer "Se connecter" pour retaper ses credentials s'il
+  // veut changer de zone. Comportement initial du projet, eprouve.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
