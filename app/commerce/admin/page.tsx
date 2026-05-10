@@ -310,7 +310,10 @@ function Stars({ r }: { r: number }) {
 // PAGE PRINCIPALE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CommerceAdminPage() {
-  const [authed, setAuthed] = useState(false)
+  // Auth gerée côté server par app/commerce/admin/layout.tsx (requireAdmin via Supabase).
+  // L'ancien gate par mot de passe partage est conserve ici uniquement pour
+  // retro-compat (en cas de bypass du layout). Defaut authed=true.
+  const [authed, setAuthed] = useState(true)
   const [pwd, setPwd] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [pwdError, setPwdError] = useState('')

@@ -16,7 +16,9 @@
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
     "cap:build:android": "npm run build:mobile && cd android && ./gradlew assembleDebug",
-    "cap:release:android": "npm run build:mobile && cd android && ./gradlew bundleRelease"
+    "cap:release:android": "npm run build:mobile && cd android && ./gradlew bundleRelease",
+    "test:sp-api": "tsx scripts/test-sp-api.ts",
+    "test:ads-api": "tsx scripts/test-ads-api.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
@@ -57,6 +59,7 @@
     "@types/node": "^18.0.0",
     "@types/react": "^18.0.0",
     "autoprefixer": "^10.4.0",
+    "aws4fetch": "^1.0.20",
     "cross-env": "^10.1.0",
     "eslint": "^9.38.0",
     "eslint-config-next": "^16.0.0",
@@ -64,6 +67,7 @@
     "sharp": "^0.34.4",
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0"
   }
 }
