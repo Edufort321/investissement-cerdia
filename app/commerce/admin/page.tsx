@@ -1380,7 +1380,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-5">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setShowForm(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 my-8 w-full max-w-3xl" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900 dark:text-white text-sm">{editingId ? 'Modifier' : 'Nouvelle transaction'}</h3>
             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
@@ -1565,6 +1566,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <Save size={14} /> {saving ? 'Sauvegarde...' : (editingId ? 'Mettre à jour' : 'Ajouter')}
             </button>
           </div>
+        </div>
         </div>
       )}
 
