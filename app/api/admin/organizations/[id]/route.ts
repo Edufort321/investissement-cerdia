@@ -40,6 +40,9 @@ export async function DELETE(
 
     const { admin } = auth
     const orgId = params.id
+    // ?force=true → cascade delete : efface AUSSI les rows liees dans les
+    // tables tenant-scoped avant de supprimer l'org. Pour test tenants.
+    const force = new URL(request.url).searchParams.get('force') === 'true'
 
     // 1. Charge l'org pour verifier le plan
     const { data: org, error: orgErr } = await admin
@@ -114,15 +117,44 @@ export async function DELETE(
       }
     }
 
-    if (tablesWithData.length > 0) {
+    if (tablesWithData.length > 0 && !force) {
       return NextResponse.json(
         {
           error: 'has_data',
-          message: "L'organisation a des données liées et ne peut pas être supprimée. Archive-la à la place.",
+          message: "L'organisation a des données liées. Archive-la à la place, OU relance avec ?force=true pour cascade delete.",
           tables: tablesWithData,
+          force_hint: `${request.nextUrl.pathname}?force=true`,
         },
         { status: 409 },
       )
+    }
+
+    // 2.bis Si force=true, cascade delete des donnees dans toutes les tables
+    let cascadedTables: { table: string; deleted: number }[] = []
+    if (force && tablesWithData.length > 0) {
+      for (const table of tablesToCheck) {
+        try {
+          // Compte avant
+          const { count: beforeCount } = await admin
+            .from(table)
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', orgId)
+          if (!beforeCount || beforeCount === 0) continue
+
+          const { error: delErr } = await admin
+            .from(table)
+            .delete()
+            .eq('organization_id', orgId)
+          if (delErr) {
+            console.error(`[org delete force] DELETE FROM ${table} failed:`, delErr)
+            continue
+          }
+          cascadedTables.push({ table, deleted: beforeCount })
+        } catch (e) {
+          console.error(`[org delete force] error on ${table}:`, e)
+          continue
+        }
+      }
     }
 
     // 3. Recupere les profiles lies a cette org
@@ -172,6 +204,7 @@ export async function DELETE(
       org_name: org.name,
       profiles_removed: profilesRemoved,
       profile_errors: profileErrors.length > 0 ? profileErrors : undefined,
+      cascade: force ? cascadedTables : undefined,
     })
   } catch (e: any) {
     console.error('[org delete] unexpected error:', e)

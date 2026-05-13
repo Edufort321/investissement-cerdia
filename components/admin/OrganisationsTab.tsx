@@ -252,6 +252,10 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       return
     }
 
+    await doDelete(org, false)
+  }
+
+  const doDelete = async (org: Org, force: boolean) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -259,24 +263,36 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         toast({ msg: 'Non authentifié.', type: 'error' })
         return
       }
-      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+      const url = `/api/admin/organizations/${org.id}${force ? '?force=true' : ''}`
+      const res = await fetch(url, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
       const json = await res.json()
       if (!res.ok) {
         if (res.status === 409 && json.tables) {
-          toast({
-            msg: `Données liées trouvées : ${json.tables.join(', ')}. Archive plutôt que supprimer.`,
-            type: 'error',
-          })
+          // Propose le cascade force
+          const tablesList = json.tables.join('\n  - ')
+          const confirmCascade = window.confirm(
+            `⚠️ "${org.name}" a des données liées :\n\n  - ${tablesList}\n\n` +
+            `Veux-tu TOUT supprimer définitivement en cascade ?\n` +
+            `(toutes ces données + le tenant + l'utilisateur admin)`
+          )
+          if (confirmCascade) {
+            await doDelete(org, true)
+          } else {
+            toast({ msg: 'Suppression annulée. Tu peux archiver à la place.', type: 'error' })
+          }
         } else {
-          toast({ msg: `Erreur: ${json.error || res.status}`, type: 'error' })
+          toast({ msg: `Erreur: ${json.error || res.status}${json.detail ? ' — ' + json.detail : ''}`, type: 'error' })
         }
         return
       }
       await load()
-      toast({ msg: `Organisation supprimée (${json.profiles_removed} user${json.profiles_removed !== 1 ? 's' : ''}).`, type: 'success' })
+      const cascadedMsg = json.cascade?.length
+        ? ` + ${json.cascade.reduce((s: number, c: any) => s + c.deleted, 0)} rows cascade`
+        : ''
+      toast({ msg: `${org.name} supprimée (${json.profiles_removed} user${json.profiles_removed !== 1 ? 's' : ''}${cascadedMsg}).`, type: 'success' })
     } catch (e: any) {
       toast({ msg: e.message || 'Erreur réseau', type: 'error' })
     }
