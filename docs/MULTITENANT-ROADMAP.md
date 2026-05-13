@@ -150,3 +150,31 @@ Rendre configurable ce qui est hardcodé pour CERDIA SEC aujourd'hui :
 - T1135/T2209 (canadien) → optionnel selon `organizations.settings.tax_jurisdiction`
 - Devises USD/CAD/DOP/EUR → liste dynamique dans `organizations.settings.currencies_enabled`
 - Modules activés (investment / commerce / gmail / amazon) → flags dans `organizations.settings.modules`
+
+---
+
+## Phase 7 — Plateforme 100% bilingue FR/EN 📋 À FAIRE
+
+**Demandé par Eric le 2026-05-13.**
+
+Le `LanguageContext` FR/EN existe déjà (sélecteur de langue dans la navbar). Mais beaucoup de strings UI sont encore hardcodés en français dans les composants. À faire :
+- Audit complet : grep des strings français hardcodés dans `app/**/*.tsx` et `components/**/*.tsx`
+- Migration vers `t()` du LanguageContext pour chaque label, bouton, placeholder, message d'erreur, toast
+- Couvrir aussi les emails (welcome, magic link, invoice reminders, suspension warnings)
+- Couvrir les rapports PDF (T1135, NAV, etc.) — version FR + EN selon la préférence du user/tenant
+- Tenant settings : `organizations.settings.default_language` (`fr` ou `en`)
+- User preference : `profiles.preferred_language` qui override le default tenant
+- Important pour la commercialisation : un client anglophone doit pouvoir utiliser 100% de la plateforme sans toucher au français
+
+---
+
+## Notes diverses
+
+### Bug corrigé en mig 150 (2026-05-13)
+Mig 147/148/149 ont activé RLS sur les tables et ajouté une policy RESTRICTIVE
+`tenant_isolation`. Mais les tables qui n'avaient pas de PERMISSIVE pour
+authenticated (ex: commerce_products avec RLS DISABLED depuis mig 129) sont
+devenues invisibles aux users authentifiés (RESTRICTIVE seule = deny all).
+Mig 150 ajoute `tenant_authenticated_access` PERMISSIVE sur toutes les tables
+avec `tenant_isolation`. À se rappeler pour les futures tables tenant-scoped :
+toujours ajouter les 2 policies (PERMISSIVE pour autoriser + RESTRICTIVE pour filtrer).
