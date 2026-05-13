@@ -16,7 +16,7 @@
  *           → redirect /dashboard
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -76,10 +76,14 @@ export default function OnboardingPage() {
   }, [organization])
 
   // Si tenant deja onboarded → renvoie au dashboard (au cas où on arrive ici par erreur)
+  // Guard via ref pour empecher la boucle infinie pendant la navigation.
+  const dashboardRedirectedRef = useRef(false)
   useEffect(() => {
-    if (!loading && organization?.onboarding_completed) {
-      router.replace('/dashboard')
-    }
+    if (dashboardRedirectedRef.current) return
+    if (loading) return
+    if (!organization?.onboarding_completed) return
+    dashboardRedirectedRef.current = true
+    router.replace('/dashboard')
   }, [loading, organization, router])
 
   const selectedJuri = useMemo(
