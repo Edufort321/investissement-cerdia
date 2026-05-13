@@ -48,11 +48,59 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     slug: '',
     admin_email: '',
     admin_full_name: '',
-    plan: 'basic',
     logo_url: '',
-    annual_amount_cad: '',
     start_date: new Date().toISOString().split('T')[0],
   })
+
+  // ─── Prix annuel SaaS — stocke dans CERDIA Globale settings.saas_pricing.annual_amount_cad ───
+  const CERDIA_UUID = 'c0000000-0000-0000-0000-000000000001'
+  const [annualPrice, setAnnualPrice] = useState<number>(0)
+  const [editingPrice, setEditingPrice] = useState(false)
+  const [priceInput, setPriceInput] = useState('')
+  const [savingPrice, setSavingPrice] = useState(false)
+
+  const loadPrice = useCallback(async () => {
+    const { data } = await supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', CERDIA_UUID)
+      .maybeSingle()
+    const p = Number(data?.settings?.saas_pricing?.annual_amount_cad) || 0
+    setAnnualPrice(p)
+    setPriceInput(p > 0 ? String(p) : '')
+  }, [])
+
+  const savePrice = async () => {
+    const raw = priceInput.replace(',', '.')
+    const newPrice = parseFloat(raw)
+    if (isNaN(newPrice) || newPrice < 0) {
+      toast({ msg: 'Montant invalide.', type: 'error' })
+      return
+    }
+    setSavingPrice(true)
+    // Lit settings actuel pour merger (pas écraser)
+    const { data: current } = await supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', CERDIA_UUID)
+      .maybeSingle()
+    const merged = {
+      ...(current?.settings || {}),
+      saas_pricing: { annual_amount_cad: newPrice, currency: 'CAD' },
+    }
+    const { error } = await supabase
+      .from('organizations')
+      .update({ settings: merged })
+      .eq('id', CERDIA_UUID)
+    setSavingPrice(false)
+    if (error) {
+      toast({ msg: `Erreur: ${error.message}`, type: 'error' })
+      return
+    }
+    setAnnualPrice(newPrice)
+    setEditingPrice(false)
+    toast({ msg: 'Prix annuel mis à jour.', type: 'success' })
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,12 +114,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   }, [])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadPrice() }, [loadPrice])
 
   const resetForm = () => {
     setForm({
       name: '', slug: '', admin_email: '', admin_full_name: '',
-      plan: 'basic', logo_url: '', annual_amount_cad: '',
-      start_date: new Date().toISOString().split('T')[0],
+      logo_url: '', start_date: new Date().toISOString().split('T')[0],
     })
     setLastCreated(null)
   }
@@ -91,12 +139,11 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       const payload: any = {
         name: form.name.trim(),
         admin_email: form.admin_email.trim().toLowerCase(),
-        plan: form.plan,
+        annual_amount_cad: annualPrice,
       }
       if (form.slug.trim()) payload.slug = form.slug.trim()
       if (form.admin_full_name.trim()) payload.admin_full_name = form.admin_full_name.trim()
       if (form.logo_url.trim()) payload.logo_url = form.logo_url.trim()
-      if (form.annual_amount_cad) payload.annual_amount_cad = parseFloat(form.annual_amount_cad.replace(',', '.')) || 0
       if (form.start_date) payload.start_date = form.start_date
 
       const res = await fetch('/api/admin/organizations/create', {
@@ -157,26 +204,42 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       return
     }
     const confirmName = window.prompt(
-      `⚠️ SUPPRESSION DÉFINITIVE\n\nTape exactement le nom de l'organisation pour confirmer :\n"${org.name}"\n\n` +
-      `Note : la suppression peut échouer si l'organisation a des données liées (propriétés, transactions, etc.). Dans ce cas, utilise "Archiver" à la place.`
+      `⚠️ SUPPRESSION DÉFINITIVE (cascade)\n\nTape exactement le nom pour confirmer :\n"${org.name}"\n\n` +
+      `Le tenant + son user admin seront supprimés. Si l'organisation a des données (propriétés, transactions, etc.), la suppression sera refusée — utilise "Archiver" à la place.`
     )
     if (confirmName !== org.name) {
       if (confirmName !== null) toast({ msg: 'Nom incorrect, suppression annulée.', type: 'error' })
       return
     }
-    const { error } = await supabase.from('organizations').delete().eq('id', org.id)
-    if (error) {
-      const isFK = error.message?.includes('foreign key') || error.code === '23503'
-      toast({
-        msg: isFK
-          ? "Suppression impossible : l'organisation a des données liées. Archive-la plutôt."
-          : `Erreur: ${error.message}`,
-        type: 'error',
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        toast({ msg: 'Non authentifié.', type: 'error' })
+        return
+      }
+      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       })
-      return
+      const json = await res.json()
+      if (!res.ok) {
+        if (res.status === 409 && json.tables) {
+          toast({
+            msg: `Données liées trouvées : ${json.tables.join(', ')}. Archive plutôt que supprimer.`,
+            type: 'error',
+          })
+        } else {
+          toast({ msg: `Erreur: ${json.error || res.status}`, type: 'error' })
+        }
+        return
+      }
+      await load()
+      toast({ msg: `Organisation supprimée (${json.profiles_removed} user${json.profiles_removed !== 1 ? 's' : ''}).`, type: 'success' })
+    } catch (e: any) {
+      toast({ msg: e.message || 'Erreur réseau', type: 'error' })
     }
-    await load()
-    toast({ msg: 'Organisation supprimée définitivement.', type: 'success' })
   }
 
   if (!isSuperAdmin) {
@@ -213,10 +276,61 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           </button>
           <button
             onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
+            disabled={annualPrice <= 0}
+            title={annualPrice <= 0 ? 'Définis d\'abord le prix annuel ci-dessous' : ''}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={14} /> Nouvelle organisation
           </button>
+        </div>
+      </div>
+
+      {/* Prix annuel SaaS — éditable par super_admin (stocké dans CERDIA Globale settings) */}
+      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+              <Building2 size={18} className="text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-purple-900 dark:text-purple-200">Plateforme Multi-Tenant Organisation</p>
+              <p className="text-xs text-purple-700 dark:text-purple-300">
+                Prix annuel appliqué à chaque nouvelle organisation créée.
+              </p>
+            </div>
+          </div>
+          {editingPrice ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                className="w-32 px-3 py-2 rounded-xl border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-sm font-mono"
+                placeholder="0.00"
+                value={priceInput}
+                onChange={e => setPriceInput(e.target.value.replace(/[^\d.,]/g, ''))}
+                autoFocus
+              />
+              <span className="text-sm text-purple-700 dark:text-purple-300">CAD/an</span>
+              <button onClick={savePrice} disabled={savingPrice} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium disabled:opacity-50">
+                {savingPrice ? '...' : 'Enregistrer'}
+              </button>
+              <button onClick={() => { setEditingPrice(false); setPriceInput(annualPrice > 0 ? String(annualPrice) : '') }} className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold text-purple-900 dark:text-purple-200">
+                {annualPrice > 0 ? `${annualPrice.toFixed(2)} CAD/an` : <span className="text-amber-600 text-base font-medium">Non défini</span>}
+              </span>
+              <button
+                onClick={() => setEditingPrice(true)}
+                className="px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                {annualPrice > 0 ? 'Modifier' : 'Définir'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -400,13 +514,8 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="acme (auto si vide)" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
-                    <select className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}>
-                      <option value="basic">basic</option>
-                      <option value="pro">pro</option>
-                      <option value="enterprise">enterprise</option>
-                      <option value="demo">demo</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de début</label>
+                    <input type="date" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email admin *</label>
@@ -420,13 +529,11 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo URL (optionnel — fallback CERDIA si vide)</label>
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="https://..." value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Montant annuel CAD</label>
-                    <input type="text" inputMode="decimal" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="1200.00" value={form.annual_amount_cad} onChange={e => setForm(f => ({ ...f, annual_amount_cad: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de début</label>
-                    <input type="date" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+                  <div className="sm:col-span-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl">
+                    <p className="text-xs text-purple-900 dark:text-purple-200">
+                      <strong>Prix annuel appliqué :</strong> {annualPrice > 0 ? `${annualPrice.toFixed(2)} CAD/an` : 'NON DÉFINI'}
+                      {annualPrice <= 0 && <span className="text-amber-700 dark:text-amber-300"> ⚠️ Définis-le d'abord ci-dessus dans le header.</span>}
+                    </p>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">

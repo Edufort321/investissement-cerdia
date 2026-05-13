@@ -134,10 +134,28 @@ Page `/onboarding` accessible quand `profile.onboarding_completed === false`.
 
 ## Phase 5 — Tenant DEMO + commercialisation 📋 À FAIRE
 
+**Spec précisée par Eric le 2026-05-13** :
+
+### Tenant DEMO public
 - Création d'un tenant `slug='demo'` avec `is_demo=true`, `plan='demo'`
-- Eric crée manuellement des scénarios bidons dedans (propriétés fictives, investisseurs fictifs, transactions historiques) pour démontrer la plateforme
-- Mode visiteur : possibilité d'accéder en read-only avec un lien public (à designer)
-- Automatisation Resend/SendGrid pour l'envoi des magic links de bienvenue
+- **Accès direct sans mot de passe** depuis l'URL publique `cerdia.ai/demo`
+- **Édition réservée à Eric** (super_admin) : les visiteurs anonymes voient le contenu en read-only, seul Eric peut le modifier
+- Implémentation RLS : nouvelle policy `demo_public_read` qui permet `SELECT` aux users `anon` sur les tables tenant-scoped **uniquement** où `organization_id = (SELECT id FROM organizations WHERE is_demo=true LIMIT 1)`. Les `INSERT/UPDATE/DELETE` restent réservés au super_admin.
+- Eric peuple manuellement le tenant DEMO via le mode "View as..." du super_admin (scénarios bidons, propriétés fictives, investisseurs fictifs, transactions historiques, NAV exemple, etc.)
+
+### Onglet "Démo" dans la navbar publique
+- Ajouter un lien **"Démo"** dans `components/Navbar.tsx` entre "Commerce" et "Investisseur"
+- Pointe vers `/demo` → page qui charge le tenant `is_demo=true` en mode anonyme + render le dashboard standard
+- Pour les visiteurs qui arrivent direct sur `cerdia.ai` → ils voient cet onglet et peuvent explorer la démo sans s'inscrire
+
+### Page `/demo`
+- Route publique (pas de check d'auth dans le layout)
+- Force `organization_id` = demo tenant côté query
+- Layout simplifié, sans actions destructives, peut afficher un badge "MODE DÉMO" en haut
+- Boutons d'action désactivés / masqués pour les anonymes (UI read-only)
+
+### Autres
+- Automatisation Resend/SendGrid pour l'envoi des magic links de bienvenue aux nouveaux tenants
 - Stripe pour les paiements (optionnel — pour l'instant facturation manuelle)
 - Domain custom par tenant (premium, optionnel)
 
