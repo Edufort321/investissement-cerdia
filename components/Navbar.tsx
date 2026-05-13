@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { Menu, X, Sun, Moon } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme()
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Cache la navbar publique sur les pages tenant (onboarding wizard pleine page)
+  if (pathname?.startsWith('/onboarding')) return null
 
   useEffect(() => {
     const handleScroll = () => {

@@ -100,6 +100,17 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, router])
 
+  // Redirect vers /onboarding si le tenant n'a pas complete sa config initiale.
+  // Skip pour super_admin (Eric peut consulter le dashboard de n'importe quel tenant
+  // via "View as..." meme avant onboarding).
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (!organization) return
+    if (organization.onboarding_completed) return
+    if (isSuperAdmin) return
+    router.replace('/onboarding')
+  }, [isAuthenticated, organization, isSuperAdmin, router])
+
   const handleLogout = async () => {
     await logout()
     router.push('/')

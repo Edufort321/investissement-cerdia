@@ -34,6 +34,7 @@ export interface Organization {
   plan: 'basic' | 'pro' | 'enterprise' | 'demo' | 'internal'
   status: 'active' | 'suspended' | 'archived'
   is_demo: boolean
+  onboarding_completed: boolean
   created_at: string
 }
 
@@ -91,7 +92,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const fetchOrgById = useCallback(async (orgId: string): Promise<Organization | null> => {
     const { data, error } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, settings, features, plan, status, is_demo, created_at')
+      .select('id, name, slug, logo_url, settings, features, plan, status, is_demo, onboarding_completed, created_at')
       .eq('id', orgId)
       .maybeSingle()
     if (error) {
