@@ -402,10 +402,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         return
       }
 
-      if (!dataToSubmit.password) {
-        console.error('❌ [handleInvestorSubmit] Mot de passe manquant')
-        alert('❌ Le mot de passe est obligatoire pour créer un investisseur.\n\nUtilisez le bouton "Générer un mot de passe".')
-        return
+      // Auto-genere le password s'il est vide ou trop court (min 8 chars Supabase Auth)
+      if (!dataToSubmit.password || dataToSubmit.password.length < 8) {
+        if (!dataToSubmit.first_name || !dataToSubmit.last_name) {
+          alert('❌ Prénom et nom requis pour générer automatiquement le mot de passe.')
+          return
+        }
+        const autoPwd = generatePassword(dataToSubmit.first_name, dataToSubmit.last_name)
+        dataToSubmit.password = autoPwd
+        setInvestorFormData(prev => ({ ...prev, password: autoPwd }))
+        console.log('🔑 [handleInvestorSubmit] Mot de passe auto-genere')
       }
 
       const result = await addInvestor(dataToSubmit)

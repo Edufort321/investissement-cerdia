@@ -14,15 +14,18 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Sparkles, AlertCircle, LogIn, ArrowRight } from 'lucide-react'
+import { useOrganization } from '@/contexts/OrganizationContext'
+import { Sparkles, AlertCircle, LogIn, ArrowRight, Edit2 } from 'lucide-react'
 
 const DEMO_EMAIL    = 'demo@cerdia.ai'
 const DEMO_PASSWORD = 'Demo2026!CERDIA'
+const DEMO_ORG_ID   = 'd0000000-0000-0000-0000-000000000001'
 
 type Phase = 'checking' | 'auto_login' | 'ask_confirm' | 'logging_in' | 'error'
 
 export default function DemoPage() {
   const router = useRouter()
+  const { isSuperAdmin, switchOrg } = useOrganization()
   const [phase, setPhase] = useState<Phase>('checking')
   const [status, setStatus] = useState('Préparation de la démo…')
   const [err, setErr] = useState('')
@@ -92,10 +95,20 @@ export default function DemoPage() {
               <p className="font-semibold mb-1">⚠️ Tu es déjà connecté</p>
               <p className="text-xs">
                 Tu es actuellement connecté en tant que <strong>{existingEmail}</strong>.
-                Démarrer le mode démo va te déconnecter de ta session actuelle.
               </p>
             </div>
             <div className="flex flex-col gap-2">
+              {isSuperAdmin && (
+                <button
+                  onClick={async () => {
+                    await switchOrg(DEMO_ORG_ID)
+                    router.push('/dashboard')
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium"
+                >
+                  <Edit2 size={14} /> Éditer le démo en super_admin
+                </button>
+              )}
               <button
                 onClick={() => router.push('/dashboard')}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-xl text-sm font-medium"
@@ -106,7 +119,7 @@ export default function DemoPage() {
                 onClick={doDemoLogin}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium"
               >
-                <LogIn size={14} /> Lancer le mode démo (déconnexion)
+                <LogIn size={14} /> Voir comme visiteur (lecture seule, déconnexion)
               </button>
               <Link href="/" className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 text-sm">
                 ← Retour à l&apos;accueil
