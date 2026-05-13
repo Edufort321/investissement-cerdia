@@ -100,19 +100,9 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, router])
 
-  // Redirect vers /onboarding si le tenant n'a pas complete sa config initiale.
-  // Skip pour super_admin. Guard via ref pour empecher la boucle infinie
-  // si organization/router refs changent pendant la navigation.
-  const onboardingRedirectedRef = useRef(false)
-  useEffect(() => {
-    if (onboardingRedirectedRef.current) return
-    if (!isAuthenticated) return
-    if (!organization) return
-    if (organization.onboarding_completed) return
-    if (isSuperAdmin) return
-    onboardingRedirectedRef.current = true
-    router.replace('/onboarding')
-  }, [isAuthenticated, organization, isSuperAdmin, router])
+  // NOTE : le redirect vers /onboarding pour les tenants non-configures est
+  // gere depuis la page /connexion (apres login), pas ici. Faire le redirect
+  // dans le dashboard creait une boucle React #300 (Maximum update depth).
 
   const handleLogout = async () => {
     await logout()

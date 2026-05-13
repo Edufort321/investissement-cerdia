@@ -4,6 +4,7 @@ import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 
 function ConnexionForm() {
@@ -49,6 +50,36 @@ function ConnexionForm() {
       const expiresAt = Date.now() + sessionDuration
       localStorage.setItem('cerdia_session_expires', expiresAt.toString())
       localStorage.setItem('cerdia_remember_me', rememberMe.toString())
+
+      // Multi-tenant : check si le tenant a complete son onboarding.
+      // Si non ET user pas super_admin → redirect /onboarding au lieu de /dashboard.
+      // On fait ce check ici (avant la navigation) pour eviter les useEffect
+      // de redirect dans /dashboard qui creaient une boucle React #300.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('role, organization_id')
+            .eq('id', session.user.id)
+            .maybeSingle()
+
+          if (profileRow && profileRow.role !== 'super_admin') {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('onboarding_completed')
+              .eq('id', profileRow.organization_id)
+              .maybeSingle()
+
+            if (org && !org.onboarding_completed) {
+              router.push('/onboarding')
+              return
+            }
+          }
+        }
+      } catch {
+        // En cas d'erreur, on continue avec le redirect par defaut
+      }
 
       // Rediriger vers l'URL demandée ou le dashboard par défaut
       router.push(redirectUrl)
