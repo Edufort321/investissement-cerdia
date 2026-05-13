@@ -373,7 +373,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        📬 Factures Gmail
+                        Factures Courriel
                       </button>
                       <button
                         onClick={() => {
@@ -1068,7 +1068,7 @@ export default function DashboardPage() {
                 <div className="p-4 sm:p-6">
                   <GmailFacturesTab
                     filterCompanies={['CERDIA Globale', 'CERDIA S.E.C.']}
-                    title="Factures Gmail — Investissement"
+                    title="Factures Courriel — Investissement"
                   />
                 </div>
               )}

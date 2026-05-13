@@ -460,8 +460,8 @@ export default function CommerceAdminPage() {
               { key: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
               { key: 'rapports', label: 'Rapports', icon: BarChart2 },
               { key: 'factures', label: 'Factures', icon: FileText },
-              { key: 'factures_gmail', label: '📬 Gmail', icon: Mail },
-              ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: '🛠️ Organisations', icon: Building2 }] : []),
+              { key: 'factures_gmail', label: 'Courriel', icon: Mail },
+              ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -489,7 +489,7 @@ export default function CommerceAdminPage() {
         {tab === 'factures_gmail' && (
           <GmailFacturesTab
             filterCompanies={['Commerce CERDIA']}
-            title="Factures Gmail — Commerce CERDIA"
+            title="Factures Courriel — Commerce CERDIA"
           />
         )}
       </div>
