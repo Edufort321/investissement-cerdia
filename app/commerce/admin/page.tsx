@@ -928,6 +928,7 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_TX })
+  const [amountInput, setAmountInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [filterType, setFilterType] = useState('tous')
   const [filterAccount, setFilterAccount] = useState('tous')
@@ -952,11 +953,13 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const startNew = () => {
     setEditingId(null)
     setForm({ ...EMPTY_TX, date: new Date().toISOString().split('T')[0] })
+    setAmountInput('')
     setShowForm(true)
   }
 
   const startEdit = (tx: CommerceTx) => {
     setEditingId(tx.id)
+    setAmountInput(tx.amount ? String(tx.amount) : '')
     setForm({
       date: tx.date, description: tx.description, amount: tx.amount,
       type: tx.type, account: tx.account || 'compte_courant',
@@ -1393,7 +1396,19 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
             </div>
             <div>
               <label className="label">Montant (CAD)</label>
-              <input type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} />
+              <input
+                type="text"
+                inputMode="decimal"
+                className="input"
+                placeholder="0.00"
+                value={amountInput}
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^\d.,]/g, '')
+                  setAmountInput(raw)
+                  const parsed = parseFloat(raw.replace(',', '.'))
+                  setForm(f => ({ ...f, amount: isNaN(parsed) ? 0 : parsed }))
+                }}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="label">Type de transaction</label>
@@ -1490,10 +1505,19 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               </div>
             )}
             <div>
-              <label className="label">Plateforme</label>
-              <select className="input" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
-                {TX_PLATFORMS.map(p => <option key={p}>{p}</option>)}
-              </select>
+              <label className="label">Plateforme / Fournisseur</label>
+              <input
+                className="input"
+                list="tx-platforms-list"
+                placeholder="Amazon, Shopify, ou nouveau fournisseur…"
+                value={form.platform}
+                onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+              />
+              <datalist id="tx-platforms-list">
+                {Array.from(new Set([...TX_PLATFORMS, ...txs.map(t => t.platform).filter(Boolean)]))
+                  .sort()
+                  .map(p => <option key={p} value={p} />)}
+              </datalist>
             </div>
             <div>
               <label className="label">Référence produit</label>
