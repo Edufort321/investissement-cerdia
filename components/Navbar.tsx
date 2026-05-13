@@ -91,6 +91,11 @@ export default function Navbar() {
               Commerce
             </button>
           </Link>
+          <Link href="/demo">
+            <button className="bg-purple-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-purple-700 transition text-xs sm:text-sm">
+              ✨ Démo
+            </button>
+          </Link>
           <Link href="/connexion?redirect=/dashboard">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
               Investisseur
@@ -141,6 +146,11 @@ export default function Navbar() {
             <Link href="/commerce" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
                 Commerce
+              </button>
+            </Link>
+            <Link href="/demo" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 transition text-sm">
+                ✨ Démo
               </button>
             </Link>
             <Link href="/connexion?redirect=/dashboard" onClick={() => setMobileMenuOpen(false)}>
