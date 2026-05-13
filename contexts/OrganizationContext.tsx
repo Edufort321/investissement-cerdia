@@ -92,7 +92,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const fetchOrgById = useCallback(async (orgId: string): Promise<Organization | null> => {
     const { data, error } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, settings, features, plan, status, is_demo, onboarding_completed, created_at')
+      .select('*')
       .eq('id', orgId)
       .maybeSingle()
     if (error) {
@@ -107,7 +107,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     try {
       const { data: profileRow, error: profileErr } = await supabase
         .from('profiles')
-        .select('id, organization_id, role, full_name, onboarding_completed')
+        .select('*')
         .eq('id', userId)
         .maybeSingle()
 
