@@ -160,9 +160,14 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Generer un magic link a partager au client ────────
+  // redirectTo : apres validation du link, l'utilisateur atterrit sur /dashboard
+  const origin = new URL(request.url).origin
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: admin_email,
+    options: {
+      redirectTo: `${origin}/dashboard`,
+    },
   })
 
   if (linkErr) {

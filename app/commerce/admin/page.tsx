@@ -481,7 +481,7 @@ export default function CommerceAdminPage() {
 
       {/* Contenu des onglets */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pt-[7rem]">
-        {tab === 'produits' && <ProduitsTab toast={setToast} />}
+        {tab === 'produits' && <ProduitsTab toast={setToast} onNavigate={setTab} />}
         {tab === 'transactions' && <TransactionsTab toast={setToast} />}
         {tab === 'rapports' && <RapportsTab />}
         {tab === 'factures' && <FacturesTab />}
@@ -500,8 +500,23 @@ export default function CommerceAdminPage() {
 // ══════════════════════════════════════════════════════════════════════════════
 // ONGLET PRODUITS
 // ══════════════════════════════════════════════════════════════════════════════
-function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'error' }) => void }) {
+interface OrgRow {
+  id: string
+  name: string
+  status: string
+  plan: string
+  is_demo: boolean
+  settings: any
+  created_at: string
+}
+
+function ProduitsTab({ toast, onNavigate }: {
+  toast: (t: { msg: string; type: 'success' | 'error' }) => void
+  onNavigate?: (tab: Tab) => void
+}) {
+  const { isSuperAdmin } = useOrganization()
   const [products, setProducts] = useState<Product[]>([])
+  const [orgs, setOrgs] = useState<OrgRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -529,6 +544,40 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
   }
 
   useEffect(() => { load() }, [])
+
+  // Charge les organisations (super_admin seulement, pour le KPI banner et la ligne SaaS)
+  useEffect(() => {
+    if (!isSuperAdmin) return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('organizations')
+        .select('id, name, status, plan, is_demo, settings, created_at')
+        .order('created_at', { ascending: false })
+      if (!cancelled) setOrgs((data || []) as OrgRow[])
+    })()
+    return () => { cancelled = true }
+  }, [isSuperAdmin])
+
+  // Metriques globales pour le KPI banner
+  const metrics = (() => {
+    const totalProducts = products.length
+    const activeProducts = products.filter(p => p.active).length
+    // Exclure CERDIA Globale (plan=internal) du compte de clients SaaS
+    const externalOrgs = orgs.filter(o => o.plan !== 'internal' && !o.is_demo)
+    const activeOrgs = externalOrgs.filter(o => o.status === 'active')
+    const arr = externalOrgs.reduce((sum, o) => {
+      const amt = Number(o.settings?.billing?.annual_amount_cad) || 0
+      return sum + amt
+    }, 0)
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const newThisMonth = externalOrgs.filter(o => new Date(o.created_at) >= monthStart).length
+    return { totalProducts, activeProducts, activeOrgs: activeOrgs.length, arr, newThisMonth, totalClients: externalOrgs.length }
+  })()
+
+  const fmtCAD = (n: number) =>
+    new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(n)
 
   const startNew = () => {
     setEditingId(null)
@@ -663,11 +712,49 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
 
   return (
     <div>
+      {/* KPI Banner — vision globale (super_admin uniquement) */}
+      {isSuperAdmin && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Produits</p>
+              <Package size={14} className="text-gray-400" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.totalProducts}</p>
+            <p className="text-xs text-gray-500 mt-1">{metrics.activeProducts} actif{metrics.activeProducts !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Clients SaaS</p>
+              <Building2 size={14} className="text-purple-500" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.activeOrgs}</p>
+            <p className="text-xs text-gray-500 mt-1">{metrics.totalClients} total{metrics.newThisMonth > 0 ? ` · +${metrics.newThisMonth} ce mois` : ''}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">ARR SaaS</p>
+              <DollarSign size={14} className="text-emerald-500" />
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{fmtCAD(metrics.arr)}</p>
+            <p className="text-xs text-gray-500 mt-1">Revenu récurrent annuel</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">MRR estimé</p>
+              <TrendingUp size={14} className="text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{fmtCAD(metrics.arr / 12)}</p>
+            <p className="text-xs text-gray-500 mt-1">ARR / 12</p>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gestion des produits</h2>
-          <p className="text-sm text-gray-500">{products.length} produit{products.length !== 1 ? 's' : ''} au total</p>
+          <p className="text-sm text-gray-500">{products.length} produit{products.length !== 1 ? 's' : ''} physique{products.length !== 1 ? 's' : ''}{isSuperAdmin ? ' + 1 service SaaS' : ''}</p>
         </div>
         <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
           <Plus size={15} /> Nouveau produit
@@ -846,7 +933,7 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
       {/* Product table */}
       {loading ? (
         <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />)}</div>
-      ) : filtered.length === 0 ? (
+      ) : (filtered.length === 0 && !isSuperAdmin) ? (
         <div className="py-20 text-center text-gray-400">
           <Package size={40} className="mx-auto mb-3 opacity-40" />
           <p>Aucun produit{search ? ' pour cette recherche' : ' — cliquez sur « Nouveau produit »'}</p>
@@ -867,6 +954,51 @@ function ProduitsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'e
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {/* Ligne pinned : produit "Plateforme Multi-Tenant Organisation" (super_admin uniquement) */}
+                {isSuperAdmin && (
+                  <tr className="bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/20 dark:to-transparent hover:from-purple-100 dark:hover:from-purple-900/30 transition-colors border-l-4 border-purple-500">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+                          <Building2 size={18} className="text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white truncate max-w-[220px]">
+                            Plateforme Multi-Tenant — Organisation
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">SaaS</span>
+                            <span className="text-[10px] text-gray-500">{metrics.totalClients} client{metrics.totalClients !== 1 ? 's' : ''}{metrics.newThisMonth > 0 ? ` · +${metrics.newThisMonth} ce mois` : ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">Service / SaaS</td>
+                    <td className="px-4 py-3 font-semibold text-emerald-700 dark:text-emerald-400 hidden md:table-cell">
+                      {fmtCAD(metrics.arr)}<span className="text-xs text-gray-400 font-normal">/an</span>
+                    </td>
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      <span className="text-gray-400 text-xs">∞</span>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <span className="text-gray-400">—</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Actif</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => onNavigate?.('organisations')}
+                          className="flex items-center gap-1 px-3 py-1 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                          title="Voir les organisations"
+                        >
+                          Gérer →
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {filtered.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3">

@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import {
   Plus, Eye, Shield, Building2, Copy, Check, AlertCircle, X, RefreshCw, ExternalLink,
+  Pause, Play, Archive, Trash2, MoreVertical,
 } from 'lucide-react'
 
 interface Org {
@@ -129,6 +130,55 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     }
   }
 
+  const updateStatus = async (org: Org, newStatus: 'active' | 'suspended' | 'archived') => {
+    if (org.plan === 'internal') {
+      toast({ msg: 'Le tenant interne CERDIA ne peut pas changer de statut.', type: 'error' })
+      return
+    }
+    const labels: Record<string, string> = {
+      active: 'réactiver', suspended: 'suspendre', archived: 'archiver',
+    }
+    if (!confirm(`Voulez-vous ${labels[newStatus]} "${org.name}" ?`)) return
+    const { error } = await supabase
+      .from('organizations')
+      .update({ status: newStatus })
+      .eq('id', org.id)
+    if (error) {
+      toast({ msg: `Erreur: ${error.message}`, type: 'error' })
+      return
+    }
+    await load()
+    toast({ msg: `Organisation ${labels[newStatus]}e.`, type: 'success' })
+  }
+
+  const handleDelete = async (org: Org) => {
+    if (org.plan === 'internal') {
+      toast({ msg: 'Le tenant interne CERDIA ne peut pas être supprimé.', type: 'error' })
+      return
+    }
+    const confirmName = window.prompt(
+      `⚠️ SUPPRESSION DÉFINITIVE\n\nTape exactement le nom de l'organisation pour confirmer :\n"${org.name}"\n\n` +
+      `Note : la suppression peut échouer si l'organisation a des données liées (propriétés, transactions, etc.). Dans ce cas, utilise "Archiver" à la place.`
+    )
+    if (confirmName !== org.name) {
+      if (confirmName !== null) toast({ msg: 'Nom incorrect, suppression annulée.', type: 'error' })
+      return
+    }
+    const { error } = await supabase.from('organizations').delete().eq('id', org.id)
+    if (error) {
+      const isFK = error.message?.includes('foreign key') || error.code === '23503'
+      toast({
+        msg: isFK
+          ? "Suppression impossible : l'organisation a des données liées. Archive-la plutôt."
+          : `Erreur: ${error.message}`,
+        type: 'error',
+      })
+      return
+    }
+    await load()
+    toast({ msg: 'Organisation supprimée définitivement.', type: 'success' })
+  }
+
   if (!isSuperAdmin) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
@@ -228,16 +278,53 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                       {new Date(org.created_at).toLocaleDateString('fr-CA')}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {!isReal && (
-                        <button
-                          onClick={() => switchOrg(org.id)}
-                          disabled={isViewingAsOther && realOrganization?.id !== org.id ? false : false}
-                          className="inline-flex items-center gap-1 px-3 py-1 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
-                          title="Voir comme cette organisation (mode support)"
-                        >
-                          <Eye size={12} /> Voir comme
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {!isReal && (
+                          <button
+                            onClick={() => switchOrg(org.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                            title="Voir comme cette organisation (mode support)"
+                          >
+                            <Eye size={12} /> Voir
+                          </button>
+                        )}
+                        {org.plan !== 'internal' && org.status === 'active' && (
+                          <button
+                            onClick={() => updateStatus(org, 'suspended')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded-lg transition-colors"
+                            title="Suspendre l'accès"
+                          >
+                            <Pause size={12} /> Suspendre
+                          </button>
+                        )}
+                        {org.plan !== 'internal' && org.status === 'suspended' && (
+                          <button
+                            onClick={() => updateStatus(org, 'active')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 rounded-lg transition-colors"
+                            title="Réactiver"
+                          >
+                            <Play size={12} /> Réactiver
+                          </button>
+                        )}
+                        {org.plan !== 'internal' && org.status !== 'archived' && (
+                          <button
+                            onClick={() => updateStatus(org, 'archived')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                            title="Archiver"
+                          >
+                            <Archive size={12} /> Archiver
+                          </button>
+                        )}
+                        {org.plan !== 'internal' && (
+                          <button
+                            onClick={() => handleDelete(org)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-lg transition-colors"
+                            title="Supprimer définitivement"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
