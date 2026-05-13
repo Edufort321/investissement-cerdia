@@ -514,7 +514,8 @@ function ProduitsTab({ toast, onNavigate }: {
   toast: (t: { msg: string; type: 'success' | 'error' }) => void
   onNavigate?: (tab: Tab) => void
 }) {
-  const { isSuperAdmin } = useOrganization()
+  const { isSuperAdmin, organization } = useOrganization()
+  const overrideOrgId = organization?.id || null
   const [products, setProducts] = useState<Product[]>([])
   const [orgs, setOrgs] = useState<OrgRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -634,9 +635,10 @@ function ProduitsTab({ toast, onNavigate }: {
         product_attachments: form.product_attachments || [],
       }
 
+      const insertPayload = overrideOrgId ? { ...payload, organization_id: overrideOrgId } : payload
       const { error } = editingId
         ? await supabase.from('commerce_products').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
-        : await supabase.from('commerce_products').insert(payload)
+        : await supabase.from('commerce_products').insert(insertPayload)
 
       if (error) {
         setFormError(`Erreur Supabase : ${error.message}${error.code === '42P01' ? ' — La table n\'existe pas, exécutez la migration SQL 126.' : ''}${error.code === '42501' ? ' — Permission refusée. Vérifiez les politiques RLS dans Supabase.' : ''}`)
@@ -1073,6 +1075,8 @@ function ProduitsTab({ toast, onNavigate }: {
 // ONGLET TRANSACTIONS
 // ══════════════════════════════════════════════════════════════════════════════
 function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'error' }) => void }) {
+  const { organization: orgCtx } = useOrganization()
+  const txOverrideOrgId = orgCtx?.id || null
   const [txs, setTxs] = useState<CommerceTx[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -1233,10 +1237,11 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     }
     try {
       let txId = editingId
+      const insertPayload = txOverrideOrgId ? { ...payload, organization_id: txOverrideOrgId } : payload
       if (editingId) {
         await supabase.from('commerce_transactions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
       } else {
-        const { data: inserted } = await supabase.from('commerce_transactions').insert(payload).select('id').single()
+        const { data: inserted } = await supabase.from('commerce_transactions').insert(insertPayload).select('id').single()
         txId = inserted?.id ?? null
       }
       // Sync du lien Gmail (linked_transaction_id) si changement
@@ -1251,7 +1256,9 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       }
       const platformName = form.platform.trim()
       if (platformName && !platforms.some(p => p.toLowerCase() === platformName.toLowerCase())) {
-        await supabase.from('commerce_platforms').insert({ name: platformName })
+        const platformPayload: any = { name: platformName }
+        if (txOverrideOrgId) platformPayload.organization_id = txOverrideOrgId
+        await supabase.from('commerce_platforms').insert(platformPayload)
         await loadPlatforms()
       }
       await load()

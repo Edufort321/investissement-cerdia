@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
+import { useOrganization } from './OrganizationContext'
 import type { InvestorInvestment, ShareSettings, InvestorSummary } from '@/types/shares'
 
 // Types
@@ -216,6 +217,15 @@ export const useInvestment = () => {
 
 export function InvestmentProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
+  const { organization, isViewingAsOther } = useOrganization()
+
+  // org_id effectif pour les INSERTs : si super_admin en mode "View as...",
+  // les inserts vont dans le tenant override (ex: DEMO). Sinon, dans la vraie
+  // org du user (qui est aussi celui par défaut du DB).
+  const effectiveOrgId = organization?.id ?? null
+  // Ref pour acceder a la valeur courante depuis les useCallback memoizees
+  const effectiveOrgIdRef = useRef<string | null>(null)
+  useEffect(() => { effectiveOrgIdRef.current = effectiveOrgId }, [effectiveOrgId])
 
   const [investors, setInvestors] = useState<Investor[]>([])
   const [properties, setProperties] = useState<Property[]>([])
@@ -369,12 +379,16 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
       console.log('🔵 [addInvestor] Insertion dans la table investors avec user_id:', authUserId)
 
-      // Insérer dans la table investors avec le user_id du compte Auth
+      // Insérer dans la table investors avec le user_id du compte Auth.
+      // organization_id : prefere l'override "View as..." si actif (super_admin)
+      // sinon laisse le DEFAULT DB faire son travail (= auth_get_org_id() = real org)
+      const orgIdOverride = effectiveOrgIdRef.current
       const { error, data } = await supabase
         .from('investors')
         .insert([{
           ...investorData,
-          user_id: authUserId
+          user_id: authUserId,
+          ...(orgIdOverride ? { organization_id: orgIdOverride } : {}),
         }])
         .select()
 
@@ -515,9 +529,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Add Property
   const addProperty = useCallback(async (property: Partial<Property>) => {
     try {
+      const orgIdOverride = effectiveOrgIdRef.current
       const { error } = await supabase
         .from('properties')
-        .insert([property])
+        .insert([{ ...property, ...(orgIdOverride ? { organization_id: orgIdOverride } : {}) }])
 
       if (error) throw error
       await fetchProperties()
@@ -633,6 +648,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     if (!existing) {
       const sharePrice = shareSettings?.nominal_share_value || 1.0
       const numberOfShares = sharePrice > 0 ? Math.abs(amount) / sharePrice : Math.abs(amount)
+      const orgIdOverride = effectiveOrgIdRef.current
       await supabase.from('investor_investments').insert([{
         investor_id:             investorId,
         transaction_id:          txId,
@@ -642,6 +658,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         number_of_shares:        numberOfShares,
         currency:                currency || 'CAD',
         status:                  'active',
+        ...(orgIdOverride ? { organization_id: orgIdOverride } : {}),
       }])
     }
   }, [shareSettings])
@@ -654,9 +671,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Add Transaction
   const addTransaction = useCallback(async (transaction: Partial<Transaction>) => {
     try {
+      const orgIdOverride = effectiveOrgIdRef.current
       const { data: txData, error } = await supabase
         .from('transactions')
-        .insert([transaction])
+        .insert([{ ...transaction, ...(orgIdOverride ? { organization_id: orgIdOverride } : {}) }])
         .select()
         .single()
 
@@ -761,9 +779,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Add Payment Schedule
   const addPaymentSchedule = useCallback(async (schedule: Partial<PaymentSchedule>) => {
     try {
+      const orgIdOverride = effectiveOrgIdRef.current
       const { error } = await supabase
         .from('payment_schedules')
-        .insert([schedule])
+        .insert([{ ...schedule, ...(orgIdOverride ? { organization_id: orgIdOverride } : {}) }])
 
       if (error) throw error
       await fetchPaymentSchedules()
@@ -841,6 +860,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
         .maybeSingle()
 
       if (!existing) {
+        const orgIdOverride = effectiveOrgIdRef.current
         await supabase.from('transactions').insert([{
           date: paidDate,
           type: 'achat_propriete',
@@ -852,6 +872,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
           source_currency: schedule.currency || 'USD',
           exchange_rate: exchangeRate,
           affects_compte_courant: true,
+          ...(orgIdOverride ? { organization_id: orgIdOverride } : {}),
         }])
       }
 
@@ -947,11 +968,13 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       const sharePrice = shareSettings.nominal_share_value
       const numberOfShares = amount / sharePrice
 
+      const orgIdOverride = effectiveOrgIdRef.current
       const newInvestment = {
         ...investment,
         share_price_at_purchase: sharePrice,
         number_of_shares: numberOfShares,
         currency: investment.currency || 'CAD',
+        ...(orgIdOverride ? { organization_id: orgIdOverride } : {}),
       }
 
       const { error } = await supabase
