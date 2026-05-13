@@ -24,6 +24,9 @@ interface Org {
   plan: string
   status: string
   is_demo: boolean
+  next_renewal_date: string | null
+  last_reminder_sent_at: string | null
+  suspended_at: string | null
   created_at: string
 }
 
@@ -106,12 +109,49 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     setLoading(true)
     const { data, error } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, plan, status, is_demo, created_at')
+      .select('*')
       .order('created_at', { ascending: false })
     if (error) console.error('[OrganisationsTab] load failed:', error)
     setOrgs((data || []) as Org[])
     setLoading(false)
   }, [])
+
+  const handleRenew = async (org: Org) => {
+    if (org.plan === 'internal') {
+      toast({ msg: 'Tenant interne, pas de renouvellement.', type: 'error' })
+      return
+    }
+    if (!confirm(`Renouveler "${org.name}" pour 1 an ?\n\n(À faire après réception du paiement annuel.)`)) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) { toast({ msg: 'Non authentifié.', type: 'error' }); return }
+      const res = await fetch(`/api/admin/organizations/${org.id}/renew`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast({ msg: `Erreur: ${json.error}`, type: 'error' })
+        return
+      }
+      await load()
+      toast({
+        msg: `${org.name} renouvelé jusqu'au ${json.next_renewal}${json.reactivated ? ' (réactivé)' : ''}.`,
+        type: 'success',
+      })
+    } catch (e: any) {
+      toast({ msg: e.message || 'Erreur réseau', type: 'error' })
+    }
+  }
+
+  const daysUntilRenewal = (dateStr: string | null): number | null => {
+    if (!dateStr) return null
+    const target = new Date(dateStr)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return Math.floor((target.getTime() - today.getTime()) / 86400000)
+  }
 
   useEffect(() => { load() }, [load])
   useEffect(() => { loadPrice() }, [loadPrice])
@@ -347,6 +387,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                 <th className="text-left px-4 py-3 font-medium">Organisation</th>
                 <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Plan</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Status</th>
+                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Prochain renouvellement</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Créée le</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
@@ -388,11 +429,49 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                         {org.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-xs hidden lg:table-cell">
+                      {(() => {
+                        if (org.plan === 'internal') return <span className="text-gray-400">—</span>
+                        if (!org.next_renewal_date) return <span className="text-gray-400">Non défini</span>
+                        const days = daysUntilRenewal(org.next_renewal_date)
+                        let cls = 'text-gray-700 dark:text-gray-300'
+                        let label = ''
+                        if (days === null) {
+                          cls = 'text-gray-400'
+                        } else if (days < -30) {
+                          cls = 'text-red-700 font-semibold'
+                          label = ` (${Math.abs(days)}j retard — suspendu)`
+                        } else if (days < 0) {
+                          cls = 'text-red-600'
+                          label = ` (${Math.abs(days)}j retard)`
+                        } else if (days <= 60) {
+                          cls = 'text-amber-700 font-medium'
+                          label = ` (dans ${days}j)`
+                        } else {
+                          label = ` (dans ${days}j)`
+                        }
+                        return (
+                          <span className={cls}>
+                            {new Date(org.next_renewal_date).toLocaleDateString('fr-CA')}
+                            <span className="text-gray-500 font-normal">{label}</span>
+                          </span>
+                        )
+                      })()}
+                    </td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
                       {new Date(org.created_at).toLocaleDateString('fr-CA')}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {org.plan !== 'internal' && (
+                          <button
+                            onClick={() => handleRenew(org)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                            title="Renouveler pour 1 an (après paiement)"
+                          >
+                            🔄 Renouveler
+                          </button>
+                        )}
                         {!isReal && (
                           <button
                             onClick={() => switchOrg(org.id)}

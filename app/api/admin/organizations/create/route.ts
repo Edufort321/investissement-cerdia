@@ -94,6 +94,14 @@ export async function POST(request: NextRequest) {
     },
   }
 
+  // Calcul du next_renewal_date : start_date + 1 an (sauf pour les plans internes/demo)
+  let nextRenewal: string | null = null
+  if (plan !== 'internal' && plan !== 'demo') {
+    const base = start_date ? new Date(start_date) : new Date()
+    base.setFullYear(base.getFullYear() + 1)
+    nextRenewal = base.toISOString().split('T')[0]
+  }
+
   const { data: org, error: orgErr } = await admin
     .from('organizations')
     .insert({
@@ -103,8 +111,9 @@ export async function POST(request: NextRequest) {
       plan,
       status: 'active',
       settings: initialSettings,
+      next_renewal_date: nextRenewal,
     })
-    .select('id, name, slug, plan, status, logo_url, created_at')
+    .select('id, name, slug, plan, status, logo_url, next_renewal_date, created_at')
     .single()
 
   if (orgErr || !org) {
