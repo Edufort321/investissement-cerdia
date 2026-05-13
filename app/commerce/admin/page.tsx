@@ -930,6 +930,9 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [form, setForm] = useState({ ...EMPTY_TX })
   const [amountInput, setAmountInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [platforms, setPlatforms] = useState<string[]>([])
+  const [showPlatformList, setShowPlatformList] = useState(false)
+  const platformBoxRef = useRef<HTMLDivElement>(null)
   const [filterType, setFilterType] = useState('tous')
   const [filterAccount, setFilterAccount] = useState('tous')
   const [filterFiscalGroup, setFilterFiscalGroup] = useState('tous')
@@ -949,6 +952,22 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   }
 
   useEffect(() => { load() }, [])
+
+  const loadPlatforms = async () => {
+    const { data } = await supabase.from('commerce_platforms').select('name').order('name')
+    setPlatforms((data || []).map(p => p.name as string))
+  }
+  useEffect(() => { loadPlatforms() }, [])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (platformBoxRef.current && !platformBoxRef.current.contains(e.target as Node)) {
+        setShowPlatformList(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const startNew = () => {
     setEditingId(null)
@@ -995,6 +1014,11 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
         await supabase.from('commerce_transactions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
       } else {
         await supabase.from('commerce_transactions').insert(payload)
+      }
+      const platformName = form.platform.trim()
+      if (platformName && !platforms.some(p => p.toLowerCase() === platformName.toLowerCase())) {
+        await supabase.from('commerce_platforms').insert({ name: platformName })
+        await loadPlatforms()
       }
       await load()
       setShowForm(false)
@@ -1505,20 +1529,39 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                 </select>
               </div>
             )}
-            <div>
+            <div ref={platformBoxRef} className="relative">
               <label className="label">Plateforme / Fournisseur</label>
-              <input
-                className="input"
-                list="tx-platforms-list"
-                placeholder="Amazon, Shopify, ou nouveau fournisseur…"
-                value={form.platform}
-                onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
-              />
-              <datalist id="tx-platforms-list">
-                {Array.from(new Set([...TX_PLATFORMS, ...txs.map(t => t.platform).filter(Boolean)]))
-                  .sort()
-                  .map(p => <option key={p} value={p} />)}
-              </datalist>
+              <div className="relative">
+                <input
+                  className="input pr-9"
+                  placeholder="Amazon, Shopify, ou nouveau fournisseur…"
+                  value={form.platform}
+                  onChange={e => { setForm(f => ({ ...f, platform: e.target.value })); setShowPlatformList(true) }}
+                  onFocus={() => setShowPlatformList(true)}
+                />
+                <button type="button" onClick={() => setShowPlatformList(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Afficher la liste">
+                  <ChevronDown size={16} />
+                </button>
+              </div>
+              {showPlatformList && (() => {
+                const q = form.platform.trim().toLowerCase()
+                const filtered = q ? platforms.filter(p => p.toLowerCase().includes(q)) : platforms
+                if (filtered.length === 0) return null
+                return (
+                  <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg">
+                    {filtered.map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => { setForm(f => ({ ...f, platform: p })); setShowPlatformList(false) }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
             <div>
               <label className="label">Référence produit</label>
