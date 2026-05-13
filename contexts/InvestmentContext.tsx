@@ -245,10 +245,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Investors
   const fetchInvestors = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('investors')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let q: any = supabase.from('investors').select('*').order('created_at', { ascending: false })
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) q = q.eq('organization_id', orgId)
+      const { data, error } = await q
 
       if (error) throw error
       setInvestors(data || [])
@@ -260,10 +260,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Properties
   const fetchProperties = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let q: any = supabase.from('properties').select('*').order('created_at', { ascending: false })
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) q = q.eq('organization_id', orgId)
+      const { data, error } = await q
 
       if (error) throw error
       setProperties(data || [])
@@ -275,10 +275,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Transactions
   const fetchTransactions = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false })
+      let q: any = supabase.from('transactions').select('*').order('date', { ascending: false })
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) q = q.eq('organization_id', orgId)
+      const { data, error } = await q
 
       if (error) throw error
       setTransactions(data || [])
@@ -290,10 +290,12 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Accounts
   const fetchAccounts = useCallback(async () => {
     try {
+      const orgId = effectiveOrgIdRef.current
+      const filter = (q: any) => orgId ? q.eq('organization_id', orgId) : q
       const [capexResult, currentResult, rndResult] = await Promise.all([
-        supabase.from('capex_accounts').select('*').order('year', { ascending: false }),
-        supabase.from('current_accounts').select('*').order('year', { ascending: false }),
-        supabase.from('rnd_accounts').select('*').order('year', { ascending: false }),
+        filter(supabase.from('capex_accounts').select('*')).order('year', { ascending: false }),
+        filter(supabase.from('current_accounts').select('*')).order('year', { ascending: false }),
+        filter(supabase.from('rnd_accounts').select('*')).order('year', { ascending: false }),
       ])
 
       if (capexResult.data) setCapexAccounts(capexResult.data)
@@ -577,14 +579,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Investor Investments
   const fetchInvestorInvestments = useCallback(async (investorId?: string) => {
     try {
-      let query = supabase
+      let query: any = supabase
         .from('investor_investments')
         .select('*')
         .order('investment_date', { ascending: false })
 
-      if (investorId) {
-        query = query.eq('investor_id', investorId)
-      }
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) query = query.eq('organization_id', orgId)
+      if (investorId) query = query.eq('investor_id', investorId)
 
       const { data, error } = await query
 
@@ -599,9 +601,24 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Investor Summaries (résumés avec calculs)
   const fetchInvestorSummaries = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('investor_summary')
-        .select('*')
+      // investor_summary est une view qui n'a pas organization_id directement.
+      // Pour super_admin en View as : on resout d'abord les investor_ids de l'org
+      // courante, puis on filtre la view par .in('investor_id', ids).
+      let query: any = supabase.from('investor_summary').select('*')
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) {
+        const { data: invs } = await supabase
+          .from('investors')
+          .select('id')
+          .eq('organization_id', orgId)
+        const investorIds = (invs || []).map((i: any) => i.id)
+        if (investorIds.length === 0) {
+          setInvestorSummaries([])
+          return
+        }
+        query = query.in('investor_id', investorIds)
+      }
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -758,14 +775,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Payment Schedules
   const fetchPaymentSchedules = useCallback(async (propertyId?: string) => {
     try {
-      let query = supabase
+      let query: any = supabase
         .from('payment_schedules')
         .select('*')
         .order('due_date', { ascending: true })
 
-      if (propertyId) {
-        query = query.eq('property_id', propertyId)
-      }
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) query = query.eq('organization_id', orgId)
+      if (propertyId) query = query.eq('property_id', propertyId)
 
       const { data, error } = await query
 
@@ -889,34 +906,55 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // ==========================================
 
   // Fetch Share Settings (valeurs nominale et estimée des parts)
+  // En View as : on bypass la view share_settings (qui utilise get_setting
+  // base sur auth_get_org_id, non override-aware) et on lit directement
+  // company_settings filtre par effectiveOrgId.
   const fetchShareSettings = useCallback(async () => {
+    const fallback = {
+      nominal_share_value: 1.00,
+      estimated_share_value: 1.00,
+      company_name: 'CERDIA Investment Platform',
+      calculation_method: 'weighted_roi',
+    }
     try {
+      const orgId = effectiveOrgIdRef.current
+      if (orgId) {
+        const { data } = await supabase
+          .from('company_settings')
+          .select('setting_key, setting_value')
+          .eq('organization_id', orgId)
+          .in('setting_key', ['nominal_share_value', 'estimated_share_value', 'company_name', 'share_calculation_method'])
+        const map: Record<string, string> = {}
+        for (const r of data || []) map[r.setting_key as string] = r.setting_value as string
+        const method = (['weighted_roi', 'simple_average', 'property_value'] as const)
+          .includes(map.share_calculation_method as any)
+          ? (map.share_calculation_method as 'weighted_roi' | 'simple_average' | 'property_value')
+          : 'weighted_roi'
+        setShareSettings({
+          nominal_share_value:   Number(map.nominal_share_value)   || 1.00,
+          estimated_share_value: Number(map.estimated_share_value) || 1.00,
+          company_name:          map.company_name || fallback.company_name,
+          calculation_method:    method,
+        })
+        return
+      }
+
+      // Fallback : pas d'org_id determine, utilise la view (auth_get_org_id default)
       const { data, error } = await supabase
         .from('share_settings')
         .select('*')
         .single()
 
       if (error) {
-        // Si la vue n'existe pas encore, retourner des valeurs par défaut
         console.warn('Share settings not found, using defaults:', error)
-        setShareSettings({
-          nominal_share_value: 1.00,
-          estimated_share_value: 1.00,
-          company_name: 'CERDIA Investment Platform',
-          calculation_method: 'weighted_roi',
-        })
+        setShareSettings(fallback as any)
         return
       }
 
       setShareSettings(data)
     } catch (error) {
       console.error('Error fetching share settings:', error)
-      setShareSettings({
-        nominal_share_value: 1.00,
-        estimated_share_value: 1.00,
-        company_name: 'CERDIA Investment Platform',
-        calculation_method: 'weighted_roi',
-      })
+      setShareSettings(fallback as any)
     }
   }, [])
 
@@ -1060,6 +1098,28 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       fetchInvestorSummaries()
     }
   }, [shareSettings, fetchInvestorSummaries])
+
+  // Quand l'org effective change (super_admin clique "Voir comme" ou "Quitter"),
+  // re-charge toutes les donnees pour refleter le tenant cible.
+  // Le ref hasLoadedRef est reset puis l'effect principal du useEffect ci-dessus
+  // ne s'execute pas (deps non changees), donc on declenche manuellement.
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (!hasLoadedRef.current) return
+    // Re-fetch all data for the new tenant
+    setLoading(true)
+    Promise.all([
+      fetchInvestors(),
+      fetchProperties(),
+      fetchTransactions(),
+      fetchAccounts(),
+      fetchPaymentSchedules(),
+      fetchShareSettings(),
+      fetchInvestorInvestments(),
+      fetchInvestorSummaries(),
+    ]).finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveOrgId])
 
   const value: InvestmentContextType = {
     investors,
