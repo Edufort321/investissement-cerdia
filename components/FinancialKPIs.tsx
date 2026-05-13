@@ -102,7 +102,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       color: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
       borderColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
       iconColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
-      subtitle: navCurrent ? `${navPct >= 0 ? '+' : ''}${navPct.toFixed(2)}% depuis lancement` : null,
+      subtitle: navCurrent ? `${(navPct ?? 0) >= 0 ? '+' : ''}${(navPct ?? 0).toFixed(2)}% depuis lancement` : null,
     },
     {
       title: 'Valeur Totale',
@@ -112,7 +112,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       color: 'from-indigo-50 to-indigo-100',
       borderColor: 'border-indigo-200',
       iconColor: 'text-indigo-600',
-      subtitle: navCurrent ? `${navCurrent.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
+      subtitle: navCurrent ? `${(navCurrent.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
     },
   ]
 

@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('investors')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
       const result = await Promise.race([dataPromise, timeoutPromise])
 
