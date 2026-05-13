@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, shareSettings, investorSummaries, loading } = useInvestment()
   const { t, language } = useLanguage()
   const { rate: exchangeRate } = useExchangeRate()
+  const { organization } = useOrganization()
   const { entitledDays: ownerEntitled, remainingDays: ownerRemaining, totalProjectDays } = useOwnerDays()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
@@ -250,6 +252,33 @@ export default function DashboardPage() {
         } overflow-hidden overflow-y-auto`}
       >
         <div className="p-6 pb-6 min-h-full flex flex-col">
+          {/* Tenant branding (logo + nom organisation, fallback CERDIA) */}
+          <div className="mb-6 pb-4 border-b border-gray-500 dark:border-gray-600">
+            <div className="flex items-center gap-3">
+              {organization?.logo_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={organization.logo_url}
+                  alt={organization.name}
+                  className="h-10 w-10 rounded-lg object-cover flex-shrink-0 bg-white"
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src="/logo-cerdia3.png"
+                  alt="CERDIA"
+                  className="h-10 w-auto flex-shrink-0"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="font-semibold text-sm truncate">{organization?.name || 'CERDIA'}</p>
+                {organization?.plan && organization.plan !== 'internal' && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{organization.plan}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Header Sidebar */}
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-bold">{t('nav.dashboard')}</h2>
