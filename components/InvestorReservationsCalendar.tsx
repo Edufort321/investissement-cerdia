@@ -130,14 +130,21 @@ export default function InvestorReservationsCalendar() {
       if (scenariosError) throw scenariosError
       setScenarios(scenariosData || [])
 
-      // Charger les investisseurs
+      // Charger les investisseurs (la table investors a first_name/last_name, pas name)
       const { data: investorsData, error: investorsError } = await supabase
         .from('investors')
-        .select('id, name, email')
-        .order('name', { ascending: true })
+        .select('id, first_name, last_name, email')
+        .order('last_name', { ascending: true })
 
       if (investorsError) throw investorsError
-      setInvestors(investorsData || [])
+      // Mappe vers { id, name, email } pour le reste du composant
+      setInvestors(
+        (investorsData || []).map((i: any) => ({
+          id: i.id,
+          name: `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email,
+          email: i.email,
+        }))
+      )
 
       // Charger les réservations investisseurs
       await loadReservations()
