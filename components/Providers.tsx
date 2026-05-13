@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import { InvestmentProvider } from '@/contexts/InvestmentContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -12,7 +13,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <LanguageProvider>
         <ExchangeRateProvider>
           <AuthProvider>
-            <InvestmentProvider>{children}</InvestmentProvider>
+            <OrganizationProvider>
+              <InvestmentProvider>{children}</InvestmentProvider>
+            </OrganizationProvider>
           </AuthProvider>
         </ExchangeRateProvider>
       </LanguageProvider>
