@@ -1,8 +1,9 @@
 /**
  * Helper d'auth admin pour Server Components et API routes.
- * Verifie que l'utilisateur est connecte ET a un role 'owner' ou 'admin'.
+ * Verifie que l'utilisateur est connecte ET a un role admin multi-tenant
+ * (super_admin pour CERDIA staff, org_admin pour le boss d'un tenant).
  *
- * Pre-requis : migration 139 (table profiles + roles) executee.
+ * Pre-requis : migrations 139 (table profiles) + 145 (multi-tenant rename) executees.
  *
  * Usage Server Component :
  *   const { user, supabase } = await requireAdmin()
@@ -16,10 +17,14 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
+export type AdminRole = 'super_admin' | 'org_admin' | 'owner' | 'admin'
+
 export type AdminContext = {
-  user:     { id: string; email?: string }
-  role:     'owner' | 'admin'
-  supabase: SupabaseClient
+  user:            { id: string; email?: string }
+  role:            AdminRole
+  organizationId:  string | null
+  isSuperAdmin:    boolean
+  supabase:        SupabaseClient
 }
 
 export class UnauthorizedError extends Error {
@@ -37,16 +42,20 @@ export async function requireAdmin(): Promise<AdminContext> {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, organization_id')
     .eq('id', user.id)
     .single()
 
   if (error || !profile) throw new UnauthorizedError('no_profile')
-  if (!['owner', 'admin'].includes(profile.role)) throw new UnauthorizedError('insufficient_role')
+  // Accepte les nouveaux noms (post-mig 145) + les anciens (compat transition)
+  const allowed: AdminRole[] = ['super_admin', 'org_admin', 'owner', 'admin']
+  if (!allowed.includes(profile.role as AdminRole)) throw new UnauthorizedError('insufficient_role')
 
   return {
-    user:     { id: user.id, email: user.email ?? undefined },
-    role:     profile.role as 'owner' | 'admin',
+    user:           { id: user.id, email: user.email ?? undefined },
+    role:           profile.role as AdminRole,
+    organizationId: (profile as any).organization_id ?? null,
+    isSuperAdmin:   profile.role === 'super_admin' || profile.role === 'owner',
     supabase,
   }
 }

@@ -10,11 +10,11 @@
  *   1. AuthContext encore loading → loader "Vérification..."
  *   2. Pas de supabaseUser (non connecte) → redirect /connexion?redirect=...
  *   3. Connecte mais role insuffisant dans profiles → ecran "Acces refuse"
- *   4. Connecte + role IN (owner, admin) → render children
+ *   4. Connecte + role IN (super_admin, org_admin) → render children
  *
  * Securite : le check cote client est cosmetique. La vraie protection
- * vient des RLS Supabase sur les tables sensibles (amazon_*) qui exigent
- * profiles.role IN ('owner','admin') pour SELECT/INSERT/UPDATE.
+ * vient des RLS Supabase sur les tables sensibles (amazon_*, tenant_isolation)
+ * qui exigent profiles.role approprie pour SELECT/INSERT/UPDATE.
  */
 
 import { useEffect, useState } from 'react'
@@ -62,7 +62,10 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
         return
       }
 
-      if (profile && ['owner', 'admin'].includes(profile.role)) {
+      // Multi-tenant : super_admin (Eric, cross-org) ou org_admin (boss du tenant)
+      // Compat : on accepte aussi les anciens noms 'owner'/'admin' au cas où
+      // un user n'aurait pas encore été migré (ne devrait pas arriver post-mig 145).
+      if (profile && ['super_admin', 'org_admin', 'owner', 'admin'].includes(profile.role)) {
         setState('allowed')
       } else {
         setState('denied')
