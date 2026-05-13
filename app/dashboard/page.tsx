@@ -43,7 +43,10 @@ export default function DashboardPage() {
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, shareSettings, investorSummaries, loading } = useInvestment()
   const { t, language } = useLanguage()
   const { rate: exchangeRate } = useExchangeRate()
-  const { organization } = useOrganization()
+  const { organization, profile, isSuperAdmin } = useOrganization()
+  // Combined admin check : super_admin / org_admin (post mig 145) OU legacy access_level === 'admin'
+  const isOrgAdmin = profile?.role === 'org_admin' || profile?.role === 'super_admin'
+  const hasAdminAccess = isSuperAdmin || isOrgAdmin || currentUser?.investorData?.access_level === 'admin'
   const { entitledDays: ownerEntitled, remainingDays: ownerRemaining, totalProjectDays } = useOwnerDays()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
@@ -235,8 +238,8 @@ export default function DashboardPage() {
     // Si pas de permission requise, toujours visible
     if (!tab.permission) return true
 
-    // Si admin, accès à tout
-    if (currentUser?.investorData?.access_level === 'admin') return true
+    // Si admin (super_admin, org_admin, ou legacy access_level='admin'), accès à tout
+    if (hasAdminAccess) return true
 
     // Sinon vérifier la permission spécifique
     const permissions = currentUser?.investorData?.permissions as any
@@ -300,7 +303,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{currentUser.role === 'admin' ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{hasAdminAccess ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
               </div>
             </div>
           </div>
@@ -1019,7 +1022,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'administration' && (currentUser?.investorData?.access_level === 'admin' || currentUser?.investorData?.permissions?.administration === true) && (
+          {activeTab === 'administration' && (hasAdminAccess || currentUser?.investorData?.permissions?.administration === true) && (
             <>
               {adminSubTab === 'capex' && (
                 <div className="p-6">
