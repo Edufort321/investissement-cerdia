@@ -490,7 +490,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   const handleStartEditNominalValue = () => {
-    setNominalValueInput(shareSettings?.nominal_share_value.toFixed(2) || '1.00')
+    setNominalValueInput((shareSettings?.nominal_share_value ?? 1).toFixed(2))
     setEditingNominalValue(true)
   }
 
@@ -1192,7 +1192,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
             ) : (
               <p className="text-2xl sm:text-3xl font-bold text-white">
-                {shareSettings?.nominal_share_value.toFixed(2) || '1.00'} CAD
+                {(shareSettings?.nominal_share_value ?? 1).toFixed(2)} CAD
               </p>
             )}
             <p className="text-xs text-white/70 mt-1">Par part</p>
@@ -1205,7 +1205,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <h3 className="text-sm font-medium text-white/90">NAV / Part (Valeur actuelle)</h3>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-white">
-              {navCurrent ? navCurrent.nav_per_share.toFixed(4) : '1.0000'} CAD
+              {navCurrent ? (navCurrent.nav_per_share ?? 1).toFixed(4) : '1.0000'} CAD
             </p>
             <p className="text-xs text-white/70 mt-1">Source: get_nav_timeline()</p>
           </div>
@@ -1621,8 +1621,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </div>
                   <div className="min-w-0">
                     <div className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 truncate">ROI</div>
-                    <div className={`font-bold text-xs sm:text-sm md:text-base truncate ${roiPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(2)}%
+                    <div className={`font-bold text-xs sm:text-sm md:text-base truncate ${(roiPercentage ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(roiPercentage ?? 0) >= 0 ? '+' : ''}{(roiPercentage ?? 0).toFixed(2)}%
                     </div>
                   </div>
 
@@ -1697,11 +1697,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                             <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-600">
                               <div>
                                 <span className="font-medium">Prix/part:</span>{' '}
-                                {investment.share_price_at_purchase.toFixed(4)} CAD
+                                {(investment.share_price_at_purchase ?? 0).toFixed(4)} CAD
                               </div>
                               <div>
                                 <span className="font-medium">Parts:</span>{' '}
-                                {investment.number_of_shares.toFixed(4)}
+                                {(investment.number_of_shares ?? 0).toFixed(4)}
                               </div>
                               {investment.payment_method && (
                                 <div className="col-span-2">
