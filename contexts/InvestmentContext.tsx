@@ -332,7 +332,15 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
         if (!response.ok) {
           console.error('❌ [addInvestor] Erreur HTTP de l\'API:', response.status, result)
-          throw new Error(result.error || `Erreur HTTP ${response.status}: ${response.statusText}`)
+          // Surface les details Zod pour identifier le champ qui pose probleme
+          let msg = result.error || `Erreur HTTP ${response.status}: ${response.statusText}`
+          if (result.details) {
+            const detailsStr = typeof result.details === 'string'
+              ? result.details
+              : JSON.stringify(result.details, null, 2)
+            msg += `\n\nDétails: ${detailsStr}`
+          }
+          throw new Error(msg)
         }
 
         if (!result.success) {
