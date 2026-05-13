@@ -63,6 +63,18 @@ interface CommerceTx {
   created_at: string
 }
 
+interface GmailMatch {
+  id: string
+  vendor_name: string | null
+  document_date: string | null
+  amount: number | null
+  currency: string | null
+  category: string
+  gmail_link: string | null
+  file_path: string | null
+  cerdia_company: string | null
+}
+
 // ─── Groupes fiscaux eCommerce ─────────────────────────────────────────────────
 const FISCAL_GROUPS = {
   REVENUS: {
@@ -933,6 +945,10 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   const [platforms, setPlatforms] = useState<string[]>([])
   const [showPlatformList, setShowPlatformList] = useState(false)
   const platformBoxRef = useRef<HTMLDivElement>(null)
+  const [gmailMatches, setGmailMatches] = useState<GmailMatch[]>([])
+  const [linkedGmail, setLinkedGmail] = useState<GmailMatch | null>(null)
+  const [originalGmailId, setOriginalGmailId] = useState<string | null>(null)
+  const [showGmailMatches, setShowGmailMatches] = useState(false)
   const [filterType, setFilterType] = useState('tous')
   const [filterAccount, setFilterAccount] = useState('tous')
   const [filterFiscalGroup, setFilterFiscalGroup] = useState('tous')
@@ -954,7 +970,12 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
   useEffect(() => { load() }, [])
 
   const loadPlatforms = async () => {
-    const { data } = await supabase.from('commerce_platforms').select('name').order('name')
+    const { data, error } = await supabase.from('commerce_platforms').select('name').order('name')
+    if (error) {
+      console.error('[commerce_platforms] load failed:', error)
+      setPlatforms([])
+      return
+    }
     setPlatforms((data || []).map(p => p.name as string))
   }
   useEffect(() => { loadPlatforms() }, [])
@@ -973,10 +994,14 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
     setEditingId(null)
     setForm({ ...EMPTY_TX, date: new Date().toISOString().split('T')[0] })
     setAmountInput('')
+    setLinkedGmail(null)
+    setOriginalGmailId(null)
+    setGmailMatches([])
+    setShowGmailMatches(false)
     setShowForm(true)
   }
 
-  const startEdit = (tx: CommerceTx) => {
+  const startEdit = async (tx: CommerceTx) => {
     setEditingId(tx.id)
     setAmountInput(tx.amount ? String(tx.amount) : '')
     setForm({
@@ -991,6 +1016,65 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       transfer_to_account: tx.transfer_to_account || '',
     })
     setShowForm(true)
+    setShowGmailMatches(false)
+    // Charge la facture Gmail déjà liée (s'il y en a une)
+    const { data } = await supabase
+      .from('gmail_invoices')
+      .select('id, vendor_name, document_date, amount, currency, category, gmail_link, file_path, cerdia_company')
+      .eq('linked_transaction_id', tx.id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (data) {
+      setLinkedGmail(data as GmailMatch)
+      setOriginalGmailId(data.id)
+    } else {
+      setLinkedGmail(null)
+      setOriginalGmailId(null)
+    }
+  }
+
+  // ─── Recherche de factures Gmail correspondantes ─────────────────────────
+  useEffect(() => {
+    if (!showForm) return
+    const amt = Number(form.amount)
+    if (!form.date || isNaN(amt) || amt <= 0) { setGmailMatches([]); return }
+    const tol = Math.max(amt * 0.02, 0.50) // ±2% min 0.50$
+    const dateFrom = new Date(form.date); dateFrom.setDate(dateFrom.getDate() - 7)
+    const dateTo = new Date(form.date); dateTo.setDate(dateTo.getDate() + 7)
+    const iso = (d: Date) => d.toISOString().split('T')[0]
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('gmail_invoices')
+        .select('id, vendor_name, document_date, amount, currency, category, gmail_link, file_path, cerdia_company')
+        .is('deleted_at', null)
+        .is('linked_transaction_id', null)
+        .in('category', ['FACTURE', 'RECU_PAIEMENT', 'A_REVISER'])
+        .gte('amount', amt - tol)
+        .lte('amount', amt + tol)
+        .gte('document_date', iso(dateFrom))
+        .lte('document_date', iso(dateTo))
+        .order('document_date', { ascending: false })
+        .limit(20)
+      if (!cancelled) setGmailMatches((data || []) as GmailMatch[])
+    })()
+    return () => { cancelled = true }
+  }, [showForm, form.date, form.amount])
+
+  const selectGmailMatch = (m: GmailMatch) => {
+    setLinkedGmail(m)
+    const fileName = m.file_path ? m.file_path.split(/[\\/;]/).filter(Boolean).pop() || m.file_path : (m.vendor_name || 'Pièce jointe Gmail')
+    setForm(f => ({
+      ...f,
+      attachment_name: fileName,
+      attachment_url: m.gmail_link || f.attachment_url || '',
+    }))
+    setShowGmailMatches(false)
+  }
+
+  const unlinkGmail = () => {
+    setLinkedGmail(null)
+    setForm(f => ({ ...f, attachment_name: '', attachment_url: '' }))
   }
 
   const save = async () => {
@@ -1010,10 +1094,22 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       transfer_to_account: form.type === 'transfert' ? (form.transfer_to_account || null) : null,
     }
     try {
+      let txId = editingId
       if (editingId) {
         await supabase.from('commerce_transactions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId)
       } else {
-        await supabase.from('commerce_transactions').insert(payload)
+        const { data: inserted } = await supabase.from('commerce_transactions').insert(payload).select('id').single()
+        txId = inserted?.id ?? null
+      }
+      // Sync du lien Gmail (linked_transaction_id) si changement
+      const newGmailId = linkedGmail?.id ?? null
+      if (originalGmailId !== newGmailId) {
+        if (originalGmailId) {
+          await supabase.from('gmail_invoices').update({ linked_transaction_id: null }).eq('id', originalGmailId)
+        }
+        if (newGmailId && txId) {
+          await supabase.from('gmail_invoices').update({ linked_transaction_id: txId }).eq('id', newGmailId)
+        }
       }
       const platformName = form.platform.trim()
       if (platformName && !platforms.some(p => p.toLowerCase() === platformName.toLowerCase())) {
@@ -1023,6 +1119,8 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
       await load()
       setShowForm(false)
       setEditingId(null)
+      setLinkedGmail(null)
+      setOriginalGmailId(null)
       toast({ msg: editingId ? 'Transaction mise à jour !' : 'Transaction ajoutée !', type: 'success' })
     } catch {
       toast({ msg: 'Erreur de sauvegarde.', type: 'error' })
@@ -1544,21 +1642,31 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
                 </button>
               </div>
               {showPlatformList && (() => {
+                // Fallback : si la DB renvoie vide (RLS, migration non appliquée…),
+                // on fusionne avec TX_PLATFORMS + les plateformes déjà utilisées dans les transactions chargées.
+                const merged = Array.from(new Set([
+                  ...platforms,
+                  ...TX_PLATFORMS,
+                  ...txs.map(t => t.platform).filter(Boolean),
+                ])).sort()
                 const q = form.platform.trim().toLowerCase()
-                const filtered = q ? platforms.filter(p => p.toLowerCase().includes(q)) : platforms
-                if (filtered.length === 0) return null
+                const filtered = q ? merged.filter(p => p.toLowerCase().includes(q)) : merged
                 return (
                   <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg">
-                    {filtered.map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => { setForm(f => ({ ...f, platform: p })); setShowPlatformList(false) }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      >
-                        {p}
-                      </button>
-                    ))}
+                    {filtered.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 italic">Aucun fournisseur enregistré — tape pour en créer un.</div>
+                    ) : (
+                      filtered.map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => { setForm(f => ({ ...f, platform: p })); setShowPlatformList(false) }}
+                          className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        >
+                          {p}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )
               })()}
@@ -1572,6 +1680,68 @@ function TransactionsTab({ toast }: { toast: (t: { msg: string; type: 'success' 
               <select className="input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 {TX_STATUSES.map(s => <option key={s}>{s}</option>)}
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label flex items-center gap-2">
+                <Mail size={13} className="text-purple-600" />
+                Pièces jointes Gmail (factures non liées · date ±7j · montant ±2%)
+              </label>
+              {linkedGmail ? (
+                <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
+                  <Mail size={15} className="text-purple-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-purple-900 dark:text-purple-200 truncate">
+                      {linkedGmail.vendor_name || '—'} · {linkedGmail.document_date || '—'} · {linkedGmail.amount?.toFixed(2)} {linkedGmail.currency}
+                    </p>
+                    {linkedGmail.gmail_link && (
+                      <a href={linkedGmail.gmail_link} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-700 dark:text-purple-300 hover:underline">
+                        Ouvrir dans Gmail ↗
+                      </a>
+                    )}
+                  </div>
+                  <button type="button" onClick={unlinkGmail} className="text-xs px-2 py-1 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-lg">Détacher</button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowGmailMatches(v => !v)}
+                    disabled={gmailMatches.length === 0}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                      <Search size={14} />
+                      {gmailMatches.length === 0
+                        ? 'Aucune facture Gmail ne correspond'
+                        : `${gmailMatches.length} facture${gmailMatches.length > 1 ? 's' : ''} Gmail correspond${gmailMatches.length > 1 ? 'ent' : ''}`}
+                    </span>
+                    {gmailMatches.length > 0 && <ChevronDown size={14} className={`transition-transform ${showGmailMatches ? 'rotate-180' : ''}`} />}
+                  </button>
+                  {showGmailMatches && gmailMatches.length > 0 && (
+                    <div className="mt-2 max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
+                      {gmailMatches.map(m => (
+                        <div key={m.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {m.vendor_name || '—'} <span className="text-xs text-gray-500">· {m.category}</span>
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {m.document_date || '—'} · <span className="font-mono">{m.amount?.toFixed(2)} {m.currency}</span>
+                              {m.cerdia_company && <span className="ml-2 text-purple-600">({m.cerdia_company})</span>}
+                            </p>
+                          </div>
+                          {m.gmail_link && (
+                            <a href={m.gmail_link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline whitespace-nowrap">Gmail ↗</a>
+                          )}
+                          <button type="button" onClick={() => selectGmailMatch(m)} className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap">
+                            Sélectionner
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label className="label">Pièce jointe (facture, reçu, relevé...)</label>
