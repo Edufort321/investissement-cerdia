@@ -430,6 +430,32 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                             {org.is_demo && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">DEMO</span>}
                           </p>
                           {org.slug && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{org.slug}</p>}
+                          {org.is_demo && (() => {
+                            const demoUrl = typeof window !== 'undefined'
+                              ? `${window.location.origin}/demo`
+                              : 'https://www.cerdia.ai/demo'
+                            return (
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                <a
+                                  href={demoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
+                                  title="Ouvrir la démo dans un nouvel onglet"
+                                >
+                                  {demoUrl.replace(/^https?:\/\//, '')}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(demoUrl, `demo-url-${org.id}`)}
+                                  className="text-xs px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded inline-flex items-center gap-1"
+                                  title="Copier le lien à partager"
+                                >
+                                  {copied === `demo-url-${org.id}` ? <><Check size={10} /> Copié</> : <><Copy size={10} /> Copier</>}
+                                </button>
+                              </div>
+                            )
+                          })()}
                         </div>
                       </div>
                     </td>
