@@ -564,17 +564,19 @@ function ProduitsTab({ toast, onNavigate }: {
   const metrics = (() => {
     const totalProducts = products.length
     const activeProducts = products.filter(p => p.active).length
-    // Exclure CERDIA Globale (plan=internal) du compte de clients SaaS
+    // Exclure CERDIA Globale (plan=internal) et les demos du compte de clients SaaS
     const externalOrgs = orgs.filter(o => o.plan !== 'internal' && !o.is_demo)
     const activeOrgs = externalOrgs.filter(o => o.status === 'active')
-    const arr = externalOrgs.reduce((sum, o) => {
-      const amt = Number(o.settings?.billing?.annual_amount_cad) || 0
-      return sum + amt
-    }, 0)
+    // Prix unitaire annuel : depuis CERDIA Globale settings.saas_pricing.annual_amount_cad
+    // (source unique de verite, defini dans /commerce/admin/Organisations)
+    const cerdiaOrg = orgs.find(o => o.plan === 'internal')
+    const unitPrice = Number(cerdiaOrg?.settings?.saas_pricing?.annual_amount_cad) || 0
+    // ARR = prix unitaire x nombre d'orgs actives
+    const arr = unitPrice * activeOrgs.length
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const newThisMonth = externalOrgs.filter(o => new Date(o.created_at) >= monthStart).length
-    return { totalProducts, activeProducts, activeOrgs: activeOrgs.length, arr, newThisMonth, totalClients: externalOrgs.length }
+    return { totalProducts, activeProducts, activeOrgs: activeOrgs.length, arr, unitPrice, newThisMonth, totalClients: externalOrgs.length }
   })()
 
   const fmtCAD = (n: number) =>
@@ -976,8 +978,14 @@ function ProduitsTab({ toast, onNavigate }: {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">Service / SaaS</td>
-                    <td className="px-4 py-3 font-semibold text-emerald-700 dark:text-emerald-400 hidden md:table-cell">
-                      {fmtCAD(metrics.arr)}<span className="text-xs text-gray-400 font-normal">/an</span>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <div className="font-semibold text-emerald-700 dark:text-emerald-400">
+                        {metrics.unitPrice > 0 ? fmtCAD(metrics.unitPrice) : <span className="text-amber-600 text-xs">Non défini</span>}
+                        {metrics.unitPrice > 0 && <span className="text-xs text-gray-400 font-normal">/an</span>}
+                      </div>
+                      {metrics.activeOrgs > 0 && (
+                        <p className="text-[10px] text-gray-500">ARR {fmtCAD(metrics.arr)}</p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center hidden md:table-cell">
                       <span className="text-gray-400 text-xs">∞</span>
