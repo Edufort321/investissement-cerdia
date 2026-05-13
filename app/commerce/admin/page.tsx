@@ -6,13 +6,16 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
 import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
+import OrganisationsTab from '@/components/admin/OrganisationsTab'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
-  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail
+  Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail,
+  Building2
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -214,7 +217,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -331,6 +334,7 @@ export default function CommerceAdminPage() {
   const [pwdError, setPwdError] = useState('')
   const [tab, setTab] = useState<Tab>('produits')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { isSuperAdmin } = useOrganization()
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem(SESSION_KEY) === '1') {
@@ -451,13 +455,14 @@ export default function CommerceAdminPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 -mb-px overflow-x-auto">
-            {([
+            {(([
               { key: 'produits', label: 'Produits', icon: Package },
               { key: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
               { key: 'rapports', label: 'Rapports', icon: BarChart2 },
               { key: 'factures', label: 'Factures', icon: FileText },
               { key: 'factures_gmail', label: '📬 Gmail', icon: Mail },
-            ] as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
+              ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: '🛠️ Organisations', icon: Building2 }] : []),
+            ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
@@ -480,6 +485,7 @@ export default function CommerceAdminPage() {
         {tab === 'transactions' && <TransactionsTab toast={setToast} />}
         {tab === 'rapports' && <RapportsTab />}
         {tab === 'factures' && <FacturesTab />}
+        {tab === 'organisations' && <OrganisationsTab toast={setToast} />}
         {tab === 'factures_gmail' && (
           <GmailFacturesTab
             filterCompanies={['Commerce CERDIA']}
