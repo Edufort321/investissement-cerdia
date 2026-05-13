@@ -13,14 +13,14 @@ en background pour le support technique.
 - **Nommage** : Organisation / Organisations (table `organizations`, rôle `org_admin`/`org_user`/`org_investor`/`org_viewer`, Eric = `super_admin`).
 - **White-label** : logo + nom organisation injectés dans la navbar.
 - **Onboarding** : wizard 5 étapes à la 1ère connexion (société, devise, classes de parts, inviter users, confirmation).
-- **Premier tenant** : CERDIA SEC en validation interne (toutes les données existantes y sont rattachées).
+- **Premier tenant** : CERDIA Globale en validation interne (toutes les données existantes y sont rattachées).
 
 ---
 
 ## Phase 1 — Fondations DB ✅ FAIT
 
 Migrations 145 → 149 appliquées :
-- 145 : table `organizations` + seed CERDIA SEC (uuid `c0000000-0000-0000-0000-000000000001`) + helpers (`auth_get_org_id`, `is_super_admin`, `is_org_admin`) + extension `profiles` (organization_id NOT NULL, onboarding_completed, rôles renommés)
+- 145 : table `organizations` + seed CERDIA Globale (uuid `c0000000-0000-0000-0000-000000000001`) + helpers (`auth_get_org_id`, `is_super_admin`, `is_org_admin`) + extension `profiles` (organization_id NOT NULL, onboarding_completed, rôles renommés)
 - 146 : `organization_id` + FK + index sur les ~56 tables Investissement
 - 147 : policy `RESTRICTIVE tenant_isolation` sur ces 56 tables
 - 148 : idem pour Commerce + Invoicing (6 tables)
@@ -87,7 +87,7 @@ Avec `service_role` pour bypass RLS. En une transaction :
 
 - Quand Eric crée une organisation, il définit un **montant annuel** (CAD)
 - Le système **crée automatiquement** une facture via le module `invoices` existant :
-  - `organization_id` = CERDIA SEC (CERDIA est l'émetteur de la facture)
+  - `organization_id` = CERDIA Globale (CERDIA est l'émetteur de la facture)
   - `invoice_clients.client_organization_id` = nouveau tenant (le destinataire)
   - `invoice_items` = ligne "Abonnement annuel plateforme CERDIA — Plan {plan}"
   - Montant + taxes selon les règles fiscales
@@ -145,7 +145,7 @@ Page `/onboarding` accessible quand `profile.onboarding_completed === false`.
 
 ## Phase 6 — Refactor CERDIA-spécifique 📋 À FAIRE
 
-Rendre configurable ce qui est hardcodé pour CERDIA SEC aujourd'hui :
+Rendre configurable ce qui est hardcodé pour CERDIA Globale aujourd'hui :
 - Classes de parts A/B/C → liste dynamique dans `organizations.settings.share_classes`
 - T1135/T2209 (canadien) → optionnel selon `organizations.settings.tax_jurisdiction`
 - Devises USD/CAD/DOP/EUR → liste dynamique dans `organizations.settings.currencies_enabled`

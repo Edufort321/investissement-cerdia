@@ -3,7 +3,7 @@
 --
 -- Cree :
 --   1. Table `organizations` (tenant principal)
---   2. Seed du tenant CERDIA SEC avec UUID deterministe
+--   2. Seed du tenant CERDIA Globale avec UUID deterministe
 --   3. profiles.organization_id (NOT NULL apres backfill)
 --   4. profiles.onboarding_completed (true pour les users existants)
 --   5. Renommage des roles vers le schema multi-tenant
@@ -58,7 +58,7 @@ COMMENT ON COLUMN organizations.features IS
 'Feature flags par tenant pour release graduelle (ex: {"beta_xyz": true}).';
 
 COMMENT ON COLUMN organizations.plan IS
-'basic | pro | enterprise | demo | internal. internal = CERDIA SEC. demo = tenant de demonstration.';
+'basic | pro | enterprise | demo | internal. internal = CERDIA Globale. demo = tenant de demonstration.';
 
 
 -- Trigger updated_at
@@ -73,14 +73,14 @@ CREATE TRIGGER trg_organizations_updated_at
     FOR EACH ROW EXECUTE FUNCTION touch_organizations_updated_at();
 
 
--- ── 2. Seed : CERDIA SEC en tenant interne ──────────────────
+-- ── 2. Seed : CERDIA Globale en tenant interne ──────────────────
 -- UUID deterministe pour pouvoir le referencer facilement dans les
 -- migrations suivantes (146+) sans avoir a faire de SELECT.
 INSERT INTO organizations (id, name, slug, plan, status, settings)
 VALUES (
     'c0000000-0000-0000-0000-000000000001'::uuid,
-    'CERDIA SEC',
-    'cerdia-sec',
+    'CERDIA Globale',
+    'cerdia-globale',
     'internal',
     'active',
     jsonb_build_object(
@@ -104,7 +104,7 @@ ON CONFLICT (id) DO NOTHING;
 ALTER TABLE profiles
     ADD COLUMN IF NOT EXISTS organization_id UUID NULL;
 
--- Backfill : tous les profils existants appartiennent a CERDIA SEC.
+-- Backfill : tous les profils existants appartiennent a CERDIA Globale.
 UPDATE profiles
    SET organization_id = 'c0000000-0000-0000-0000-000000000001'::uuid
  WHERE organization_id IS NULL;
@@ -240,7 +240,7 @@ GRANT EXECUTE ON FUNCTION public.is_org_admin(UUID) TO authenticated;
 
 -- ── 7. Mise a jour de is_cerdia_admin() pour compat ──────────
 -- Continue de retourner true pour Eric (super_admin) + org_admin de
--- CERDIA SEC, ce qui maintient toutes les RLS existantes (mig 142)
+-- CERDIA Globale, ce qui maintient toutes les RLS existantes (mig 142)
 -- fonctionnelles sans changement.
 CREATE OR REPLACE FUNCTION public.is_cerdia_admin(uid UUID)
 RETURNS BOOLEAN
@@ -258,7 +258,7 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.is_cerdia_admin(UUID) IS
-'Compat post-mig 145 : true si super_admin ou org_admin de CERDIA SEC. Sera deprecie quand toutes les RLS auront migre vers auth_get_org_id()+is_super_admin().';
+'Compat post-mig 145 : true si super_admin ou org_admin de CERDIA Globale. Sera deprecie quand toutes les RLS auront migre vers auth_get_org_id()+is_super_admin().';
 
 
 -- ── 8. RLS sur organizations ────────────────────────────────

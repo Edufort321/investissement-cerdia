@@ -3,12 +3,12 @@
 --
 -- Ajoute la colonne `organization_id UUID NOT NULL DEFAULT '<CERDIA>'`
 -- + FK + index sur toutes les tables du module Investissement immobilier
--- (~56 tables). Backfill toutes les rows existantes avec l'UUID de CERDIA SEC.
+-- (~56 tables). Backfill toutes les rows existantes avec l'UUID de CERDIA Globale.
 --
 -- ⚠ NON-DESTRUCTIF : aucune table n'est purgee, aucune ligne supprimee.
 -- ⚠ NE TOUCHE PAS LES RLS : sera fait en Migration 147 (separation des risques).
 -- ⚠ DEFAULT CERDIA UUID : tes INSERTs actuels continuent sans modif de l'app
---    (les nouvelles rows defaultent sur CERDIA SEC, ce qui est correct tant
+--    (les nouvelles rows defaultent sur CERDIA Globale, ce qui est correct tant
 --    qu'il n'y a pas d'autres tenants reels). Le default sera retire en Phase 2.
 -- ⚠ Helper avec skip-if-missing : si une table n'existe pas (deprecated),
 --    la migration continue avec un NOTICE au lieu de planter.

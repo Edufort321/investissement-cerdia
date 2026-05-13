@@ -31,7 +31,7 @@ BEGIN
         SELECT 1 FROM organizations
          WHERE id = 'c0000000-0000-0000-0000-000000000001'::uuid
     ) THEN
-        RAISE EXCEPTION '[148] Organisation CERDIA SEC introuvable. Appliquer mig 145 d''abord.';
+        RAISE EXCEPTION '[148] Organisation CERDIA Globale introuvable. Appliquer mig 145 d''abord.';
     END IF;
 END $$;
 
