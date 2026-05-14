@@ -874,7 +874,7 @@ export default function ProjetTab() {
       const safeName = property.name.replace(/[^a-zA-Z0-9]/g, '_')
       doc.save(`fiche_projet_${safeName}_${new Date().toISOString().split('T')[0]}.pdf`)
     } catch (err: any) {
-      alert('Erreur lors de la generation du PDF: ' + err.message)
+      alert(t('projects.pdfGenerationError') + err.message)
     } finally {
       setExportingProjectId(null)
     }
@@ -1150,12 +1150,12 @@ export default function ProjetTab() {
                     min="0"
                     step="0.01"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Ce montant se déduit du total</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('projects.depositDeductedHint')}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Acompte payé en CAD
+                    {t('projects.depositPaidCAD')}
                   </label>
                   <input
                     type="number"
@@ -1166,27 +1166,27 @@ export default function ProjetTab() {
                     min="0"
                     step="0.01"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Montant réel en économie canadienne</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('projects.realCADAmountHint')}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type de calendrier de paiement
+                    {t('projects.paymentCalendarType')}
                   </label>
                   <select
                     value={formData.payment_schedule_type}
                     onChange={(e) => setFormData({ ...formData, payment_schedule_type: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
-                    <option value="one_time">Paiement unique</option>
-                    <option value="fixed_terms">Termes fixes (personnalisés)</option>
-                    <option value="monthly_degressive">Mensuel dégressif</option>
+                    <option value="one_time">{t('projects.paymentOneTime')}</option>
+                    <option value="fixed_terms">{t('projects.paymentFixedTerms')}</option>
+                    <option value="monthly_degressive">{t('projects.paymentMonthlyDegressive')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date de début des paiements
+                    {t('projects.paymentStartDate')}
                   </label>
                   <input
                     type="date"
@@ -1201,23 +1201,23 @@ export default function ProjetTab() {
               {formData.payment_schedule_type === 'fixed_terms' && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-semibold text-gray-900">Termes de paiement</h5>
+                    <h5 className="text-sm font-semibold text-gray-900">{t('projects.paymentTerms')}</h5>
                     <button
                       type="button"
                       onClick={addPaymentTerm}
                       className="text-sm text-[#5e5e5e] hover:text-[#3e3e3e] font-medium"
                     >
-                      + Ajouter un terme
+                      {t('projects.addTerm')}
                     </button>
                   </div>
 
                   {/* En-têtes des colonnes */}
                   <div className="grid grid-cols-[1fr_90px_100px_120px_140px_40px] gap-2 mb-2 px-1">
-                    <div className="text-xs font-semibold text-gray-600">Label</div>
-                    <div className="text-xs font-semibold text-gray-600">Type</div>
-                    <div className="text-xs font-semibold text-gray-600">Valeur</div>
-                    <div className="text-xs font-semibold text-gray-600">Montant ({formData.currency})</div>
-                    <div className="text-xs font-semibold text-gray-600">Date échéance</div>
+                    <div className="text-xs font-semibold text-gray-600">{t('projects.termLabel')}</div>
+                    <div className="text-xs font-semibold text-gray-600">{t('projects.termType')}</div>
+                    <div className="text-xs font-semibold text-gray-600">{t('projects.termValue')}</div>
+                    <div className="text-xs font-semibold text-gray-600">{t('projects.termAmount')} ({formData.currency})</div>
+                    <div className="text-xs font-semibold text-gray-600">{t('projects.termDueDate')}</div>
                     <div></div>
                   </div>
 
@@ -1235,7 +1235,7 @@ export default function ProjetTab() {
                             type="text"
                             value={term.label}
                             onChange={(e) => updatePaymentTerm(index, 'label', e.target.value)}
-                            placeholder="Ex: Réservation"
+                            placeholder={language === 'fr' ? 'Ex: Réservation' : 'E.g.: Reservation'}
                             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           />
                           <select
@@ -1262,7 +1262,7 @@ export default function ProjetTab() {
                               type="number"
                               value={term.fixed_amount}
                               onChange={(e) => updatePaymentTerm(index, 'fixed_amount', parseFloat(e.target.value) || 0)}
-                              placeholder="Montant"
+                              placeholder={t('projects.amountPlaceholder')}
                               className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm text-right"
                               min="0"
                               step="100"
@@ -1281,7 +1281,7 @@ export default function ProjetTab() {
                             type="button"
                             onClick={() => removePaymentTerm(index)}
                             className="text-red-600 hover:text-red-800 p-1"
-                            title="Supprimer"
+                            title={t('common.delete')}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1293,13 +1293,13 @@ export default function ProjetTab() {
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-600">Total pourcentages:</span>
+                        <span className="text-gray-600">{t('projects.totalPercentages')}</span>
                         <span className={`ml-2 font-bold ${paymentTerms.filter(t => t.amount_type === 'percentage').reduce((sum, term) => sum + term.percentage, 0) === 100 || paymentTerms.every(t => t.amount_type === 'fixed_amount') ? 'text-green-600' : 'text-orange-600'}`}>
                           {paymentTerms.filter(t => t.amount_type === 'percentage').reduce((sum, term) => sum + term.percentage, 0).toFixed(1)}%
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Total montant:</span>
+                        <span className="text-gray-600">{t('projects.totalAmountLabel')}</span>
                         <span className="ml-2 font-bold text-blue-600">
                           {paymentTerms.reduce((sum, term) => {
                             const amountAfterDeposit = (formData.total_cost || 0) - (formData.reservation_deposit || 0)
@@ -1312,7 +1312,7 @@ export default function ProjetTab() {
                     </div>
                     {paymentTerms.some(t => t.amount_type === 'percentage') &&
                      paymentTerms.filter(t => t.amount_type === 'percentage').reduce((sum, term) => sum + term.percentage, 0) !== 100 && (
-                      <p className="text-xs text-orange-600 mt-2">⚠️ Les termes en % totalisent {paymentTerms.filter(t => t.amount_type === 'percentage').reduce((sum, term) => sum + term.percentage, 0).toFixed(1)}% (devrait être 100%)</p>
+                      <p className="text-xs text-orange-600 mt-2">⚠️ {language === 'fr' ? 'Les termes en % totalisent' : '% terms total'} {paymentTerms.filter(t => t.amount_type === 'percentage').reduce((sum, term) => sum + term.percentage, 0).toFixed(1)}% ({t('projects.termsShouldTotal')})</p>
                     )}
                   </div>
                 </div>
@@ -1343,9 +1343,9 @@ export default function ProjetTab() {
       {properties.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun projet actif</h3>
-          <p className="text-gray-600 mb-2">Les projets sont créés automatiquement depuis l'onglet <strong>Évaluateur</strong></p>
-          <p className="text-sm text-gray-500">Créez un scénario → Analysez → Vote des investisseurs → Marquez comme acheté</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('projects.noActiveProjects')}</h3>
+          <p className="text-gray-600 mb-2">{t('projects.createdViaEvaluator')} <strong>{t('nav.evaluator')}</strong></p>
+          <p className="text-sm text-gray-500">{t('projects.workflow')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -1388,7 +1388,7 @@ export default function ProjetTab() {
                         <button
                           onClick={() => setOpenMenuPropertyId(openMenuPropertyId === property.id ? null : property.id)}
                           className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                          title="Actions"
+                          title={t('common.actions')}
                         >
                           <Menu size={18} />
                         </button>
@@ -1406,7 +1406,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                               >
                                 <Edit2 size={15} className="text-blue-500" />
-                                Modifier le projet
+                                {t('projects.edit')}
                               </button>
 
                               <button
@@ -1415,7 +1415,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <FileDown size={15} className="text-gray-500" />
-                                {exportingProjectId === property.id ? 'Generation PDF...' : 'Exporter fiche PDF'}
+                                {exportingProjectId === property.id ? t('projects.generatingPDF') : t('projects.exportPDF')}
                               </button>
 
                               <div className="border-t border-gray-100 my-1" />
@@ -1425,7 +1425,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                               >
                                 <Calendar size={15} className="text-gray-500" />
-                                Calendrier de paiements
+                                {t('projects.paymentCalendarTitle')}
                               </button>
 
                               <button
@@ -1433,7 +1433,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                               >
                                 <CreditCard size={15} className="text-gray-500" />
-                                Gérer les paiements
+                                {t('projects.managePayments')}
                               </button>
 
                               <button
@@ -1441,7 +1441,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                               >
                                 <History size={15} className="text-gray-500" />
-                                Historique transactions
+                                {t('projects.transactionHistory')}
                               </button>
 
                               <div className="border-t border-gray-100 my-1" />
@@ -1451,7 +1451,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
                               >
                                 <FileImage size={15} className="text-purple-500" />
-                                Pièces jointes
+                                {t('projects.attachments')}
                               </button>
 
                               <button
@@ -1459,7 +1459,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors"
                               >
                                 <Link2 size={15} className="text-sky-500" />
-                                Hyperliens
+                                {t('projects.hyperlinks')}
                               </button>
 
                               <button
@@ -1467,7 +1467,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
                               >
                                 <BarChart2 size={15} className="text-green-500" />
-                                Performance & ROI
+                                {t('projects.performanceROI')}
                               </button>
 
                               <button
@@ -1475,7 +1475,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                               >
                                 <Wallet size={15} className="text-indigo-500" />
-                                Bilan Financier
+                                {t('projects.financialSummary')}
                               </button>
 
                               <div className="border-t border-gray-100 my-1" />
@@ -1485,7 +1485,7 @@ export default function ProjetTab() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                               >
                                 <Trash2 size={15} className="text-red-500" />
-                                Supprimer
+                                {t('common.delete')}
                               </button>
                             </div>
                           </>
@@ -1497,7 +1497,7 @@ export default function ProjetTab() {
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Calendar size={14} />
-                      Réservé le {new Date(property.reservation_date).toLocaleDateString('fr-CA')}
+                      {t('dashboard.reservedOn')} {new Date(property.reservation_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                     </div>
                     <div className="font-semibold text-xs bg-gray-100 px-2 py-1 rounded">
                       {property.currency || 'USD'}
@@ -1521,7 +1521,7 @@ export default function ProjetTab() {
                   {/* Progression */}
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600 font-medium">Progression</span>
+                      <span className="text-gray-600 font-medium">{t('dashboard.progress')}</span>
                       <span className="font-bold text-gray-900">{progress.toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
@@ -1532,10 +1532,10 @@ export default function ProjetTab() {
                     </div>
                     <div className="flex justify-between text-xs mt-2 text-gray-600">
                       <span>
-                        {totalPaidInPropertyCurrency.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} payé
+                        {totalPaidInPropertyCurrency.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {t('dashboard.paid')}
                       </span>
                       <span>
-                        {remaining.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} restant
+                        {remaining.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {t('dashboard.remaining')}
                       </span>
                     </div>
                   </div>
@@ -1545,23 +1545,23 @@ export default function ProjetTab() {
                     <div className="grid grid-cols-2 gap-2">
                       {/* Montant USD contractuel */}
                       <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <div className="text-xs text-blue-700 font-medium mb-1">Contrat (USD)</div>
+                        <div className="text-xs text-blue-700 font-medium mb-1">{t('projects.contractUSD')}</div>
                         <div className="text-base font-bold text-blue-900">
                           {totalPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                         </div>
-                        <div className="text-xs text-blue-600 mt-1">Montant attendu</div>
+                        <div className="text-xs text-blue-600 mt-1">{t('projects.expectedAmount')}</div>
                       </div>
 
                       {/* Montant CAD réellement payé */}
                       <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                        <div className="text-xs text-green-700 font-medium mb-1">Payé (CAD)</div>
+                        <div className="text-xs text-green-700 font-medium mb-1">{t('projects.paidCAD')}</div>
                         <div className="text-base font-bold text-green-900">
                           {totalPaidCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                         </div>
                         <div className="text-xs text-green-600 mt-1">
                           {totalPaidUSD > 0 && totalPaidCAD > 0
-                            ? `Taux: ${(totalPaidCAD / totalPaidUSD).toFixed(4)}`
-                            : 'Coût réel'
+                            ? `${t('dashboard.rate')}: ${(totalPaidCAD / totalPaidUSD).toFixed(4)}`
+                            : t('projects.realCost')
                           }
                         </div>
                       </div>
@@ -1571,11 +1571,11 @@ export default function ProjetTab() {
                   {/* CAD Only Tracking (pour contrats en CAD) */}
                   {property.currency === 'CAD' && totalPaidCAD > 0 && (
                     <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <div className="text-xs text-green-700 font-medium mb-1">Total payé en CAD</div>
+                      <div className="text-xs text-green-700 font-medium mb-1">{t('projects.totalPaidCAD')}</div>
                       <div className="text-lg font-bold text-green-800">
                         {totalPaidCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                       </div>
-                      <div className="text-xs text-green-600 mt-1">Coût total</div>
+                      <div className="text-xs text-green-600 mt-1">{t('projects.totalCost')}</div>
                     </div>
                   )}
 
@@ -1627,27 +1627,27 @@ export default function ProjetTab() {
                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                       <div className="flex items-center gap-2 mb-3">
                         <Calculator size={14} className="text-blue-700" />
-                        <div className="text-xs font-bold text-blue-900">Bilan budgétaire: Prévu vs Réel</div>
+                        <div className="text-xs font-bold text-blue-900">{t('projects.budgetSummary')}</div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         {/* Planned cost from scenario */}
                         <div className="bg-white p-2 rounded border border-blue-200">
-                          <div className="text-xs text-gray-600 mb-1">Prix prévu (scénario)</div>
+                          <div className="text-xs text-gray-600 mb-1">{t('projects.plannedPrice')}</div>
                           <div className="text-base font-bold text-gray-900">
                             {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">Selon scénario d'origine</div>
+                          <div className="text-xs text-gray-500 mt-1">{t('projects.perOriginScenario')}</div>
                         </div>
 
                         {/* Actual cost from transactions */}
                         <div className="bg-white p-2 rounded border border-blue-200">
-                          <div className="text-xs text-gray-600 mb-1">Prix réel payé</div>
+                          <div className="text-xs text-gray-600 mb-1">{t('projects.actualPricePaid')}</div>
                           <div className="text-base font-bold text-gray-900">
                             {totalPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {((totalPaidUSD / property.total_cost) * 100).toFixed(1)}% du budget prévu
+                            {((totalPaidUSD / property.total_cost) * 100).toFixed(1)}% {t('projects.ofPlannedBudget')}
                           </div>
                         </div>
                       </div>
@@ -1659,15 +1659,15 @@ export default function ProjetTab() {
                             ? 'bg-green-100 text-green-800 border border-green-300'
                             : 'bg-red-100 text-red-800 border border-red-300'
                         }`}>
-                          <span className="font-medium">Écart: </span>
+                          <span className="font-medium">{t('projects.variance')} </span>
                           {totalPaidUSD <= property.total_cost ? (
                             <>
-                              Économie de {(property.total_cost - totalPaidUSD).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              {t('projects.savingsOf')} {(property.total_cost - totalPaidUSD).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               ({(((property.total_cost - totalPaidUSD) / property.total_cost) * 100).toFixed(1)}%)
                             </>
                           ) : (
                             <>
-                              Dépassement de {(totalPaidUSD - property.total_cost).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                              {t('projects.overrunOf')} {(totalPaidUSD - property.total_cost).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               ({(((totalPaidUSD - property.total_cost) / property.total_cost) * 100).toFixed(1)}%)
                             </>
                           )}
@@ -1677,7 +1677,7 @@ export default function ProjetTab() {
                       {/* Payment Timeline Graph: Planned vs Actual */}
                       {propertyPayments.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-blue-200">
-                          <div className="text-xs font-medium text-blue-900 mb-2">Échéancier: Prévu vs Réel</div>
+                          <div className="text-xs font-medium text-blue-900 mb-2">{t('projects.scheduleVsActual')}</div>
                           <div className="space-y-2">
                             {propertyPayments.map((payment) => {
                               // Get actual paid amount for this payment
@@ -1696,7 +1696,7 @@ export default function ProjetTab() {
 
                                   {/* Planned bar */}
                                   <div className="flex items-center gap-2">
-                                    <div className="w-16 text-xs text-gray-600">Prévu</div>
+                                    <div className="w-16 text-xs text-gray-600">{t('projects.planned')}</div>
                                     <div className="flex-1 bg-gray-200 rounded-full h-4 relative overflow-hidden">
                                       <div
                                         className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-1"
@@ -1711,7 +1711,7 @@ export default function ProjetTab() {
 
                                   {/* Actual bar */}
                                   <div className="flex items-center gap-2">
-                                    <div className="w-16 text-xs text-gray-600">Réel</div>
+                                    <div className="w-16 text-xs text-gray-600">{t('projects.actual')}</div>
                                     <div className="flex-1 bg-gray-200 rounded-full h-4 relative overflow-hidden">
                                       {actualAmount > 0 ? (
                                         <div
@@ -1725,7 +1725,7 @@ export default function ProjetTab() {
                                           </span>
                                         </div>
                                       ) : (
-                                        <div className="text-xs text-gray-400 pl-2 flex items-center h-full">Non payé</div>
+                                        <div className="text-xs text-gray-400 pl-2 flex items-center h-full">{t('projects.notPaid')}</div>
                                       )}
                                     </div>
                                   </div>
@@ -1738,15 +1738,15 @@ export default function ProjetTab() {
                           <div className="mt-3 flex gap-4 text-xs">
                             <div className="flex items-center gap-1">
                               <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                              <span className="text-gray-600">Prévu</span>
+                              <span className="text-gray-600">{t('projects.planned')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-3 h-3 bg-green-500 rounded"></div>
-                              <span className="text-gray-600">Réel (conforme)</span>
+                              <span className="text-gray-600">{t('projects.actualCompliant')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-3 h-3 bg-red-500 rounded"></div>
-                              <span className="text-gray-600">Réel (dépassement)</span>
+                              <span className="text-gray-600">{t('projects.actualOverrun')}</span>
                             </div>
                           </div>
                         </div>
@@ -1761,7 +1761,7 @@ export default function ProjetTab() {
                         <div className="flex-1 bg-blue-50 p-2 rounded-lg border border-blue-200">
                           <div className="flex items-center gap-1 text-xs text-blue-700">
                             <Clock size={12} />
-                            {pendingPayments} en attente
+                            {pendingPayments} {t('projects.pendingCount')}
                           </div>
                         </div>
                       )}
@@ -1769,7 +1769,7 @@ export default function ProjetTab() {
                         <div className="flex-1 bg-red-50 p-2 rounded-lg border border-red-200">
                           <div className="flex items-center gap-1 text-xs text-red-700">
                             <AlertCircle size={12} />
-                            {overduePayments} en retard
+                            {overduePayments} {t('projects.overdueCount')}
                           </div>
                         </div>
                       )}
@@ -1782,7 +1782,7 @@ export default function ProjetTab() {
                       {selectedPropertyId === property.id && (
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                            <Calendar size={14} /> Calendrier de paiements ({propertyPayments.length})
+                            <Calendar size={14} /> {t('projects.paymentCalendarTitle')} ({propertyPayments.length})
                           </span>
                           <button onClick={() => setSelectedPropertyId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                         </div>
@@ -1793,13 +1793,13 @@ export default function ProjetTab() {
                           {/* Exchange Rate Display */}
                           <div className="bg-blue-50 p-2 rounded-lg border border-blue-200 flex items-center justify-between">
                             <div className="text-xs font-medium text-blue-900">
-                              Taux USD→CAD: <span className="font-bold">{exchangeRate.toFixed(4)}</span>
+                              {t('dashboard.exchangeRate')}: <span className="font-bold">{exchangeRate.toFixed(4)}</span>
                             </div>
                             <button
                               onClick={loadExchangeRate}
                               disabled={loadingRate}
                               className="text-blue-600 hover:text-blue-800 p-1 rounded"
-                              title="Rafraîchir"
+                              title={t('projects.refresh')}
                             >
                               <RefreshCw size={12} className={loadingRate ? 'animate-spin' : ''} />
                             </button>
@@ -1852,19 +1852,19 @@ export default function ProjetTab() {
                                     {/* Ligne 1: Montant USD attendu (contrat) */}
                                     <div className="bg-blue-50 p-2 rounded border border-blue-200">
                                       <div className="flex items-center justify-between">
-                                        <div className="text-xs text-blue-700 font-medium">Terme attendu (USD)</div>
+                                        <div className="text-xs text-blue-700 font-medium">{t('projects.expectedTermUSD')}</div>
                                         <div className="text-base font-bold text-blue-900">
                                           {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                         </div>
                                       </div>
-                                      <div className="text-xs text-blue-600 mt-1">Montant selon le contrat</div>
+                                      <div className="text-xs text-blue-600 mt-1">{t('projects.amountPerContract')}</div>
                                     </div>
 
                                     {/* Ligne 2: Montant CAD réellement payé */}
                                     <div className={`p-2 rounded border ${actualPaidCAD > 0 ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-300'}`}>
                                       <div className="flex items-center justify-between">
                                         <div className={`text-xs font-medium ${actualPaidCAD > 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                                          {actualPaidCAD > 0 ? 'Payé à la banque (CAD)' : 'À payer (CAD estimé)'}
+                                          {actualPaidCAD > 0 ? t('projects.paidToBankCAD') : t('projects.toPayCADEstimated')}
                                         </div>
                                         <div className={`text-base font-bold ${actualPaidCAD > 0 ? 'text-green-900' : 'text-gray-900'}`}>
                                           {amountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
@@ -1873,13 +1873,13 @@ export default function ProjetTab() {
                                       <div className={`text-xs mt-1 flex items-center justify-between ${actualPaidCAD > 0 ? 'text-green-600' : 'text-gray-600'}`}>
                                         {effectiveRate ? (
                                           <>
-                                            <span>Taux effectif: {effectiveRate.toFixed(4)}</span>
+                                            <span>{t('projects.effectiveRate')} {effectiveRate.toFixed(4)}</span>
                                             {actualPaidUSD > 0 && (
-                                              <span className="font-medium">{actualPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD payé</span>
+                                              <span className="font-medium">{actualPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} {t('projects.usdPaid')}</span>
                                             )}
                                           </>
                                         ) : (
-                                          <span>Taux actuel: {exchangeRate.toFixed(4)}</span>
+                                          <span>{t('projects.currentRateLabel')} {exchangeRate.toFixed(4)}</span>
                                         )}
                                       </div>
                                     </div>
@@ -1888,7 +1888,7 @@ export default function ProjetTab() {
                                   // Pour les contrats en CAD, affichage simple
                                   <div className="bg-gray-50 p-2 rounded border border-gray-200 mb-2">
                                     <div className="flex items-center justify-between">
-                                      <div className="text-xs text-gray-700 font-medium">Montant (CAD)</div>
+                                      <div className="text-xs text-gray-700 font-medium">{t('projects.amountCADLabel')}</div>
                                       <div className="text-base font-bold text-gray-900">
                                         {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                       </div>
@@ -1898,18 +1898,18 @@ export default function ProjetTab() {
 
                                 {/* Date info */}
                                 <div className="flex items-center justify-between text-xs text-gray-600">
-                                  <span>Échéance: {new Date(payment.due_date).toLocaleDateString('fr-CA')}</span>
+                                  <span>{t('projects.dueDateLabel')} {new Date(payment.due_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}</span>
                                   {payment.status === 'paid' && payment.paid_date && (
                                     <span className="text-green-600 font-medium">
-                                      Payé le {new Date(payment.paid_date).toLocaleDateString('fr-CA')}
+                                      {t('dashboard.paidOn')} {new Date(payment.paid_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                                     </span>
                                   )}
                                 </div>
 
                                 {payment.status === 'pending' && (
                                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-900">
-                                    <p className="mb-1">💡 Pour effectuer ce paiement :</p>
-                                    <p className="text-blue-700">Allez dans <strong>Administration → Transactions</strong></p>
+                                    <p className="mb-1">💡 {t('projects.toMakePayment')}</p>
+                                    <p className="text-blue-700">{t('projects.goToLabel')} <strong>{t('projects.adminTransactionsPath')}</strong></p>
                                   </div>
                                 )}
                               </div>
@@ -1925,7 +1925,7 @@ export default function ProjetTab() {
                     <div className="mt-2 border border-blue-200 rounded-lg p-3 bg-blue-50">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-semibold text-blue-800 flex items-center gap-1">
-                          <CreditCard size={14} /> Gérer les paiements programmés
+                          <CreditCard size={14} /> {t('projects.manageScheduledPayments')}
                         </span>
                         <button onClick={() => setShowPaymentManagerPropertyId(null)} className="text-blue-400 hover:text-blue-700"><X size={14} /></button>
                       </div>
@@ -1942,15 +1942,15 @@ export default function ProjetTab() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                          <History size={14} /> Historique des transactions ({transactions.filter(tx => tx.property_id === property.id).length})
+                          <History size={14} /> {t('projects.transactionHistoryFull')} ({transactions.filter(tx => tx.property_id === property.id).length})
                         </span>
                         <button onClick={() => setShowTransactionsPropertyId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                       </div>
                       <div className="space-y-2 mt-2">
                         {transactions.filter(tx => tx.property_id === property.id).length === 0 ? (
                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
-                            <p className="text-sm text-gray-600">Aucune transaction pour ce projet</p>
-                            <p className="text-xs text-gray-500 mt-1">Les transactions apparaîtront ici automatiquement</p>
+                            <p className="text-sm text-gray-600">{t('projects.noTransactionForProject')}</p>
+                            <p className="text-xs text-gray-500 mt-1">{t('projects.transactionsAppearAuto')}</p>
                           </div>
                         ) : (
                           transactions
@@ -1962,8 +1962,8 @@ export default function ProjetTab() {
                                   <div className="flex-1">
                                     <div className="text-sm font-medium text-gray-900">{tx.description}</div>
                                     <div className="text-xs text-gray-600 mt-1">
-                                      {new Date(tx.date).toLocaleDateString('fr-CA')}
-                                      {tx.reference_number && ` • Réf: ${tx.reference_number}`}
+                                      {new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
+                                      {tx.reference_number && ` • ${t('projects.refShort')} ${tx.reference_number}`}
                                     </div>
                                   </div>
                                   <div className="text-right">
@@ -1990,7 +1990,7 @@ export default function ProjetTab() {
                                   </span>
                                   {tx.source_currency === 'USD' && tx.exchange_rate && (
                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                                      Taux: {tx.exchange_rate.toFixed(4)}
+                                      {t('projects.rateShort')} {tx.exchange_rate.toFixed(4)}
                                     </span>
                                   )}
                                 </div>
@@ -2006,7 +2006,7 @@ export default function ProjetTab() {
                     <div>
                       <div className="flex items-center gap-1 text-gray-600 text-xs mb-1">
                         <DollarSign size={12} />
-                        Coût total
+                        {t('projects.totalCost')}
                       </div>
                       <div className="font-bold text-gray-900">
                         {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })}
@@ -2015,7 +2015,7 @@ export default function ProjetTab() {
                     <div>
                       <div className="flex items-center gap-1 text-gray-600 text-xs mb-1">
                         <TrendingUp size={12} />
-                        ROI attendu
+                        {t('projects.expectedROI')}
                       </div>
                       <div className="font-bold text-green-600">
                         {property.expected_roi}%
@@ -2033,7 +2033,7 @@ export default function ProjetTab() {
                     >
                       <span className="flex items-center gap-2">
                         <Calculator size={16} />
-                        Données complètes du scénario d'origine
+                        {t('projects.fullScenarioData')}
                       </span>
                       <span className="text-gray-400">{showScenarioDataPropertyId === property.id ? '▼' : '▶'}</span>
                     </button>
@@ -2043,11 +2043,11 @@ export default function ProjetTab() {
                         {/* Promoter Data */}
                         {originScenario.promoter_data && Object.keys(originScenario.promoter_data).length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">📊 Données du promoteur</h4>
+                            <h4 className="text-xs font-bold text-gray-900 mb-2">📊 {t('projects.promoterData')}</h4>
                             <div className="grid grid-cols-2 gap-2 min-w-0">
                               {originScenario.promoter_data.monthly_rent && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Loyer mensuel</div>
+                                  <div className="text-xs text-gray-500">{t('projects.monthlyRent')}</div>
                                   <div className="text-xs font-bold text-gray-900 truncate">
                                     {originScenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                   </div>
@@ -2055,7 +2055,7 @@ export default function ProjetTab() {
                               )}
                               {originScenario.promoter_data.annual_appreciation && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Appréciation /an</div>
+                                  <div className="text-xs text-gray-500">{t('projects.annualAppreciation')}</div>
                                   <div className="text-xs font-bold text-gray-900">
                                     {originScenario.promoter_data.annual_appreciation}%
                                   </div>
@@ -2063,7 +2063,7 @@ export default function ProjetTab() {
                               )}
                               {originScenario.promoter_data.occupancy_rate && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Taux occupation</div>
+                                  <div className="text-xs text-gray-500">{t('projects.occupancyRate')}</div>
                                   <div className="text-xs font-bold text-gray-900">
                                     {originScenario.promoter_data.occupancy_rate}%
                                   </div>
@@ -2071,7 +2071,7 @@ export default function ProjetTab() {
                               )}
                               {originScenario.promoter_data.management_fees && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Frais gestion</div>
+                                  <div className="text-xs text-gray-500">{t('projects.managementFees')}</div>
                                   <div className="text-xs font-bold text-gray-900">
                                     {originScenario.promoter_data.management_fees}%
                                   </div>
@@ -2079,9 +2079,9 @@ export default function ProjetTab() {
                               )}
                               {originScenario.promoter_data.project_duration && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Durée projet</div>
+                                  <div className="text-xs text-gray-500">{t('projects.projectDuration')}</div>
                                   <div className="text-xs font-bold text-gray-900">
-                                    {originScenario.promoter_data.project_duration} ans
+                                    {originScenario.promoter_data.project_duration} {t('common.years')}
                                   </div>
                                 </div>
                               )}
@@ -2092,16 +2092,16 @@ export default function ProjetTab() {
                         {/* Three Scenarios */}
                         {scenarioData && scenarioData.length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">📈 Scénarios de projection</h4>
+                            <h4 className="text-xs font-bold text-gray-900 mb-2">📈 {t('projects.projectionScenarios')}</h4>
                             <div className="space-y-2">
                               {['conservative', 'moderate', 'optimistic'].map(type => {
                                 const scenario = scenarioData.find(s => s.scenario_type === type)
                                 if (!scenario) return null
 
                                 const typeLabels: {[key: string]: {label: string, color: string, bg: string}} = {
-                                  conservative: { label: '🔵 Conservateur', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-300' },
-                                  moderate: { label: '🟢 Modéré', color: 'text-green-700', bg: 'bg-green-50 border-green-300' },
-                                  optimistic: { label: '🟡 Optimiste', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-300' }
+                                  conservative: { label: '🔵 ' + t('projects.conservative'), color: 'text-blue-700', bg: 'bg-blue-50 border-blue-300' },
+                                  moderate: { label: '🟢 ' + t('projects.moderate'), color: 'text-green-700', bg: 'bg-green-50 border-green-300' },
+                                  optimistic: { label: '🟡 ' + t('projects.optimistic'), color: 'text-orange-700', bg: 'bg-orange-50 border-orange-300' }
                                 }
 
                                 return (
@@ -2111,25 +2111,25 @@ export default function ProjetTab() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-1.5 min-w-0">
                                       <div className="bg-white p-1.5 rounded min-w-0">
-                                        <div className="text-xs text-gray-500">ROI moyen</div>
+                                        <div className="text-xs text-gray-500">{t('projects.avgROI')}</div>
                                         <div className="text-xs font-bold text-gray-900">
                                           {scenario.summary.avg_annual_return?.toFixed(1)}%
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
-                                        <div className="text-xs text-gray-500">Break-even</div>
+                                        <div className="text-xs text-gray-500">{t('projects.breakEvenLabel')}</div>
                                         <div className="text-xs font-bold text-gray-900">
-                                          An {scenario.summary.break_even_year || 'N/A'}
+                                          {t('projects.yearShort')} {scenario.summary.break_even_year || 'N/A'}
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
-                                        <div className="text-xs text-gray-500">Valeur finale</div>
+                                        <div className="text-xs text-gray-500">{t('projects.finalValue')}</div>
                                         <div className="text-xs font-bold text-gray-900 truncate">
                                           {scenario.summary.final_property_value?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
-                                        <div className="text-xs text-gray-500">Revenu net</div>
+                                        <div className="text-xs text-gray-500">{t('projects.netIncome')}</div>
                                         <div className="text-xs font-bold text-gray-900 truncate">
                                           {scenario.summary.total_net_income?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                         </div>
@@ -2145,7 +2145,7 @@ export default function ProjetTab() {
                         {/* Payment Terms */}
                         {originScenario.payment_terms && originScenario.payment_terms.length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">💰 Termes de paiement</h4>
+                            <h4 className="text-xs font-bold text-gray-900 mb-2">💰 {t('projects.paymentTerms')}</h4>
                             <div className="space-y-1.5">
                               {originScenario.payment_terms.map((term: any, index: number) => (
                                 <div key={index} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between gap-2 min-w-0">
@@ -2153,7 +2153,7 @@ export default function ProjetTab() {
                                     <div className="text-xs font-medium text-gray-900 truncate">{term.label}</div>
                                     <div className="text-xs text-gray-500">
                                       {term.amount_type === 'percentage'
-                                        ? `${term.percentage}% du prix`
+                                        ? `${term.percentage}% ${t('projects.ofPrice')}`
                                         : term.fixed_amount?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                     </div>
                                   </div>
@@ -2164,7 +2164,7 @@ export default function ProjetTab() {
                                         : term.fixed_amount?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                     </div>
                                     <div className="text-xs text-gray-500">
-                                      {new Date(term.due_date).toLocaleDateString('fr-CA')}
+                                      {new Date(term.due_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                                     </div>
                                   </div>
                                 </div>
@@ -2176,15 +2176,15 @@ export default function ProjetTab() {
                         {/* Financing Data */}
                         {originScenario.payment_type === 'financed' && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">🏦 Financement</h4>
+                            <h4 className="text-xs font-bold text-gray-900 mb-2">🏦 {t('projects.financing')}</h4>
                             <div className="grid grid-cols-2 gap-2 min-w-0">
                               <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                <div className="text-xs text-gray-500">Type</div>
-                                <div className="text-xs font-bold text-gray-900">Financé</div>
+                                <div className="text-xs text-gray-500">{t('projects.typeLabel')}</div>
+                                <div className="text-xs font-bold text-gray-900">{t('projects.financed')}</div>
                               </div>
                               {originScenario.down_payment && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Mise de fonds</div>
+                                  <div className="text-xs text-gray-500">{t('projects.downPayment')}</div>
                                   <div className="text-xs font-bold text-gray-900">
                                     {originScenario.down_payment}%
                                   </div>
@@ -2192,7 +2192,7 @@ export default function ProjetTab() {
                               )}
                               {originScenario.interest_rate && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Taux d'intérêt</div>
+                                  <div className="text-xs text-gray-500">{t('projects.interestRate')}</div>
                                   <div className="text-xs font-bold text-gray-900">
                                     {originScenario.interest_rate}%
                                   </div>
@@ -2200,9 +2200,9 @@ export default function ProjetTab() {
                               )}
                               {originScenario.loan_duration && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
-                                  <div className="text-xs text-gray-500">Durée du prêt</div>
+                                  <div className="text-xs text-gray-500">{t('projects.loanDuration')}</div>
                                   <div className="text-xs font-bold text-gray-900">
-                                    {originScenario.loan_duration} ans
+                                    {originScenario.loan_duration} {t('common.years')}
                                   </div>
                                 </div>
                               )}
@@ -2226,7 +2226,7 @@ export default function ProjetTab() {
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
             <div className="p-5 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Hyperliens</h3>
+                <h3 className="text-lg font-bold text-gray-900">{t('projects.hyperlinks')}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {properties.find(p => p.id === showLinksPropertyId)?.name}
                 </p>
@@ -2248,7 +2248,7 @@ export default function ProjetTab() {
           <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-5xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Pièces jointes du projet</h3>
+                <h3 className="text-xl font-bold text-gray-900">{t('projects.attachments')}</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {properties.find(p => p.id === showAttachmentsPropertyId)?.name}
                 </p>
@@ -2284,7 +2284,7 @@ export default function ProjetTab() {
             <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-7xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Performance & ROI</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{t('projects.performanceROI')}</h3>
                   <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
                 </div>
                 <button
@@ -2323,7 +2323,7 @@ export default function ProjetTab() {
             <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Bilan Financier</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{t('projects.financialSummary')}</h3>
                   <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
                 </div>
                 <button
