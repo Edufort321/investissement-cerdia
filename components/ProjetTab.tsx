@@ -1373,21 +1373,17 @@ export default function ProjetTab() {
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 flex items-start gap-3">
-                      {property.main_photo_url && (
-                        <img
-                          src={property.main_photo_url}
-                          alt={property.name}
-                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-gray-200"
-                        />
+                    <div className="flex-1 min-w-0">
+                      {/* Nom/localisation affichés ici seulement si pas de bandeau hero */}
+                      {!property.main_photo_url && (
+                        <>
+                          <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
+                          <div className="flex items-center text-sm text-gray-600 gap-1">
+                            <MapPin size={14} />
+                            {property.location}
+                          </div>
+                        </>
                       )}
-                      <div className="min-w-0">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
-                        <div className="flex items-center text-sm text-gray-600 gap-1">
-                          <MapPin size={14} />
-                          {property.location}
-                        </div>
-                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(property.status)}
@@ -1514,14 +1510,22 @@ export default function ProjetTab() {
                   </div>
                 </div>
 
-                {/* Main Photo */}
+                {/* Bandeau hero — photo principale du projet */}
                 {property.main_photo_url && (
-                  <div className="relative w-full h-48 sm:h-64 overflow-hidden bg-gray-100">
+                  <div className="relative w-full h-56 sm:h-72 overflow-hidden bg-gray-100">
                     <img
                       src={property.main_photo_url}
                       alt={property.name}
                       className="w-full h-full object-cover"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+                      <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-md">{property.name}</h3>
+                      <div className="flex items-center text-sm text-white/90 gap-1 mt-0.5 drop-shadow">
+                        <MapPin size={14} />
+                        {property.location}
+                      </div>
+                    </div>
                   </div>
                 )}
 
