@@ -894,42 +894,42 @@ export default function ProjetTab() {
       {showAddForm && editingId && (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-base sm:text-lg font-semibold mb-4">
-            Modifier la propriété
+            {editingId ? t('projects.edit') : t('projects.new')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom de la propriété *
+                  {t('projects.propertyName')} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Oasis Bay A301"
+                  placeholder={language === 'fr' ? 'Ex: Oasis Bay A301' : 'E.g.: Oasis Bay A301'}
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Localisation *
+                  {t('projects.location')} *
                 </label>
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Punta Cana, République Dominicaine"
+                  placeholder={language === 'fr' ? 'Ex: Punta Cana, République Dominicaine' : 'E.g.: Punta Cana, Dominican Republic'}
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Statut *
+                  {t('projects.status')} *
                 </label>
                 <select
                   value={formData.status}
@@ -937,18 +937,18 @@ export default function ProjetTab() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="reservation">Réservation</option>
-                  <option value="en_construction">En construction</option>
-                  <option value="complete">Complété</option>
-                  <option value="livré">Livré</option>
-                  <option value="actif">Actif</option>
-                  <option value="vendu">Vendu</option>
+                  <option value="reservation">{t('projects.statusReservation')}</option>
+                  <option value="en_construction">{t('projects.statusConstruction')}</option>
+                  <option value="complete">{t('projects.statusComplete')}</option>
+                  <option value="livré">{t('projects.statusDelivered')}</option>
+                  <option value="actif">{t('projects.statusActive')}</option>
+                  <option value="vendu">{t('projects.statusSold')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date de réservation *
+                  {t('projects.reservationDate')} *
                 </label>
                 <input
                   type="date"
@@ -961,7 +961,7 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date de livraison
+                  {t('projects.completionDate')}
                 </label>
                 <input
                   type="date"
@@ -969,12 +969,12 @@ export default function ProjetTab() {
                   onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">Date prévue ou réelle de livraison du projet</p>
+                <p className="text-xs text-gray-500 mt-1">{t('projects.completionDateHint')}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Devise *
+                  {t('projects.currency')} *
                 </label>
                 <select
                   value={formData.currency}
@@ -989,14 +989,14 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Coût total *
+                  {t('projects.totalCost')} *
                 </label>
                 <input
                   type="number"
                   value={formData.total_cost}
                   onChange={(e) => setFormData({ ...formData, total_cost: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 150000"
+                  placeholder={language === 'fr' ? 'Ex: 150000' : 'E.g.: 150000'}
                   min="0"
                   step="0.01"
                   required
@@ -1005,31 +1005,31 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant payé (calculé automatiquement)
+                  {t('projects.paidAmountAuto')}
                 </label>
                 <input
                   type="number"
                   value={formData.paid_amount}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
-                  placeholder="Calculé depuis les transactions"
+                  placeholder={t('projects.paidAmountHint')}
                   disabled
                   readOnly
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  💡 Montant calculé automatiquement depuis les transactions liées à ce projet
+                  💡 {t('projects.paidAmountHint')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ROI attendu (%) *
+                  {t('projects.expectedROI')} (%) *
                 </label>
                 <input
                   type="number"
                   value={formData.expected_roi}
                   onChange={(e) => setFormData({ ...formData, expected_roi: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 10.2"
+                  placeholder={language === 'fr' ? 'Ex: 10.2' : 'E.g.: 10.2'}
                   min="0"
                   step="0.1"
                   required
@@ -1038,20 +1038,20 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jours propriétaire / an
+                  {t('projects.ownerDays')}
                 </label>
                 <input
                   type="number"
                   value={formData.owner_occupation_days}
                   onChange={(e) => setFormData({ ...formData, owner_occupation_days: parseInt(e.target.value) || 0 })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 60"
+                  placeholder={language === 'fr' ? 'Ex: 60' : 'E.g.: 60'}
                   min="0"
                   max="365"
                   step="1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Jours d'utilisation personnelle autorisés par contrat — divisés selon les parts des investisseurs
+                  {t('projects.ownerDaysHint')}
                 </p>
               </div>
             </div>
@@ -1059,12 +1059,12 @@ export default function ProjetTab() {
             {/* Section Vente (si statut = vendu) */}
             {formData.status === 'vendu' && (
               <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">💸 Informations de Vente</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">{language === 'fr' ? 'Informations de Vente' : 'Sale Information'}</h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date de vente
+                      {t('projects.saleDate')}
                     </label>
                     <input
                       type="date"
@@ -1076,14 +1076,14 @@ export default function ProjetTab() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prix de vente
+                      {t('projects.salePrice')}
                     </label>
                     <input
                       type="number"
                       value={formData.sale_price}
                       onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                      placeholder="Ex: 300000"
+                      placeholder={language === 'fr' ? 'Ex: 300000' : 'E.g.: 300000'}
                       min="0"
                       step="0.01"
                     />
@@ -1091,7 +1091,7 @@ export default function ProjetTab() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Devise de vente
+                      {t('projects.saleCurrency')}
                     </label>
                     <select
                       value={formData.sale_currency}
@@ -1105,26 +1105,26 @@ export default function ProjetTab() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom de l'acheteur (optionnel)
+                      {t('projects.buyerName')} ({language === 'fr' ? 'optionnel' : 'optional'})
                     </label>
                     <input
                       type="text"
                       value={formData.buyer_name}
                       onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                      placeholder="Ex: Jean Dupont"
+                      placeholder={language === 'fr' ? 'Ex: Jean Dupont' : 'E.g.: John Doe'}
                     />
                   </div>
 
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Notes sur la vente (optionnel)
+                      {t('projects.saleNotes')} ({language === 'fr' ? 'optionnel' : 'optional'})
                     </label>
                     <textarea
                       value={formData.sale_notes}
                       onChange={(e) => setFormData({ ...formData, sale_notes: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                      placeholder="Ex: Vendu via agent immobilier ABC, commission 5%"
+                      placeholder={language === 'fr' ? 'Ex: Vendu via agent immobilier ABC, commission 5%' : 'E.g.: Sold via real estate agent ABC, 5% commission'}
                       rows={2}
                     />
                   </div>
@@ -1134,12 +1134,12 @@ export default function ProjetTab() {
 
             {/* Payment Schedule Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">Configuration des Paiements</h4>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">{language === 'fr' ? 'Configuration des Paiements' : 'Payment Configuration'}</h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Acompte de réservation ({formData.currency})
+                    {t('projects.reservationDeposit')} ({formData.currency})
                   </label>
                   <input
                     type="number"
@@ -1325,14 +1325,14 @@ export default function ProjetTab() {
                 disabled={loading}
                 className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
-                {loading ? 'Enregistrement...' : editingId ? 'Modifier' : 'Ajouter'}
+                {loading ? t('common.saving') : editingId ? t('common.edit') : t('common.add')}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
                 className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
             </div>
           </form>
