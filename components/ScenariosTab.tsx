@@ -2145,11 +2145,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           <div className="flex-1 relative">
                             <input
                               type="number"
-                              value={formData.purchase_price > 0 ? Math.round(formData.purchase_price * (formData.down_payment || 0) / 100) : ''}
+                              value={formData.purchase_price > 0 && formData.down_payment ? Math.round(formData.purchase_price * formData.down_payment / 100) : ''}
                               onChange={(e) => {
                                 const amount = parseFloat(e.target.value) || 0
+                                // % stocké sans arrondi destructif pour permettre la saisie libre du montant
                                 const pct = formData.purchase_price > 0 ? (amount / formData.purchase_price) * 100 : 0
-                                setFormData({...formData, down_payment: parseFloat(pct.toFixed(2))})
+                                setFormData({...formData, down_payment: Math.round(pct * 10000) / 10000})
                               }}
                               className="w-full px-4 py-2 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                               placeholder="50000"
