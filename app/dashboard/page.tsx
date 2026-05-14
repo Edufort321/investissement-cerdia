@@ -581,7 +581,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        🧾 Factures
+                        Factures
                       </button>
                     </div>
                   )}
@@ -1063,7 +1063,7 @@ export default function DashboardPage() {
               )}
               {adminSubTab === 'mode_emploi' && <UserGuide />}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
-              {adminSubTab === 'factures' && <InvoiceGenerator />}
+              {adminSubTab === 'factures' && <InvoiceGenerator module="investor" />}
               {adminSubTab === 'factures_gmail' && (
                 <div className="p-4 sm:p-6">
                   <GmailFacturesTab

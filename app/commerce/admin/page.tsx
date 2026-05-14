@@ -2380,5 +2380,5 @@ function RapportsTab() {
 // ONGLET FACTURES
 // ══════════════════════════════════════════════════════════════════════════════
 function FacturesTab() {
-  return <InvoiceGenerator />
+  return <InvoiceGenerator module="commerce" />
 }

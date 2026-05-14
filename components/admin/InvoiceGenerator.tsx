@@ -114,7 +114,7 @@ const fmt = (n: number) =>
   n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function InvoiceGenerator() {
+export default function InvoiceGenerator({ module = 'investor' }: { module?: 'investor' | 'commerce' } = {}) {
   const { addTransaction } = useInvestment()
 
   // Views
@@ -179,7 +179,7 @@ export default function InvoiceGenerator() {
     setLoading(true)
     try {
       const [{ data: inv }, { data: cli }] = await Promise.all([
-        supabase.from('invoices').select('*').order('created_at', { ascending: false }),
+        supabase.from('invoices').select('*').eq('module', module).order('created_at', { ascending: false }),
         supabase.from('invoice_clients').select('*').order('name'),
       ])
       setInvoices(inv || [])
@@ -341,7 +341,13 @@ export default function InvoiceGenerator() {
         await supabase.from('invoices').update(invoiceData).eq('id', editingId)
         await supabase.from('invoice_items').delete().eq('invoice_id', editingId)
       } else {
-        const { data, error: err } = await supabase.from('invoices').insert(invoiceData).select().single()
+        // Tag la facture avec son module (investor ou commerce) pour eviter
+        // qu'elles n'apparaissent dans les 2 onglets
+        const { data, error: err } = await supabase
+          .from('invoices')
+          .insert({ ...invoiceData, module })
+          .select()
+          .single()
         if (err) throw err
         invoiceId = data.id
       }
