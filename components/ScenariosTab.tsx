@@ -207,7 +207,7 @@ function calculateMortgagePayment(
 
 export default function ScenariosTab() {
   const { t, language } = useLanguage()
-  const { investors } = useInvestment()
+  const { investors, fetchProperties } = useInvestment()
   const { currentUser } = useAuth()
   const { exportScenarioPDF, exportProjectPDF } = useExportPDF()
 
@@ -724,6 +724,8 @@ export default function ScenariosTab() {
           alert('⚠️ Le scénario a été mis à jour, mais il y a eu une erreur lors de la mise à jour du projet lié.')
         } else {
           console.log('✅ [UPDATE] Projet mis à jour avec succès')
+          // Rafraîchir les projets du contexte pour que l'onglet Projets affiche les changements
+          await fetchProperties()
         }
       }
 
@@ -732,11 +734,9 @@ export default function ScenariosTab() {
       // Recharger les scénarios pour afficher les modifications
       await loadScenarios()
 
-      // Mettre à jour le scénario sélectionné
-      const updatedScenario = scenarios.find(s => s.id === selectedScenario.id)
-      if (updatedScenario) {
-        setSelectedScenario(updatedScenario)
-      }
+      // Mettre à jour le scénario sélectionné immédiatement avec les données du formulaire
+      // (loadScenarios est async — le state `scenarios` du closure est encore l'ancien)
+      setSelectedScenario({ ...selectedScenario, ...formData } as Scenario)
     } catch (error) {
       console.error('Error updating scenario:', error)
       alert('Erreur lors de la sauvegarde des modifications')
