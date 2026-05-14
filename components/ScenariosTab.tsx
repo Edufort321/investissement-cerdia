@@ -4815,7 +4815,43 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       }
                     })
 
+                    // Mapping scénario actif -> plage de taux d'occupation à mettre en évidence
+                    const scenarioOccupancy: Record<string, number[]> = {
+                      conservative: [55, 60],
+                      moderate: [65, 70, 75],
+                      optimistic: [80, 85],
+                    }
+                    const activeOccupancies = scenarioOccupancy[activeScenarioType] || []
+                    const isActiveRow = (occ: number) => activeOccupancies.includes(occ)
+                    const activeRows = analysisData.filter(d => isActiveRow(d.occupancy))
+                    const adjustedCadRate = exchangeRate * 1.05
+                    const netMin = activeRows.length ? Math.min(...activeRows.map(r => r.netIncome)) : 0
+                    const netMax = activeRows.length ? Math.max(...activeRows.map(r => r.netIncome)) : 0
+                    const occMin = activeOccupancies[0]
+                    const occMax = activeOccupancies[activeOccupancies.length - 1]
+                    const scenarioLabel = t(`scenarioType.${activeScenarioType}`)
+                    const fmtCur = (v: number, cur: string, digits = 0) => v.toLocaleString('fr-CA', {
+                      style: 'currency', currency: cur, minimumFractionDigits: digits
+                    })
+
                     return (
+                      <>
+                        {/* Bandeau récapitulatif du scénario actif */}
+                        <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 transition-all duration-500">
+                          <div className="text-sm font-bold text-blue-900">
+                            📊 {t('scenarios.scenarioActiveBanner').replace('{type}', scenarioLabel)}
+                          </div>
+                          <div className="text-xs text-blue-700 mt-1">
+                            {t('scenarios.occupancyRange')}: {occMin}% – {occMax}%
+                          </div>
+                          <div className="text-xs text-blue-700">
+                            {t('scenarios.estimatedNetIncome')}: {fmtCur(netMin, currency)} – {fmtCur(netMax, currency)}
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            (≈ {fmtCur(netMin * adjustedCadRate, 'CAD')} – {fmtCur(netMax * adjustedCadRate, 'CAD')} {t('scenarios.atRate')} {adjustedCadRate.toFixed(4)})
+                          </div>
+                        </div>
+
                       <table className="w-full text-xs sm:text-sm">
                         <thead>
                           <tr className="border-b border-gray-200 bg-gray-50">
@@ -4830,9 +4866,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           </tr>
                         </thead>
                         <tbody>
-                          {analysisData.map((data, idx) => (
-                            <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="p-2 font-medium text-gray-900">{data.occupancy}%</td>
+                          {analysisData.map((data, idx) => {
+                            const active = isActiveRow(data.occupancy)
+                            return (
+                            <tr key={idx} className={`transition-all duration-500 ${active ? 'bg-blue-50 border-l-4 border-blue-500 font-semibold' : 'border-b border-gray-100 opacity-40 hover:opacity-70'}`}>
+                              <td className="p-2 font-medium text-gray-900">
+                                {active && <span className="mr-1">📍</span>}{data.occupancy}%
+                                {active && <span className="ml-1 text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full align-middle">{t('scenarios.active')}</span>}
+                              </td>
                               <td className="p-2 text-right text-gray-900">{data.nights.toFixed(2)}</td>
                               <td className="p-2 text-right text-gray-900">
                                 {data.nightlyRate.toLocaleString('fr-CA', {
@@ -4877,9 +4918,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 })}
                               </td>
                             </tr>
-                          ))}
+                            )
+                          })}
                         </tbody>
                       </table>
+                      </>
                     )
                   })()}
 
@@ -4908,15 +4951,29 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                         const maxIncome = Math.max(...chartData.map(d => d.netIncome))
 
-                        return chartData.map((data, idx) => (
-                          <div key={idx} className="flex items-center gap-3">
-                            <span className="text-xs font-medium text-gray-700 w-12">{data.occupancy}%</span>
+                        // Mapping scénario actif -> taux d'occupation à mettre en évidence
+                        const scenarioOccupancy: Record<string, number[]> = {
+                          conservative: [55, 60],
+                          moderate: [65, 70, 75],
+                          optimistic: [80, 85],
+                        }
+                        const activeOccupancies = scenarioOccupancy[activeScenarioType] || []
+
+                        return chartData.map((data, idx) => {
+                          const active = activeOccupancies.includes(data.occupancy)
+                          return (
+                          <div key={idx} className={`flex items-center gap-3 transition-all duration-500 ${active ? '' : 'opacity-30'}`}>
+                            <span className={`text-xs font-medium w-12 ${active ? 'text-gray-900 font-bold' : 'text-gray-400'}`}>{data.occupancy}%</span>
                             <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
                               <div
-                                className="bg-gradient-to-r from-green-500 to-green-600 h-6 rounded-full flex items-center justify-end pr-2"
+                                className={`h-6 rounded-full flex items-center justify-end pr-2 transition-all duration-500 ease-in-out ${
+                                  active
+                                    ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-md'
+                                    : 'bg-gray-300'
+                                }`}
                                 style={{ width: `${(data.netIncome / maxIncome) * 100}%` }}
                               >
-                                <span className="text-xs font-bold text-white">
+                                <span className={`text-xs font-bold ${active ? 'text-white' : 'text-gray-500'}`}>
                                   {data.netIncome.toLocaleString('fr-CA', {
                                     style: 'currency',
                                     currency: selectedScenario.promoter_data.rent_currency || 'USD',
@@ -4926,7 +4983,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               </div>
                             </div>
                           </div>
-                        ))
+                          )
+                        })
                       })()}
                     </div>
                   </div>
