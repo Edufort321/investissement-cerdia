@@ -472,8 +472,8 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         const base64: string = await new Promise(r => {
           const fr = new FileReader(); fr.onloadend = () => r(fr.result as string); fr.readAsDataURL(blob)
         })
-        // Ratio 3:1 identique à useExportPDF (24×8 à y=10)
-        doc.addImage(base64, 'PNG', 15, 10, 24, 8)
+        // Logo carré (1024x1024) — width = height pour éviter l'écrasement
+        doc.addImage(base64, 'PNG', 15, 8, 16, 16)
       } catch {}
 
       doc.setFontSize(22)

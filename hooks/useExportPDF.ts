@@ -89,11 +89,11 @@ export function useExportPDF() {
     // Charger le logo
     const logoBase64 = await loadImageAsBase64('/logo-cerdia3.png')
 
-    // Ajouter le logo en haut à gauche avec ratio correct pour éviter l'écrasement
+    // Ajouter le logo en haut à gauche — logo-cerdia3.png est carré (1024x1024),
+    // donc width = height pour éviter l'écrasement horizontal
     if (logoBase64) {
       try {
-        // Dimensions réduites avec ratio 3:1 pour un logo horizontal équilibré
-        doc.addImage(logoBase64, 'PNG', 15, 10, 24, 8)
+        doc.addImage(logoBase64, 'PNG', 15, 8, 16, 16)
       } catch (error) {
         console.error('Error adding logo:', error)
       }
@@ -653,142 +653,367 @@ export function useExportPDF() {
     doc.save(fileName)
   }
 
-  // Export d'un projet avec valeurs réelles
+  // Export d'un projet avec valeurs réelles — rapport complet
   const exportProjectPDF = async (
     scenario: ScenarioData,
     results: ScenarioResult[],
     actualValues: ActualValue[]
   ) => {
-    const doc = new jsPDF()
+    try {
+      const doc = new jsPDF()
+      const rentCurrency = scenario.promoter_data.rent_currency || 'USD'
+      const displayCurrency = scenario.purchase_currency || rentCurrency
 
-    // En-tête avec logo
-    let yPos = await addHeader(doc, 'RAPPORT DE PERFORMANCE', scenario.name)
-    yPos += 5
+      // En-tête avec logo
+      let yPos = await addHeader(doc, 'RAPPORT DE PERFORMANCE', scenario.name)
+      yPos += 5
 
-    // Encadré vert pour projet acheté
-    doc.setFillColor(220, 252, 231)
-    doc.rect(15, yPos, 180, 12, 'F')
-    doc.setDrawColor(34, 197, 94)
-    doc.rect(15, yPos, 180, 12, 'S')
+      // Encadré vert pour projet acheté
+      doc.setFillColor(220, 252, 231)
+      doc.rect(15, yPos, 180, 12, 'F')
+      doc.setDrawColor(34, 197, 94)
+      doc.rect(15, yPos, 180, 12, 'S')
+      doc.setFontSize(12)
+      doc.setTextColor(22, 163, 74)
+      doc.text('PROJET ACHETE - SUIVI DES PERFORMANCES', 105, yPos + 8, { align: 'center' })
+      yPos += 20
 
-    doc.setFontSize(12)
-    doc.setTextColor(22, 163, 74)
-    doc.text('PROJET ACHETE - SUIVI DES PERFORMANCES', 105, yPos + 8, { align: 'center' })
+      // Section: Description du projet (si disponible)
+      if (scenario.description && scenario.description.trim()) {
+        doc.setFontSize(14)
+        doc.setTextColor(94, 94, 94)
+        doc.text('DESCRIPTION DU PROJET', 15, yPos)
+        yPos += 7
+        doc.setFontSize(10)
+        doc.setTextColor(60, 60, 60)
+        const descLines = doc.splitTextToSize(scenario.description, 180)
+        doc.text(descLines, 15, yPos)
+        yPos += (descLines.length * 5) + 10
+      }
 
-    yPos += 20
-
-    // Section: Description du projet (si disponible)
-    if (scenario.description && scenario.description.trim()) {
+      // Section: Informations du projet
+      const addressParts = [scenario.address, scenario.state_region, scenario.country].filter(Boolean)
+      const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'N/A'
       doc.setFontSize(14)
       doc.setTextColor(94, 94, 94)
-      doc.text('DESCRIPTION DU PROJET', 15, yPos)
+      doc.text('INFORMATIONS DU PROJET', 15, yPos)
+      yPos += 5
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Propriete', 'Valeur']],
+        body: [
+          ['Nom du projet', scenario.name || 'N/A'],
+          ['Unite', scenario.unit_number || 'N/A'],
+          ['Adresse', fullAddress],
+          ['Promoteur', scenario.promoter_name || 'N/A'],
+          ['Courtier', scenario.broker_name || 'N/A'],
+          ['Compagnie', scenario.company_name || 'N/A'],
+          ['Prix d\'achat', formatCurrency(scenario.purchase_price, displayCurrency)],
+          ['Date de livraison', scenario.delivery_date || 'Non definie']
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94], fontSize: 11, fontStyle: 'bold', textColor: [255, 255, 255] },
+        bodyStyles: { fontSize: 10, textColor: [60, 60, 60] },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 15, right: 15 }
+      })
 
-      yPos += 7
-      doc.setFontSize(10)
-      doc.setTextColor(60, 60, 60)
+      // Section: Paramètres financiers
+      yPos = (doc as any).lastAutoTable.finalY + 15
+      doc.setFontSize(14)
+      doc.setTextColor(94, 94, 94)
+      doc.text('PARAMETRES FINANCIERS', 15, yPos)
+      yPos += 5
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Parametre', 'Valeur']],
+        body: [
+          ['Type de loyer', scenario.promoter_data.rent_type === 'monthly' ? 'Mensuel' : 'Journalier'],
+          ['Loyer ' + (scenario.promoter_data.rent_type === 'monthly' ? 'mensuel' : 'journalier'),
+           formatCurrency(scenario.promoter_data.monthly_rent, rentCurrency)],
+          ['Appreciation annuelle', `${scenario.promoter_data.annual_appreciation}%`],
+          ['Taux d\'occupation', `${scenario.promoter_data.occupancy_rate}%`],
+          ['Frais de gestion', `${scenario.promoter_data.management_fees}%`],
+          ['Duree du projet', `${scenario.promoter_data.project_duration} ans`],
+          ['Taux d\'imposition', `${scenario.promoter_data.tax_rate}%`],
+          ['Augmentation locative annuelle', `${scenario.promoter_data.annual_rent_increase}%`]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [94, 94, 94], fontSize: 11, fontStyle: 'bold', textColor: [255, 255, 255] },
+        bodyStyles: { fontSize: 10, textColor: [60, 60, 60] },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 15, right: 15 }
+      })
 
-      const descLines = doc.splitTextToSize(scenario.description, 180)
-      doc.text(descLines, 15, yPos)
-      yPos += (descLines.length * 5) + 10
-    }
+      // Section: Projections par scénario (1 page par scénario)
+      for (const result of results) {
+        doc.addPage()
+        yPos = await addHeader(doc, 'SCENARIO ' + result.scenario_type.toUpperCase(), scenario.name)
+        yPos += 10
 
-    // Construire l'adresse complète
-    const addressParts2 = [scenario.address, scenario.state_region, scenario.country].filter(Boolean)
-    const fullAddress2 = addressParts2.length > 0 ? addressParts2.join(', ') : 'N/A'
+        const recColor = result.summary.recommendation === 'recommended' ? [34, 197, 94] :
+                         result.summary.recommendation === 'consider' ? [234, 179, 8] : [239, 68, 68]
+        doc.setFillColor(recColor[0], recColor[1], recColor[2])
+        doc.setDrawColor(recColor[0], recColor[1], recColor[2])
+        doc.rect(15, yPos, 180, 12, 'FD')
+        doc.setFontSize(12)
+        doc.setTextColor(255, 255, 255)
+        const recText = result.summary.recommendation === 'recommended' ? 'PROJET RECOMMANDE' :
+                       result.summary.recommendation === 'consider' ? 'PROJET A CONSIDERER' : 'PROJET NON RECOMMANDE'
+        doc.text(recText, 105, yPos + 8, { align: 'center' })
+        yPos += 20
 
-    // Informations du projet
-    doc.setFontSize(14)
-    doc.setTextColor(94, 94, 94)
-    doc.text('INFORMATIONS DU PROJET', 15, yPos)
-    yPos += 5
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Propriete', 'Valeur']],
-      body: [
-        ['Nom du projet', scenario.name || 'N/A'],
-        ['Unite', scenario.unit_number || 'N/A'],
-        ['Adresse', fullAddress2],
-        ['Promoteur', scenario.promoter_name || 'N/A'],
-        ['Prix d\'achat', formatCurrency(scenario.purchase_price, scenario.promoter_data.rent_currency)],
-        ['Date de livraison', scenario.delivery_date || 'Non definie']
-      ],
-      theme: 'striped',
-      headStyles: {
-        fillColor: [34, 197, 94],
-        fontSize: 11,
-        fontStyle: 'bold',
-        textColor: [255, 255, 255]
-      },
-      bodyStyles: {
-        fontSize: 10,
-        textColor: [60, 60, 60]
-      },
-      alternateRowStyles: {
-        fillColor: [249, 250, 251]
-      },
-      margin: { left: 15, right: 15 }
-    })
-
-    // Comparaison Projections vs Réalité
-    if (actualValues.length > 0) {
-      doc.addPage()
-      yPos = await addHeader(doc, 'COMPARAISON', 'Projections vs Réalité')
-      yPos += 10
-
-      // Trouver le scénario modéré pour la comparaison
-      const moderateScenario = results.find(r => r.scenario_type === 'moderate')
-
-      if (moderateScenario) {
-        const comparisonBody = actualValues.map(actual => {
-          const projected = moderateScenario.yearly_data.find(y => y.year === actual.year)
-          const variance = projected && actual.rental_income
-            ? ((actual.rental_income - projected.rental_income) / projected.rental_income) * 100
-            : 0
-
-          return [
-            `Année ${actual.year}`,
-            projected ? formatCurrency(projected.rental_income, scenario.promoter_data.rent_currency) : 'N/A',
-            actual.rental_income ? formatCurrency(actual.rental_income, scenario.promoter_data.rent_currency) : 'N/A',
-            variance !== 0 ? `${variance > 0 ? '+' : ''}${variance.toFixed(1)}%` : 'N/A',
-            actual.occupancy_rate ? `${actual.occupancy_rate}%` : 'N/A'
-          ]
-        })
-
+        const finalCashflow = result.yearly_data?.[result.yearly_data.length - 1]?.cumulative_cashflow || 0
         autoTable(doc, {
           startY: yPos,
-          head: [['Annee', 'Revenus projetes', 'Revenus reels', 'Ecart (%)', 'Taux d\'occupation']],
-          body: comparisonBody,
+          head: [['Metrique cle', 'Valeur']],
+          body: [
+            ['Valeur finale du bien', formatCurrency(result.summary.final_property_value, 'CAD')],
+            ['Revenus nets totaux', formatCurrency(result.summary.total_net_income, 'CAD')],
+            ['Cashflow cumule final', formatCurrency(finalCashflow, 'CAD')],
+            ['Retour sur investissement total', `${result.summary.total_return.toFixed(2)}%`],
+            ['Rendement annuel moyen', `${result.summary.avg_annual_return.toFixed(2)}%`],
+            ['Annee de break-even', `Annee ${result.summary.break_even_year}`],
+            ['Taux de rendement interne (IRR)', `${result.summary.irr.toFixed(2)}%`],
+            ['Valeur actuelle nette (VAN)', formatCurrency(result.summary.npv, 'CAD')],
+            ['Economies de depreciation', formatCurrency(result.summary.total_depreciation_savings, 'CAD')],
+            ['Impot sur la plus-value', formatCurrency(result.summary.capital_gains_tax, 'CAD')],
+            ['Liquidite nette apres vente', formatCurrency(result.summary.net_proceeds_after_sale, 'CAD')]
+          ],
           theme: 'grid',
-          headStyles: {
-            fillColor: [59, 130, 246],
-            fontSize: 10,
-            fontStyle: 'bold',
-            textColor: [255, 255, 255],
-            halign: 'center'
-          },
-          bodyStyles: {
-            fontSize: 9,
-            textColor: [60, 60, 60]
-          },
+          headStyles: { fillColor: [59, 130, 246], fontSize: 11, fontStyle: 'bold', textColor: [255, 255, 255] },
+          bodyStyles: { fontSize: 10, textColor: [60, 60, 60] },
+          columnStyles: { 0: { fontStyle: 'bold' }, 1: { halign: 'right' } },
+          margin: { left: 15, right: 15 }
+        })
+
+        yPos = (doc as any).lastAutoTable.finalY + 15
+        const scenarioColor = result.scenario_type === 'conservative' ? [34, 197, 94] :
+                             result.scenario_type === 'moderate' ? [59, 130, 246] : [239, 68, 68]
+        if (result.yearly_data && result.yearly_data.length > 1) {
+          drawLineChart(doc, 15, yPos, 85, 50,
+            result.yearly_data.map(y => y.cumulative_cashflow / 1000), scenarioColor,
+            'Evolution du Cashflow Cumule', 'Milliers $')
+          drawLineChart(doc, 110, yPos, 85, 50,
+            result.yearly_data.map(y => y.property_value / 1000), scenarioColor,
+            'Evolution de la Valeur du Bien', 'Milliers $')
+          yPos += 60
+        }
+
+        doc.setFontSize(12)
+        doc.setTextColor(94, 94, 94)
+        doc.text('PROJECTION ANNUELLE DETAILLEE', 15, yPos)
+        yPos += 5
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Annee', 'Valeur du bien', 'Revenus locatifs', 'Revenus nets', 'Cashflow cumule', 'ROI']],
+          body: (result.yearly_data || []).map(year => [
+            `Annee ${year.year}`,
+            formatCurrency(year.property_value, rentCurrency),
+            formatCurrency(year.rental_income, rentCurrency),
+            formatCurrency(year.net_income, rentCurrency),
+            formatCurrency(year.cumulative_cashflow, rentCurrency),
+            `${year.roi.toFixed(2)}%`
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], fontSize: 9, fontStyle: 'bold', textColor: [255, 255, 255], halign: 'center' },
+          bodyStyles: { fontSize: 8, textColor: [60, 60, 60] },
           columnStyles: {
-            0: { halign: 'center', fontStyle: 'bold' },
-            1: { halign: 'right' },
-            2: { halign: 'right' },
-            3: { halign: 'center', fontStyle: 'bold' },
-            4: { halign: 'center' }
+            0: { halign: 'center', fontStyle: 'bold' }, 1: { halign: 'right' }, 2: { halign: 'right' },
+            3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' }
           },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
           margin: { left: 15, right: 15 }
         })
       }
+
+      // Page: Analyse des revenus locatifs + Chronologie du ROI
+      doc.addPage()
+      yPos = await addHeader(doc, 'ANALYSE DES REVENUS', scenario.name)
+      yPos += 10
+
+      // Tableau: Analyse des revenus locatifs (55% -> 85%)
+      const baseRent = scenario.promoter_data.monthly_rent || 0
+      const nightlyRate = scenario.promoter_data.rent_type === 'monthly' ? baseRent / 30 : baseRent
+      const mgmtPct = scenario.promoter_data.management_fees || 56
+      const taxPct = scenario.promoter_data.tax_rate || 27
+
+      doc.setFontSize(12)
+      doc.setTextColor(94, 94, 94)
+      doc.text('ANALYSE DES REVENUS LOCATIFS', 15, yPos)
+      yPos += 5
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Occupation', 'Nuits', 'Prix/nuit', 'Rendement annuel', 'Frais gestion', 'Revenu annuel', 'Impot', 'Revenu net']],
+        body: [55, 60, 65, 70, 75, 80, 85].map(occ => {
+          const nights = (365 * occ) / 100
+          const annualIncome = nights * nightlyRate
+          const mgmtFees = annualIncome * (mgmtPct / 100)
+          const annualRevenue = annualIncome - mgmtFees
+          const tax = annualRevenue * (taxPct / 100)
+          const netIncome = annualRevenue - tax
+          return [
+            `${occ}%`,
+            nights.toFixed(1),
+            formatCurrency(nightlyRate, rentCurrency),
+            formatCurrency(annualIncome, rentCurrency),
+            `${mgmtPct}% (${formatCurrency(mgmtFees, rentCurrency)})`,
+            formatCurrency(annualRevenue, rentCurrency),
+            `${taxPct}% (${formatCurrency(tax, rentCurrency)})`,
+            formatCurrency(netIncome, rentCurrency)
+          ]
+        }),
+        theme: 'striped',
+        headStyles: { fillColor: [94, 94, 94], fontSize: 8, fontStyle: 'bold', textColor: [255, 255, 255], halign: 'center' },
+        bodyStyles: { fontSize: 7.5, textColor: [60, 60, 60] },
+        columnStyles: {
+          0: { halign: 'center', fontStyle: 'bold' }, 1: { halign: 'right' }, 2: { halign: 'right' },
+          3: { halign: 'right' }, 4: { halign: 'right', textColor: [220, 38, 38] }, 5: { halign: 'right' },
+          6: { halign: 'right', textColor: [220, 38, 38] }, 7: { halign: 'right', fontStyle: 'bold', textColor: [22, 163, 74] }
+        },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 15, right: 15 }
+      })
+
+      // Tableau: Chronologie du ROI avec augmentation locative
+      yPos = (doc as any).lastAutoTable.finalY + 15
+      doc.setFontSize(12)
+      doc.setTextColor(94, 94, 94)
+      doc.text('CHRONOLOGIE DU ROI', 15, yPos)
+      yPos += 5
+      const occupancyRate = scenario.promoter_data.occupancy_rate || 80
+      const rentIncrease = scenario.promoter_data.annual_rent_increase || 2
+      const projectDuration = scenario.promoter_data.project_duration || 10
+      let cumulativeIncome = 0
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Annee', 'Tarif/nuit', 'Rendement annuel', 'Revenu net', 'Revenu cumulatif', 'ROI']],
+        body: Array.from({ length: projectDuration }, (_, i) => {
+          const year = i + 1
+          const yearlyNightlyRate = nightlyRate * Math.pow(1 + rentIncrease / 100, year - 1)
+          const nights = (365 * occupancyRate) / 100
+          const annualIncome = nights * yearlyNightlyRate
+          const mgmtFees = annualIncome * (mgmtPct / 100)
+          const annualRevenue = annualIncome - mgmtFees
+          const tax = annualRevenue * (taxPct / 100)
+          const netIncome = annualRevenue - tax
+          cumulativeIncome += netIncome
+          const roi = scenario.purchase_price > 0 ? (cumulativeIncome / scenario.purchase_price) * 100 : 0
+          return [
+            `Annee ${year}`,
+            formatCurrency(yearlyNightlyRate, rentCurrency),
+            formatCurrency(annualIncome, rentCurrency),
+            formatCurrency(netIncome, rentCurrency),
+            formatCurrency(cumulativeIncome, rentCurrency),
+            `${roi.toFixed(2)}%`
+          ]
+        }),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 9, fontStyle: 'bold', textColor: [255, 255, 255], halign: 'center' },
+        bodyStyles: { fontSize: 8, textColor: [60, 60, 60] },
+        columnStyles: {
+          0: { halign: 'center', fontStyle: 'bold' }, 1: { halign: 'right' }, 2: { halign: 'right' },
+          3: { halign: 'right', textColor: [22, 163, 74] }, 4: { halign: 'right', textColor: [37, 99, 235] },
+          5: { halign: 'right', fontStyle: 'bold' }
+        },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 15, right: 15 }
+      })
+
+      // Page de comparaison des scénarios
+      if (results.length > 1) {
+        doc.addPage()
+        yPos = await addHeader(doc, 'COMPARAISON DES SCENARIOS', scenario.name)
+        yPos += 15
+        doc.setFontSize(14)
+        doc.setTextColor(94, 94, 94)
+        doc.text('ANALYSE COMPARATIVE DES SCENARIOS', 105, yPos, { align: 'center' })
+        yPos += 15
+
+        const labelOf = (t: string) => t === 'conservative' ? 'Conserv.' : t === 'moderate' ? 'Modere' : 'Eleve'
+        const colorOf = (t: string) => t === 'conservative' ? [34, 197, 94] : t === 'moderate' ? [59, 130, 246] : [239, 68, 68]
+
+        drawComparisonBarChart(doc, 15, yPos, 180, 50,
+          results.map(r => ({ label: labelOf(r.scenario_type), value: r.summary.avg_annual_return, color: colorOf(r.scenario_type) })),
+          'Rendement Annuel Moyen (%)')
+        yPos += 65
+        drawComparisonBarChart(doc, 15, yPos, 180, 50,
+          results.map(r => ({ label: labelOf(r.scenario_type), value: r.summary.total_return, color: colorOf(r.scenario_type) })),
+          'Retour sur Investissement Total (%)')
+        yPos += 65
+
+        doc.setFontSize(12)
+        doc.setTextColor(94, 94, 94)
+        doc.text('TABLEAU RECAPITULATIF', 15, yPos)
+        yPos += 5
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Scenario', 'Valeur finale', 'Revenus nets', 'ROI moyen', 'ROI total', 'Break-even', 'Recommandation']],
+          body: results.map(r => [
+            r.scenario_type === 'conservative' ? 'Conservateur' : r.scenario_type === 'moderate' ? 'Modere' : 'Eleve',
+            formatCurrency(r.summary.final_property_value, 'CAD'),
+            formatCurrency(r.summary.total_net_income, 'CAD'),
+            `${r.summary.avg_annual_return.toFixed(2)}%`,
+            `${r.summary.total_return.toFixed(2)}%`,
+            `Annee ${r.summary.break_even_year}`,
+            r.summary.recommendation === 'recommended' ? 'Recommande' :
+            r.summary.recommendation === 'consider' ? 'A considerer' : 'Non recommande'
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [94, 94, 94], fontSize: 9, fontStyle: 'bold', textColor: [255, 255, 255], halign: 'center' },
+          bodyStyles: { fontSize: 8, textColor: [60, 60, 60] },
+          columnStyles: {
+            0: { fontStyle: 'bold', halign: 'center' }, 1: { halign: 'right' }, 2: { halign: 'right' },
+            3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right', fontStyle: 'bold' },
+            5: { halign: 'center' }, 6: { halign: 'center', fontStyle: 'bold' }
+          },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+          margin: { left: 15, right: 15 }
+        })
+      }
+
+      // Page: Comparaison Projections vs Réalité (si valeurs réelles saisies)
+      if (actualValues.length > 0) {
+        doc.addPage()
+        yPos = await addHeader(doc, 'PROJECTIONS VS REALITE', scenario.name)
+        yPos += 10
+        const moderateScenario = results.find(r => r.scenario_type === 'moderate')
+        if (moderateScenario) {
+          autoTable(doc, {
+            startY: yPos,
+            head: [['Annee', 'Revenus projetes', 'Revenus reels', 'Ecart (%)', 'Taux d\'occupation']],
+            body: actualValues.map(actual => {
+              const projected = moderateScenario.yearly_data.find(y => y.year === actual.year)
+              const variance = projected && actual.rental_income && projected.rental_income
+                ? ((actual.rental_income - projected.rental_income) / projected.rental_income) * 100
+                : 0
+              return [
+                `Annee ${actual.year}`,
+                projected ? formatCurrency(projected.rental_income, rentCurrency) : 'N/A',
+                actual.rental_income ? formatCurrency(actual.rental_income, rentCurrency) : 'N/A',
+                variance !== 0 ? `${variance > 0 ? '+' : ''}${variance.toFixed(1)}%` : 'N/A',
+                actual.occupancy_rate ? `${actual.occupancy_rate}%` : 'N/A'
+              ]
+            }),
+            theme: 'grid',
+            headStyles: { fillColor: [59, 130, 246], fontSize: 10, fontStyle: 'bold', textColor: [255, 255, 255], halign: 'center' },
+            bodyStyles: { fontSize: 9, textColor: [60, 60, 60] },
+            columnStyles: {
+              0: { halign: 'center', fontStyle: 'bold' }, 1: { halign: 'right' }, 2: { halign: 'right' },
+              3: { halign: 'center', fontStyle: 'bold' }, 4: { halign: 'center' }
+            },
+            margin: { left: 15, right: 15 }
+          })
+        }
+      }
+
+      addFooter(doc)
+      const fileName = `Performance_${scenario.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(fileName)
+    } catch (error: any) {
+      console.error('Erreur génération PDF performance:', error)
+      alert('Erreur lors de la génération du PDF: ' + (error?.message || String(error)))
     }
-
-    // Ajouter les pieds de page
-    addFooter(doc)
-
-    // Sauvegarder
-    const fileName = `Performance_${scenario.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-    doc.save(fileName)
   }
 
   return {

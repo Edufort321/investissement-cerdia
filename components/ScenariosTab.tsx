@@ -3126,6 +3126,26 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </button>
         </div>
 
+        {/* Bandeau hero — photo principale du scénario */}
+        {selectedScenario.main_photo_url && (
+          <div className="relative w-full h-56 sm:h-72 overflow-hidden rounded-lg shadow-md bg-gray-100">
+            <img
+              src={selectedScenario.main_photo_url}
+              alt={selectedScenario.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+              <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-md">
+                {getFullName(selectedScenario.name, selectedScenario.unit_number)}
+              </h3>
+              {selectedScenario.address && (
+                <p className="text-sm text-white/90 mt-0.5 drop-shadow">{selectedScenario.address}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Actions selon le statut */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
           <div className="flex flex-wrap gap-3">
@@ -3239,13 +3259,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               {/* Photo principale à gauche */}
               <div className="w-full md:w-64 flex-shrink-0">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Photo principale</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mainPhoto')}</label>
                 {formData.main_photo_url ? (
                   <div className="relative group">
                     <div className="w-full h-48 bg-gray-100 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
                       <img
                         src={formData.main_photo_url}
-                        alt="Photo principale"
+                        alt={t('scenarios.mainPhoto')}
                         className="max-w-full max-h-full object-contain"
                       />
                     </div>
@@ -3263,7 +3283,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       accept="image/*"
                       multiple={false}
                       maxSize={10}
-                      label="Photo du projet"
+                      label={t('scenarios.projectPhoto')}
                       className="h-full"
                     />
                   </div>
