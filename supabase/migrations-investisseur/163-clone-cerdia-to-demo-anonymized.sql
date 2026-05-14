@@ -27,49 +27,58 @@
 -- =====================================================
 
 -- =====================================================
--- PHASE -1 : PRÉREQUIS MULTI-TENANT
+-- PHASE -1 : PRÉREQUIS MULTI-TENANT (GÉNÉRIQUE)
 -- =====================================================
--- Certaines contraintes UNIQUE datent d'avant le multi-tenant et sont
--- GLOBALES (investors.email, investors.username, *_accounts.year). Elles
--- bloqueraient le clone ET, plus largement, empêchent tout 2e tenant
--- d'exister. On les convertit en UNIQUE par organisation.
+-- Beaucoup de contraintes UNIQUE datent d'avant le multi-tenant et sont
+-- GLOBALES (investors.email/username, *_accounts.year,
+-- budget_categories.category_code, etc.). Elles bloquent le clone ET,
+-- plus largement, empêchent tout 2e tenant d'exister.
+--
+-- Cette passe trouve TOUTES les contraintes UNIQUE des tables ayant une
+-- colonne organization_id qui n'incluent PAS déjà organization_id, et les
+-- recrée en préfixant organization_id. Idempotent (skip si déjà par-org).
 DO $$
+DECLARE
+  con record;
+  col_names text;
+  has_org boolean;
 BEGIN
-  -- investors.email -> unique par organisation
-  ALTER TABLE investors DROP CONSTRAINT IF EXISTS investors_email_key;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'investors_org_email_key') THEN
-    ALTER TABLE investors ADD CONSTRAINT investors_org_email_key UNIQUE (organization_id, email);
-  END IF;
+  FOR con IN
+    SELECT
+      c.conname,
+      c.conrelid::regclass::text AS tbl_name,
+      c.conrelid AS tbl_oid,
+      c.conkey AS col_nums
+    FROM pg_constraint c
+    JOIN pg_class cl ON cl.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = cl.relnamespace
+    WHERE c.contype = 'u'
+      AND n.nspname = 'public'
+      AND EXISTS (
+        SELECT 1 FROM pg_attribute a
+        WHERE a.attrelid = c.conrelid
+          AND a.attname = 'organization_id'
+          AND NOT a.attisdropped
+      )
+  LOOP
+    -- organization_id est-il déjà dans la contrainte ?
+    SELECT bool_or(a.attname = 'organization_id')
+    INTO has_org
+    FROM unnest(con.col_nums) AS k(attnum)
+    JOIN pg_attribute a ON a.attrelid = con.tbl_oid AND a.attnum = k.attnum;
 
-  -- investors.username -> unique par organisation
-  ALTER TABLE investors DROP CONSTRAINT IF EXISTS investors_username_key;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'investors_org_username_key') THEN
-    ALTER TABLE investors ADD CONSTRAINT investors_org_username_key UNIQUE (organization_id, username);
-  END IF;
+    IF has_org IS NOT TRUE THEN
+      SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY k.ord)
+      INTO col_names
+      FROM unnest(con.col_nums) WITH ORDINALITY AS k(attnum, ord)
+      JOIN pg_attribute a ON a.attrelid = con.tbl_oid AND a.attnum = k.attnum;
 
-  -- capex_accounts.year -> unique par organisation
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='capex_accounts') THEN
-    ALTER TABLE capex_accounts DROP CONSTRAINT IF EXISTS capex_accounts_year_key;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'capex_accounts_org_year_key') THEN
-      ALTER TABLE capex_accounts ADD CONSTRAINT capex_accounts_org_year_key UNIQUE (organization_id, year);
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', con.tbl_name, con.conname);
+      EXECUTE format('ALTER TABLE %s ADD CONSTRAINT %I UNIQUE (organization_id, %s)',
+        con.tbl_name, left(con.conname || '_org', 63), col_names);
+      RAISE NOTICE '[163] UNIQUE % (% ) -> par organisation', con.conname, col_names;
     END IF;
-  END IF;
-
-  -- current_accounts.year -> unique par organisation
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='current_accounts') THEN
-    ALTER TABLE current_accounts DROP CONSTRAINT IF EXISTS current_accounts_year_key;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'current_accounts_org_year_key') THEN
-      ALTER TABLE current_accounts ADD CONSTRAINT current_accounts_org_year_key UNIQUE (organization_id, year);
-    END IF;
-  END IF;
-
-  -- rnd_accounts.year -> unique par organisation
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='rnd_accounts') THEN
-    ALTER TABLE rnd_accounts DROP CONSTRAINT IF EXISTS rnd_accounts_year_key;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rnd_accounts_org_year_key') THEN
-      ALTER TABLE rnd_accounts ADD CONSTRAINT rnd_accounts_org_year_key UNIQUE (organization_id, year);
-    END IF;
-  END IF;
+  END LOOP;
 END $$;
 
 DO $$
