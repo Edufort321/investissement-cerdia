@@ -186,6 +186,25 @@ Le `LanguageContext` FR/EN existe déjà (sélecteur de langue dans la navbar). 
 
 ---
 
+## Décisions de conception
+
+### PWA tenant-aware — reporté (2026-05-13)
+Eric a choisi de garder le PWA CERDIA shared pour tous les tenants pour
+l'instant. L'install Home Screen montrera toujours "CERDIA" peu importe le
+tenant. Le branding tenant fonctionne quand même DANS l'app (sidebar
+dashboard avec logo+nom tenant via OrganizationContext).
+
+Pour activer PWA tenant-aware plus tard :
+- Implémenter d'abord le routing par subdomain (`acme.cerdia.ai`) ou path
+  (`cerdia.ai/t/acme`). Sans URL unique par tenant, le manifest ne peut
+  pas être servi en tenant-specific (le navigateur fetch le manifest
+  avant l'auth).
+- Créer un endpoint `/api/manifest` (ou `/t/[slug]/manifest`) qui retourne
+  un manifest JSON avec name + icons depuis `organizations.logo_url`.
+- Storage public pour les logos tenants (déjà supportable via Supabase
+  Storage bucket).
+- Estimé ~1 jour de boulot quand le routing subdomain est en place.
+
 ## Notes diverses
 
 ### Bug corrigé en mig 150 (2026-05-13)
