@@ -81,6 +81,60 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Idem pour les INDEX UNIQUE (CREATE UNIQUE INDEX, pas des contraintes —
+-- non visibles dans pg_constraint). Ex: idx_company_settings_key.
+DO $$
+DECLARE
+  idx record;
+  col_names text;
+  has_org boolean;
+  keycols int[];
+BEGIN
+  FOR idx IN
+    SELECT
+      ic.relname AS index_name,
+      tc.relname AS table_name,
+      i.indrelid AS tbl_oid,
+      string_to_array(i.indkey::text, ' ')::int[] AS keycols
+    FROM pg_index i
+    JOIN pg_class ic ON ic.oid = i.indexrelid
+    JOIN pg_class tc ON tc.oid = i.indrelid
+    JOIN pg_namespace n ON n.oid = tc.relnamespace
+    WHERE i.indisunique
+      AND NOT i.indisprimary
+      AND n.nspname = 'public'
+      -- pas un index qui soutient une contrainte (déjà traité au-dessus)
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint con WHERE con.conindid = i.indexrelid)
+      AND EXISTS (
+        SELECT 1 FROM pg_attribute a
+        WHERE a.attrelid = i.indrelid
+          AND a.attname = 'organization_id'
+          AND NOT a.attisdropped
+      )
+  LOOP
+    keycols := idx.keycols;
+    -- index sur expression (attnum 0) -> on ignore
+    CONTINUE WHEN 0 = ANY(keycols);
+
+    SELECT bool_or(a.attname = 'organization_id')
+    INTO has_org
+    FROM unnest(keycols) AS k(attnum)
+    JOIN pg_attribute a ON a.attrelid = idx.tbl_oid AND a.attnum = k.attnum;
+
+    IF has_org IS NOT TRUE THEN
+      SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY k.ord)
+      INTO col_names
+      FROM unnest(keycols) WITH ORDINALITY AS k(attnum, ord)
+      JOIN pg_attribute a ON a.attrelid = idx.tbl_oid AND a.attnum = k.attnum;
+
+      EXECUTE format('DROP INDEX %I', idx.index_name);
+      EXECUTE format('CREATE UNIQUE INDEX %I ON %I (organization_id, %s)',
+        idx.index_name, idx.table_name, col_names);
+      RAISE NOTICE '[163] INDEX UNIQUE % (%) -> par organisation', idx.index_name, col_names;
+    END IF;
+  END LOOP;
+END $$;
+
 DO $$
 DECLARE
   src_org uuid := 'c0000000-0000-0000-0000-000000000001';  -- CERDIA Globale
