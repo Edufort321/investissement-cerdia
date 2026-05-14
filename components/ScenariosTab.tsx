@@ -43,6 +43,17 @@ interface Scenario {
   promoter_data: PromoterData
   payment_terms: PaymentTerm[]
   recurring_fees?: RecurringFee[] // Frais récurrents (HOA, entretien, etc.)
+  // Structure d'achat (migration 161)
+  purchase_type?: 'cash' | 'preconstruction' | 'mortgage'
+  down_payment?: number // % de mise de fonds (hypothèque)
+  interest_rate?: number // % taux annuel (hypothèque)
+  loan_duration?: number // amortissement en années
+  mortgage_rate_type?: 'fixed' | 'variable'
+  mortgage_term_years?: number // durée du terme avant renouvellement
+  mortgage_payment_frequency?: 'biweekly' | 'monthly'
+  mortgage_start_date?: string
+  mortgage_renewal_date?: string
+  mortgage_payment_amount?: number // paiement capital+intérêt
   status: 'draft' | 'pending_vote' | 'pending_transfer' | 'approved' | 'rejected' | 'purchased'
   created_by: string
   created_at: string
@@ -172,8 +183,26 @@ interface VoteStatus {
   total_eligible_voters: number
 }
 
+// Calcul du paiement hypothécaire (capital+intérêt) — miroir JS de la
+// fonction SQL calculate_mortgage_payment (migration 161)
+function calculateMortgagePayment(
+  loanAmount: number,
+  annualRate: number,
+  amortizationYears: number,
+  frequency: 'biweekly' | 'monthly'
+): number {
+  if (!loanAmount || loanAmount <= 0 || !amortizationYears || amortizationYears <= 0) return 0
+  const periodsPerYear = frequency === 'biweekly' ? 26 : 12
+  const n = amortizationYears * periodsPerYear
+  const c = (annualRate || 0) / 100 / periodsPerYear
+  const payment = c === 0
+    ? loanAmount / n
+    : (loanAmount * (c * Math.pow(1 + c, n))) / (Math.pow(1 + c, n) - 1)
+  return Math.round(payment * 100) / 100
+}
+
 export default function ScenariosTab() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { investors } = useInvestment()
   const { currentUser } = useAuth()
   const { exportScenarioPDF, exportProjectPDF } = useExportPDF()
@@ -235,7 +264,16 @@ export default function ScenariosTab() {
       annual_rent_increase: 2 // Augmentation locative 2%
     },
     payment_terms: [] as PaymentTerm[],
-    recurring_fees: [] as RecurringFee[]
+    recurring_fees: [] as RecurringFee[],
+    // Structure d'achat (migration 161)
+    purchase_type: 'cash' as 'cash' | 'preconstruction' | 'mortgage',
+    down_payment: 20,
+    interest_rate: 5,
+    loan_duration: 25,
+    mortgage_rate_type: 'fixed' as 'fixed' | 'variable',
+    mortgage_term_years: 5,
+    mortgage_payment_frequency: 'monthly' as 'biweekly' | 'monthly',
+    mortgage_start_date: ''
   })
 
   // Charger le taux de change au montage
@@ -296,7 +334,15 @@ export default function ScenariosTab() {
           annual_rent_increase: 2
         },
         payment_terms: selectedScenario.payment_terms || [],
-        recurring_fees: selectedScenario.recurring_fees || []
+        recurring_fees: selectedScenario.recurring_fees || [],
+        purchase_type: selectedScenario.purchase_type || 'cash',
+        down_payment: selectedScenario.down_payment ?? 20,
+        interest_rate: selectedScenario.interest_rate ?? 5,
+        loan_duration: selectedScenario.loan_duration ?? 25,
+        mortgage_rate_type: selectedScenario.mortgage_rate_type || 'fixed',
+        mortgage_term_years: selectedScenario.mortgage_term_years ?? 5,
+        mortgage_payment_frequency: selectedScenario.mortgage_payment_frequency || 'monthly',
+        mortgage_start_date: selectedScenario.mortgage_start_date || ''
       })
     }
   }, [selectedScenario])
@@ -441,6 +487,40 @@ export default function ScenariosTab() {
     }
   }
 
+  // Construit les champs de structure d'achat à persister (migration 161).
+  // Pour une hypothèque : calcule le paiement et la date de renouvellement.
+  const buildPurchaseFields = () => {
+    const base: any = { purchase_type: formData.purchase_type }
+    if (formData.purchase_type !== 'mortgage') return base
+
+    const loanAmount = formData.purchase_price * (1 - (formData.down_payment || 0) / 100)
+    const payment = calculateMortgagePayment(
+      loanAmount,
+      formData.interest_rate,
+      formData.loan_duration,
+      formData.mortgage_payment_frequency
+    )
+    let renewalDate: string | null = null
+    if (formData.mortgage_start_date && formData.mortgage_term_years) {
+      const d = new Date(formData.mortgage_start_date)
+      d.setFullYear(d.getFullYear() + formData.mortgage_term_years)
+      renewalDate = d.toISOString().split('T')[0]
+    }
+    return {
+      ...base,
+      payment_type: 'financed',
+      down_payment: formData.down_payment,
+      interest_rate: formData.interest_rate,
+      loan_duration: formData.loan_duration,
+      mortgage_rate_type: formData.mortgage_rate_type,
+      mortgage_term_years: formData.mortgage_term_years,
+      mortgage_payment_frequency: formData.mortgage_payment_frequency,
+      mortgage_start_date: formData.mortgage_start_date || null,
+      mortgage_renewal_date: renewalDate,
+      mortgage_payment_amount: payment
+    }
+  }
+
   const createScenario = async () => {
     if (!currentUser || !formData.name || formData.purchase_price === 0) {
       alert(t('scenarios.fillRequired'))
@@ -482,6 +562,7 @@ export default function ScenariosTab() {
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           recurring_fees: formData.recurring_fees || [],
+          ...buildPurchaseFields(),
           status: 'draft',
           created_by: currentUser.investorData?.id
         }])
@@ -547,7 +628,15 @@ export default function ScenariosTab() {
           annual_rent_increase: 2
         },
         payment_terms: [],
-        recurring_fees: []
+        recurring_fees: [],
+        purchase_type: 'cash',
+        down_payment: 20,
+        interest_rate: 5,
+        loan_duration: 25,
+        mortgage_rate_type: 'fixed',
+        mortgage_term_years: 5,
+        mortgage_payment_frequency: 'monthly',
+        mortgage_start_date: ''
       })
 
       alert(t('scenarios.created'))
@@ -586,7 +675,8 @@ export default function ScenariosTab() {
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           recurring_fees: formData.recurring_fees,
-          main_photo_url: formData.main_photo_url
+          main_photo_url: formData.main_photo_url,
+          ...buildPurchaseFields()
         })
         .eq('id', selectedScenario.id)
 
@@ -1118,7 +1208,15 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         annual_rent_increase: 2
       },
       payment_terms: selectedScenario.payment_terms || [],
-      recurring_fees: selectedScenario.recurring_fees || []
+      recurring_fees: selectedScenario.recurring_fees || [],
+      purchase_type: selectedScenario.purchase_type || 'cash',
+      down_payment: selectedScenario.down_payment ?? 20,
+      interest_rate: selectedScenario.interest_rate ?? 5,
+      loan_duration: selectedScenario.loan_duration ?? 25,
+      mortgage_rate_type: selectedScenario.mortgage_rate_type || 'fixed',
+      mortgage_term_years: selectedScenario.mortgage_term_years ?? 5,
+      mortgage_payment_frequency: selectedScenario.mortgage_payment_frequency || 'monthly',
+      mortgage_start_date: selectedScenario.mortgage_start_date || ''
     })
 
     // Afficher le formulaire d'édition
@@ -1953,6 +2051,150 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </p>
                 )}
               </div>
+
+              {/* Type d'achat + structure hypothécaire (migration 161) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.purchaseType')}</label>
+                <select
+                  value={formData.purchase_type}
+                  onChange={(e) => setFormData({...formData, purchase_type: e.target.value as 'cash' | 'preconstruction' | 'mortgage'})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="cash">{t('scenarios.purchaseTypeCash')}</option>
+                  <option value="preconstruction">{t('scenarios.purchaseTypePreconstruction')}</option>
+                  <option value="mortgage">{t('scenarios.purchaseTypeMortgage')}</option>
+                </select>
+              </div>
+
+              {formData.purchase_type === 'mortgage' && (() => {
+                const loanAmount = formData.purchase_price * (1 - (formData.down_payment || 0) / 100)
+                const payment = calculateMortgagePayment(
+                  loanAmount,
+                  formData.interest_rate,
+                  formData.loan_duration,
+                  formData.mortgage_payment_frequency
+                )
+                let renewalDate = ''
+                if (formData.mortgage_start_date && formData.mortgage_term_years) {
+                  const d = new Date(formData.mortgage_start_date)
+                  d.setFullYear(d.getFullYear() + formData.mortgage_term_years)
+                  renewalDate = d.toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')
+                }
+                const cur = formData.purchase_currency
+                return (
+                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.downPayment')}</label>
+                        <input
+                          type="number"
+                          value={formData.down_payment || ''}
+                          onChange={(e) => setFormData({...formData, down_payment: parseFloat(e.target.value) || 0})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder="20"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.interestRate')}</label>
+                        <input
+                          type="number"
+                          value={formData.interest_rate || ''}
+                          onChange={(e) => setFormData({...formData, interest_rate: parseFloat(e.target.value) || 0})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder="5.25"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rateType')}</label>
+                        <select
+                          value={formData.mortgage_rate_type}
+                          onChange={(e) => setFormData({...formData, mortgage_rate_type: e.target.value as 'fixed' | 'variable'})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                        >
+                          <option value="fixed">{t('scenarios.rateTypeFixed')}</option>
+                          <option value="variable">{t('scenarios.rateTypeVariable')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.paymentFrequency')}</label>
+                        <select
+                          value={formData.mortgage_payment_frequency}
+                          onChange={(e) => setFormData({...formData, mortgage_payment_frequency: e.target.value as 'biweekly' | 'monthly'})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                        >
+                          <option value="monthly">{t('scenarios.frequencyMonthly')}</option>
+                          <option value="biweekly">{t('scenarios.frequencyBiweekly')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.amortization')}</label>
+                        <input
+                          type="number"
+                          value={formData.loan_duration || ''}
+                          onChange={(e) => setFormData({...formData, loan_duration: parseInt(e.target.value) || 0})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder="25"
+                          min="1"
+                          max="40"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mortgageTerm')}</label>
+                        <input
+                          type="number"
+                          value={formData.mortgage_term_years || ''}
+                          onChange={(e) => setFormData({...formData, mortgage_term_years: parseInt(e.target.value) || 0})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          placeholder="5"
+                          min="1"
+                          max="10"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">{t('scenarios.mortgageTermHint')}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mortgageStartDate')}</label>
+                        <input
+                          type="date"
+                          value={formData.mortgage_start_date}
+                          onChange={(e) => setFormData({...formData, mortgage_start_date: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Résumé calculé */}
+                    <div className="bg-white p-3 rounded-lg border border-indigo-200">
+                      <div className="text-xs font-bold text-indigo-900 mb-2">{t('scenarios.mortgageSummary')}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <div className="text-xs text-gray-500">{t('scenarios.loanAmount')}</div>
+                          <div className="font-bold text-gray-900">
+                            {loanAmount.toLocaleString('fr-CA', { style: 'currency', currency: cur, minimumFractionDigits: 0 })}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">{t('scenarios.calculatedPayment')}</div>
+                          <div className="font-bold text-indigo-700">
+                            {payment.toLocaleString('fr-CA', { style: 'currency', currency: cur })}
+                            <span className="text-xs text-gray-500 ml-1">
+                              / {formData.mortgage_payment_frequency === 'biweekly' ? t('scenarios.frequencyBiweekly') : t('scenarios.frequencyMonthly')}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">{t('scenarios.renewalDate')}</div>
+                          <div className="font-bold text-gray-900">{renewalDate || '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.initialFees')}</label>
