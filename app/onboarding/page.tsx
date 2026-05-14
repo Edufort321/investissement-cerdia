@@ -20,19 +20,28 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import {
   Building2, Globe, Coins, FileText, Check, ChevronLeft, ChevronRight, Sparkles, Plus, X, LogOut,
 } from 'lucide-react'
 
 const CURRENCIES = ['CAD', 'USD', 'EUR', 'MXN', 'DOP', 'GBP', 'CHF', 'AUD']
-const JURISDICTIONS: Array<{ code: string; label: string; taxForms: string[] }> = [
+const JURISDICTIONS_FR: Array<{ code: string; label: string; taxForms: string[] }> = [
   { code: 'CA', label: 'Canada',         taxForms: ['T1135', 'T2209'] },
   { code: 'US', label: 'États-Unis',     taxForms: ['1099', 'W-9'] },
   { code: 'FR', label: 'France',         taxForms: ['IFU'] },
   { code: 'MX', label: 'Mexique',        taxForms: [] },
   { code: 'DO', label: 'République Dominicaine', taxForms: [] },
   { code: 'OTHER', label: 'Autre / Non applicable', taxForms: [] },
+]
+const JURISDICTIONS_EN: Array<{ code: string; label: string; taxForms: string[] }> = [
+  { code: 'CA', label: 'Canada',         taxForms: ['T1135', 'T2209'] },
+  { code: 'US', label: 'United States',  taxForms: ['1099', 'W-9'] },
+  { code: 'FR', label: 'France',         taxForms: ['IFU'] },
+  { code: 'MX', label: 'Mexico',         taxForms: [] },
+  { code: 'DO', label: 'Dominican Republic', taxForms: [] },
+  { code: 'OTHER', label: 'Other / Not applicable', taxForms: [] },
 ]
 
 type Step = 1 | 2 | 3 | 4
@@ -41,6 +50,9 @@ export default function OnboardingPage() {
   const router = useRouter()
   const { organization, profile, refresh, loading } = useOrganization()
   const { logout } = useAuth()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const JURISDICTIONS = fr ? JURISDICTIONS_FR : JURISDICTIONS_EN
 
   const [step, setStep] = useState<Step>(1)
   const [saving, setSaving] = useState(false)
@@ -119,7 +131,7 @@ export default function OnboardingPage() {
   const goNext = () => {
     setErr('')
     if (!canProceed) {
-      setErr('Champs requis manquants.')
+      setErr(fr ? 'Champs requis manquants.' : 'Required fields missing.')
       return
     }
     if (step < 4) setStep((step + 1) as Step)
@@ -154,7 +166,7 @@ export default function OnboardingPage() {
       .eq('id', organization.id)
     if (error) {
       setSaving(false)
-      setErr(`Erreur de sauvegarde: ${error.message}`)
+      setErr((fr ? 'Erreur de sauvegarde: ' : 'Save error: ') + error.message)
       return
     }
     // Marque aussi profile.onboarding_completed pour les futurs flows
@@ -173,7 +185,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <p className="text-sm text-gray-500">{fr ? 'Chargement…' : 'Loading…'}</p>
         </div>
       </div>
     )
@@ -183,9 +195,9 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <p className="text-sm text-gray-500 mb-3">Tu dois être connecté pour accéder à cette page.</p>
+          <p className="text-sm text-gray-500 mb-3">{fr ? 'Tu dois être connecté pour accéder à cette page.' : 'You must be logged in to access this page.'}</p>
           <button onClick={() => router.replace('/connexion')} className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm">
-            Connexion
+            {fr ? 'Connexion' : 'Log in'}
           </button>
         </div>
       </div>
@@ -198,7 +210,7 @@ export default function OnboardingPage() {
         {/* Logout discret en haut à droite */}
         <div className="flex justify-end mb-2">
           <button onClick={() => logout()} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-            <LogOut size={12} /> Déconnexion
+            <LogOut size={12} /> {fr ? 'Déconnexion' : 'Log out'}
           </button>
         </div>
 
@@ -208,10 +220,12 @@ export default function OnboardingPage() {
             <Sparkles size={26} className="text-purple-600 dark:text-purple-300" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Bienvenue sur ta plateforme
+            {fr ? 'Bienvenue sur ta plateforme' : 'Welcome to your platform'}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Configurons ton organisation <span className="font-semibold">{organization.name}</span> en quelques étapes.
+            {fr
+              ? <>Configurons ton organisation <span className="font-semibold">{organization.name}</span> en quelques étapes.</>
+              : <>Let&apos;s set up your organization <span className="font-semibold">{organization.name}</span> in a few steps.</>}
           </p>
         </div>
 
@@ -221,7 +235,7 @@ export default function OnboardingPage() {
             <div key={n} className="flex-1">
               <div className={`h-2 rounded-full transition-colors ${n <= step ? 'bg-purple-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
               <p className={`text-xs mt-1 text-center transition-colors ${n === step ? 'font-semibold text-purple-700 dark:text-purple-300' : 'text-gray-400'}`}>
-                Étape {n}
+                {fr ? `Étape ${n}` : `Step ${n}`}
               </p>
             </div>
           ))}
@@ -234,19 +248,19 @@ export default function OnboardingPage() {
             <div>
               <div className="flex items-center gap-3 mb-5">
                 <Building2 size={20} className="text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Société</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fr ? 'Société' : 'Company'}</h2>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom légal *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Nom légal *' : 'Legal name *'}</label>
                   <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={legalName} onChange={e => setLegalName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adresse (optionnel)</label>
-                  <input type="text" placeholder="1234 rue Exemple, Ville, Province, Pays" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={address} onChange={e => setAddress(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Adresse (optionnel)' : 'Address (optional)'}</label>
+                  <input type="text" placeholder={fr ? '1234 rue Exemple, Ville, Province, Pays' : '1234 Example St, City, State, Country'} className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={address} onChange={e => setAddress(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Numéro d'entreprise (NEQ / corpo) — optionnel</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Numéro d\'entreprise (NEQ / corpo) — optionnel' : 'Business number (registration) — optional'}</label>
                   <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={businessNumber} onChange={e => setBusinessNumber(e.target.value)} />
                 </div>
               </div>
@@ -257,11 +271,11 @@ export default function OnboardingPage() {
             <div>
               <div className="flex items-center gap-3 mb-5">
                 <Globe size={20} className="text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Devises &amp; juridiction</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fr ? 'Devises & juridiction' : 'Currencies & jurisdiction'}</h2>
               </div>
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Devise principale</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Devise principale' : 'Primary currency'}</label>
                   <div className="flex flex-wrap gap-2">
                     {CURRENCIES.map(c => (
                       <button
@@ -283,7 +297,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Devises secondaires acceptées</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Devises secondaires acceptées' : 'Accepted secondary currencies'}</label>
                   <div className="flex flex-wrap gap-2">
                     {CURRENCIES.filter(c => c !== currencyPrimary).map(c => {
                       const active = currenciesEnabled.includes(c)
@@ -301,13 +315,13 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Juridiction fiscale</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Juridiction fiscale' : 'Tax jurisdiction'}</label>
                   <select className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={taxJurisdiction} onChange={e => setTaxJurisdiction(e.target.value)}>
                     {JURISDICTIONS.map(j => <option key={j.code} value={j.code}>{j.label}</option>)}
                   </select>
                   {selectedJuri.taxForms.length > 0 && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Rapports activés pour cette juridiction : <span className="font-mono">{selectedJuri.taxForms.join(' · ')}</span>
+                      {fr ? 'Rapports activés pour cette juridiction : ' : 'Reports enabled for this jurisdiction: '}<span className="font-mono">{selectedJuri.taxForms.join(' · ')}</span>
                     </p>
                   )}
                 </div>
@@ -319,17 +333,19 @@ export default function OnboardingPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Coins size={20} className="text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Classes de parts</h2>
-                <span className="ml-auto text-xs text-gray-400">(facultatif)</span>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fr ? 'Classes de parts' : 'Share classes'}</h2>
+                <span className="ml-auto text-xs text-gray-400">{fr ? '(facultatif)' : '(optional)'}</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Si ton organisation a une structure de parts/actions (ex: Classe A, B, C), définis-les ici. Sinon tu peux passer.
+                {fr
+                  ? 'Si ton organisation a une structure de parts/actions (ex: Classe A, B, C), définis-les ici. Sinon tu peux passer.'
+                  : 'If your organization has a share structure (e.g. Class A, B, C), define them here. Otherwise you can skip.'}
               </p>
               <div className="space-y-3">
                 <div className="flex gap-2">
-                  <input type="text" placeholder="ex: Classe A" className="flex-1 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={newClassInput} onChange={e => setNewClassInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addShareClass()} />
+                  <input type="text" placeholder={fr ? 'ex: Classe A' : 'e.g. Class A'} className="flex-1 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={newClassInput} onChange={e => setNewClassInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addShareClass()} />
                   <button type="button" onClick={addShareClass} className="px-3 py-2 bg-purple-600 text-white rounded-xl text-sm flex items-center gap-1">
-                    <Plus size={14} /> Ajouter
+                    <Plus size={14} /> {fr ? 'Ajouter' : 'Add'}
                   </button>
                 </div>
                 {shareClasses.length > 0 && (
@@ -352,42 +368,44 @@ export default function OnboardingPage() {
             <div>
               <div className="flex items-center gap-3 mb-5">
                 <FileText size={20} className="text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Confirmation</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fr ? 'Confirmation' : 'Confirmation'}</h2>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-500">Nom légal</span><span className="font-medium">{legalName}</span>
+                  <span className="text-gray-500">{fr ? 'Nom légal' : 'Legal name'}</span><span className="font-medium">{legalName}</span>
                 </div>
                 {address && (
                   <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <span className="text-gray-500">Adresse</span><span className="font-medium text-right">{address}</span>
+                    <span className="text-gray-500">{fr ? 'Adresse' : 'Address'}</span><span className="font-medium text-right">{address}</span>
                   </div>
                 )}
                 {businessNumber && (
                   <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <span className="text-gray-500">Numéro d'entreprise</span><span className="font-medium">{businessNumber}</span>
+                    <span className="text-gray-500">{fr ? 'Numéro d\'entreprise' : 'Business number'}</span><span className="font-medium">{businessNumber}</span>
                   </div>
                 )}
                 <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-500">Devise principale</span><span className="font-medium">{currencyPrimary}</span>
+                  <span className="text-gray-500">{fr ? 'Devise principale' : 'Primary currency'}</span><span className="font-medium">{currencyPrimary}</span>
                 </div>
                 <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-500">Devises secondaires</span><span className="font-medium text-right">{currenciesEnabled.filter(c => c !== currencyPrimary).join(', ') || '—'}</span>
+                  <span className="text-gray-500">{fr ? 'Devises secondaires' : 'Secondary currencies'}</span><span className="font-medium text-right">{currenciesEnabled.filter(c => c !== currencyPrimary).join(', ') || '—'}</span>
                 </div>
                 <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-500">Juridiction fiscale</span><span className="font-medium">{selectedJuri.label}</span>
+                  <span className="text-gray-500">{fr ? 'Juridiction fiscale' : 'Tax jurisdiction'}</span><span className="font-medium">{selectedJuri.label}</span>
                 </div>
                 {selectedJuri.taxForms.length > 0 && (
                   <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <span className="text-gray-500">Rapports fiscaux</span><span className="font-medium font-mono">{selectedJuri.taxForms.join(' · ')}</span>
+                    <span className="text-gray-500">{fr ? 'Rapports fiscaux' : 'Tax reports'}</span><span className="font-medium font-mono">{selectedJuri.taxForms.join(' · ')}</span>
                   </div>
                 )}
                 <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-500">Classes de parts</span><span className="font-medium">{shareClasses.length > 0 ? shareClasses.join(', ') : 'Aucune'}</span>
+                  <span className="text-gray-500">{fr ? 'Classes de parts' : 'Share classes'}</span><span className="font-medium">{shareClasses.length > 0 ? shareClasses.join(', ') : (fr ? 'Aucune' : 'None')}</span>
                 </div>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-5">
-                Tu pourras modifier ces paramètres plus tard depuis les <strong>Paramètres</strong> de ton organisation.
+                {fr
+                  ? <>Tu pourras modifier ces paramètres plus tard depuis les <strong>Paramètres</strong> de ton organisation.</>
+                  : <>You can change these settings later from your organization&apos;s <strong>Settings</strong>.</>}
               </p>
             </div>
           )}
@@ -404,7 +422,7 @@ export default function OnboardingPage() {
               disabled={step === 1 || saving}
               className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft size={14} /> Précédent
+              <ChevronLeft size={14} /> {fr ? 'Précédent' : 'Previous'}
             </button>
             {step < 4 ? (
               <button
@@ -413,7 +431,7 @@ export default function OnboardingPage() {
                 disabled={!canProceed}
                 className="flex items-center gap-1 px-5 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
-                {step === 3 && shareClasses.length === 0 ? 'Passer' : 'Suivant'} <ChevronRight size={14} />
+                {step === 3 && shareClasses.length === 0 ? (fr ? 'Passer' : 'Skip') : (fr ? 'Suivant' : 'Next')} <ChevronRight size={14} />
               </button>
             ) : (
               <button
@@ -422,7 +440,7 @@ export default function OnboardingPage() {
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
-                <Check size={14} /> {saving ? 'Configuration…' : 'Commencer'}
+                <Check size={14} /> {saving ? (fr ? 'Configuration…' : 'Configuring…') : (fr ? 'Commencer' : 'Get started')}
               </button>
             )}
           </div>
