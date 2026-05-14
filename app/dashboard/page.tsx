@@ -81,6 +81,21 @@ export default function DashboardPage() {
     }
   }
 
+  // Décompte vers la date de renouvellement d'un terme hypothécaire.
+  // Vert > 180j, jaune <= 180j, rouge échu.
+  const getRenewalFlag = (renewalDate: string | null | undefined): { color: string; label: string; days: number } | null => {
+    if (!renewalDate) return null
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const renewal = new Date(renewalDate)
+    renewal.setHours(0, 0, 0, 0)
+    const days = Math.floor((renewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    if (days < 0) return { color: 'red', label: t('dashboard.renewalOverdue'), days }
+    if (days === 0) return { color: 'orange', label: t('dashboard.renewalToday'), days }
+    if (days <= 180) return { color: 'orange', label: `${t('dashboard.renewalIn')} ${days} ${t('dashboard.days')}`, days }
+    return { color: 'green', label: `${t('dashboard.renewalIn')} ${days} ${t('dashboard.days')}`, days }
+  }
+
   // Gérer la vue mobile/desktop
   useEffect(() => {
     const handleResize = () => {
@@ -164,6 +179,9 @@ export default function DashboardPage() {
       const flag = getColorFlag(payment.due_date, effectiveStatus)
       const amountInCAD = payment.currency === 'USD' ? payment.amount * exchangeRate : payment.amount
 
+      const isMortgage = payment.payment_kind === 'mortgage'
+      const renewalFlag = isMortgage ? getRenewalFlag(payment.recurrence_end_date) : null
+
       return {
         ...payment,
         property_name: property?.name || 'Propriété inconnue',
@@ -171,7 +189,9 @@ export default function DashboardPage() {
         days_until_due: daysUntil,
         color_flag: flag,
         amount_in_cad: amountInCAD,
-        actual_payment_date: relatedTransactions.length > 0 ? relatedTransactions[0].date : null
+        actual_payment_date: relatedTransactions.length > 0 ? relatedTransactions[0].date : null,
+        is_mortgage: isMortgage,
+        renewal_flag: renewalFlag
       }
     })
     .sort((a, b) => {
@@ -870,14 +890,28 @@ export default function DashboardPage() {
                             {/* Informations du paiement */}
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{payment.property_name}</p>
-                              <p className="text-xs sm:text-sm text-gray-600">{payment.term_label}</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs sm:text-sm text-gray-600">{payment.term_label}</p>
+                                {payment.is_mortgage && payment.renewal_flag && (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                    payment.renewal_flag.color === 'red' ? 'bg-red-100 text-red-700' :
+                                    payment.renewal_flag.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-green-100 text-green-700'
+                                  }`}>
+                                    {payment.renewal_flag.label}
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             {/* Date d'échéance */}
                             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                               <Calendar size={14} className="text-gray-500" />
                               <span>
-                                {new Date(payment.due_date).toLocaleDateString('fr-CA', {
+                                {payment.is_mortgage && (
+                                  <span className="text-gray-500 mr-1">{t('dashboard.nextPayment')}:</span>
+                                )}
+                                {new Date(payment.due_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
                                   day: 'numeric',
                                   month: 'short',
                                   year: 'numeric'
@@ -937,28 +971,47 @@ export default function DashboardPage() {
                             const progressPercentage = payment.amount > 0 ? (paidAmountUSD / payment.amount) * 100 : 0
 
                             // Afficher la barre si ce paiement est sélectionné
-                            if (expandedPaymentId === payment.id) {
+                            if (expandedPaymentId !== payment.id) return null
+
+                            // Échéance hypothécaire récurrente : afficher le solde décroissant
+                            if (payment.is_mortgage) {
                               return (
                                 <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
-                                  <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                    <span>{t('dashboard.paidAmount')}: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
-                                    <span>{t('dashboard.remaining')}: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                      <div className="text-xs text-gray-500">{t('dashboard.remainingBalance')}</div>
+                                      <div className="font-bold text-gray-900">
+                                        {(payment.remaining_balance ?? 0).toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500">{t('dashboard.paymentsMade')}</div>
+                                      <div className="font-bold text-gray-900">{payment.payments_made ?? 0}</div>
+                                    </div>
                                   </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                      className={`h-2 rounded-full transition-all ${progressPercentage === 100 ? 'bg-green-600' : 'bg-blue-600'}`}
-                                      style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                                    />
-                                  </div>
-                                  <p className="text-xs text-gray-500 mt-1 text-center">
-                                    {progressPercentage.toFixed(1)}% {t('dashboard.paid')}
-                                    {progressPercentage === 0 && ` - ${t('dashboard.noPaymentMade')}`}
-                                    {progressPercentage === 100 && ' ✅'}
-                                  </p>
                                 </div>
                               )
                             }
-                            return null
+
+                            return (
+                              <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
+                                <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                  <span>{t('dashboard.paidAmount')}: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
+                                  <span>{t('dashboard.remaining')}: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${progressPercentage === 100 ? 'bg-green-600' : 'bg-blue-600'}`}
+                                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1 text-center">
+                                  {progressPercentage.toFixed(1)}% {t('dashboard.paid')}
+                                  {progressPercentage === 0 && ` - ${t('dashboard.noPaymentMade')}`}
+                                  {progressPercentage === 100 && ' ✅'}
+                                </p>
+                              </div>
+                            )
                           })()}
                         </div>
                       )

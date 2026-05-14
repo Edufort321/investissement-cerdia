@@ -56,6 +56,13 @@ interface PaymentSchedule {
   notes: string | null
   created_at: string
   updated_at: string
+  // Échéance hypothécaire récurrente (migration 161)
+  payment_kind?: 'fixed_term' | 'mortgage'
+  is_recurring?: boolean
+  recurrence_frequency?: 'biweekly' | 'monthly' | null
+  recurrence_end_date?: string | null
+  remaining_balance?: number | null
+  payments_made?: number | null
 }
 
 interface Transaction {

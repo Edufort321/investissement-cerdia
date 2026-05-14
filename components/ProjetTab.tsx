@@ -1829,6 +1829,55 @@ export default function ProjetTab() {
                             // Obtenir le flag de statut
                             const statusFlag = getPaymentStatusFlag(payment.due_date, payment.status)
 
+                            // Échéance hypothécaire récurrente : affichage dédié (solde décroissant)
+                            if (payment.payment_kind === 'mortgage') {
+                              let renewalDays: number | null = null
+                              if (payment.recurrence_end_date) {
+                                const today = new Date(); today.setHours(0, 0, 0, 0)
+                                const renewal = new Date(payment.recurrence_end_date); renewal.setHours(0, 0, 0, 0)
+                                renewalDays = Math.floor((renewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                              }
+                              const renewalColor = renewalDays === null ? 'gray'
+                                : renewalDays < 0 ? 'red'
+                                : renewalDays <= 180 ? 'orange' : 'green'
+                              return (
+                                <div key={payment.id} className="p-3 rounded-lg border bg-indigo-50 border-indigo-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-2xl">🏦</span>
+                                      <span className="text-sm font-medium text-gray-900">{payment.term_label}</span>
+                                    </div>
+                                    {renewalDays !== null && (
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                        renewalColor === 'red' ? 'bg-red-100 text-red-700' :
+                                        renewalColor === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                        'bg-green-100 text-green-700'
+                                      }`}>
+                                        {renewalDays < 0 ? t('dashboard.renewalOverdue')
+                                          : `${t('dashboard.renewalIn')} ${renewalDays} ${t('dashboard.days')}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <div className="bg-white p-2 rounded border border-indigo-200">
+                                      <div className="text-xs text-gray-500">{t('dashboard.remainingBalance')}</div>
+                                      <div className="text-base font-bold text-indigo-900">
+                                        {(payment.remaining_balance ?? 0).toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}
+                                      </div>
+                                    </div>
+                                    <div className="bg-white p-2 rounded border border-indigo-200">
+                                      <div className="text-xs text-gray-500">{t('dashboard.paymentsMade')}</div>
+                                      <div className="text-base font-bold text-gray-900">{payment.payments_made ?? 0}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs text-gray-600">
+                                    <span>{t('projects.amountCADLabel')}: {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}</span>
+                                    <span>{t('dashboard.nextPayment')}: {new Date(payment.due_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}</span>
+                                  </div>
+                                </div>
+                              )
+                            }
+
                             return (
                               <div key={payment.id} className={`p-3 rounded-lg border ${statusFlag.bgClass}`}>
                                 {/* Header with status flag and label */}
