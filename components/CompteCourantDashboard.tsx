@@ -1,6 +1,7 @@
 'use client'
 
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useState, useMemo } from 'react'
 import { Wallet, TrendingUp, TrendingDown, Calendar } from 'lucide-react'
@@ -18,7 +19,8 @@ const ALL_YEARS = 'all'
 
 export default function CompteCourantDashboard() {
   const { transactions } = useInvestment()
-  const { summary: globalSummary } = useFinancialSummary(null)
+  const { organization } = useOrganization()
+  const { summary: globalSummary } = useFinancialSummary(null, organization?.id ?? null)
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(currentYear)
 

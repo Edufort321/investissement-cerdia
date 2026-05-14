@@ -8,6 +8,7 @@
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { DollarSign, TrendingUp, Building2, Wallet, BarChart3 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -18,8 +19,12 @@ interface FinancialKPIsProps {
 
 export default function FinancialKPIs({ year = null, className = '' }: FinancialKPIsProps) {
   const { t } = useLanguage()
-  const { summary, loading, error } = useFinancialSummary(year)
-  const { current: navCurrent, pctChange: navPct, loading: navLoading } = useNAVTimeline()
+  // Organisation effective (réelle ou override "View as") — les KPI doivent
+  // suivre le tenant affiché, pas tout ce que super_admin voit via RLS.
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
+  const { summary, loading, error } = useFinancialSummary(year, orgId)
+  const { current: navCurrent, pctChange: navPct, loading: navLoading } = useNAVTimeline(orgId)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {

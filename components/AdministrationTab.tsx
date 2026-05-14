@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
@@ -128,8 +129,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   } = useInvestment()
 
   const { t } = useLanguage()
-  const { current: navCurrent } = useNAVTimeline()
-  const { summary: financialSummary } = useFinancialSummary(null)
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
+  const { current: navCurrent } = useNAVTimeline(orgId)
+  const { summary: financialSummary } = useFinancialSummary(null, orgId)
   const { entitledDays, remainingDays, totalProjectDays } = useOwnerDays()
 
   // Refs

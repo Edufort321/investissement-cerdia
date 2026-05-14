@@ -8,20 +8,23 @@ export interface NAVTimelinePoint {
   total_shares: number
 }
 
-export function useNAVTimeline() {
+export function useNAVTimeline(orgId: string | null = null) {
   const [data, setData] = useState<NAVTimelinePoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId])
 
   async function load() {
     try {
       setLoading(true)
       setError(null)
-      const { data: raw, error: rpcError } = await supabase.rpc('get_nav_timeline')
+      const { data: raw, error: rpcError } = await supabase.rpc('get_nav_timeline', {
+        p_org_id: orgId
+      })
       if (rpcError) throw rpcError
       setData(
         (raw || []).map((r: any) => ({

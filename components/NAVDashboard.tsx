@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { FileDown, ChevronDown, ChevronUp } from 'lucide-react'
@@ -102,8 +103,10 @@ interface InvestorMetric {
 
 export default function NAVDashboard() {
   const { rate: exchangeRate } = useExchangeRate()
-  const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline()
-  const { summary: financialSummary } = useFinancialSummary(null)
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
+  const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline(orgId)
+  const { summary: financialSummary } = useFinancialSummary(null, orgId)
   const [summary, setSummary] = useState<NAVSummary | null>(null)
   const [detailedNavData, setDetailedNavData] = useState<DetailedNAVData | null>(null)
   const [properties, setProperties] = useState<PropertyValue[]>([])

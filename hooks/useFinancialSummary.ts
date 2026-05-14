@@ -15,7 +15,7 @@ import {
   type PropertyCashflow
 } from '@/lib/financial-summary-service'
 
-export function useFinancialSummary(year: number | null = null) {
+export function useFinancialSummary(year: number | null = null, orgId: string | null = null) {
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export function useFinancialSummary(year: number | null = null) {
       try {
         setLoading(true)
         setError(null)
-        const data = await getFinancialSummary(year)
+        const data = await getFinancialSummary(year, orgId)
         if (isMounted) {
           setSummary(data)
         }
@@ -48,11 +48,11 @@ export function useFinancialSummary(year: number | null = null) {
     return () => {
       isMounted = false
     }
-  }, [year])
+  }, [year, orgId])
 
   return { summary, loading, error, reload: () => {
     setLoading(true)
-    getFinancialSummary(year).then(data => {
+    getFinancialSummary(year, orgId).then(data => {
       setSummary(data)
       setLoading(false)
     })

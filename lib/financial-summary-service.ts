@@ -49,11 +49,17 @@ export interface PropertyCashflow {
 /**
  * Récupère le résumé financier global
  * @param year - Année à filtrer (optionnel, null = toutes années)
+ * @param orgId - Organisation effective (real ou override "View as"). Si omis,
+ *   la fonction SQL retombe sur auth_get_org_id().
  */
-export async function getFinancialSummary(year: number | null = null): Promise<FinancialSummary | null> {
+export async function getFinancialSummary(
+  year: number | null = null,
+  orgId: string | null = null
+): Promise<FinancialSummary | null> {
   try {
     const { data, error } = await supabase.rpc('get_financial_summary', {
-      p_year: year
+      p_year: year,
+      p_org_id: orgId
     })
 
     if (error) {

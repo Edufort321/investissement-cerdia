@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -35,7 +36,8 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function NAVTimelineChart({ className = '' }: Props) {
-  const { data, loading } = useNAVTimeline()
+  const { organization } = useOrganization()
+  const { data, loading } = useNAVTimeline(organization?.id ?? null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
