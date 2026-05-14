@@ -692,6 +692,13 @@ export default function ScenariosTab() {
           ...formData
         }
 
+        // Transfert de la structure d'achat vers le projet lié
+        const pf = buildPurchaseFields()
+        const { payment_type, ...purchaseFieldsForProperty } = pf as any
+        const propertyPurchaseFields = pf.purchase_type === 'mortgage'
+          ? { ...purchaseFieldsForProperty, payment_schedule_type: 'mortgage' }
+          : { purchase_type: pf.purchase_type }
+
         const propertyUpdateData = {
           name: getFullName(formData.name, formData.unit_number),
           location: formData.address || t('scenarios.toBeDefinedLocation'),
@@ -699,7 +706,8 @@ export default function ScenariosTab() {
           main_photo_url: formData.main_photo_url || null,
           recurring_fees: formData.recurring_fees || [],
           initial_fees_distribution: formData.initial_fees_distribution || 'first_payment',
-          deduct_initial_from_first_term: formData.deduct_initial_from_first_term || false
+          deduct_initial_from_first_term: formData.deduct_initial_from_first_term || false,
+          ...propertyPurchaseFields
         }
 
         const { error: propertyError } = await supabase
@@ -1269,6 +1277,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       const currentExchangeRate = await getCurrentExchangeRate('USD', 'CAD')
       console.log('🔵 [CONVERSION] Taux de change actuel:', currentExchangeRate)
 
+      // Transfert de la structure d'achat (migration 161)
+      const isMortgage = selectedScenario.purchase_type === 'mortgage'
+      const purchaseFields = isMortgage ? {
+        purchase_type: 'mortgage',
+        payment_schedule_type: 'mortgage',
+        down_payment: selectedScenario.down_payment ?? 0,
+        interest_rate: selectedScenario.interest_rate ?? 0,
+        loan_duration: selectedScenario.loan_duration ?? 25,
+        mortgage_rate_type: selectedScenario.mortgage_rate_type || 'fixed',
+        mortgage_term_years: selectedScenario.mortgage_term_years ?? null,
+        mortgage_payment_frequency: selectedScenario.mortgage_payment_frequency || 'monthly',
+        mortgage_start_date: selectedScenario.mortgage_start_date || null,
+        mortgage_renewal_date: selectedScenario.mortgage_renewal_date || null,
+        mortgage_payment_amount: selectedScenario.mortgage_payment_amount ?? null
+      } : {
+        purchase_type: selectedScenario.purchase_type || 'cash'
+      }
+
       // Créer la propriété
       const propertyData = {
         name: getFullName(selectedScenario.name, selectedScenario.unit_number),
@@ -1281,7 +1307,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         main_photo_url: selectedScenario.main_photo_url || null,
         recurring_fees: selectedScenario.recurring_fees || [],
         initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
-        deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false
+        deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false,
+        ...purchaseFields
       }
 
       const { data: property, error: propError } = await supabase
@@ -1292,10 +1319,21 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
       if (propError) throw propError
 
-      // Créer les termes de paiement si définis
+      // Créer les échéances de paiement
       console.log('🔵 [CONVERSION] Payment terms du scénario:', selectedScenario.payment_terms)
 
-      if (selectedScenario.payment_terms && selectedScenario.payment_terms.length > 0) {
+      if (isMortgage) {
+        // Hypothèque : générer l'échéance récurrente unique via la fonction SQL
+        console.log('🔵 [CONVERSION] Génération de l\'échéance hypothécaire récurrente...')
+        const { data: mortgageScheduleId, error: mortgageError } = await supabase
+          .rpc('generate_mortgage_schedule', { p_property_id: property.id })
+
+        if (mortgageError) {
+          console.error('❌ [CONVERSION] Erreur generate_mortgage_schedule:', mortgageError)
+          throw mortgageError
+        }
+        console.log('✅ [CONVERSION] Échéance hypothécaire créée:', mortgageScheduleId)
+      } else if (selectedScenario.payment_terms && selectedScenario.payment_terms.length > 0) {
         const termsToInsert = selectedScenario.payment_terms
           .filter(term => term.due_date && term.due_date.trim() !== '') // Ignorer les termes sans date
           .map((term, index) => {
