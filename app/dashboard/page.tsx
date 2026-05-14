@@ -233,8 +233,8 @@ export default function DashboardPage() {
   const allTabs = [
     { id: 'dashboard' as TabType, label: t('nav.dashboard'), icon: LayoutDashboard, permission: 'dashboard' },
     { id: 'projet' as TabType, label: t('nav.projects'), icon: FolderKanban, permission: 'projet' },
-    { id: 'evaluateur' as TabType, label: 'Évaluateur', icon: Calculator, permission: null }, // Toujours visible
-    { id: 'reservations' as TabType, label: 'Réservations', icon: Calendar, permission: null }, // Toujours visible
+    { id: 'evaluateur' as TabType, label: t('nav.evaluator'), icon: Calculator, permission: null }, // Toujours visible
+    { id: 'reservations' as TabType, label: t('nav.reservations'), icon: Calendar, permission: null }, // Toujours visible
     { id: 'administration' as TabType, label: t('nav.administration'), icon: Settings, permission: 'administration' },
   ]
 
@@ -347,7 +347,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Investisseurs
+                        {t('admin.subtab.investors')}
                       </button>
                       <button
                         onClick={() => {
@@ -360,7 +360,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Transactions
+                        {t('admin.subtab.transactions')}
                       </button>
                       <button
                         onClick={() => {
@@ -373,7 +373,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Factures Courriel
+                        {t('admin.subtab.facturesEmail')}
                       </button>
                       <button
                         onClick={() => {
@@ -386,7 +386,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        CAPEX
+                        {t('admin.subtab.capex')}
                       </button>
                       <button
                         onClick={() => {
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Compte Courant
+                        {t('admin.subtab.currentAccount')}
                       </button>
                       <button
                         onClick={() => {
@@ -412,7 +412,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        NAV (Valeur Liquidative)
+                        {t('admin.subtab.nav')}
                       </button>
                       <button
                         onClick={() => {
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        R&D / Dividendes
+                        {t('admin.subtab.rdDividends')}
                       </button>
                       <button
                         onClick={() => {
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Rapports Fiscaux
+                        {t('admin.subtab.taxReports')}
                       </button>
                       <button
                         onClick={() => {
@@ -451,7 +451,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Performance ROI
+                        {t('admin.subtab.performance')}
                       </button>
                       <button
                         onClick={() => {
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Sync Revenus
+                        {t('admin.subtab.syncRevenues')}
                       </button>
                       <button
                         onClick={() => {
@@ -477,7 +477,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Trésorerie
+                        {t('admin.subtab.treasury')}
                       </button>
                       <button
                         onClick={() => {
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Gestion Projet
+                        {t('admin.subtab.projectManagement')}
                       </button>
                       <button
                         onClick={() => {
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Budgétisation
+                        {t('admin.subtab.budgeting')}
                       </button>
                       <button
                         onClick={() => {
@@ -516,7 +516,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Évaluations
+                        {t('admin.subtab.valuations')}
                       </button>
                       <button
                         onClick={() => {
@@ -529,7 +529,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Prix des parts
+                        {t('admin.subtab.sharePrice')}
                       </button>
                       <button
                         onClick={() => {
@@ -542,7 +542,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Livre d'entreprise
+                        {t('admin.subtab.corporateBook')}
                       </button>
                       <button
                         onClick={() => {
@@ -555,7 +555,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Mode d'emploi
+                        {t('admin.subtab.userGuide')}
                       </button>
                       <button
                         onClick={() => {
@@ -568,7 +568,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Bloc-notes
+                        {t('admin.subtab.notes')}
                       </button>
                       <button
                         onClick={() => {
@@ -581,7 +581,7 @@ export default function DashboardPage() {
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        Factures
+                        {t('admin.subtab.invoices')}
                       </button>
                     </div>
                   )}
@@ -683,13 +683,13 @@ export default function DashboardPage() {
                                 property.status === 'reservation' ? 'bg-blue-100 text-blue-800' :
                                 'bg-green-100 text-green-800'
                               }`}>
-                                {property.status === 'en_construction' ? 'En construction' :
-                                 property.status === 'reservation' ? 'Réservation' : property.status}
+                                {property.status === 'en_construction' ? t('projects.statusConstruction') :
+                                 property.status === 'reservation' ? t('projects.statusReservation') : property.status}
                               </span>
                             </div>
                             <div className="mt-3">
                               <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-600">Progression</span>
+                                <span className="text-gray-600">{t('dashboard.progress')}</span>
                                 <span className="font-semibold">{progress.toFixed(1)}%</span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -700,7 +700,7 @@ export default function DashboardPage() {
                               </div>
                               <div className="flex justify-between text-xs mt-2 text-gray-600">
                                 <span>
-                                  {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} payé
+                                  {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} {t('dashboard.paid')}
                                 </span>
                                 <span>
                                   / {totalCostCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
@@ -712,7 +712,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-100">
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">ROI attendu</span>
+                                <span className="text-gray-600">{t('dashboard.expectedROI')}</span>
                                 <span className="font-semibold text-green-600">{property.expected_roi}%</span>
                               </div>
                             </div>
@@ -747,7 +747,7 @@ export default function DashboardPage() {
                                 <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
                                 <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
                                 <p className="text-xs text-gray-400">
-                                  Investi: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                                  {t('dashboard.invested')}: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                 </p>
                               </div>
                             </div>
@@ -755,8 +755,8 @@ export default function DashboardPage() {
                               <p className="font-semibold text-green-700">
                                 {investor.calculated_current_value.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </p>
-                              <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} parts</p>
-                              <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} $/part</p>
+                              <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} {t('dashboard.shares')}</p>
+                              <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} {t('dashboard.perShare')}</p>
                             </div>
                           </div>
                           {/* Jours propriétaire */}
@@ -812,7 +812,7 @@ export default function DashboardPage() {
                       <div className="mb-4 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <div>
-                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total des paiements à venir</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">{t('dashboard.upcomingPaymentsTotal')}</p>
                             {totalUSD > 0 && (
                               <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1">
                                 {totalUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
@@ -826,7 +826,7 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <div className="text-left sm:text-right">
-                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Équivalent CAD</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">{t('dashboard.cadEquivalent')}</p>
                             <p className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-400">
                               {totalCADConverted.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
@@ -856,12 +856,12 @@ export default function DashboardPage() {
                                 <p className="text-xs sm:text-sm font-medium text-gray-700">{payment.color_flag.label}</p>
                                 <p className="text-xs text-gray-600">
                                   {payment.color_flag.color === 'green' && payment.actual_payment_date
-                                    ? `Payé le ${new Date(payment.actual_payment_date).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                    ? `${t('dashboard.paidOn')} ${new Date(payment.actual_payment_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'short', year: 'numeric' })}`
                                     : payment.days_until_due < 0
-                                    ? `${Math.abs(payment.days_until_due)} jour${Math.abs(payment.days_until_due) > 1 ? 's' : ''} de retard`
+                                    ? `${Math.abs(payment.days_until_due)} ${t('dashboard.daysLate')}`
                                     : payment.days_until_due === 0
-                                    ? 'Aujourd\'hui'
-                                    : `Dans ${payment.days_until_due} jour${payment.days_until_due > 1 ? 's' : ''}`
+                                    ? t('dashboard.today')
+                                    : `${t('dashboard.inDays')} ${payment.days_until_due} ${t('dashboard.days')}`
                                   }
                                 </p>
                               </div>
@@ -941,8 +941,8 @@ export default function DashboardPage() {
                               return (
                                 <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
                                   <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                    <span>Payé: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
-                                    <span>Reste: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
+                                    <span>{t('dashboard.paidAmount')}: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
+                                    <span>{t('dashboard.remaining')}: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div
@@ -951,8 +951,8 @@ export default function DashboardPage() {
                                     />
                                   </div>
                                   <p className="text-xs text-gray-500 mt-1 text-center">
-                                    {progressPercentage.toFixed(1)}% payé
-                                    {progressPercentage === 0 && ' - Aucun paiement effectué'}
+                                    {progressPercentage.toFixed(1)}% {t('dashboard.paid')}
+                                    {progressPercentage === 0 && ` - ${t('dashboard.noPaymentMade')}`}
                                     {progressPercentage === 100 && ' ✅'}
                                   </p>
                                 </div>
@@ -977,9 +977,9 @@ export default function DashboardPage() {
 
               {/* Transactions Récentes */}
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Activité récente</h3>
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('dashboard.recentActivity')}</h3>
                 {recentTransactions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Aucune transaction récente</p>
+                  <p className="text-gray-500 text-center py-8">{t('dashboard.noRecentTransactions')}</p>
                 ) : (
                   <div className="space-y-4">
                     {recentTransactions.map((transaction) => {
@@ -998,7 +998,7 @@ export default function DashboardPage() {
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">{transaction.description}</p>
                             <p className="text-sm text-gray-600">
-                              {new Date(transaction.date).toLocaleDateString('fr-CA', {
+                              {new Date(transaction.date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
                                 year: 'numeric', month: 'long', day: 'numeric'
                               })}
                             </p>
@@ -1021,7 +1021,7 @@ export default function DashboardPage() {
 
           {activeTab === 'reservations' && (
             <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Calendrier de réservations</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{t('dashboard.reservationCalendar')}</h1>
               <InvestorReservationsCalendar />
             </div>
           )}
