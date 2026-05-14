@@ -1373,11 +1373,20 @@ export default function ProjetTab() {
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
-                      <div className="flex items-center text-sm text-gray-600 gap-1">
-                        <MapPin size={14} />
-                        {property.location}
+                    <div className="flex-1 flex items-start gap-3">
+                      {property.main_photo_url && (
+                        <img
+                          src={property.main_photo_url}
+                          alt={property.name}
+                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
+                        <div className="flex items-center text-sm text-gray-600 gap-1">
+                          <MapPin size={14} />
+                          {property.location}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1674,12 +1683,12 @@ export default function ProjetTab() {
                         </div>
                       )}
 
-                      {/* Payment Timeline Graph: Planned vs Actual */}
-                      {propertyPayments.length > 0 && (
+                      {/* Payment Timeline Graph: Planned vs Actual — exclut les échéances hypothécaires récurrentes */}
+                      {propertyPayments.filter(p => p.payment_kind !== 'mortgage').length > 0 && (
                         <div className="mt-3 pt-3 border-t border-blue-200">
                           <div className="text-xs font-medium text-blue-900 mb-2">{t('projects.scheduleVsActual')}</div>
                           <div className="space-y-2">
-                            {propertyPayments.map((payment) => {
+                            {propertyPayments.filter(p => p.payment_kind !== 'mortgage').map((payment) => {
                               // Get actual paid amount for this payment
                               const paymentTransactions = transactions.filter(tx => tx.payment_schedule_id === payment.id)
                               const actualPaidUSD = paymentTransactions

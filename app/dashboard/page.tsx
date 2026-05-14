@@ -811,9 +811,9 @@ export default function DashboardPage() {
                 <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                     <Calendar size={18} className="text-blue-600" />
-                    Calendrier des paiements
+                    {t('dashboard.paymentCalendar')}
                     <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">
-                      {upcomingPayments.filter(p => p.color_flag.color !== 'green').length} en attente • {upcomingPayments.filter(p => p.color_flag.color === 'green').length} payé(s)
+                      {upcomingPayments.filter(p => p.color_flag.color !== 'green').length} {t('dashboard.waitingCount')} • {upcomingPayments.filter(p => p.color_flag.color === 'green').length} {t('dashboard.paidCount')}
                     </span>
                   </h3>
 
@@ -1022,7 +1022,7 @@ export default function DashboardPage() {
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <p className="text-xs text-gray-600 flex items-center gap-1">
                       <Clock size={12} />
-                      Taux de change USD→CAD: {exchangeRate.toFixed(4)} (mis à jour quotidiennement)
+                      {t('dashboard.exchangeRate')}: {exchangeRate.toFixed(4)} ({t('dashboard.updatedDaily')})
                     </p>
                   </div>
                 </div>

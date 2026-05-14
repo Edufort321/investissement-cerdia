@@ -11,6 +11,10 @@ import {
   Vote, CheckCircle, XCircle, Clock, ShoppingCart, Download,
   FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X, Save, Edit
 } from 'lucide-react'
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceDot,
+} from 'recharts'
 import { DropZone } from './DropZone'
 import { BookingsCalendar } from './BookingsCalendar'
 import OccupationStats from './OccupationStats'
@@ -1922,13 +1926,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               {/* Photo principale à gauche */}
               <div className="w-full md:w-64 flex-shrink-0">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Photo principale</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.mainPhoto')}</label>
                 {formData.main_photo_url ? (
                   <div className="relative group">
                     <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
                       <img
                         src={formData.main_photo_url}
-                        alt="Photo principale"
+                        alt={t('scenarios.mainPhoto')}
                         className="max-w-full max-h-full object-contain"
                       />
                     </div>
@@ -1946,7 +1950,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       accept="image/*"
                       multiple={false}
                       maxSize={10}
-                      label="Photo du projet"
+                      label={t('scenarios.projectPhoto')}
                       className="h-full"
                     />
                   </div>
@@ -1961,7 +1965,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Villa Punta Cana - Phase 2"
+                  placeholder={language === 'fr' ? 'Ex: Villa Punta Cana - Phase 2' : 'E.g.: Villa Punta Cana - Phase 2'}
                 />
               </div>
             </div>
@@ -1976,7 +1980,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.unit_number}
                   onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 305"
+                  placeholder={language === 'fr' ? 'Ex: 305' : 'E.g.: 305'}
                 />
               </div>
 
@@ -1987,7 +1991,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Avenida Barceló, Bávaro"
+                  placeholder={language === 'fr' ? 'Ex: Avenida Barceló, Bávaro' : 'E.g.: Avenida Barceló, Bávaro'}
                 />
               </div>
 
@@ -1998,7 +2002,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: République Dominicaine"
+                  placeholder={language === 'fr' ? 'Ex: République Dominicaine' : 'E.g.: Dominican Republic'}
                 />
               </div>
 
@@ -2009,7 +2013,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.state_region}
                   onChange={(e) => setFormData({...formData, state_region: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: La Altagracia"
+                  placeholder={language === 'fr' ? 'Ex: La Altagracia' : 'E.g.: La Altagracia'}
                 />
               </div>
 
@@ -2020,7 +2024,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.promoter_name}
                   onChange={(e) => setFormData({...formData, promoter_name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Juan Pérez"
+                  placeholder={language === 'fr' ? 'Ex: Juan Pérez' : 'E.g.: Juan Pérez'}
                 />
               </div>
 
@@ -2031,7 +2035,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.company_name}
                   onChange={(e) => setFormData({...formData, company_name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Caribbean Real Estate Inc."
+                  placeholder={language === 'fr' ? 'Ex: Caribbean Real Estate Inc.' : 'E.g.: Caribbean Real Estate Inc.'}
                 />
               </div>
 
@@ -2042,7 +2046,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.broker_name}
                   onChange={(e) => setFormData({...formData, broker_name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Maria Rodriguez"
+                  placeholder={language === 'fr' ? 'Ex: Maria Rodriguez' : 'E.g.: Maria Rodriguez'}
                 />
               </div>
 
@@ -2053,7 +2057,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.broker_email}
                   onChange={(e) => setFormData({...formData, broker_email: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: maria.rodriguez@realestate.com"
+                  placeholder={language === 'fr' ? 'Ex: maria.rodriguez@realestate.com' : 'E.g.: maria.rodriguez@realestate.com'}
                 />
               </div>
 
@@ -2124,16 +2128,36 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.downPayment')}</label>
-                        <input
-                          type="number"
-                          value={formData.down_payment || ''}
-                          onChange={(e) => setFormData({...formData, down_payment: parseFloat(e.target.value) || 0})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                          placeholder="20"
-                          min="0"
-                          max="100"
-                          step="0.5"
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              value={formData.down_payment || ''}
+                              onChange={(e) => setFormData({...formData, down_payment: parseFloat(e.target.value) || 0})}
+                              className="w-full px-4 py-2 pr-7 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                              placeholder="20"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                          </div>
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              value={formData.purchase_price > 0 ? Math.round(formData.purchase_price * (formData.down_payment || 0) / 100) : ''}
+                              onChange={(e) => {
+                                const amount = parseFloat(e.target.value) || 0
+                                const pct = formData.purchase_price > 0 ? (amount / formData.purchase_price) * 100 : 0
+                                setFormData({...formData, down_payment: parseFloat(pct.toFixed(2))})
+                              }}
+                              className="w-full px-4 py-2 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                              placeholder="50000"
+                              min="0"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{formData.purchase_currency}</span>
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.interestRate')}</label>
@@ -2245,7 +2269,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 />
                 {formData.initial_fees > 0 && (
                   <div className="mt-3 space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Répartition des frais initiaux:</p>
+                    <p className="text-sm font-medium text-gray-700">{t('scenarios.initialFeesDistribution')}</p>
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input
                         type="radio"
@@ -2255,7 +2279,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
                         className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
                       />
-                      <span>Déduire du premier paiement</span>
+                      <span>{t('scenarios.deductFromFirst')}</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input
@@ -2266,7 +2290,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
                         className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
                       />
-                      <span>Répartir également sur tous les termes</span>
+                      <span>{t('scenarios.spreadEqually')}</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input
@@ -2277,7 +2301,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
                         className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
                       />
-                      <span>Ajouter au total des termes</span>
+                      <span>{t('scenarios.addToTotal')}</span>
                     </label>
                   </div>
                 )}
@@ -2367,23 +2391,23 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               return (feesUSD > 0 || (formData.transaction_fees.type === 'percentage' && (formData.transaction_fees.percentage || 0) > 0) || (formData.transaction_fees.type === 'fixed_amount' && (formData.transaction_fees.fixed_amount || 0) > 0)) && (
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="text-sm font-medium text-blue-900 mb-2">💰 Estimation des frais de transaction:</div>
+                  <div className="text-sm font-medium text-blue-900 mb-2">💰 {t('scenarios.transactionFeesEstimate')}</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-blue-700">En USD:</span>
+                      <span className="text-blue-700">{t('scenarios.inUSD')}</span>
                       <span className="ml-2 font-bold text-blue-900">
                         {feesUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                       </span>
                     </div>
                     <div>
-                      <span className="text-blue-700">En CAD:</span>
+                      <span className="text-blue-700">{t('scenarios.inCAD')}</span>
                       <span className="ml-2 font-bold text-blue-900">
                         {feesCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                       </span>
                     </div>
                   </div>
                   <div className="text-xs text-blue-600 mt-2">
-                    (Taux de change: 1 USD = {exchangeRate.toFixed(4)} CAD)
+                    ({t('scenarios.exchangeRateNote')}: 1 USD = {exchangeRate.toFixed(4)} CAD)
                   </div>
                 </div>
               )
@@ -2702,11 +2726,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         if (formData.initial_fees_distribution === 'first_payment' && index === 0) {
                           // Premier paiement: déduire tous les frais initiaux
                           deduction = formData.initial_fees
-                          deductionLabel = 'Frais initiaux déduits'
+                          deductionLabel = t('scenarios.initialFeesDeducted')
                         } else if (formData.initial_fees_distribution === 'equal' && formData.payment_terms.length > 0) {
                           // Répartition égale: déduire la portion
                           deduction = formData.initial_fees / formData.payment_terms.length
-                          deductionLabel = `Frais initiaux (${formData.payment_terms.length} termes)`
+                          deductionLabel = `${t('scenarios.initialFeesTermsLabel')} (${formData.payment_terms.length})`
                         }
                       }
 
@@ -2723,7 +2747,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 − {deductionLabel}: {deduction.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               </div>
                               <div className="font-semibold text-green-700">
-                                = Montant net: {netAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
+                                = {t('scenarios.netAmount')}: {netAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               </div>
                             </>
                           )}
@@ -2734,7 +2758,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     {/* Champ Notes particulières */}
                     <div className="mt-3">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Notes particulières du contrat
+                        {t('scenarios.contractNotes')}
                       </label>
                       <textarea
                         value={term.notes || ''}
@@ -2744,7 +2768,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           setFormData({...formData, payment_terms: newTerms})
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent resize-y"
-                        placeholder="Ex: à payer dans les 10 jours après notification que l'unité est prête pour la livraison"
+                        placeholder={t('scenarios.contractNotesPlaceholder')}
                         rows={2}
                       />
                     </div>
@@ -2811,16 +2835,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                   return (
                     <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="text-sm font-bold text-blue-900 mb-2">📊 Résumé des paiements</h4>
+                      <h4 className="text-sm font-bold text-blue-900 mb-2">📊 {t('scenarios.paymentSummary')}</h4>
                       <div className="space-y-2 text-sm">
                         {hasPercentages && (
                           <>
                             <div className="flex justify-between">
-                              <span className="text-gray-700 font-medium">Répartition :</span>
+                              <span className="text-gray-700 font-medium">{t('scenarios.distribution')}</span>
                               <span className="text-gray-900 font-mono">{percentageDisplay}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-700 font-medium">Total pourcentages :</span>
+                              <span className="text-gray-700 font-medium">{t('scenarios.totalPercentagesLabel')}</span>
                               <span className={`font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
                                 {totalPercentage}% {totalPercentage === 100 ? '✓' : '⚠️'}
                               </span>
@@ -2829,12 +2853,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         )}
                         {hasFixedAmounts && !hasPercentages && (
                           <div className="flex justify-between">
-                            <span className="text-gray-700 font-medium">Type :</span>
-                            <span className="text-gray-900 font-mono">Montants fixes</span>
+                            <span className="text-gray-700 font-medium">{t('scenarios.typeLabel')}</span>
+                            <span className="text-gray-900 font-mono">{t('scenarios.fixedAmounts')}</span>
                           </div>
                         )}
                         <div className="flex justify-between border-t border-blue-300 pt-2">
-                          <span className="text-gray-700 font-medium">Montants :</span>
+                          <span className="text-gray-700 font-medium">{t('scenarios.amountsLabel')}</span>
                           <span className="text-gray-900 font-mono">
                             {amountsAfterDeduction.map(a => a.toLocaleString('fr-CA', {
                               style: 'currency',
@@ -2844,7 +2868,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           </span>
                         </div>
                         <div className="flex justify-between border-t border-blue-300 pt-2">
-                          <span className="text-gray-700 font-bold">Total à payer :</span>
+                          <span className="text-gray-700 font-bold">{t('scenarios.totalToPay')}</span>
                           <span className="text-blue-900 font-bold text-base">
                             {totalAmount.toLocaleString('fr-CA', {
                               style: 'currency',
@@ -2855,16 +2879,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         </div>
                         {formData.initial_fees > 0 && (
                           <div className="text-xs text-gray-600 mt-2 italic">
-                            * Les frais initiaux de {formData.initial_fees.toLocaleString('fr-CA', {
+                            * {t('scenarios.initialFeesPrefix')} {formData.initial_fees.toLocaleString('fr-CA', {
                               style: 'currency',
                               currency: 'USD',
                               minimumFractionDigits: 0
                             })} {
                               formData.initial_fees_distribution === 'add_to_total'
-                                ? 'ont été ajoutés au total'
+                                ? t('scenarios.initialFeesAddedToTotal')
                                 : formData.initial_fees_distribution === 'first_payment'
-                                ? 'ont été déduits du premier paiement'
-                                : 'ont été répartis également sur chaque paiement'
+                                ? t('scenarios.initialFeesDeductedFirst')
+                                : t('scenarios.initialFeesSpreadEqual')
                             }
                           </div>
                         )}
@@ -2880,8 +2904,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Frais récurrents</h3>
-                <p className="text-xs text-gray-600 mt-1">HOA, entretien pelouse, piscine, etc.</p>
+                <h3 className="text-lg font-bold text-gray-900">{t('scenarios.recurringFees')}</h3>
+                <p className="text-xs text-gray-600 mt-1">{t('scenarios.recurringFeesHint')}</p>
               </div>
               <button
                 type="button"
@@ -2902,19 +2926,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
               >
                 <Plus size={16} />
-                Ajouter frais
+                {t('scenarios.addFee')}
               </button>
             </div>
 
             {!formData.recurring_fees || formData.recurring_fees.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">Aucun frais récurrent ajouté</p>
+              <p className="text-sm text-gray-500 text-center py-4">{t('scenarios.noRecurringFees')}</p>
             ) : (
               <div className="space-y-3">
                 {formData.recurring_fees.map((fee, index) => (
                   <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Type de frais</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeType')}</label>
                         <input
                           type="text"
                           value={fee.label}
@@ -2924,12 +2948,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             setFormData({...formData, recurring_fees: newFees})
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="HOA, Pelouse, Piscine..."
+                          placeholder={t('scenarios.feeTypePlaceholder')}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Montant</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeAmount')}</label>
                         <input
                           type="number"
                           value={fee.amount || ''}
@@ -2945,7 +2969,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Fréquence</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.frequency')}</label>
                         <select
                           value={fee.frequency}
                           onChange={(e) => {
@@ -2955,14 +2979,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         >
-                          <option value="monthly">Mensuel</option>
-                          <option value="annual">Annuel</option>
-                          <option value="one-time">Paiement unique</option>
+                          <option value="monthly">{t('scenarios.monthlyFreq')}</option>
+                          <option value="annual">{t('scenarios.annualFreq')}</option>
+                          <option value="one-time">{t('scenarios.oneTimeFreq')}</option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeCurrency')}</label>
                         <div className="flex gap-2">
                           <select
                             value={fee.currency}
@@ -2993,7 +3017,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     {/* Afficher équivalent mensuel si annuel */}
                     {fee.frequency === 'annual' && fee.amount > 0 && (
                       <div className="mt-2 text-xs text-gray-600">
-                        Équivalent mensuel: {(fee.amount / 12).toLocaleString('fr-CA', { style: 'currency', currency: fee.currency })}
+                        {t('scenarios.monthlyEquivalent')}: {(fee.amount / 12).toLocaleString('fr-CA', { style: 'currency', currency: fee.currency })}
                       </div>
                     )}
                   </div>
@@ -3009,7 +3033,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       {recurringFees.length > 0 && (
                         <div className="bg-green-100 border border-green-300 rounded-lg p-3">
                           <div className="text-sm font-semibold text-green-900">
-                            Total frais récurrents (mensuel):
+                            {t('scenarios.totalRecurringMonthly')}
                             {' '}
                             {recurringFees
                               .reduce((total, fee) => {
@@ -3017,10 +3041,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 return total + monthlyAmount
                               }, 0)
                               .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
-                            {' USD/mois'}
+                            {' USD'}{t('scenarios.perMonth')}
                           </div>
                           <div className="text-xs text-green-700 mt-1">
-                            Total annuel:
+                            {t('scenarios.totalAnnualLabel')}
                             {' '}
                             {recurringFees
                               .reduce((total, fee) => {
@@ -3028,7 +3052,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 return total + annualAmount
                               }, 0)
                               .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
-                            {' USD/an'}
+                            {' USD'}{t('scenarios.perYear')}
                           </div>
                         </div>
                       )}
@@ -3036,7 +3060,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       {oneTimeFees.length > 0 && (
                         <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
                           <div className="text-sm font-semibold text-blue-900">
-                            Total frais uniques:
+                            {t('scenarios.totalOneTime')}
                             {' '}
                             {oneTimeFees
                               .reduce((total, fee) => total + fee.amount, 0)
@@ -3254,7 +3278,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Villa Punta Cana - Phase 2"
+                  placeholder={language === 'fr' ? 'Ex: Villa Punta Cana - Phase 2' : 'E.g.: Villa Punta Cana - Phase 2'}
                 />
               </div>
             </div>
@@ -3268,7 +3292,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.unit_number}
                   onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: 305"
+                  placeholder={language === 'fr' ? 'Ex: 305' : 'E.g.: 305'}
                 />
               </div>
 
@@ -3279,7 +3303,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: Avenida Barceló, Bávaro"
+                  placeholder={language === 'fr' ? 'Ex: Avenida Barceló, Bávaro' : 'E.g.: Avenida Barceló, Bávaro'}
                 />
               </div>
 
@@ -3290,7 +3314,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                  placeholder="Ex: République Dominicaine"
+                  placeholder={language === 'fr' ? 'Ex: République Dominicaine' : 'E.g.: Dominican Republic'}
                 />
               </div>
 
@@ -4991,31 +5015,94 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           </tbody>
                         </table>
 
-                        {/* ROI Progress Visualization */}
+                        {/* ROI Progress Visualization — timeline Recharts */}
                         <div className="mt-6">
                           <h4 className="text-sm font-bold text-gray-900 mb-3">{t('scenarios.roiProgress')}</h4>
-                          <div className="space-y-2">
-                            {timelineData.map((data) => {
-                              const maxROI = timelineData[timelineData.length - 1].roi
-                              const widthPercent = maxROI > 0 ? Math.min((data.roi / maxROI) * 100, 100) : 0
+                          {(() => {
+                            // Données pour le graphique : ROI cumulatif + gain de l'année
+                            const chartData = timelineData.map((d) => ({
+                              year: `${t('scenarioResults.year')} ${d.year}`,
+                              yearNum: d.year,
+                              roi: parseFloat(d.roi.toFixed(2)),
+                              yearGain: d.netIncome,
+                            }))
 
+                            // Jalons : premier passage à 50%, 100% (= seuil de rentabilité)
+                            const milestone50 = timelineData.find((d) => d.roi >= 50)
+                            const milestone100 = timelineData.find((d) => d.roi >= 100)
+
+                            const CustomTooltip = ({ active, payload }: any) => {
+                              if (!active || !payload || !payload.length) return null
+                              const p = payload[0].payload
                               return (
-                                <div key={data.year} className="flex items-center gap-3">
-                                  <span className="text-xs font-medium text-gray-700 w-16">{t('scenarioResults.year')} {data.year}</span>
-                                  <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
-                                    <div
-                                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full flex items-center justify-end pr-2"
-                                      style={{ width: `${widthPercent}%` }}
-                                    >
-                                      <span className="text-xs font-bold text-white">
-                                        {data.roi.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  </div>
+                                <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
+                                  <p className="font-bold text-gray-900 mb-1">{p.year}</p>
+                                  <p className="text-blue-600">
+                                    {t('scenarios.roiCumulative')}: <span className="font-bold">{p.roi.toFixed(2)}%</span>
+                                  </p>
+                                  <p className="text-green-600">
+                                    {t('scenarios.yearGain')}: <span className="font-bold">
+                                      {p.yearGain.toLocaleString('fr-CA', { style: 'currency', currency: currency, minimumFractionDigits: 0 })}
+                                    </span>
+                                  </p>
                                 </div>
                               )
-                            })}
-                          </div>
+                            }
+
+                            return (
+                              <div className="w-full" style={{ height: 280 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                                    <defs>
+                                      <linearGradient id="roiGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0.05} />
+                                      </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                    <XAxis dataKey="year" tick={{ fontSize: 11 }} stroke="#6B7280" />
+                                    <YAxis
+                                      tick={{ fontSize: 11 }}
+                                      stroke="#6B7280"
+                                      tickFormatter={(v) => `${v}%`}
+                                    />
+                                    <RechartsTooltip content={<CustomTooltip />} />
+                                    <Area
+                                      type="monotone"
+                                      dataKey="roi"
+                                      stroke="#2563EB"
+                                      strokeWidth={2.5}
+                                      fill="url(#roiGradient)"
+                                      dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#fff' }}
+                                      activeDot={{ r: 6 }}
+                                    />
+                                    {milestone50 && (
+                                      <ReferenceDot
+                                        x={`${t('scenarioResults.year')} ${milestone50.year}`}
+                                        y={parseFloat(milestone50.roi.toFixed(2))}
+                                        r={7}
+                                        fill="#F59E0B"
+                                        stroke="#fff"
+                                        strokeWidth={2}
+                                        label={{ value: '50%', position: 'top', fontSize: 11, fill: '#F59E0B' }}
+                                      />
+                                    )}
+                                    {milestone100 && (
+                                      <ReferenceDot
+                                        x={`${t('scenarioResults.year')} ${milestone100.year}`}
+                                        y={parseFloat(milestone100.roi.toFixed(2))}
+                                        r={7}
+                                        fill="#16A34A"
+                                        stroke="#fff"
+                                        strokeWidth={2}
+                                        label={{ value: t('scenarios.breakEvenMilestone'), position: 'top', fontSize: 11, fill: '#16A34A' }}
+                                      />
+                                    )}
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              </div>
+                            )
+                          })()}
                         </div>
                       </>
                     )

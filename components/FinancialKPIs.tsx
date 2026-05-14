@@ -7,6 +7,7 @@
 
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { DollarSign, TrendingUp, Building2, Wallet, BarChart3 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -16,6 +17,7 @@ interface FinancialKPIsProps {
 }
 
 export default function FinancialKPIs({ year = null, className = '' }: FinancialKPIsProps) {
+  const { t } = useLanguage()
   const { summary, loading, error } = useFinancialSummary(year)
   const { current: navCurrent, pctChange: navPct, loading: navLoading } = useNAVTimeline()
   const [mounted, setMounted] = useState(false)
@@ -40,7 +42,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
   if (error) {
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
-        <p className="text-red-800 text-sm">❌ Erreur de chargement: {error}</p>
+        <p className="text-red-800 text-sm">❌ {t('dashboard.loadError')}: {error}</p>
       </div>
     )
   }
@@ -48,14 +50,14 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
   if (!summary) {
     return (
       <div className={`bg-yellow-50 border border-yellow-200 rounded-lg p-4 ${className}`}>
-        <p className="text-yellow-800 text-sm">⚠️ Aucune donnée financière disponible</p>
+        <p className="text-yellow-800 text-sm">⚠️ {t('dashboard.noFinancialData')}</p>
       </div>
     )
   }
 
   const kpis = [
     {
-      title: 'Total Investisseurs',
+      title: t('dashboard.totalInvestors'),
       value: summary.total_investisseurs,
       format: 'currency' as const,
       icon: DollarSign,
@@ -65,7 +67,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       subtitle: null as string | null,
     },
     {
-      title: 'Compte Courant',
+      title: t('dashboard.currentAccount'),
       value: summary.compte_courant_balance,
       format: 'currency' as const,
       icon: Wallet,
@@ -75,7 +77,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       subtitle: null,
     },
     {
-      title: 'CAPEX Réserve',
+      title: t('dashboard.capexReserve'),
       value: summary.capex_balance,
       format: 'currency' as const,
       icon: TrendingUp,
@@ -85,7 +87,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       subtitle: null,
     },
     {
-      title: 'Dépenses Projets',
+      title: t('dashboard.projectExpenses'),
       value: summary.depenses_projets,
       format: 'currency' as const,
       icon: Building2,
@@ -95,24 +97,24 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       subtitle: null,
     },
     {
-      title: 'NAV / Part',
+      title: t('dashboard.navPerShare'),
       value: navCurrent?.nav_per_share ?? 1,
       format: 'nav' as const,
       icon: BarChart3,
       color: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
       borderColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
       iconColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
-      subtitle: navCurrent ? `${(navPct ?? 0) >= 0 ? '+' : ''}${(navPct ?? 0).toFixed(2)}% depuis lancement` : null,
+      subtitle: navCurrent ? `${(navPct ?? 0) >= 0 ? '+' : ''}${(navPct ?? 0).toFixed(2)}% ${t('dashboard.sinceLaunch')}` : null,
     },
     {
-      title: 'Valeur Totale',
+      title: t('dashboard.totalValue'),
       value: navCurrent?.net_asset_value ?? 0,
       format: 'currency' as const,
       icon: BarChart3,
       color: 'from-indigo-50 to-indigo-100',
       borderColor: 'border-indigo-200',
       iconColor: 'text-indigo-600',
-      subtitle: navCurrent ? `${(navCurrent.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 0 })} parts` : null,
+      subtitle: navCurrent ? `${(navCurrent.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 0 })} ${t('dashboard.shares')}` : null,
     },
   ]
 
@@ -152,7 +154,7 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
               }`}>{kpi.subtitle}</p>
             )}
             {year && (
-              <p className="text-xs text-gray-500 mt-1">Année {year}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('dashboard.year')} {year}</p>
             )}
           </div>
         )
