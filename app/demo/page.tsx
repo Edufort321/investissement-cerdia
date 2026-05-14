@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Sparkles, AlertCircle, LogIn, ArrowRight, Edit2 } from 'lucide-react'
 
 const DEMO_EMAIL    = 'demo@cerdia.ai'
@@ -26,8 +27,10 @@ type Phase = 'checking' | 'auto_login' | 'ask_confirm' | 'logging_in' | 'error'
 export default function DemoPage() {
   const router = useRouter()
   const { isSuperAdmin, switchOrg } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const [phase, setPhase] = useState<Phase>('checking')
-  const [status, setStatus] = useState('Préparation de la démo…')
+  const [status, setStatus] = useState(fr ? 'Préparation de la démo…' : 'Preparing demo…')
   const [err, setErr] = useState('')
   const [existingEmail, setExistingEmail] = useState<string | null>(null)
 
@@ -56,7 +59,7 @@ export default function DemoPage() {
 
   const doDemoLogin = async () => {
     setPhase('logging_in')
-    setStatus('Connexion au mode démo…')
+    setStatus(fr ? 'Connexion au mode démo…' : 'Logging into demo mode…')
     try {
       await supabase.auth.signOut()
       const { error } = await supabase.auth.signInWithPassword({
@@ -64,17 +67,17 @@ export default function DemoPage() {
         password: DEMO_PASSWORD,
       })
       if (error) {
-        setErr(`Erreur de connexion démo : ${error.message}`)
+        setErr((fr ? 'Erreur de connexion démo : ' : 'Demo login error: ') + error.message)
         setPhase('error')
         return
       }
       try {
         localStorage.setItem('cerdia_session_expires', String(Date.now() + 2 * 60 * 60 * 1000))
       } catch {}
-      setStatus('Redirection vers la plateforme…')
+      setStatus(fr ? 'Redirection vers la plateforme…' : 'Redirecting to the platform…')
       router.push('/dashboard')
     } catch (e: any) {
-      setErr(`Erreur : ${e.message || String(e)}`)
+      setErr((fr ? 'Erreur : ' : 'Error: ') + (e.message || String(e)))
       setPhase('error')
     }
   }
@@ -86,15 +89,15 @@ export default function DemoPage() {
           <Sparkles size={28} className="text-purple-600 dark:text-purple-300" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Mode Démo CERDIA
+          {fr ? 'Mode Démo CERDIA' : 'CERDIA Demo Mode'}
         </h1>
 
         {phase === 'ask_confirm' && (
           <div className="mt-5 text-left">
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm mb-4">
-              <p className="font-semibold mb-1">⚠️ Tu es déjà connecté</p>
+              <p className="font-semibold mb-1">⚠️ {fr ? 'Tu es déjà connecté' : 'You are already logged in'}</p>
               <p className="text-xs">
-                Tu es actuellement connecté en tant que <strong>{existingEmail}</strong>.
+                {fr ? 'Tu es actuellement connecté en tant que ' : 'You are currently logged in as '}<strong>{existingEmail}</strong>.
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -106,23 +109,23 @@ export default function DemoPage() {
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium"
                 >
-                  <Edit2 size={14} /> Éditer le démo en super_admin
+                  <Edit2 size={14} /> {fr ? 'Éditer le démo en super_admin' : 'Edit demo as super_admin'}
                 </button>
               )}
               <button
                 onClick={() => router.push('/dashboard')}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-xl text-sm font-medium"
               >
-                <ArrowRight size={14} /> Retourner à mon dashboard
+                <ArrowRight size={14} /> {fr ? 'Retourner à mon dashboard' : 'Back to my dashboard'}
               </button>
               <button
                 onClick={doDemoLogin}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium"
               >
-                <LogIn size={14} /> Voir comme visiteur (lecture seule, déconnexion)
+                <LogIn size={14} /> {fr ? 'Voir comme visiteur (lecture seule, déconnexion)' : 'View as visitor (read-only, logs out)'}
               </button>
               <Link href="/" className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 text-sm">
-                ← Retour à l&apos;accueil
+                {fr ? '← Retour à l\'accueil' : '← Back to home'}
               </Link>
             </div>
           </div>
@@ -140,12 +143,12 @@ export default function DemoPage() {
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-2 mb-4">
               <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
               <div className="text-left">
-                <p className="font-semibold">Impossible de charger la démo</p>
+                <p className="font-semibold">{fr ? 'Impossible de charger la démo' : 'Unable to load the demo'}</p>
                 <p className="text-xs mt-1">{err}</p>
               </div>
             </div>
             <Link href="/" className="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium">
-              Retour à l&apos;accueil
+              {fr ? 'Retour à l\'accueil' : 'Back to home'}
             </Link>
           </div>
         )}

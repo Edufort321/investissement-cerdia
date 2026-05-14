@@ -4,13 +4,16 @@ import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import Image from 'next/image'
 
 function ConnexionForm() {
   const { login } = useAuth()
+  const { language } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get('redirect') || '/dashboard'
+  const fr = language === 'fr'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,7 +34,7 @@ function ConnexionForm() {
     setError('')
 
     if (!email || !password) {
-      setError('Veuillez remplir tous les champs')
+      setError(fr ? 'Veuillez remplir tous les champs' : 'Please fill in all fields')
       return
     }
 
@@ -40,7 +43,7 @@ function ConnexionForm() {
       const result = await login(email, password)
 
       if (!result.success) {
-        setError(result.error || 'Erreur de connexion')
+        setError(result.error || (fr ? 'Erreur de connexion' : 'Login error'))
         return
       }
 
@@ -82,8 +85,8 @@ function ConnexionForm() {
                 />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-black">Connexion CERDIA</h2>
-                <p className="text-sm text-gray-700">Espace Investisseurs</p>
+                <h2 className="text-xl font-bold text-black">{fr ? 'Connexion CERDIA' : 'CERDIA Login'}</h2>
+                <p className="text-sm text-gray-700">{fr ? 'Espace Investisseurs' : 'Investor Area'}</p>
               </div>
             </div>
           </div>
@@ -101,13 +104,13 @@ function ConnexionForm() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <Mail size={16} className="inline mr-2" />
-                  Email
+                  {fr ? 'Email' : 'Email'}
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre.email@exemple.com"
+                  placeholder={fr ? 'votre.email@exemple.com' : 'your.email@example.com'}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent text-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                   autoFocus
                   autoComplete="email"
@@ -119,7 +122,7 @@ function ConnexionForm() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <Lock size={16} className="inline mr-2" />
-                  Mot de passe
+                  {fr ? 'Mot de passe' : 'Password'}
                 </label>
                 <div className="relative">
                   <input
@@ -135,7 +138,7 @@ function ConnexionForm() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    title={showPassword ? (fr ? 'Masquer le mot de passe' : 'Hide password') : (fr ? 'Afficher le mot de passe' : 'Show password')}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -152,8 +155,8 @@ function ConnexionForm() {
                   className="w-4 h-4 text-[#5e5e5e] bg-white border-gray-300 rounded focus:ring-[#5e5e5e] focus:ring-2"
                 />
                 <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                  Se souvenir de moi pendant 24 heures
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">(sinon 2h)</span>
+                  {fr ? 'Se souvenir de moi pendant 24 heures' : 'Remember me for 24 hours'}
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">{fr ? '(sinon 2h)' : '(otherwise 2h)'}</span>
                 </label>
               </div>
 
@@ -166,11 +169,11 @@ function ConnexionForm() {
                 {submitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Connexion...
+                    {fr ? 'Connexion...' : 'Logging in...'}
                   </>
                 ) : (
                   <>
-                    Se connecter
+                    {fr ? 'Se connecter' : 'Log in'}
                     <LogIn size={20} />
                   </>
                 )}
@@ -182,14 +185,14 @@ function ConnexionForm() {
                   href="/reset-password"
                   className="text-sm text-[#5e5e5e] hover:text-[#3e3e3e] hover:underline transition-colors"
                 >
-                  Mot de passe oublié ?
+                  {fr ? 'Mot de passe oublié ?' : 'Forgot password?'}
                 </a>
               </div>
             </form>
 
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 dark:text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
-              CERDIA • {new Date().getFullYear()} • Authentification sécurisée Supabase
+              CERDIA • {new Date().getFullYear()} • {fr ? 'Authentification sécurisée Supabase' : 'Secure Supabase authentication'}
             </div>
           </div>
         </div>
@@ -200,7 +203,7 @@ function ConnexionForm() {
             href="/"
             className="text-sm text-white hover:text-gray-300 transition-colors font-medium"
           >
-            ← Retour à l'accueil
+            {fr ? '← Retour à l\'accueil' : '← Back to home'}
           </a>
         </div>
       </div>
