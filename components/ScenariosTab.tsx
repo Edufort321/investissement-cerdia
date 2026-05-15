@@ -3172,26 +3172,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         {/* Actions selon le statut */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
           <div className="flex flex-wrap gap-3">
-            {selectedScenario.status === 'draft' && (
-              <>
-                <button
-                  onClick={analyzeScenario}
-                  disabled={analyzing}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 flex items-center gap-2"
-                >
-                  <Calculator size={16} />
-                  {analyzing ? t('scenarios.analyzing') : t('scenarios.analyze')}
-                </button>
-                {scenarioResults.length > 0 && (
-                  <button
-                    onClick={submitForVote}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    <Vote size={16} />
-                    {t('scenarios.submitForVote')}
-                  </button>
-                )}
-              </>
+            {(selectedScenario.status === 'draft' || selectedScenario.status === 'purchased') && (
+              <button
+                onClick={analyzeScenario}
+                disabled={analyzing}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 flex items-center gap-2"
+              >
+                <Calculator size={16} />
+                {analyzing ? t('scenarios.analyzing') : t('scenarios.analyze')}
+              </button>
+            )}
+            {selectedScenario.status === 'draft' && scenarioResults.length > 0 && (
+              <button
+                onClick={submitForVote}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <Vote size={16} />
+                {t('scenarios.submitForVote')}
+              </button>
             )}
 
             {/* Bouton forcer approbation (admin uniquement) */}
