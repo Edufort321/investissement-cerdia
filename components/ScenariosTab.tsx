@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { supabase } from '@/lib/supabase'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import {
@@ -24,6 +25,7 @@ import { useExportPDF } from '@/hooks/useExportPDF'
 // Types
 interface Scenario {
   id: string
+  organization_id?: string
   name: string
   main_photo_url?: string
   unit_number: string
@@ -209,7 +211,13 @@ export default function ScenariosTab() {
   const { t, language } = useLanguage()
   const { investors, fetchProperties } = useInvestment()
   const { currentUser } = useAuth()
+  const { organization } = useOrganization()
   const { exportScenarioPDF, exportProjectPDF } = useExportPDF()
+
+  // Tenant effectif : org affichee (override "View as..." inclus pour super_admin).
+  // Filtre les lectures et scope les ecritures pour eviter qu'une action dans un
+  // tenant touche les scenarios d'un autre (super_admin bypasse le RLS).
+  const effectiveOrgId = organization?.id ?? null
 
   // État
   const [scenarios, setScenarios] = useState<Scenario[]>([])
@@ -290,10 +298,12 @@ export default function ScenariosTab() {
     loadExchangeRate()
   }, [])
 
-  // Charger les scénarios
+  // Charger les scénarios — relance quand le tenant effectif change
+  // (super_admin qui entre/sort d'un "View as...").
   useEffect(() => {
     loadScenarios()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveOrgId])
 
   // Charger détails du scénario sélectionné
   useEffect(() => {
@@ -399,12 +409,13 @@ export default function ScenariosTab() {
         }, 10000)
       })
 
-      const dataPromise = supabase
+      let dataQuery = supabase
         .from('scenarios_with_votes')
         .select('*')
-        .order('created_at', { ascending: false })
+      if (effectiveOrgId) dataQuery = dataQuery.eq('organization_id', effectiveOrgId)
+      const orderedQuery = dataQuery.order('created_at', { ascending: false })
 
-      const result = await Promise.race([dataPromise, timeoutPromise])
+      const result = await Promise.race([orderedQuery, timeoutPromise])
 
       if (!result) {
         console.error('🔴 [SCENARIOS] Timeout - scénarios non chargés')
@@ -568,7 +579,11 @@ export default function ScenariosTab() {
           recurring_fees: formData.recurring_fees || [],
           ...buildPurchaseFields(),
           status: 'draft',
-          created_by: currentUser.investorData?.id
+          created_by: currentUser.investorData?.id,
+          // Tenant cible : org affichee (override "View as..." inclus). Sans ca,
+          // le DEFAULT SQL = auth_get_org_id() = vrai tenant du user, donc un
+          // scenario cree en "View as DEMO" atterrirait dans CERDIA Globale.
+          ...(effectiveOrgId ? { organization_id: effectiveOrgId } : {})
         }])
         .select()
         .single()
@@ -654,8 +669,9 @@ export default function ScenariosTab() {
     if (!selectedScenario) return
 
     try {
-      // Mettre à jour le scénario
-      const { error } = await supabase
+      // Mettre à jour le scénario — garde-fou : scope au tenant effectif pour
+      // qu'un update ne puisse jamais toucher une row d'un autre tenant.
+      let updateQuery = supabase
         .from('scenarios')
         .update({
           name: formData.name,
@@ -683,6 +699,8 @@ export default function ScenariosTab() {
           ...buildPurchaseFields()
         })
         .eq('id', selectedScenario.id)
+      if (effectiveOrgId) updateQuery = updateQuery.eq('organization_id', effectiveOrgId)
+      const { error } = await updateQuery
 
       if (error) throw error
 
@@ -1252,10 +1270,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     }
 
     try {
-      const { error } = await supabase
+      // Garde-fou : scope au tenant effectif pour qu'une suppression ne puisse
+      // jamais toucher le scenario d'un autre tenant (super_admin bypasse le RLS).
+      let deleteQuery = supabase
         .from('scenarios')
         .delete()
         .eq('id', selectedScenario.id)
+      if (effectiveOrgId) deleteQuery = deleteQuery.eq('organization_id', effectiveOrgId)
+      const { error } = await deleteQuery
 
       if (error) throw error
 
