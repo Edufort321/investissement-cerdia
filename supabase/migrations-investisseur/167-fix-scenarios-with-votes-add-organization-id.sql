@@ -9,7 +9,11 @@
 -- tenant dans ScenariosTab.tsx).
 -- ============================================================
 
-CREATE OR REPLACE VIEW scenarios_with_votes
+-- DROP requis : CREATE OR REPLACE ne peut pas réordonner les colonnes existantes
+-- lorsque s.* inclut de nouvelles colonnes ajoutées après la création initiale.
+DROP VIEW IF EXISTS scenarios_with_votes CASCADE;
+
+CREATE VIEW scenarios_with_votes
 WITH (security_invoker = true)
 AS
 SELECT
