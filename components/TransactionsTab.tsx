@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { DollarSign, Plus, Edit2, Trash2, Calendar, Filter, X, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react'
 
 interface TransactionFormData {
@@ -65,6 +66,8 @@ function generateDates(start: string, frequency: string, endDate: string | null)
 
 export default function TransactionsTab() {
   const { transactions, investors, properties, addTransaction, updateTransaction, deleteTransaction, loading } = useInvestment()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
 
   const [showAddForm, setShowAddForm]     = useState(false)
   const [editingId, setEditingId]         = useState<string | null>(null)
@@ -110,9 +113,13 @@ export default function TransactionsTab() {
           if (!r.success) errors++
         }
         if (errors === 0) {
-          alert(`✅ ${dates.length} paiement(s) récurrent(s) créés avec succès.`)
+          alert(fr
+            ? `✅ ${dates.length} paiement(s) récurrent(s) créés avec succès.`
+            : `✅ ${dates.length} recurring payment(s) created successfully.`)
         } else {
-          alert(`⚠️ ${dates.length - errors}/${dates.length} créés (${errors} erreur(s)).`)
+          alert(fr
+            ? `⚠️ ${dates.length - errors}/${dates.length} créés (${errors} erreur(s)).`
+            : `⚠️ ${dates.length - errors}/${dates.length} created (${errors} error(s)).`)
         }
         resetForm()
         setSaving(false)
@@ -123,11 +130,11 @@ export default function TransactionsTab() {
       if (editingId) {
         const result = await updateTransaction(editingId, base)
         if (result.success) { resetForm() }
-        else alert('Erreur: ' + result.error)
+        else alert((fr ? 'Erreur : ' : 'Error: ') + result.error)
       } else {
         const result = await addTransaction(base)
         if (result.success) { resetForm() }
-        else alert('Erreur: ' + result.error)
+        else alert((fr ? 'Erreur : ' : 'Error: ') + result.error)
       }
     } finally {
       setSaving(false)
@@ -158,9 +165,9 @@ export default function TransactionsTab() {
   }
 
   const handleDelete = async (id: string, description: string) => {
-    if (confirm(`Supprimer "${description}" ?`)) {
+    if (confirm(fr ? `Supprimer "${description}" ?` : `Delete "${description}"?`)) {
       const result = await deleteTransaction(id)
-      if (!result.success) alert('Erreur: ' + result.error)
+      if (!result.success) alert((fr ? 'Erreur : ' : 'Error: ') + result.error)
     }
   }
 
@@ -171,21 +178,21 @@ export default function TransactionsTab() {
   }
 
   // ── Filtres ─────────────────────────────────────────────────────────────────
-  const filteredTransactions = transactions.filter(t => {
-    if (filterType !== 'all' && t.type !== filterType) return false
-    if (filterCategory !== 'all' && t.category !== filterCategory) return false
+  const filteredTransactions = transactions.filter(tx => {
+    if (filterType !== 'all' && tx.type !== filterType) return false
+    if (filterCategory !== 'all' && tx.category !== filterCategory) return false
     return true
   })
 
   const INFLOW_TYPES = ['investissement', 'dividende', 'loyer', 'loyer_locatif', 'revenu']
 
   const totalIn = filteredTransactions
-    .filter(t => INFLOW_TYPES.includes(t.type))
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    .filter(tx => INFLOW_TYPES.includes(tx.type))
+    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
 
   const totalOut = filteredTransactions
-    .filter(t => ['paiement', 'depense'].includes(t.type))
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    .filter(tx => ['paiement', 'depense'].includes(tx.type))
+    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
 
   const balance = totalIn - totalOut
 
@@ -198,14 +205,14 @@ export default function TransactionsTab() {
 
   const getTypeBadge = (type: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
-      investissement:  { bg: 'bg-green-100',  text: 'text-green-800',  label: 'Investissement' },
-      loyer:           { bg: 'bg-teal-100',   text: 'text-teal-800',   label: 'Loyer' },
-      loyer_locatif:   { bg: 'bg-teal-100',   text: 'text-teal-800',   label: 'Revenu locatif' },
-      revenu:          { bg: 'bg-cyan-100',   text: 'text-cyan-800',   label: 'Revenu' },
-      paiement:        { bg: 'bg-blue-100',   text: 'text-blue-800',   label: 'Paiement' },
-      dividende:       { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Dividende' },
-      depense:         { bg: 'bg-red-100',    text: 'text-red-800',    label: 'Dépense' },
-      transfert:       { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Transfert' },
+      investissement:            { bg: 'bg-green-100',  text: 'text-green-800',  label: t('transactionType.investment') },
+      loyer:                     { bg: 'bg-teal-100',   text: 'text-teal-800',   label: t('transactions.typeLoyer') },
+      loyer_locatif:             { bg: 'bg-teal-100',   text: 'text-teal-800',   label: t('transactions.typeLoyerLocatif') },
+      revenu:                    { bg: 'bg-cyan-100',   text: 'text-cyan-800',   label: t('transactions.typeRevenu') },
+      paiement:                  { bg: 'bg-blue-100',   text: 'text-blue-800',   label: t('transactionType.payment') },
+      dividende:                 { bg: 'bg-purple-100', text: 'text-purple-800', label: t('transactionType.dividend') },
+      depense:                   { bg: 'bg-red-100',    text: 'text-red-800',    label: t('transactionType.expense') },
+      transfert:                 { bg: 'bg-indigo-100', text: 'text-indigo-800', label: t('transactions.typeTransfert') },
     }
     const b = badges[type] ?? { bg: 'bg-gray-100', text: 'text-gray-800', label: type }
     return <span className={`px-3 py-1 rounded-full text-xs font-medium ${b.bg} ${b.text}`}>{b.label}</span>
@@ -216,7 +223,13 @@ export default function TransactionsTab() {
     ? generateDates(formData.date, formData.recurrence_frequency, formData.recurrence_no_end ? null : formData.recurrence_end_date).length
     : null
 
-  const transferDest = formData.transfer_source === 'compte_courant' ? 'CAPEX' : formData.transfer_source === 'capex' ? 'Compte courant' : '—'
+  const transferDest = formData.transfer_source === 'compte_courant'
+    ? t('transactions.typeCapex')
+    : formData.transfer_source === 'capex'
+      ? t('transactions.compteCourant')
+      : '—'
+
+  const dateLocale = fr ? 'fr-CA' : 'en-CA'
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -225,29 +238,29 @@ export default function TransactionsTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-green-700">Entrées</span>
+            <span className="text-sm font-medium text-green-700">{t('transactions.totalIn')}</span>
             <TrendingUp className="text-green-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-900">
-            {totalIn.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            {totalIn.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
         <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-red-700">Sorties</span>
+            <span className="text-sm font-medium text-red-700">{t('transactions.totalOut')}</span>
             <TrendingDown className="text-red-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-900">
-            {totalOut.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            {totalOut.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
         <div className={`bg-gradient-to-br p-4 rounded-lg border ${balance >= 0 ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde</span>
+            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>{t('transactions.balance')}</span>
             <DollarSign className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={20} />
           </div>
           <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-            {balance.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+            {balance.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
       </div>
@@ -258,29 +271,29 @@ export default function TransactionsTab() {
           <Filter size={20} className="text-gray-600" />
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-            <option value="all">Tous les types</option>
-            <option value="investissement">Investissement</option>
-            <option value="loyer">Loyer</option>
-            <option value="loyer_locatif">Revenu locatif</option>
-            <option value="revenu">Revenu</option>
-            <option value="paiement">Paiement</option>
-            <option value="dividende">Dividende</option>
-            <option value="depense">Dépense</option>
-            <option value="transfert">Transfert</option>
+            <option value="all">{t('transactions.allTypes')}</option>
+            <option value="investissement">{t('transactionType.investment')}</option>
+            <option value="loyer">{t('transactions.typeLoyer')}</option>
+            <option value="loyer_locatif">{t('transactions.typeLoyerLocatif')}</option>
+            <option value="revenu">{t('transactions.typeRevenu')}</option>
+            <option value="paiement">{t('transactionType.payment')}</option>
+            <option value="dividende">{t('transactionType.dividend')}</option>
+            <option value="depense">{t('transactionType.expense')}</option>
+            <option value="transfert">{t('transactions.typeTransfert')}</option>
           </select>
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-            <option value="all">Toutes les catégories</option>
-            <option value="capital">Capital</option>
-            <option value="operation">Opération</option>
-            <option value="maintenance">Maintenance</option>
-            <option value="admin">Administration</option>
+            <option value="all">{t('transactions.allCategories')}</option>
+            <option value="capital">{t('category.capital')}</option>
+            <option value="operation">{t('category.operation')}</option>
+            <option value="maintenance">{t('category.maintenance')}</option>
+            <option value="admin">{t('category.admin')}</option>
           </select>
         </div>
         <button onClick={() => setShowAddForm(!showAddForm)}
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors">
           {showAddForm ? <X size={20} /> : <Plus size={20} />}
-          {showAddForm ? 'Annuler' : 'Nouvelle transaction'}
+          {showAddForm ? t('common.cancel') : t('transactions.new')}
         </button>
       </div>
 
@@ -288,7 +301,7 @@ export default function TransactionsTab() {
       {showAddForm && (
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? 'Modifier la transaction' : 'Nouvelle transaction'}
+            {editingId ? t('transactions.edit') : t('transactions.new')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -296,7 +309,9 @@ export default function TransactionsTab() {
               {/* Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {formData.type === 'paiement' && formData.occurrence_type === 'recurrent' ? 'Date de début *' : 'Date *'}
+                  {formData.type === 'paiement' && formData.occurrence_type === 'recurrent'
+                    ? t('transactions.dateStart')
+                    : t('transactions.dateLabel')}
                 </label>
                 <input type="date" required value={formData.date}
                   onChange={e => set({ date: e.target.value })}
@@ -305,7 +320,7 @@ export default function TransactionsTab() {
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.typeLabel')}</label>
                 <select required value={formData.type}
                   onChange={e => set({
                     type: e.target.value,
@@ -317,23 +332,23 @@ export default function TransactionsTab() {
                     recurrence_no_end: false,
                   })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                  <optgroup label="Entrées">
-                    <option value="investissement">Investissement</option>
-                    <option value="loyer">Loyer</option>
-                    <option value="loyer_locatif">Revenu locatif</option>
-                    <option value="revenu">Revenu</option>
-                    <option value="dividende">Dividende</option>
+                  <optgroup label={t('transactions.totalIn')}>
+                    <option value="investissement">{t('transactionType.investment')}</option>
+                    <option value="loyer">{t('transactions.typeLoyer')}</option>
+                    <option value="loyer_locatif">{t('transactions.typeLoyerLocatif')}</option>
+                    <option value="revenu">{t('transactions.typeRevenu')}</option>
+                    <option value="dividende">{t('transactionType.dividend')}</option>
                   </optgroup>
-                  <optgroup label="Sorties">
-                    <option value="paiement">Paiement</option>
-                    <option value="depense">Dépense</option>
-                    <option value="capex">CAPEX</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="admin">Administratif</option>
-                    <option value="remboursement_investisseur">Remboursement investisseur</option>
+                  <optgroup label={t('transactions.totalOut')}>
+                    <option value="paiement">{t('transactionType.payment')}</option>
+                    <option value="depense">{t('transactionType.expense')}</option>
+                    <option value="capex">{t('transactions.typeCapex')}</option>
+                    <option value="maintenance">{t('transactions.typeMaintenance')}</option>
+                    <option value="admin">{t('transactions.typeAdmin')}</option>
+                    <option value="remboursement_investisseur">{t('transactions.typeRemboursement')}</option>
                   </optgroup>
-                  <optgroup label="Autre">
-                    <option value="transfert">Transfert (courant ↔ CAPEX)</option>
+                  <optgroup label={t('transactions.groupOther')}>
+                    <option value="transfert">{t('transactions.typeTransfertFull')}</option>
                   </optgroup>
                 </select>
               </div>
@@ -343,7 +358,7 @@ export default function TransactionsTab() {
             {formData.type === 'loyer_locatif' && (
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
                 <label className="block text-sm font-medium text-teal-800 mb-3">
-                  Compte de destination *
+                  {t('transactions.destinationAccount')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['compte_courant', 'capex'] as const).map(acc => (
@@ -354,7 +369,7 @@ export default function TransactionsTab() {
                           ? 'border-teal-500 bg-teal-100 text-teal-800'
                           : 'border-gray-300 hover:border-teal-300 text-gray-700'
                       }`}>
-                      {acc === 'compte_courant' ? '🏢 Compte courant' : '🏗️ CAPEX'}
+                      {acc === 'compte_courant' ? `🏢 ${t('transactions.compteCourant')}` : `🏗️ ${t('transactions.typeCapex')}`}
                     </button>
                   ))}
                 </div>
@@ -365,7 +380,7 @@ export default function TransactionsTab() {
             {formData.type === 'paiement' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-2">Occurrence</label>
+                  <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.occurrence')}</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['unique', 'recurrent'] as const).map(occ => (
                       <button key={occ} type="button"
@@ -375,7 +390,9 @@ export default function TransactionsTab() {
                             ? 'border-orange-500 bg-orange-100 text-orange-800'
                             : 'border-gray-300 hover:border-orange-300 text-gray-700'
                         }`}>
-                        {occ === 'unique' ? '1️⃣ Unique' : '🔄 Récurrent'}
+                        {occ === 'unique'
+                          ? `1️⃣ ${t('transactions.occurrenceUnique')}`
+                          : `🔄 ${t('transactions.occurrenceRecurrent')}`}
                       </button>
                     ))}
                   </div>
@@ -384,20 +401,20 @@ export default function TransactionsTab() {
                 {formData.occurrence_type === 'recurrent' && (
                   <div className="space-y-3 pt-2 border-t border-orange-200">
                     <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-2">Fréquence *</label>
+                      <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.frequency')}</label>
                       <select required value={formData.recurrence_frequency ?? ''}
                         onChange={e => set({ recurrence_frequency: e.target.value as any })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 bg-white">
-                        <option value="">-- Choisir --</option>
-                        <option value="quotidien">Quotidien</option>
-                        <option value="hebdomadaire">Hebdomadaire</option>
-                        <option value="mensuel">Mensuel</option>
-                        <option value="trimestriel">Trimestriel</option>
-                        <option value="annuel">Annuel</option>
+                        <option value="">{t('transactions.freqChoose')}</option>
+                        <option value="quotidien">{t('transactions.freqQuotidien')}</option>
+                        <option value="hebdomadaire">{t('transactions.freqHebdomadaire')}</option>
+                        <option value="mensuel">{t('transactions.freqMensuel')}</option>
+                        <option value="trimestriel">{t('transactions.freqTrimestriel')}</option>
+                        <option value="annuel">{t('transactions.freqAnnuel')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-2">Date de fin</label>
+                      <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.endDate')}</label>
                       <div className="flex items-center gap-3">
                         <input type="date"
                           disabled={formData.recurrence_no_end}
@@ -408,13 +425,13 @@ export default function TransactionsTab() {
                           <input type="checkbox" checked={formData.recurrence_no_end}
                             onChange={e => set({ recurrence_no_end: e.target.checked, recurrence_end_date: null })}
                             className="w-4 h-4 rounded" />
-                          Pas de fin
+                          {t('transactions.noEnd')}
                         </label>
                       </div>
                     </div>
                     {previewCount !== null && (
                       <p className="text-sm text-orange-700 font-medium">
-                        Aperçu : <strong>{previewCount}</strong> transaction(s) seront créées
+                        {fr ? 'Aperçu :' : 'Preview:'} <strong>{previewCount}</strong> {fr ? 'transaction(s) seront créées' : 'transaction(s) will be created'}
                       </p>
                     )}
                   </div>
@@ -425,7 +442,7 @@ export default function TransactionsTab() {
             {/* ── Transfert : source / destination ── */}
             {formData.type === 'transfert' && (
               <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <label className="block text-sm font-medium text-indigo-800 mb-3">De (compte source) *</label>
+                <label className="block text-sm font-medium text-indigo-800 mb-3">{t('transactions.sourceAccount')}</label>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {(['compte_courant', 'capex'] as const).map(acc => (
                     <button key={acc} type="button"
@@ -435,13 +452,13 @@ export default function TransactionsTab() {
                           ? 'border-indigo-500 bg-indigo-100 text-indigo-800'
                           : 'border-gray-300 hover:border-indigo-300 text-gray-700'
                       }`}>
-                      {acc === 'compte_courant' ? '🏢 Compte courant' : '🏗️ CAPEX'}
+                      {acc === 'compte_courant' ? `🏢 ${t('transactions.compteCourant')}` : `🏗️ ${t('transactions.typeCapex')}`}
                     </button>
                   ))}
                 </div>
                 {formData.transfer_source && (
                   <p className="text-sm text-indigo-700">
-                    Vers : <strong>{transferDest}</strong>
+                    {t('transactions.toAccount')} <strong>{transferDest}</strong>
                   </p>
                 )}
               </div>
@@ -450,7 +467,7 @@ export default function TransactionsTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Montant */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Montant ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.amountLabel')}</label>
                 <input type="text" inputMode="decimal" required
                   value={formData.amount || ''}
                   onChange={e => {
@@ -458,58 +475,58 @@ export default function TransactionsTab() {
                     const n = parseFloat(v)
                     set({ amount: isNaN(n) ? 0 : n })
                   }}
-                  placeholder="Ex: 1 500,00"
+                  placeholder={fr ? 'Ex: 1 500,00' : 'E.g. 1500.00'}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
               </div>
 
               {/* Catégorie (masquée pour transfert) */}
               {formData.type !== 'transfert' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.categoryLabel')}</label>
                   <select required value={formData.category}
                     onChange={e => set({ category: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                    <option value="capital">Capital</option>
-                    <option value="operation">Opération</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="admin">Administration</option>
+                    <option value="capital">{t('category.capital')}</option>
+                    <option value="operation">{t('category.operation')}</option>
+                    <option value="maintenance">{t('category.maintenance')}</option>
+                    <option value="admin">{t('category.admin')}</option>
                   </select>
                 </div>
               )}
 
               {/* Méthode paiement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Méthode de paiement *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.paymentMethodLabel')}</label>
                 <select required value={formData.payment_method}
                   onChange={e => set({ payment_method: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                  <option value="virement">Virement</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="especes">Espèces</option>
-                  <option value="carte">Carte</option>
+                  <option value="virement">{t('paymentMethod.transfer')}</option>
+                  <option value="cheque">{t('paymentMethod.check')}</option>
+                  <option value="especes">{t('paymentMethod.cash')}</option>
+                  <option value="carte">{t('paymentMethod.card')}</option>
                 </select>
               </div>
 
               {/* Statut */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Statut *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.statusLabel')}</label>
                 <select required value={formData.status}
                   onChange={e => set({ status: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                  <option value="complete">Complété</option>
-                  <option value="pending">En attente</option>
-                  <option value="cancelled">Annulé</option>
+                  <option value="complete">{t('status.complete')}</option>
+                  <option value="pending">{t('status.pending')}</option>
+                  <option value="cancelled">{t('status.cancelled')}</option>
                 </select>
               </div>
 
               {/* Investisseur (masqué pour transfert) */}
               {formData.type !== 'transfert' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Investisseur</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.investor')}</label>
                   <select value={formData.investor_id ?? ''}
                     onChange={e => set({ investor_id: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                    <option value="">Aucun</option>
+                    <option value="">{t('transactions.noInvestor')}</option>
                     {investors.map(inv => (
                       <option key={inv.id} value={inv.id}>{inv.first_name} {inv.last_name}</option>
                     ))}
@@ -520,11 +537,11 @@ export default function TransactionsTab() {
               {/* Propriété */}
               {formData.type !== 'transfert' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Propriété</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.property')}</label>
                   <select value={formData.property_id ?? ''}
                     onChange={e => set({ property_id: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                    <option value="">Aucune</option>
+                    <option value="">{t('transactions.noProperty')}</option>
                     {properties.map(prop => (
                       <option key={prop.id} value={prop.id}>{prop.name}</option>
                     ))}
@@ -534,7 +551,7 @@ export default function TransactionsTab() {
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.descriptionLabel')}</label>
                 <textarea required rows={2} value={formData.description}
                   onChange={e => set({ description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
@@ -542,10 +559,10 @@ export default function TransactionsTab() {
 
               {/* Référence */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Numéro de référence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.referenceLabel')}</label>
                 <input type="text" value={formData.reference_number}
                   onChange={e => set({ reference_number: e.target.value })}
-                  placeholder="Ex: TRX-2025-001"
+                  placeholder={fr ? 'Ex: TRX-2025-001' : 'E.g. TRX-2025-001'}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
               </div>
             </div>
@@ -553,15 +570,17 @@ export default function TransactionsTab() {
             <div className="flex gap-3 pt-4">
               <button type="submit" disabled={saving || loading}
                 className="bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50">
-                {saving ? 'Enregistrement...' :
-                  editingId ? 'Modifier' :
-                  (formData.type === 'paiement' && formData.occurrence_type === 'recurrent')
-                    ? `Créer ${previewCount ?? '?'} paiement(s)`
-                    : 'Ajouter'}
+                {saving
+                  ? t('common.saving')
+                  : editingId
+                    ? t('common.edit')
+                    : (formData.type === 'paiement' && formData.occurrence_type === 'recurrent')
+                      ? (fr ? `Créer ${previewCount ?? '?'} paiement(s)` : `Create ${previewCount ?? '?'} payment(s)`)
+                      : t('common.add')}
               </button>
               <button type="button" onClick={resetForm}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors">
-                Annuler
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -572,11 +591,11 @@ export default function TransactionsTab() {
       {filteredTransactions.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('transactions.noTransactions')}</h3>
           <p className="text-gray-600">
             {filterType !== 'all' || filterCategory !== 'all'
-              ? 'Aucune transaction ne correspond aux filtres'
-              : 'Commencez par ajouter votre première transaction'}
+              ? t('transactions.noMatch')
+              : t('transactions.addFirst')}
           </p>
         </div>
       ) : (
@@ -585,12 +604,12 @@ export default function TransactionsTab() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.date')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.type')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.description')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.amount')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.status')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -604,17 +623,17 @@ export default function TransactionsTab() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center gap-2">
                           <Calendar size={14} className="text-gray-400" />
-                          {new Date(transaction.date).toLocaleDateString('fr-CA')}
+                          {new Date(transaction.date).toLocaleDateString(dateLocale)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getTypeBadge(transaction.type)}</td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
-                        {investor && <div className="text-xs text-gray-500">Investisseur: {investor.first_name} {investor.last_name}</div>}
-                        {property && <div className="text-xs text-gray-500">Propriété: {property.name}</div>}
+                        {investor && <div className="text-xs text-gray-500">{t('transactions.investorRow')} {investor.first_name} {investor.last_name}</div>}
+                        {property && <div className="text-xs text-gray-500">{t('transactions.propertyRow')} {property.name}</div>}
                         {(transaction as any).target_account && (
                           <div className="text-xs text-teal-600">
-                            Vers: {(transaction as any).target_account === 'compte_courant' ? 'Compte courant' : 'CAPEX'}
+                            {t('transactions.toRow')} {(transaction as any).target_account === 'compte_courant' ? t('transactions.compteCourant') : t('transactions.typeCapex')}
                           </div>
                         )}
                       </td>
@@ -623,7 +642,7 @@ export default function TransactionsTab() {
                           isInflow ? 'text-green-600' : transaction.type === 'transfert' ? 'text-indigo-600' : 'text-red-600'
                         }`}>
                           {getTypeIcon(transaction.type)}
-                          {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          {Math.abs(transaction.amount).toLocaleString(dateLocale, { style: 'currency', currency: 'CAD' })}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -632,18 +651,18 @@ export default function TransactionsTab() {
                           transaction.status === 'pending'  ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {transaction.status === 'complete' ? 'Complété' :
-                           transaction.status === 'pending'  ? 'En attente' : 'Annulé'}
+                          {transaction.status === 'complete' ? t('status.complete') :
+                           transaction.status === 'pending'  ? t('status.pending') : t('status.cancelled')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleEdit(transaction)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Modifier">
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded" title={t('common.edit')}>
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => handleDelete(transaction.id, transaction.description)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded" title="Supprimer">
+                            className="p-1 text-red-600 hover:bg-red-50 rounded" title={t('common.delete')}>
                             <Trash2 size={16} />
                           </button>
                         </div>
