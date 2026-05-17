@@ -394,6 +394,31 @@ const translations = {
     'transactions.propertyRow': 'Propriété :',
     'transactions.toRow': 'Vers :',
 
+    // CAPEX Dashboard
+    'capex.dashboard': 'Dashboard CAPEX',
+    'capex.subtitle': 'Réserves et dépenses CAPEX en temps réel',
+    'capex.noData': 'Aucune donnée CAPEX disponible',
+    'capex.noDataHint': 'Créez des transactions avec Source = CAPEX ou Catégorie = CAPEX pour voir les données.',
+    'capex.totalBalance': 'Balance Totale',
+    'capex.allYears': 'Toutes années',
+    'capex.historyTitle': 'Historique CAPEX par Année',
+    'capex.current': 'Actuel',
+    'capex.year': 'Année',
+    'capex.received': 'Reçu',
+    'capex.spent': 'Dépensé',
+    'capex.balance': 'Balance',
+
+    // Compte Courant Dashboard
+    'compteCourant.dashboard': 'Dashboard Compte Courant',
+    'compteCourant.subtitle': 'Flux de trésorerie en temps réel',
+    'compteCourant.allYears': 'Toutes années',
+    'compteCourant.cumulativeBalance': 'Solde Cumulatif — Toutes Années',
+    'compteCourant.cumulativeDesc': 'Investissements + Revenus − Toutes dépenses',
+    'compteCourant.summary': 'Résumé',
+    'compteCourant.monthlyDetails': 'Détails Mensuels',
+    'compteCourant.month': 'Mois',
+    'compteCourant.transactions': 'Transactions',
+
     // Transaction Types
     'transactionType.investment': 'Investissement',
     'transactionType.payment': 'Paiement',
@@ -1463,6 +1488,31 @@ const translations = {
     'transactions.investorRow': 'Investor:',
     'transactions.propertyRow': 'Property:',
     'transactions.toRow': 'To:',
+
+    // CAPEX Dashboard
+    'capex.dashboard': 'CAPEX Dashboard',
+    'capex.subtitle': 'Real-time CAPEX reserves and expenses',
+    'capex.noData': 'No CAPEX data available',
+    'capex.noDataHint': 'Create transactions with Source = CAPEX or Category = CAPEX to view data.',
+    'capex.totalBalance': 'Total Balance',
+    'capex.allYears': 'All Years',
+    'capex.historyTitle': 'CAPEX History by Year',
+    'capex.current': 'Current',
+    'capex.year': 'Year',
+    'capex.received': 'Received',
+    'capex.spent': 'Spent',
+    'capex.balance': 'Balance',
+
+    // Compte Courant Dashboard
+    'compteCourant.dashboard': 'Current Account Dashboard',
+    'compteCourant.subtitle': 'Real-time cash flow',
+    'compteCourant.allYears': 'All Years',
+    'compteCourant.cumulativeBalance': 'Cumulative Balance — All Years',
+    'compteCourant.cumulativeDesc': 'Investments + Revenue − All expenses',
+    'compteCourant.summary': 'Summary',
+    'compteCourant.monthlyDetails': 'Monthly Details',
+    'compteCourant.month': 'Month',
+    'compteCourant.transactions': 'Transactions',
 
     // Transaction Types
     'transactionType.investment': 'Investment',

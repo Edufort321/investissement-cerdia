@@ -3,6 +3,7 @@
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { useState, useMemo } from 'react'
 import { Wallet, TrendingUp, TrendingDown, Calendar } from 'lucide-react'
 
@@ -10,48 +11,44 @@ const INFLOW_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'di
 const OUTFLOW_TYPES = ['paiement', 'achat_propriete', 'capex', 'maintenance', 'admin',
                        'depense', 'remboursement_investisseur', 'courant', 'rnd', 'transfert']
 
-const MONTH_NAMES = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-]
-
 const ALL_YEARS = 'all'
 
 export default function CompteCourantDashboard() {
   const { transactions } = useInvestment()
   const { organization } = useOrganization()
   const { summary: globalSummary } = useFinancialSummary(null, organization?.id ?? null)
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(currentYear)
 
   const fmt = (v: number) =>
-    v.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
+    v.toLocaleString(locale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
   const fmtSigned = (v: number) =>
-    v.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, signDisplay: 'always' })
+    v.toLocaleString(locale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, signDisplay: 'always' })
 
-  // Transactions actives uniquement
   const activeTx = useMemo(
-    () => (transactions || []).filter(t => t && t.status !== 'cancelled'),
+    () => (transactions || []).filter(tx => tx && tx.status !== 'cancelled'),
     [transactions]
   )
 
-  // Années disponibles
   const uniqueYears = useMemo(() => {
-    const years = Array.from(new Set(activeTx.map(t => new Date(t.date).getFullYear())))
+    const years = Array.from(new Set(activeTx.map(tx => new Date(tx.date).getFullYear())))
       .sort((a, b) => b - a)
     if (!years.includes(currentYear)) years.unshift(currentYear)
     return years
   }, [activeTx, currentYear])
 
-  // Agrégation mensuelle depuis les transactions brutes
   const monthlyData = useMemo(() => {
     const map = new Map<string, {
       year: number; month: number; period: string
       inflow: number; outflow: number; count: number
     }>()
 
-    for (const t of activeTx) {
-      const d     = new Date(t.date)
+    for (const tx of activeTx) {
+      const d     = new Date(tx.date)
       const year  = d.getFullYear()
       const month = d.getMonth() + 1
       const key   = `${year}-${String(month).padStart(2, '0')}`
@@ -60,10 +57,10 @@ export default function CompteCourantDashboard() {
         map.set(key, { year, month, period: key, inflow: 0, outflow: 0, count: 0 })
       }
       const row = map.get(key)!
-      const amt = Math.abs(t.amount || 0)
+      const amt = Math.abs(tx.amount || 0)
 
-      if (INFLOW_TYPES.includes(t.type))       row.inflow  += amt
-      else if (OUTFLOW_TYPES.includes(t.type)) row.outflow += amt
+      if (INFLOW_TYPES.includes(tx.type))       row.inflow  += amt
+      else if (OUTFLOW_TYPES.includes(tx.type)) row.outflow += amt
       row.count++
     }
 
@@ -72,7 +69,6 @@ export default function CompteCourantDashboard() {
     )
   }, [activeTx])
 
-  // Filtrer par année sélectionnée
   const filteredMonthly = useMemo(() =>
     selectedYear === ALL_YEARS
       ? monthlyData
@@ -80,16 +76,17 @@ export default function CompteCourantDashboard() {
     [monthlyData, selectedYear]
   )
 
-  // Totaux pour la période sélectionnée
   const periodInflow  = filteredMonthly.reduce((s, r) => s + r.inflow,  0)
   const periodOutflow = filteredMonthly.reduce((s, r) => s + r.outflow, 0)
   const periodBalance = periodInflow - periodOutflow
   const periodCount   = filteredMonthly.reduce((s, r) => s + r.count,   0)
 
-  // Solde global toutes années (source: get_financial_summary)
   const globalBalance = globalSummary?.compte_courant_balance ?? null
 
-  const periodLabel = selectedYear === ALL_YEARS ? 'Toutes années' : String(selectedYear)
+  const periodLabel = selectedYear === ALL_YEARS ? t('compteCourant.allYears') : String(selectedYear)
+
+  const formatMonth = (year: number, month: number) =>
+    new Date(year, month - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   return (
     <div className="space-y-6">
@@ -98,8 +95,8 @@ export default function CompteCourantDashboard() {
         <div className="flex items-center gap-3">
           <Wallet className="text-blue-600" size={32} />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Dashboard Compte Courant</h2>
-            <p className="text-sm text-gray-600">Flux de trésorerie en temps réel</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('compteCourant.dashboard')}</h2>
+            <p className="text-sm text-gray-600">{t('compteCourant.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -109,7 +106,7 @@ export default function CompteCourantDashboard() {
             onChange={e => setSelectedYear(e.target.value === ALL_YEARS ? ALL_YEARS : parseInt(e.target.value))}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
           >
-            <option value={ALL_YEARS}>Toutes années</option>
+            <option value={ALL_YEARS}>{t('compteCourant.allYears')}</option>
             {uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
@@ -122,10 +119,10 @@ export default function CompteCourantDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Solde Cumulatif — Toutes Années
+              {t('compteCourant.cumulativeBalance')}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Investissements + Revenus − Toutes dépenses
+              {t('compteCourant.cumulativeDesc')}
             </p>
           </div>
           <div className={`text-4xl font-bold ${(globalBalance ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -137,12 +134,12 @@ export default function CompteCourantDashboard() {
       {/* KPIs période sélectionnée */}
       <div>
         <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-          Résumé — {periodLabel}
+          {t('compteCourant.summary')} — {periodLabel}
         </h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Entrées</p>
+              <p className="text-sm font-medium text-gray-700">{t('transactions.totalIn')}</p>
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-600">+{fmt(periodInflow)}</p>
@@ -151,7 +148,7 @@ export default function CompteCourantDashboard() {
 
           <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Sorties</p>
+              <p className="text-sm font-medium text-gray-700">{t('transactions.totalOut')}</p>
               <TrendingDown className="w-5 h-5 text-red-600" />
             </div>
             <p className="text-2xl font-bold text-red-600">-{fmt(periodOutflow)}</p>
@@ -162,7 +159,7 @@ export default function CompteCourantDashboard() {
             ? 'from-blue-50 to-blue-100 border-blue-200'
             : 'from-orange-50 to-orange-100 border-orange-200'}`}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Balance</p>
+              <p className="text-sm font-medium text-gray-700">{t('capex.balance')}</p>
               <Wallet className={`w-5 h-5 ${periodBalance >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
             </div>
             <p className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -173,7 +170,7 @@ export default function CompteCourantDashboard() {
 
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Transactions</p>
+              <p className="text-sm font-medium text-gray-700">{t('compteCourant.transactions')}</p>
               <Calendar className="w-5 h-5 text-purple-600" />
             </div>
             <p className="text-2xl font-bold text-gray-900">{periodCount}</p>
@@ -186,24 +183,26 @@ export default function CompteCourantDashboard() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">
-            Détails Mensuels — {periodLabel}
+            {t('compteCourant.monthlyDetails')} — {periodLabel}
           </h3>
-          <span className="text-sm text-gray-500">{filteredMonthly.length} mois</span>
+          <span className="text-sm text-gray-500">
+            {filteredMonthly.length} {fr ? 'mois' : 'month(s)'}
+          </span>
         </div>
         {filteredMonthly.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
-            Aucune transaction pour {periodLabel}
+            {fr ? `Aucune transaction pour ${periodLabel}` : `No transactions for ${periodLabel}`}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left   text-xs font-semibold text-gray-700 uppercase">Mois</th>
-                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">Entrées</th>
-                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">Sorties</th>
-                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">Balance</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Trans.</th>
+                  <th className="px-4 py-3 text-left   text-xs font-semibold text-gray-700 uppercase">{t('compteCourant.month')}</th>
+                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">{t('transactions.totalIn')}</th>
+                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">{t('transactions.totalOut')}</th>
+                  <th className="px-4 py-3 text-right  text-xs font-semibold text-gray-700 uppercase">{t('capex.balance')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">{fr ? 'Trans.' : 'Trx.'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -212,7 +211,7 @@ export default function CompteCourantDashboard() {
                   return (
                     <tr key={row.period} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       <td className="px-4 py-3 font-semibold text-gray-900">
-                        {MONTH_NAMES[row.month - 1]} {row.year}
+                        {formatMonth(row.year, row.month)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-green-600">
                         {row.inflow > 0 ? `+${fmt(row.inflow)}` : '—'}
@@ -228,7 +227,6 @@ export default function CompteCourantDashboard() {
                   )
                 })}
               </tbody>
-              {/* Ligne total */}
               <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                 <tr>
                   <td className="px-4 py-3 font-bold text-gray-900">Total {periodLabel}</td>
