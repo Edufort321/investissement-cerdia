@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { FileDown, ChevronDown, ChevronUp } from 'lucide-react'
@@ -104,6 +105,8 @@ interface InvestorMetric {
 export default function NAVDashboard() {
   const { rate: exchangeRate } = useExchangeRate()
   const { organization } = useOrganization()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
   const orgId = organization?.id ?? null
   const { current: tlCurrent, pctChange: tlPct, data: tlData } = useNAVTimeline(orgId)
   const { summary: financialSummary } = useFinancialSummary(null, orgId)
@@ -566,7 +569,7 @@ export default function NAVDashboard() {
 
       // Recharger les données
       await loadNAVData()
-      alert('Snapshot créé avec succès!')
+      alert(fr ? 'Snapshot créé avec succès!' : 'Snapshot created successfully!')
 
     } catch (err: any) {
       console.error('Error creating snapshot:', err)
@@ -595,7 +598,7 @@ export default function NAVDashboard() {
 
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('fr-CA', {
+    return new Date(dateStr).toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -635,7 +638,7 @@ export default function NAVDashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du NAV...</p>
+          <p className="text-gray-600">{t('nav.loading')}</p>
         </div>
       </div>
     )
@@ -650,7 +653,7 @@ export default function NAVDashboard() {
           onClick={loadNAVData}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
         >
-          Réessayer
+          {t('nav.errorRetry')}
         </button>
       </div>
     )
@@ -659,7 +662,7 @@ export default function NAVDashboard() {
   if (!summary) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h3 className="text-red-800 font-semibold mb-2">❌ Erreur de configuration NAV</h3>
+        <h3 className="text-red-800 font-semibold mb-2">❌ {t('nav.configError')}</h3>
         <p className="text-red-700 mb-4">
           Le système NAV ne peut pas calculer la valeur actuelle. Cela signifie que les migrations NAV ne sont pas exécutées sur Supabase.
         </p>
@@ -674,7 +677,7 @@ export default function NAVDashboard() {
           onClick={loadNAVData}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
         >
-          🔄 Réessayer
+          🔄 {t('nav.errorRetry')}
         </button>
       </div>
     )
@@ -687,9 +690,9 @@ export default function NAVDashboard() {
       {/* En-tête avec boutons */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Valeur Liquidative (NAV)</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('nav.title')}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Calculé en temps réel — taux USD/CAD live: <strong>1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD</strong>
+            {t('nav.realtimeRate')} <strong>1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD</strong>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -699,7 +702,7 @@ export default function NAVDashboard() {
             className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             <FileDown size={18} />
-            {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+            {exportingPDF ? t('nav.generating') : t('nav.exportPDF')}
           </button>
           <button
             onClick={createSnapshot}
@@ -709,12 +712,12 @@ export default function NAVDashboard() {
             {snapshotLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                Création...
+                {t('nav.creating')}
               </>
             ) : (
               <>
                 <span>📸</span>
-                Créer un snapshot
+                {t('nav.snapshot')}
               </>
             )}
           </button>
@@ -739,45 +742,45 @@ export default function NAVDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NAV par action actuel */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-600 mb-1">NAV par action</div>
+          <div className="text-sm text-gray-600 mb-1">{t('nav.perShare')}</div>
           <div className="text-3xl font-bold text-blue-600">
             {tlCurrent ? `${tlCurrent.nav_per_share.toFixed(4)} $` : '—'}
           </div>
           <div className={`text-sm mt-2 ${getPerformanceColor(tlPct)}`}>
-            {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}% depuis lancement
+            {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}% {t('nav.sinceLaunch')}
           </div>
         </div>
 
         {/* Performance totale */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-600 mb-1">Performance totale</div>
+          <div className="text-sm text-gray-600 mb-1">{t('nav.totalPerformance')}</div>
           <div className={`text-3xl font-bold ${getPerformanceColor(tlPct)}`}>
             {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}%
           </div>
           <div className="text-sm text-gray-600 mt-2">
-            Depuis {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'}
+            {t('nav.since')} {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'}
           </div>
         </div>
 
         {/* NAV total */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-600 mb-1">NAV total</div>
+          <div className="text-sm text-gray-600 mb-1">{t('nav.totalNav')}</div>
           <div className="text-3xl font-bold text-gray-900">
             {formatCurrency(tlCurrent?.net_asset_value ?? null)}
           </div>
           <div className="text-sm text-gray-600 mt-2">
-            {formatCurrency(summary.current_appreciation)} d'appréciation
+            {formatCurrency(summary.current_appreciation)} {fr ? "d'appréciation" : 'appreciation'}
           </div>
         </div>
 
         {/* Valeur des propriétés */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-600 mb-1">Valeur des propriétés</div>
+          <div className="text-sm text-gray-600 mb-1">{t('nav.propertyValue')}</div>
           <div className="text-3xl font-bold text-gray-900">
             {formatCurrency(summary.properties_current_value)}
           </div>
           <div className="text-sm text-gray-600 mt-2">
-            {formatCurrency(summary.total_investments)} investis
+            {formatCurrency(summary.total_investments)} {t('nav.invested')}
           </div>
         </div>
       </div>
@@ -785,19 +788,19 @@ export default function NAVDashboard() {
       {/* Section détaillée: Calcul NAV — utilise get_nav_timeline() */}
       {tlCurrent && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🧮 Calcul détaillé du NAV</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">🧮 {t('nav.detailedCalc')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Actifs — NAV total = actifs nets (get_nav_timeline: cash + prop appreciation) */}
             <div>
-              <h4 className="text-md font-semibold text-green-700 mb-3">💰 ACTIFS</h4>
+              <h4 className="text-md font-semibold text-green-700 mb-3">💰 {t('nav.assets')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">NAV total (trésorerie + propriétés)</span>
+                  <span className="text-sm text-gray-600">{t('nav.navTotalCashProp')}</span>
                   <span className="text-sm font-medium text-gray-900">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">Total Actifs</span>
+                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalAssets')}</span>
                   <span className="text-sm font-bold text-green-600">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
               </div>
@@ -805,14 +808,14 @@ export default function NAVDashboard() {
 
             {/* Passifs */}
             <div>
-              <h4 className="text-md font-semibold text-red-700 mb-3">💳 PASSIFS</h4>
+              <h4 className="text-md font-semibold text-red-700 mb-3">💳 {t('nav.liabilities')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Hypothèques et prêts actifs</span>
+                  <span className="text-sm text-gray-600">{t('nav.mortgages')}</span>
                   <span className="text-sm font-medium text-red-700">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">Total Passifs</span>
+                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalLiabilities')}</span>
                   <span className="text-sm font-bold text-red-600">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
               </div>
@@ -824,19 +827,19 @@ export default function NAVDashboard() {
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">NAV Total</div>
+                  <div className="text-sm text-gray-600 mb-1">{t('nav.totalNav')}</div>
                   <div className="text-2xl font-bold text-blue-600">{formatCurrency(tlCurrent.net_asset_value)}</div>
                   <div className="text-xs text-gray-500 mt-1">Source: get_nav_timeline()</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">Parts totales</div>
+                  <div className="text-sm text-gray-600 mb-1">{t('nav.totalShares')}</div>
                   <div className="text-2xl font-bold text-gray-900">{tlCurrent.total_shares.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Actions en circulation</div>
+                  <div className="text-xs text-gray-500 mt-1">{t('nav.sharesCirculating')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">NAV par part</div>
+                  <div className="text-sm text-gray-600 mb-1">{t('nav.navPerShare')}</div>
                   <div className="text-2xl font-bold text-blue-600">{tlCurrent.nav_per_share.toFixed(4)} $</div>
-                  <div className="text-xs text-gray-500 mt-1">Valeur de chaque action</div>
+                  <div className="text-xs text-gray-500 mt-1">{t('nav.shareValue')}</div>
                 </div>
               </div>
             </div>
@@ -847,21 +850,21 @@ export default function NAVDashboard() {
       {/* Section: Propriétés et Appréciation */}
       {detailedNavData && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 Immeubles et Appréciation (Total)</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 {t('nav.buildingsTitle')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Valeur d'achat (USD → CAD)</div>
+              <div className="text-sm text-gray-600 mb-1">{t('nav.purchaseValue')}</div>
               <div className="text-xl font-bold text-gray-900">{formatCurrency(detailedNavData.properties_initial_value)}</div>
-              <div className="text-xs text-gray-500 mt-1">Prix payé pour les propriétés</div>
+              <div className="text-xs text-gray-500 mt-1">{t('nav.pricePaidLabel')}</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Valeur actuelle (ROI projeté/an)</div>
+              <div className="text-sm text-gray-600 mb-1">{t('nav.currentValueROI')}</div>
               <div className="text-xl font-bold text-green-600">{formatCurrency(detailedNavData.properties_current_value)}</div>
               <div className="text-xs text-gray-500 mt-1">expected_roi → scénario → 8% défaut</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Gain d'appréciation</div>
+              <div className="text-sm text-gray-600 mb-1">{t('nav.appreciationGain')}</div>
               <div className="text-xl font-bold text-blue-600">{formatCurrency(detailedNavData.properties_appreciation)}</div>
               <div className="text-xs text-green-600 mt-1">
                 {(detailedNavData.properties_initial_value ?? 0) > 0 && detailedNavData.properties_appreciation != null
@@ -875,17 +878,23 @@ export default function NAVDashboard() {
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚠️</span>
               <div className="flex-1">
-                <h4 className="font-semibold text-yellow-900 mb-1">Taux d'appréciation par propriété</h4>
+                <h4 className="font-semibold text-yellow-900 mb-1">
+                  {fr ? "Taux d'appréciation par propriété" : 'Appreciation Rate per Property'}
+                </h4>
                 <p className="text-sm text-yellow-800 mb-2">
-                  Chaque propriété utilise son propre taux dans cet ordre de priorité:
+                  {fr
+                    ? 'Chaque propriété utilise son propre taux dans cet ordre de priorité:'
+                    : 'Each property uses its own rate in this priority order:'}
                 </p>
                 <ol className="text-sm text-yellow-800 space-y-1 ml-4 list-decimal">
-                  <li><strong>ROI attendu</strong> (champ <em>expected_roi</em> de la propriété)</li>
-                  <li><strong>Taux du scénario</strong> (champ <em>annual_appreciation</em> de l'Évaluateur lié)</li>
-                  <li><strong>8% par défaut</strong> si aucun des deux n'est défini</li>
+                  <li><strong>{fr ? 'ROI attendu' : 'Expected ROI'}</strong> ({fr ? 'champ' : 'field'} <em>expected_roi</em>)</li>
+                  <li><strong>{fr ? 'Taux du scénario' : 'Scenario rate'}</strong> ({fr ? 'champ' : 'field'} <em>annual_appreciation</em>)</li>
+                  <li><strong>8% {fr ? 'par défaut' : 'default'}</strong></li>
                 </ol>
                 <p className="text-xs text-yellow-700 mt-2">
-                  💡 Pour un NAV précis: créez une évaluation initiale (Admin → Évaluations) avec le prix d'achat réel. Puis réévaluez aux 2 ans.
+                  💡 {fr
+                    ? "Pour un NAV précis: créez une évaluation initiale (Admin → Évaluations) avec le prix d'achat réel. Puis réévaluez aux 2 ans."
+                    : 'For accurate NAV: create an initial valuation (Admin → Valuations) with the real purchase price. Then re-evaluate every 2 years.'}
                 </p>
               </div>
             </div>
@@ -897,9 +906,9 @@ export default function NAVDashboard() {
       {properties.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">🏘️ Portfolio de Propriétés ({properties.length})</h3>
+            <h3 className="text-lg font-semibold text-gray-900">🏘️ {t('nav.portfolioTitle')} ({properties.length})</h3>
             <div className="text-sm text-gray-600">
-              Détails de chaque propriété avec prise de valeur
+              {t('nav.portfolioDetails')}
             </div>
           </div>
 
@@ -923,6 +932,20 @@ export default function NAVDashboard() {
               }
               const fmtCad = (n: number) => `≈ ${formatCurrency(n * fx)} CAD`
 
+              const statusLabel = fr
+                ? (property.status === 'en_location' ? 'En location' :
+                   property.status === 'actif' ? 'Actif' :
+                   property.status === 'complete' ? 'Complétée' :
+                   property.status === 'acquired' ? 'Acquise' :
+                   property.status === 'en_construction' ? 'En construction' :
+                   property.status === 'reservation' ? 'Réservation' : property.status)
+                : (property.status === 'en_location' ? 'For Rent' :
+                   property.status === 'actif' ? 'Active' :
+                   property.status === 'complete' ? 'Completed' :
+                   property.status === 'acquired' ? 'Acquired' :
+                   property.status === 'en_construction' ? 'Under Construction' :
+                   property.status === 'reservation' ? 'Reserved' : property.status)
+
               return (
                 <div key={property.property_id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
                   {/* En-tête propriété */}
@@ -931,10 +954,10 @@ export default function NAVDashboard() {
                       <h4 className="text-base font-semibold text-gray-900">{property.property_name}</h4>
                       <div className="flex flex-wrap items-center gap-3 mt-1">
                         <span className="text-xs text-gray-500">
-                          Acquise le {formatDate(property.acquisition_date)}
+                          {t('nav.acquiredOn')} {formatDate(property.acquisition_date)}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {years > 0 ? `${years.toFixed(1)} an${years >= 2 ? 's' : ''} détenus` : ''}
+                          {years > 0 ? `${years.toFixed(1)} ${fr ? `an${years >= 2 ? 's' : ''}` : `yr${years >= 2 ? 's' : ''}`} ${t('nav.yearsHeld')}` : ''}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded font-medium ${
                           property.status === 'en_location' || property.status === 'actif' ? 'bg-green-100 text-green-700' :
@@ -942,16 +965,10 @@ export default function NAVDashboard() {
                           property.status === 'en_construction' ? 'bg-orange-100 text-orange-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {property.status === 'en_location' ? 'En location' :
-                           property.status === 'actif' ? 'Actif' :
-                           property.status === 'complete' ? 'Complétée' :
-                           property.status === 'acquired' ? 'Acquise' :
-                           property.status === 'en_construction' ? 'En construction' :
-                           property.status === 'reservation' ? 'Réservation' :
-                           property.status}
+                          {statusLabel}
                         </span>
                         <span className="text-xs text-gray-400">
-                          Taux: {(property.appreciation_rate_pct ?? 8).toFixed(2)}%/an · Devise: {property.currency}
+                          {fr ? 'Taux:' : 'Rate:'} {(property.appreciation_rate_pct ?? 8).toFixed(2)}%/an · {fr ? 'Devise:' : 'Currency:'} {property.currency}
                         </span>
                       </div>
                     </div>
@@ -962,53 +979,53 @@ export default function NAVDashboard() {
 
                     {/* 1. Prix contractuel */}
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <div className="text-xs font-medium text-gray-500 mb-1">Prix contractuel</div>
+                      <div className="text-xs font-medium text-gray-500 mb-1">{t('nav.contractPrice')}</div>
                       <div className="text-sm font-bold text-gray-900">{fmtVal(purchaseCost)}</div>
                       {property.currency === 'USD' && (
                         <div className="text-xs text-gray-400 mt-1">{fmtCad(purchaseCost)}</div>
                       )}
-                      <div className="text-xs text-gray-400 mt-1">Valeur totale signée</div>
+                      <div className="text-xs text-gray-400 mt-1">{t('nav.contractSigned')}</div>
                     </div>
 
                     {/* 2. Montant versé */}
                     <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                      <div className="text-xs font-medium text-yellow-700 mb-1">Versé à ce jour</div>
+                      <div className="text-xs font-medium text-yellow-700 mb-1">{t('nav.paidToDate')}</div>
                       <div className="text-sm font-bold text-yellow-900">{fmtVal(paidAmount)}</div>
                       {property.currency === 'USD' && (
                         <div className="text-xs text-yellow-600 mt-1">{fmtCad(paidAmount)}</div>
                       )}
                       <div className="text-xs text-yellow-600 mt-1">
-                        {purchaseCost > 0 ? `${((paidAmount / purchaseCost) * 100).toFixed(0)}% du total` : '—'}
+                        {purchaseCost > 0 ? `${((paidAmount / purchaseCost) * 100).toFixed(0)}% ${fr ? 'du total' : 'of total'}` : '—'}
                       </div>
                     </div>
 
                     {/* 3. Valeur marchande estimée */}
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                      <div className="text-xs font-medium text-green-700 mb-1">Valeur marchande estimée</div>
+                      <div className="text-xs font-medium text-green-700 mb-1">{t('nav.estimatedMarket')}</div>
                       <div className="text-sm font-bold text-green-700">{fmtVal(estimatedValue)}</div>
                       {property.currency === 'USD' && (
                         <div className="text-xs text-green-500 mt-1">{fmtCad(estimatedValue)}</div>
                       )}
-                      <div className="text-xs text-green-600 mt-1">Prix × (1 + {(property.appreciation_rate_pct ?? 8).toFixed(2)}%)^{years.toFixed(1)}an</div>
+                      <div className="text-xs text-green-600 mt-1">{fr ? 'Prix' : 'Price'} × (1 + {(property.appreciation_rate_pct ?? 8).toFixed(2)}%)^{years.toFixed(1)}{fr ? 'an' : 'yr'}</div>
                     </div>
 
                     {/* 4. Gain latent */}
                     <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <div className="text-xs font-medium text-blue-700 mb-1">Gain latent</div>
+                      <div className="text-xs font-medium text-blue-700 mb-1">{t('nav.latentGain')}</div>
                       <div className="text-sm font-bold text-blue-700">{fmtVal(estimatedGain)}</div>
                       {property.currency === 'USD' && (
                         <div className="text-xs text-blue-500 mt-1">{fmtCad(estimatedGain)}</div>
                       )}
-                      <div className="text-xs text-blue-600 mt-1">Sur prix contractuel</div>
+                      <div className="text-xs text-blue-600 mt-1">{t('nav.onContract')}</div>
                     </div>
 
                     {/* 5. % Appréciation */}
                     <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                      <div className="text-xs font-medium text-purple-700 mb-1">% Appréciation</div>
+                      <div className="text-xs font-medium text-purple-700 mb-1">{t('nav.appreciationPct')}</div>
                       <div className="text-xl font-bold text-purple-700">
                         {estimatedGainPct >= 0 ? '+' : ''}{estimatedGainPct.toFixed(2)}%
                       </div>
-                      <div className="text-xs text-purple-600 mt-1">Depuis acquisition</div>
+                      <div className="text-xs text-purple-600 mt-1">{t('nav.sinceAcquisition')}</div>
                     </div>
                   </div>
 
@@ -1016,7 +1033,7 @@ export default function NAVDashboard() {
                   {property.initial_valuation_date && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <span className="text-xs text-gray-500">
-                        Évaluation initiale enregistrée : {formatDate(property.initial_valuation_date)}
+                        {t('nav.initialValuation')} {formatDate(property.initial_valuation_date)}
                       </span>
                     </div>
                   )}
@@ -1028,9 +1045,9 @@ export default function NAVDashboard() {
           {/* Note */}
           <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-800">
-              <strong>Valeur marchande estimée</strong> = prix contractuel × (1 + taux annuel)^années détenues.
-              Taux par propriété : <em>expected_roi</em> → <em>annual_appreciation</em> du scénario lié → 8% par défaut.
-              Valeurs USD converties au taux live (1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD).
+              <strong>{t('nav.estimatedMarket')}</strong> = {fr ? 'prix contractuel' : 'contract price'} × (1 + {fr ? 'taux annuel' : 'annual rate'})^{fr ? 'années détenues' : 'years held'}.
+              {fr ? ' Taux par propriété : ' : ' Rate per property: '}<em>expected_roi</em> → <em>annual_appreciation</em> → 8% {fr ? 'par défaut' : 'default'}.
+              {fr ? ' Valeurs USD converties au taux live' : ' USD values converted at live rate'} (1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD).
             </p>
           </div>
         </div>
@@ -1039,23 +1056,23 @@ export default function NAVDashboard() {
       {/* Section: Flux de trésorerie */}
       {detailedNavData && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">💸 Flux de trésorerie</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">💸 {t('nav.cashflowTitle')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Entrées */}
             <div>
-              <h4 className="text-md font-semibold text-green-700 mb-3">📥 ENTRÉES</h4>
+              <h4 className="text-md font-semibold text-green-700 mb-3">📥 {t('nav.inflows')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Investissements des commanditaires</span>
+                  <span className="text-sm text-gray-600">{t('nav.lpInvestments')}</span>
                   <span className="text-sm font-medium text-green-600">{formatCurrency(detailedNavData.total_investments)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Revenus locatifs</span>
+                  <span className="text-sm text-gray-600">{t('nav.rentalIncome')}</span>
                   <span className="text-sm font-medium text-green-600">{formatCurrency(detailedNavData.rental_income)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">Total Entrées</span>
+                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalInflows')}</span>
                   <span className="text-sm font-bold text-green-600">
                     {formatCurrency((detailedNavData.total_investments ?? 0) + (detailedNavData.rental_income ?? 0))}
                   </span>
@@ -1065,26 +1082,26 @@ export default function NAVDashboard() {
 
             {/* Sorties */}
             <div>
-              <h4 className="text-md font-semibold text-red-700 mb-3">📤 SORTIES</h4>
+              <h4 className="text-md font-semibold text-red-700 mb-3">📤 {t('nav.outflows')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Achats de propriétés</span>
+                  <span className="text-sm text-gray-600">{t('nav.propertyPurchases')}</span>
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.property_purchases)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">CAPEX (améliorations)</span>
+                  <span className="text-sm text-gray-600">{t('nav.capexImprovements')}</span>
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.capex_expenses)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Maintenance</span>
+                  <span className="text-sm text-gray-600">{t('nav.maintenance')}</span>
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.maintenance_expenses)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Administration</span>
+                  <span className="text-sm text-gray-600">{t('nav.administration')}</span>
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.admin_expenses)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">Total Sorties</span>
+                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalOutflows')}</span>
                   <span className="text-sm font-bold text-red-600">
                     {formatCurrency(
                       (detailedNavData.property_purchases ?? 0) +
@@ -1103,8 +1120,8 @@ export default function NAVDashboard() {
             <div className={`rounded-lg p-4 ${(financialSummary?.compte_courant_balance ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-gray-600 mb-1">💰 Solde du compte courant</div>
-                  <div className="text-xs text-gray-500">Entrées - Sorties (toutes années)</div>
+                  <div className="text-sm text-gray-600 mb-1">💰 {t('nav.currentAccountBalance')}</div>
+                  <div className="text-xs text-gray-500">{t('nav.currentAccountDesc')}</div>
                 </div>
                 <div className={`text-3xl font-bold ${(financialSummary?.compte_courant_balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(financialSummary?.compte_courant_balance ?? null)}
@@ -1131,7 +1148,7 @@ export default function NAVDashboard() {
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Évolution du NAV</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('nav.evolutionTitle')}</h3>
               <div className="flex gap-2">
                 {(['1m', '3m', '6m', 'all'] as const).map(period => (
                   <button
@@ -1143,7 +1160,7 @@ export default function NAVDashboard() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {period === 'all' ? 'Tout' : period.toUpperCase()}
+                    {period === 'all' ? t('nav.all') : period.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -1151,8 +1168,8 @@ export default function NAVDashboard() {
 
             {filtered.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                <p className="mb-2">Aucune donnée pour cette période</p>
-                <p className="text-sm">Essayez une période plus large</p>
+                <p className="mb-2">{t('nav.noDataPeriod')}</p>
+                <p className="text-sm">{t('nav.tryWider')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1168,7 +1185,7 @@ export default function NAVDashboard() {
                         <div key={point.point_date} className="mb-3">
                           <div className="flex items-center gap-4">
                             <div className="w-24 text-sm text-gray-600 flex-shrink-0">
-                              {new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', {
+                              {new Date(point.point_date + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
                                 month: 'short', year: '2-digit'
                               })}
                             </div>
@@ -1196,19 +1213,19 @@ export default function NAVDashboard() {
 
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                   <div className="text-center">
-                    <div className="text-xs text-gray-500 mb-1">Plus bas</div>
+                    <div className="text-xs text-gray-500 mb-1">{t('nav.low')}</div>
                     <div className="text-base font-semibold text-gray-900">
                       {Math.min(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-gray-500 mb-1">Moyenne</div>
+                    <div className="text-xs text-gray-500 mb-1">{t('nav.average')}</div>
                     <div className="text-base font-semibold text-gray-900">
                       {(filtered.reduce((s, p) => s + p.nav_per_share, 0) / filtered.length).toFixed(4)} $
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-gray-500 mb-1">Plus haut</div>
+                    <div className="text-xs text-gray-500 mb-1">{t('nav.high')}</div>
                     <div className="text-base font-semibold text-gray-900">
                       {Math.max(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
                     </div>
@@ -1222,24 +1239,24 @@ export default function NAVDashboard() {
 
       {/* Tableau détaillé — source: get_nav_timeline() */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique mensuel du NAV</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('nav.monthlyHistory')}</h3>
 
         {tlData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p className="mb-2">Aucune donnée disponible</p>
-            <p className="text-sm">Ajoutez des transactions pour voir l'historique</p>
+            <p className="mb-2">{t('nav.noHistoryData')}</p>
+            <p className="text-sm">{t('nav.noHistoryHint')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mois</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">NAV / part</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Var. mensuelle</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Var. totale</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">NAV total</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Parts</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('nav.month')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.navPerShareCol')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.monthlyVar')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.totalVar')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.totalNav')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.shares')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1257,10 +1274,10 @@ export default function NAVDashboard() {
                   return (
                     <tr key={point.point_date} className={`hover:bg-gray-50 ${isLast ? 'font-semibold bg-blue-50' : ''}`}>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {new Date(point.point_date + 'T00:00:00').toLocaleDateString('fr-CA', {
+                        {new Date(point.point_date + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
                           year: 'numeric', month: 'long'
                         })}
-                        {isLast && <span className="ml-2 text-xs text-blue-600 font-normal">actuel</span>}
+                        {isLast && <span className="ml-2 text-xs text-blue-600 font-normal">{t('nav.current')}</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
                         {point.nav_per_share.toFixed(4)} $
@@ -1275,7 +1292,7 @@ export default function NAVDashboard() {
                         {formatCurrency(point.net_asset_value)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-600">
-                        {point.total_shares.toLocaleString('fr-CA', { maximumFractionDigits: 0 })}
+                        {point.total_shares.toLocaleString(fr ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 0 })}
                       </td>
                     </tr>
                   )
@@ -1293,10 +1310,10 @@ export default function NAVDashboard() {
           className="w-full flex items-center justify-between text-left"
         >
           <h3 className="text-lg font-semibold text-gray-900">
-            💳 Gestion des passifs
+            💳 {t('nav.liabilitiesTitle')}
             {detailedNavData?.total_liabilities != null && detailedNavData.total_liabilities > 0 && (
               <span className="ml-2 text-sm font-normal text-red-600">
-                ({formatCurrency(detailedNavData.total_liabilities)} actifs)
+                ({formatCurrency(detailedNavData.total_liabilities)} {t('nav.liabilitiesActive')})
               </span>
             )}
           </h3>
@@ -1319,7 +1336,7 @@ export default function NAVDashboard() {
           className="w-full flex items-center justify-between text-left"
         >
           <h3 className="text-lg font-semibold text-gray-900">
-            📊 Métriques investisseurs (MOIC / DPI / RVPI)
+            📊 {t('nav.metricsTitle')}
           </h3>
           {showMetrics ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
         </button>
@@ -1328,21 +1345,27 @@ export default function NAVDashboard() {
           <div className="mt-4 pt-4 border-t border-gray-100">
             {investorMetrics.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">
-                Aucun investisseur actif trouvé, ou la vue <code>investor_performance_metrics</code> n'est pas encore installée (migration 121).
+                {fr
+                  ? "Aucun investisseur actif trouvé, ou la vue"
+                  : 'No active investors found, or the view'}{' '}
+                <code>investor_performance_metrics</code>{' '}
+                {fr
+                  ? "n'est pas encore installée (migration 121)."
+                  : 'is not yet installed (migration 121).'}
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Investisseur</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Capital investi</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valeur actuelle</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Gain latent</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{fr ? 'Investisseur' : 'Investor'}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.capitalInvested')}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.currentValueCol')}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.latentGainCol')}</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">MOIC</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">DPI</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">RVPI</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Rend. annualisé</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.annualReturn')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1361,7 +1384,7 @@ export default function NAVDashboard() {
                         <td className="px-3 py-2 text-right text-gray-700">{m.rvpi.toFixed(3)}×</td>
                         <td className={`px-3 py-2 text-right font-medium ${m.annualized_return_pct == null ? 'text-gray-400' : m.annualized_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {m.annualized_return_pct == null
-                            ? '< 1 an'
+                            ? t('nav.lessThan1year')
                             : `${m.annualized_return_pct >= 0 ? '+' : ''}${m.annualized_return_pct.toFixed(2)}%`}
                         </td>
                       </tr>
@@ -1369,7 +1392,7 @@ export default function NAVDashboard() {
                   </tbody>
                 </table>
                 <p className="text-xs text-gray-400 mt-3">
-                  MOIC = (Valeur actuelle + Distributions) / Capital investi · DPI = Distributions / Capital investi · RVPI = Valeur actuelle / Capital investi
+                  MOIC = ({fr ? 'Valeur actuelle' : 'Current Value'} + {fr ? 'Distributions' : 'Distributions'}) / {fr ? 'Capital investi' : 'Capital invested'} · DPI = {fr ? 'Distributions' : 'Distributions'} / {fr ? 'Capital investi' : 'Capital invested'} · RVPI = {fr ? 'Valeur actuelle' : 'Current Value'} / {fr ? 'Capital investi' : 'Capital invested'}
                 </p>
               </div>
             )}
@@ -1379,13 +1402,13 @@ export default function NAVDashboard() {
 
       {/* Info box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ À propos du NAV</h4>
+        <h4 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ {t('nav.aboutTitle')}</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• <strong>Source unique: <code>get_nav_timeline()</code></strong> — calcul mensuel depuis les premières transactions</li>
-          <li>• Le calcul inclut: investissements + appréciation dynamique (expected_roi → scénario → 8%)</li>
-          <li>• Les propriétés USD sont converties en CAD au taux en direct ({exchangeRate?.toFixed(4) ?? '...'})</li>
-          <li>• <strong>{tlData.length} points</strong> dans la timeline — de {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'} à aujourd'hui</li>
-          <li>• Le bouton "Snapshot" crée un point archivé dans <code>nav_history</code> (distinct de la timeline)</li>
+          <li>• <strong>{fr ? 'Source unique:' : 'Single source:'} <code>get_nav_timeline()</code></strong> — {fr ? 'calcul mensuel depuis les premières transactions' : 'monthly calculation from first transactions'}</li>
+          <li>• {fr ? 'Le calcul inclut: investissements + appréciation dynamique (expected_roi → scénario → 8%)' : 'Calculation includes: investments + dynamic appreciation (expected_roi → scenario → 8%)'}</li>
+          <li>• {fr ? 'Les propriétés USD sont converties en CAD au taux en direct' : 'USD properties are converted to CAD at the live rate'} ({exchangeRate?.toFixed(4) ?? '...'})</li>
+          <li>• <strong>{tlData.length} {fr ? 'points' : 'points'}</strong> {fr ? 'dans la timeline — de' : 'in the timeline — from'} {tlData.length > 0 ? formatDate(tlData[0].point_date) : '—'} {fr ? "à aujourd'hui" : 'to today'}</li>
+          <li>• {fr ? 'Le bouton "Snapshot" crée un point archivé dans' : 'The "Snapshot" button creates an archived point in'} <code>nav_history</code> ({fr ? 'distinct de la timeline' : 'separate from the timeline'})</li>
         </ul>
       </div>
     </div>
