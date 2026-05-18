@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   DollarSign,
   TrendingUp,
@@ -70,6 +71,9 @@ interface CashFlowMonth {
 }
 
 export default function TreasuryDashboard() {
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+
   const [loading, setLoading] = useState(true)
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [positions, setPositions] = useState<TreasuryPosition[]>([])
@@ -134,7 +138,7 @@ export default function TreasuryDashboard() {
   }
 
   const formatCurrency = (amount: number, currency: string = 'CAD') => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(fr ? 'fr-CA' : 'en-CA', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 0
@@ -210,16 +214,14 @@ export default function TreasuryDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trésorerie</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Gestion et prévisions de trésorerie en temps réel
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('treasury.title')}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t('treasury.subtitle')}</p>
         </div>
         <button
           onClick={loadTreasuryData}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
         >
-          Actualiser
+          {t('treasury.refresh')}
         </button>
       </div>
 
@@ -230,7 +232,7 @@ export default function TreasuryDashboard() {
             <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={24} />
             <div className="flex-1">
               <h3 className="font-bold text-red-900 mb-2">
-                {getCriticalAlerts().length} Alerte(s) Critique(s)
+                {getCriticalAlerts().length} {t('treasury.critical')}(s)
               </h3>
               <div className="space-y-2">
                 {getCriticalAlerts().map(alert => (
@@ -249,56 +251,56 @@ export default function TreasuryDashboard() {
         {/* Solde Total */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Solde Total</span>
+            <span className="text-sm text-gray-600">{t('treasury.totalBalance')}</span>
             <DollarSign className="text-blue-600" size={20} />
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {formatCurrency(getTotalBalance())}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {accounts.length} compte(s) actif(s)
+            {accounts.length} {t('treasury.activeAccounts')}
           </div>
         </div>
 
         {/* Obligations 30 jours */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Obligations (30j)</span>
+            <span className="text-sm text-gray-600">{t('treasury.obligations30d')}</span>
             <Calendar className="text-orange-600" size={20} />
           </div>
           <div className="text-2xl font-bold text-orange-600">
             {formatCurrency(getTotalObligations())}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {upcomingPayments.length} paiement(s)
+            {upcomingPayments.length} {t('treasury.payments')}
           </div>
         </div>
 
         {/* Trésorerie Disponible */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Disponible Net</span>
+            <span className="text-sm text-gray-600">{t('treasury.netAvailable')}</span>
             <CreditCard className="text-green-600" size={20} />
           </div>
           <div className={`text-2xl font-bold ${getNetAvailable() < 25000 ? 'text-red-600' : 'text-green-600'}`}>
             {formatCurrency(getNetAvailable())}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            Après obligations
+            {t('treasury.afterObligations')}
           </div>
         </div>
 
         {/* Retards */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Retards</span>
+            <span className="text-sm text-gray-600">{t('treasury.overdueKPI')}</span>
             <AlertTriangle className="text-red-600" size={20} />
           </div>
           <div className="text-2xl font-bold text-red-600">
             {formatCurrency(getTotalOverdue())}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {positions.reduce((sum, pos) => sum + pos.overdue_count, 0)} paiement(s)
+            {positions.reduce((sum, pos) => sum + pos.overdue_count, 0)} {t('treasury.payments')}
           </div>
         </div>
       </div>
@@ -306,7 +308,7 @@ export default function TreasuryDashboard() {
       {/* Détail par Compte */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">Comptes Bancaires</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('treasury.bankAccountsTitle')}</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {positions.map(position => {
@@ -330,25 +332,25 @@ export default function TreasuryDashboard() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Obligations 30j:</span>
+                    <span className="text-gray-600">{t('treasury.obligations30j')}:</span>
                     <div className="font-medium text-orange-600">
                       {formatCurrency(position.obligations_30_days, account.currency)}
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Disponible:</span>
+                    <span className="text-gray-600">{t('treasury.available')}:</span>
                     <div className={`font-medium ${position.net_available_cash < 10000 ? 'text-red-600' : 'text-green-600'}`}>
                       {formatCurrency(position.net_available_cash, account.currency)}
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Jours de trésorerie:</span>
+                    <span className="text-gray-600">{t('treasury.daysOfCashLabel')}:</span>
                     <div className="font-medium text-gray-900">
-                      {position.days_of_cash ? `${position.days_of_cash} jours` : 'N/A'}
+                      {position.days_of_cash ? `${position.days_of_cash} ${t('treasury.days')}` : 'N/A'}
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Retards:</span>
+                    <span className="text-gray-600">{t('treasury.overdueKPI')}:</span>
                     <div className="font-medium text-red-600">
                       {position.overdue_count > 0 ? (
                         <>{position.overdue_count} ({formatCurrency(position.overdue_amount, account.currency)})</>
@@ -361,7 +363,7 @@ export default function TreasuryDashboard() {
 
                 {account.last_reconciliation_date && (
                   <div className="mt-3 text-xs text-gray-500">
-                    Dernier rapprochement: {new Date(account.last_reconciliation_date).toLocaleDateString('fr-CA')}
+                    {t('treasury.lastReconciliation')}: {new Date(account.last_reconciliation_date).toLocaleDateString(fr ? 'fr-CA' : 'en-CA')}
                   </div>
                 )}
               </div>
@@ -373,12 +375,12 @@ export default function TreasuryDashboard() {
       {/* Paiements à Venir */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">Paiements à Venir (30 jours)</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('treasury.upcomingTitle')}</h2>
         </div>
         {upcomingPayments.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <CheckCircle className="mx-auto mb-2 text-green-500" size={48} />
-            <p>Aucun paiement à venir</p>
+            <p>{t('treasury.noUpcoming')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -394,24 +396,28 @@ export default function TreasuryDashboard() {
                       <span className="text-xl">{getPriorityIcon(payment.priority)}</span>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900">{payment.vendor_name || 'Non spécifié'}</h3>
+                          <h3 className="font-medium text-gray-900">{payment.vendor_name || t('treasury.unspecified')}</h3>
                           <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(payment.status)}`}>
-                            {payment.status === 'pending' ? 'En attente' : payment.status === 'overdue' ? 'En retard' : payment.status}
+                            {payment.status === 'pending' ? t('treasury.pending') : payment.status === 'overdue' ? t('treasury.overdueStatus') : payment.status}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">{payment.description}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
-                            {new Date(payment.due_date).toLocaleDateString('fr-CA')}
+                            {new Date(payment.due_date).toLocaleDateString(fr ? 'fr-CA' : 'en-CA')}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
                             {isOverdue ? (
-                              <span className="text-red-600 font-medium">{Math.abs(daysUntilDue)} jours de retard</span>
+                              <span className="text-red-600 font-medium">
+                                {Math.abs(daysUntilDue)} {fr ? 'jours de retard' : 'days overdue'}
+                              </span>
                             ) : (
                               <span className={isUrgent ? 'text-orange-600 font-medium' : ''}>
-                                Dans {daysUntilDue} jour{daysUntilDue > 1 ? 's' : ''}
+                                {fr
+                                  ? `Dans ${daysUntilDue} jour${daysUntilDue > 1 ? 's' : ''}`
+                                  : `In ${daysUntilDue} day${daysUntilDue > 1 ? 's' : ''}`}
                               </span>
                             )}
                           </span>
@@ -436,7 +442,7 @@ export default function TreasuryDashboard() {
       {alerts.length > 0 && (
         <div className="bg-white rounded-lg shadow-md border border-gray-200">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">Alertes de Trésorerie</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t('treasury.allAlertsTitle')}</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {alerts.map(alert => (
@@ -445,18 +451,18 @@ export default function TreasuryDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getAlertColor(alert.severity)}`}>
-                        {alert.severity === 'critical' ? 'Critique' : alert.severity === 'warning' ? 'Attention' : 'Info'}
+                        {alert.severity === 'critical' ? t('treasury.critical') : alert.severity === 'warning' ? t('treasury.warningAlert') : 'Info'}
                       </span>
                       <h3 className="font-medium text-gray-900">{alert.title}</h3>
                     </div>
                     <p className="text-sm text-gray-600">{alert.message}</p>
                     <div className="text-xs text-gray-500 mt-2">
-                      {new Date(alert.triggered_at).toLocaleString('fr-CA')}
+                      {new Date(alert.triggered_at).toLocaleString(fr ? 'fr-CA' : 'en-CA')}
                     </div>
                   </div>
                   {!alert.is_acknowledged && (
                     <button className="text-sm text-blue-600 hover:text-blue-700 ml-4">
-                      Accuser réception
+                      {t('treasury.acknowledgeBtn')}
                     </button>
                   )}
                 </div>

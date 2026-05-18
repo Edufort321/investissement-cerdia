@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Card,
   CardContent,
@@ -83,6 +84,8 @@ const defaultConfig: AlertConfig = {
 }
 
 export default function TreasuryAlerts() {
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
 
   const [alerts, setAlerts] = useState<TreasuryAlert[]>([])
   const [showActive, setShowActive] = useState(true)
@@ -118,12 +121,10 @@ export default function TreasuryAlerts() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    // Filter by active status
     if (showActive) {
       query = query.eq('is_active', true)
     }
 
-    // Filter by severity
     if (selectedSeverity !== 'all') {
       query = query.eq('severity', selectedSeverity)
     }
@@ -141,8 +142,6 @@ export default function TreasuryAlerts() {
   }
 
   const loadConfig = async () => {
-    // In a real app, this would load from a user preferences table
-    // For now, using localStorage
     const savedConfig = localStorage.getItem('treasury_alert_config')
     if (savedConfig) {
       setConfig(JSON.parse(savedConfig))
@@ -150,12 +149,11 @@ export default function TreasuryAlerts() {
   }
 
   const saveConfig = async () => {
-    // Save to localStorage (in production, save to database)
     localStorage.setItem('treasury_alert_config', JSON.stringify(config))
     setIsConfigDialogOpen(false)
-
-    // Optionally trigger alert recalculation
-    alert('Configuration enregistrée. Les alertes seront recalculées lors de la prochaine mise à jour.')
+    alert(fr
+      ? 'Configuration enregistrée. Les alertes seront recalculées lors de la prochaine mise à jour.'
+      : 'Configuration saved. Alerts will be recalculated on the next update.')
   }
 
   const acknowledgeAlert = async (alertId: string) => {
@@ -166,14 +164,13 @@ export default function TreasuryAlerts() {
       .update({
         is_active: false,
         acknowledged_at: new Date().toISOString(),
-        // In production, get current user ID
         acknowledged_by: 'current_user',
       })
       .eq('id', alertId)
 
     if (error) {
       console.error('Error acknowledging alert:', error)
-      alert('Erreur lors de la mise à jour')
+      alert(fr ? 'Erreur lors de la mise à jour' : 'Update error')
       setIsLoading(false)
       return
     }
@@ -183,7 +180,9 @@ export default function TreasuryAlerts() {
   }
 
   const dismissAllAlerts = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir acquitter toutes les alertes actives?')) {
+    if (!confirm(fr
+      ? 'Êtes-vous sûr de vouloir acquitter toutes les alertes actives?'
+      : 'Are you sure you want to acknowledge all active alerts?')) {
       return
     }
 
@@ -202,7 +201,7 @@ export default function TreasuryAlerts() {
 
     if (error) {
       console.error('Error dismissing alerts:', error)
-      alert('Erreur lors de la mise à jour')
+      alert(fr ? 'Erreur lors de la mise à jour' : 'Update error')
       setIsLoading(false)
       return
     }
@@ -225,7 +224,7 @@ export default function TreasuryAlerts() {
 
     if (error) {
       console.error('Error reactivating alert:', error)
-      alert('Erreur lors de la réactivation')
+      alert(fr ? 'Erreur lors de la réactivation' : 'Reactivation error')
       setIsLoading(false)
       return
     }
@@ -260,31 +259,31 @@ export default function TreasuryAlerts() {
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return <Badge variant="destructive">Critique</Badge>
+        return <Badge variant="destructive">{t('treasury.severityCritical')}</Badge>
       case 'warning':
-        return <Badge variant="destructive" className="bg-orange-600">Avertissement</Badge>
+        return <Badge variant="destructive" className="bg-orange-600">{t('treasury.severityWarning')}</Badge>
       case 'info':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Information</Badge>
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">{t('treasury.severityInfo')}</Badge>
       default:
-        return <Badge variant="outline">Inconnu</Badge>
+        return <Badge variant="outline">{fr ? 'Inconnu' : 'Unknown'}</Badge>
     }
   }
 
   const getAlertTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      low_cash: 'Trésorerie Faible',
-      critical_cash: 'Trésorerie Critique',
-      negative_projection: 'Projection Négative',
-      overdue_payment: 'Paiement en Retard',
-      low_days_of_cash: 'Autonomie Limitée',
-      large_outflow: 'Sortie Importante',
-      unreconciled_transactions: 'Transactions Non Réconciliées',
+      low_cash: t('treasury.typeLowCash'),
+      critical_cash: t('treasury.typeCriticalCash'),
+      negative_projection: t('treasury.typeNegProjection'),
+      overdue_payment: t('treasury.typeOverduePayment'),
+      low_days_of_cash: t('treasury.typeLowDays'),
+      large_outflow: t('treasury.typeLargeOutflow'),
+      unreconciled_transactions: t('treasury.typeUnreconciled'),
     }
     return labels[type] || type
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(fr ? 'fr-CA' : 'en-CA', {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -293,7 +292,7 @@ export default function TreasuryAlerts() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-CA', {
+    return new Date(dateString).toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -307,14 +306,18 @@ export default function TreasuryAlerts() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Alertes de Trésorerie</h1>
+          <h1 className="text-3xl font-bold">
+            {fr ? 'Alertes de Trésorerie' : 'Treasury Alerts'}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Surveillez les événements critiques et les risques de liquidité
+            {fr
+              ? 'Surveillez les événements critiques et les risques de liquidité'
+              : 'Monitor critical events and liquidity risks'}
           </p>
         </div>
         <Button variant="outline" onClick={() => setIsConfigDialogOpen(true)}>
           <Settings className="h-4 w-4 mr-2" />
-          Configuration
+          {t('treasury.configuration')}
         </Button>
       </div>
 
@@ -322,14 +325,14 @@ export default function TreasuryAlerts() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Alertes Actives</CardDescription>
+            <CardDescription>{t('treasury.activeAlertsLabel')}</CardDescription>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Critiques</CardDescription>
+            <CardDescription>{t('treasury.criticals')}</CardDescription>
             <CardTitle className="text-3xl text-red-600">
               {stats.critical}
             </CardTitle>
@@ -338,7 +341,7 @@ export default function TreasuryAlerts() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Avertissements</CardDescription>
+            <CardDescription>{t('treasury.warnings')}</CardDescription>
             <CardTitle className="text-3xl text-orange-600">
               {stats.warning}
             </CardTitle>
@@ -347,7 +350,7 @@ export default function TreasuryAlerts() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Informations</CardDescription>
+            <CardDescription>{t('treasury.informations')}</CardDescription>
             <CardTitle className="text-3xl text-blue-600">
               {stats.info}
             </CardTitle>
@@ -361,9 +364,13 @@ export default function TreasuryAlerts() {
           {alerts.filter(a => a.is_active && a.severity === 'critical').length > 0 && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Alertes Critiques Détectées</AlertTitle>
+              <AlertTitle>
+                {fr ? 'Alertes Critiques Détectées' : 'Critical Alerts Detected'}
+              </AlertTitle>
               <AlertDescription>
-                Vous avez {stats.critical} alerte(s) critique(s) nécessitant une attention immédiate.
+                {fr
+                  ? `Vous avez ${stats.critical} alerte(s) critique(s) nécessitant une attention immédiate.`
+                  : `You have ${stats.critical} critical alert(s) requiring immediate attention.`}
               </AlertDescription>
             </Alert>
           )}
@@ -371,9 +378,13 @@ export default function TreasuryAlerts() {
           {alerts.filter(a => a.is_active && a.severity === 'warning').length > 0 && stats.critical === 0 && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Avertissements Actifs</AlertTitle>
+              <AlertTitle>
+                {fr ? 'Avertissements Actifs' : 'Active Warnings'}
+              </AlertTitle>
               <AlertDescription>
-                Vous avez {stats.warning} avertissement(s) nécessitant votre attention.
+                {fr
+                  ? `Vous avez ${stats.warning} avertissement(s) nécessitant votre attention.`
+                  : `You have ${stats.warning} warning(s) requiring your attention.`}
               </AlertDescription>
             </Alert>
           )}
@@ -386,29 +397,29 @@ export default function TreasuryAlerts() {
           <div className="flex flex-col md:flex-row gap-4 justify-between">
             <div className="flex gap-4">
               <div>
-                <Label>Statut</Label>
+                <Label>{t('treasury.statusFilter')}</Label>
                 <Select value={showActive ? 'active' : 'all'} onValueChange={(value) => setShowActive(value === 'active')}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Actives seulement</SelectItem>
-                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="active">{t('treasury.activeOnly')}</SelectItem>
+                    <SelectItem value="all">{t('treasury.all')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>Sévérité</Label>
+                <Label>{t('treasury.severityFilter')}</Label>
                 <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="critical">Critique</SelectItem>
-                    <SelectItem value="warning">Avertissement</SelectItem>
-                    <SelectItem value="info">Information</SelectItem>
+                    <SelectItem value="all">{t('treasury.all')}</SelectItem>
+                    <SelectItem value="critical">{t('treasury.severityCritical')}</SelectItem>
+                    <SelectItem value="warning">{t('treasury.severityWarning')}</SelectItem>
+                    <SelectItem value="info">{t('treasury.severityInfo')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -418,11 +429,11 @@ export default function TreasuryAlerts() {
               {showActive && stats.total > 0 && (
                 <Button variant="outline" onClick={dismissAllAlerts} disabled={isLoading}>
                   <BellOff className="h-4 w-4 mr-2" />
-                  Acquitter Tout
+                  {t('treasury.acknowledgeAll')}
                 </Button>
               )}
               <Button variant="outline" onClick={loadAlerts}>
-                Actualiser
+                {t('treasury.refresh')}
               </Button>
             </div>
           </div>
@@ -433,12 +444,12 @@ export default function TreasuryAlerts() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>
-                <TableHead>Sévérité</TableHead>
+                <TableHead>{fr ? 'Sévérité' : 'Severity'}</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Message</TableHead>
-                <TableHead>Valeurs</TableHead>
+                <TableHead>{fr ? 'Valeurs' : 'Values'}</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Statut</TableHead>
+                <TableHead>{fr ? 'Statut' : 'Status'}</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -449,11 +460,11 @@ export default function TreasuryAlerts() {
                     {showActive ? (
                       <div className="flex flex-col items-center gap-2">
                         <CheckCircle2 className="h-12 w-12 text-green-600" />
-                        <p className="font-medium">Aucune alerte active</p>
-                        <p className="text-sm">Votre trésorerie est en bon état</p>
+                        <p className="font-medium">{t('treasury.noActiveAlerts')}</p>
+                        <p className="text-sm">{t('treasury.goodState')}</p>
                       </div>
                     ) : (
-                      'Aucune alerte trouvée'
+                      t('treasury.noAlertsFound')
                     )}
                   </TableCell>
                 </TableRow>
@@ -484,12 +495,12 @@ export default function TreasuryAlerts() {
                       {alert.current_value !== null && alert.current_value !== undefined && (
                         <div className="text-sm">
                           <div>
-                            <span className="text-muted-foreground">Actuel:</span>{' '}
+                            <span className="text-muted-foreground">{t('treasury.currentValue')}:</span>{' '}
                             <span className="font-medium">{formatCurrency(alert.current_value)}</span>
                           </div>
                           {alert.threshold_value !== null && alert.threshold_value !== undefined && (
                             <div>
-                              <span className="text-muted-foreground">Seuil:</span>{' '}
+                              <span className="text-muted-foreground">{t('treasury.thresholdValue')}:</span>{' '}
                               <span className="font-medium">{formatCurrency(alert.threshold_value)}</span>
                             </div>
                           )}
@@ -503,12 +514,12 @@ export default function TreasuryAlerts() {
                       {alert.is_active ? (
                         <Badge variant="default" className="bg-orange-600">
                           <Bell className="h-3 w-3 mr-1" />
-                          Active
+                          {t('treasury.statusActive')}
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Acquittée
+                          {t('treasury.statusAcknowledged')}
                         </Badge>
                       )}
                     </TableCell>
@@ -521,7 +532,7 @@ export default function TreasuryAlerts() {
                           disabled={isLoading}
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Acquitter
+                          {t('treasury.acknowledgeBtn')}
                         </Button>
                       ) : (
                         <Button
@@ -531,7 +542,7 @@ export default function TreasuryAlerts() {
                           disabled={isLoading}
                         >
                           <Bell className="h-3 w-3 mr-1" />
-                          Réactiver
+                          {t('treasury.reactivate')}
                         </Button>
                       )}
                     </TableCell>
@@ -547,15 +558,17 @@ export default function TreasuryAlerts() {
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Configuration des Alertes</DialogTitle>
+            <DialogTitle>{t('treasury.configTitle')}</DialogTitle>
             <DialogDescription>
-              Définissez les seuils de déclenchement des alertes de trésorerie
+              {fr
+                ? 'Définissez les seuils de déclenchement des alertes de trésorerie'
+                : 'Set the thresholds for treasury alert triggers'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="low_cash">Seuil Trésorerie Faible (CAD)</Label>
+              <Label htmlFor="low_cash">{t('treasury.lowCashLabel')} (CAD)</Label>
               <Input
                 id="low_cash"
                 type="number"
@@ -563,12 +576,14 @@ export default function TreasuryAlerts() {
                 onChange={(e) => setConfig({ ...config, low_cash_threshold: parseFloat(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground">
-                Une alerte "Avertissement" sera déclenchée quand la trésorerie descend sous ce montant
+                {fr
+                  ? 'Une alerte "Avertissement" sera déclenchée quand la trésorerie descend sous ce montant'
+                  : 'A "Warning" alert will trigger when cash drops below this amount'}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="critical_cash">Seuil Trésorerie Critique (CAD)</Label>
+              <Label htmlFor="critical_cash">{t('treasury.criticalCashLabel')} (CAD)</Label>
               <Input
                 id="critical_cash"
                 type="number"
@@ -576,12 +591,14 @@ export default function TreasuryAlerts() {
                 onChange={(e) => setConfig({ ...config, critical_cash_threshold: parseFloat(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground">
-                Une alerte "Critique" sera déclenchée quand la trésorerie descend sous ce montant
+                {fr
+                  ? 'Une alerte "Critique" sera déclenchée quand la trésorerie descend sous ce montant'
+                  : 'A "Critical" alert will trigger when cash drops below this amount'}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="days_of_cash">Seuil Jours de Trésorerie</Label>
+              <Label htmlFor="days_of_cash">{t('treasury.daysThresholdLabel')}</Label>
               <Input
                 id="days_of_cash"
                 type="number"
@@ -589,12 +606,14 @@ export default function TreasuryAlerts() {
                 onChange={(e) => setConfig({ ...config, days_of_cash_warning: parseInt(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground">
-                Alerte si l'autonomie de trésorerie est inférieure à ce nombre de jours
+                {fr
+                  ? "Alerte si l'autonomie de trésorerie est inférieure à ce nombre de jours"
+                  : 'Alert if cash runway is below this number of days'}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="overdue">Seuil Paiements en Retard (CAD)</Label>
+              <Label htmlFor="overdue">{t('treasury.overdueThresholdLabel')}</Label>
               <Input
                 id="overdue"
                 type="number"
@@ -602,12 +621,14 @@ export default function TreasuryAlerts() {
                 onChange={(e) => setConfig({ ...config, overdue_payment_threshold: parseFloat(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground">
-                Alerte si le montant total des paiements en retard dépasse ce seuil
+                {fr
+                  ? 'Alerte si le montant total des paiements en retard dépasse ce seuil'
+                  : 'Alert if total overdue payments exceed this threshold'}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="projection_months">Horizon Projection Négative (mois)</Label>
+              <Label htmlFor="projection_months">{t('treasury.projectionLabel')}</Label>
               <Input
                 id="projection_months"
                 type="number"
@@ -615,25 +636,28 @@ export default function TreasuryAlerts() {
                 onChange={(e) => setConfig({ ...config, negative_projection_months: parseInt(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground">
-                Alerte si une projection de trésorerie négative est détectée dans les X prochains mois
+                {fr
+                  ? 'Alerte si une projection de trésorerie négative est détectée dans les X prochains mois'
+                  : 'Alert if a negative cash projection is detected within X months'}
               </p>
             </div>
 
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Les alertes seront automatiquement générées selon ces seuils lors des mises à jour de trésorerie.
-                Les changements prendront effet immédiatement.
+                {fr
+                  ? "Les alertes seront automatiquement générées selon ces seuils lors des mises à jour de trésorerie. Les changements prendront effet immédiatement."
+                  : "Alerts will be automatically generated based on these thresholds during treasury updates. Changes take effect immediately."}
               </AlertDescription>
             </Alert>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)}>
-              Annuler
+              {t('treasury.cancel')}
             </Button>
             <Button onClick={saveConfig}>
-              Enregistrer
+              {t('treasury.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
