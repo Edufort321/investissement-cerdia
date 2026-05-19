@@ -1097,7 +1097,7 @@ export default function NAVDashboard() {
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.maintenance_expenses)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t('nav.administration')}</span>
+                  <span className="text-sm text-gray-600">{t('nav.adminCategory')}</span>
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.admin_expenses)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
