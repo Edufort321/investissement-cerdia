@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +30,9 @@ interface BudgetAlert {
 }
 
 export default function BudgetAlerts() {
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+
   const [alerts, setAlerts] = useState<BudgetAlert[]>([])
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
@@ -43,18 +47,16 @@ export default function BudgetAlerts() {
     if (autoRefresh) {
       const interval = setInterval(() => {
         loadAlerts()
-      }, 30000) // Refresh every 30 seconds
+      }, 30000)
       return () => clearInterval(interval)
     }
   }, [autoRefresh])
 
   const loadAlerts = async () => {
     setIsLoading(true)
-    let query = supabase
+    const { data, error } = await supabase
       .from('active_budget_alerts')
       .select('*')
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Error loading alerts:', error)
@@ -78,7 +80,7 @@ export default function BudgetAlerts() {
 
     if (error) {
       console.error('Error acknowledging alert:', error)
-      alert('Erreur lors de la confirmation')
+      alert(fr ? 'Erreur lors de la confirmation' : 'Confirmation error')
     } else {
       await loadAlerts()
     }
@@ -86,7 +88,9 @@ export default function BudgetAlerts() {
   }
 
   const acknowledgeAll = async (severity?: string) => {
-    if (!confirm(`Confirmer toutes les alertes${severity ? ` de niveau ${severity}` : ''}?`)) return
+    if (!confirm(fr
+      ? `Confirmer toutes les alertes${severity ? ` de niveau ${severity}` : ''}?`
+      : `Confirm all alerts${severity ? ` of level ${severity}` : ''}?`)) return
 
     setIsLoading(true)
     let query = supabase
@@ -105,7 +109,7 @@ export default function BudgetAlerts() {
 
     if (error) {
       console.error('Error acknowledging alerts:', error)
-      alert('Erreur lors de la confirmation')
+      alert(fr ? 'Erreur lors de la confirmation' : 'Confirmation error')
     } else {
       await loadAlerts()
     }
@@ -113,7 +117,7 @@ export default function BudgetAlerts() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(fr ? 'fr-CA' : 'en-CA', {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -121,41 +125,41 @@ export default function BudgetAlerts() {
   }
 
   const getSeverityIcon = (severity: string) => {
-    const icons = {
+    const icons: Record<string, JSX.Element> = {
       critical: <AlertTriangle className="h-5 w-5 text-red-600" />,
-      warning: <AlertCircle className="h-5 w-5 text-orange-600" />,
-      info: <Info className="h-5 w-5 text-blue-600" />
+      warning:  <AlertCircle className="h-5 w-5 text-orange-600" />,
+      info:     <Info className="h-5 w-5 text-blue-600" />
     }
-    return icons[severity as keyof typeof icons] || <Info className="h-5 w-5" />
+    return icons[severity] || <Info className="h-5 w-5" />
   }
 
   const getSeverityColor = (severity: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       critical: 'border-red-200 bg-red-50',
-      warning: 'border-orange-200 bg-orange-50',
-      info: 'border-blue-200 bg-blue-50'
+      warning:  'border-orange-200 bg-orange-50',
+      info:     'border-blue-200 bg-blue-50'
     }
-    return colors[severity as keyof typeof colors] || 'border-gray-200 bg-gray-50'
+    return colors[severity] || 'border-gray-200 bg-gray-50'
   }
 
   const getSeverityBadge = (severity: string) => {
-    const badges = {
-      critical: <Badge variant="destructive">Critique</Badge>,
-      warning: <Badge className="bg-orange-600">Avertissement</Badge>,
-      info: <Badge className="bg-blue-600">Info</Badge>
+    const map: Record<string, JSX.Element> = {
+      critical: <Badge variant="destructive">{t('budget.healthCritical')}</Badge>,
+      warning:  <Badge className="bg-orange-600">{t('treasury.severityWarning')}</Badge>,
+      info:     <Badge className="bg-blue-600">Info</Badge>
     }
-    return badges[severity as keyof typeof badges] || <Badge>{severity}</Badge>
+    return map[severity] || <Badge>{severity}</Badge>
   }
 
   const getAlertTypeLabel = (type: string) => {
-    const labels = {
-      over_budget: 'Dépassement Budget',
-      near_threshold: 'Proche Seuil',
-      variance_high: 'Variance Élevée',
-      approval_pending: 'Approbation Requise',
-      revision_needed: 'Révision Nécessaire'
+    const map: Record<string, string> = {
+      over_budget:       t('budget.typeOverBudget'),
+      near_threshold:    t('budget.typeNearThreshold'),
+      variance_high:     t('budget.typeVarianceHigh'),
+      approval_pending:  t('budget.typeApprovalPending'),
+      revision_needed:   t('budget.typeRevisionNeeded'),
     }
-    return labels[type as keyof typeof labels] || type
+    return map[type] || type
   }
 
   const filteredAlerts = alerts.filter(a => {
@@ -165,13 +169,13 @@ export default function BudgetAlerts() {
   })
 
   const stats = {
-    total: filteredAlerts.length,
-    critical: filteredAlerts.filter(a => a.severity === 'critical').length,
-    warning: filteredAlerts.filter(a => a.severity === 'warning').length,
-    info: filteredAlerts.filter(a => a.severity === 'info').length,
-    overBudget: filteredAlerts.filter(a => a.alert_type === 'over_budget').length,
-    nearThreshold: filteredAlerts.filter(a => a.alert_type === 'near_threshold').length,
-    oldestDays: Math.max(...filteredAlerts.map(a => a.days_open), 0)
+    total:        filteredAlerts.length,
+    critical:     filteredAlerts.filter(a => a.severity === 'critical').length,
+    warning:      filteredAlerts.filter(a => a.severity === 'warning').length,
+    info:         filteredAlerts.filter(a => a.severity === 'info').length,
+    overBudget:   filteredAlerts.filter(a => a.alert_type === 'over_budget').length,
+    nearThreshold:filteredAlerts.filter(a => a.alert_type === 'near_threshold').length,
+    oldestDays:   Math.max(...filteredAlerts.map(a => a.days_open), 0)
   }
 
   return (
@@ -180,9 +184,9 @@ export default function BudgetAlerts() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Bell className="h-8 w-8" />
-            Alertes Budgétaires
+            {t('budget.alertsTitle')}
           </h1>
-          <p className="text-muted-foreground mt-2">Surveillance et gestion des alertes budgets</p>
+          <p className="text-muted-foreground mt-2">{t('budget.alertsSubtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -195,7 +199,7 @@ export default function BudgetAlerts() {
           </Button>
           <Button onClick={() => loadAlerts()} variant="outline" disabled={isLoading} size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Actualiser
+            {t('budget.refresh')}
           </Button>
         </div>
       </div>
@@ -204,7 +208,7 @@ export default function BudgetAlerts() {
       <div className="grid gap-4 md:grid-cols-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Alertes</CardDescription>
+            <CardDescription>{t('budget.totalAlerts')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.total}</div>
@@ -212,7 +216,7 @@ export default function BudgetAlerts() {
         </Card>
         <Card className="border-red-200">
           <CardHeader className="pb-2">
-            <CardDescription>Critiques</CardDescription>
+            <CardDescription>{t('treasury.criticals')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-600">{stats.critical}</div>
@@ -220,7 +224,7 @@ export default function BudgetAlerts() {
         </Card>
         <Card className="border-orange-200">
           <CardHeader className="pb-2">
-            <CardDescription>Avertissements</CardDescription>
+            <CardDescription>{t('treasury.warnings')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-600">{stats.warning}</div>
@@ -236,7 +240,7 @@ export default function BudgetAlerts() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Dépassements</CardDescription>
+            <CardDescription>{t('budget.overBudgets')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.overBudget}</div>
@@ -244,10 +248,10 @@ export default function BudgetAlerts() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Alerte Ancienne</CardDescription>
+            <CardDescription>{t('budget.oldestAlert')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.oldestDays}j</div>
+            <div className="text-3xl font-bold">{stats.oldestDays}{fr ? 'j' : 'd'}</div>
           </CardContent>
         </Card>
       </div>
@@ -258,7 +262,7 @@ export default function BudgetAlerts() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
-              <CardTitle>Filtres</CardTitle>
+              <CardTitle>{t('budget.filters')}</CardTitle>
             </div>
             <div className="flex gap-2">
               <Button
@@ -267,7 +271,7 @@ export default function BudgetAlerts() {
                 size="sm"
                 disabled={stats.critical === 0 || isLoading}
               >
-                Confirmer Critiques
+                {t('budget.ackCritical')}
               </Button>
               <Button
                 onClick={() => acknowledgeAll()}
@@ -275,7 +279,7 @@ export default function BudgetAlerts() {
                 size="sm"
                 disabled={stats.total === 0 || isLoading}
               >
-                Tout Confirmer
+                {t('budget.ackAll')}
               </Button>
             </div>
           </div>
@@ -283,16 +287,18 @@ export default function BudgetAlerts() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">Sévérité</label>
+              <label className="text-sm font-medium mb-2 block">
+                {fr ? 'Sévérité' : 'Severity'}
+              </label>
               <Select value={filterSeverity} onValueChange={setFilterSeverity}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="critical">Critiques</SelectItem>
-                  <SelectItem value="warning">Avertissements</SelectItem>
-                  <SelectItem value="info">Informations</SelectItem>
+                  <SelectItem value="all">{t('treasury.all')}</SelectItem>
+                  <SelectItem value="critical">{t('treasury.severityCritical')}</SelectItem>
+                  <SelectItem value="warning">{t('treasury.severityWarning')}</SelectItem>
+                  <SelectItem value="info">{t('treasury.severityInfo')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -303,12 +309,12 @@ export default function BudgetAlerts() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="over_budget">Dépassement Budget</SelectItem>
-                  <SelectItem value="near_threshold">Proche Seuil</SelectItem>
-                  <SelectItem value="variance_high">Variance Élevée</SelectItem>
-                  <SelectItem value="approval_pending">Approbation Requise</SelectItem>
-                  <SelectItem value="revision_needed">Révision Nécessaire</SelectItem>
+                  <SelectItem value="all">{t('treasury.all')}</SelectItem>
+                  <SelectItem value="over_budget">{t('budget.typeOverBudget')}</SelectItem>
+                  <SelectItem value="near_threshold">{t('budget.typeNearThreshold')}</SelectItem>
+                  <SelectItem value="variance_high">{t('budget.typeVarianceHigh')}</SelectItem>
+                  <SelectItem value="approval_pending">{t('budget.typeApprovalPending')}</SelectItem>
+                  <SelectItem value="revision_needed">{t('budget.typeRevisionNeeded')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -323,8 +329,8 @@ export default function BudgetAlerts() {
             <CardContent className="py-8">
               <div className="text-center text-muted-foreground">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-400" />
-                <p className="font-medium text-lg">Aucune alerte active</p>
-                <p className="text-sm mt-1">Tous les budgets sont dans les limites acceptables</p>
+                <p className="font-medium text-lg">{t('treasury.noActiveAlerts')}</p>
+                <p className="text-sm mt-1">{t('budget.allGood')}</p>
               </div>
             </CardContent>
           </Card>
@@ -340,7 +346,9 @@ export default function BudgetAlerts() {
                         {getSeverityBadge(alert.severity)}
                         <Badge variant="outline">{getAlertTypeLabel(alert.alert_type)}</Badge>
                         <span className="text-xs text-muted-foreground">
-                          il y a {alert.days_open} jour{alert.days_open > 1 ? 's' : ''}
+                          {fr
+                            ? `il y a ${alert.days_open} jour${alert.days_open > 1 ? 's' : ''}`
+                            : `${alert.days_open} day${alert.days_open > 1 ? 's' : ''} ago`}
                         </span>
                       </div>
 
@@ -348,21 +356,21 @@ export default function BudgetAlerts() {
 
                       <div className="grid gap-2 md:grid-cols-2 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Projet:</span>{' '}
+                          <span className="text-muted-foreground">{t('budget.project')}:</span>{' '}
                           <strong>{alert.scenario_name}</strong>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Année Fiscale:</span>{' '}
+                          <span className="text-muted-foreground">{t('budget.fiscalYear')}:</span>{' '}
                           <strong>{alert.fiscal_year}</strong>
                         </div>
                         {alert.line_name && (
                           <>
                             <div>
-                              <span className="text-muted-foreground">Ligne:</span>{' '}
+                              <span className="text-muted-foreground">{t('budget.line')}:</span>{' '}
                               <strong>{alert.line_name}</strong>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Catégorie:</span>{' '}
+                              <span className="text-muted-foreground">{t('budget.category')}:</span>{' '}
                               <strong>{alert.category_name}</strong>
                             </div>
                           </>
@@ -370,11 +378,11 @@ export default function BudgetAlerts() {
                         {alert.threshold_value && alert.current_value && (
                           <>
                             <div>
-                              <span className="text-muted-foreground">Seuil:</span>{' '}
+                              <span className="text-muted-foreground">{t('budget.threshold')}:</span>{' '}
                               <strong>{formatCurrency(alert.threshold_value)}</strong>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Actuel:</span>{' '}
+                              <span className="text-muted-foreground">{t('treasury.currentValue')}:</span>{' '}
                               <strong className={alert.current_value > alert.threshold_value ? 'text-red-600' : ''}>
                                 {formatCurrency(alert.current_value)}
                               </strong>
@@ -383,7 +391,7 @@ export default function BudgetAlerts() {
                         )}
                         {alert.variance_percent !== null && alert.variance_percent !== undefined && (
                           <div>
-                            <span className="text-muted-foreground">Variance:</span>{' '}
+                            <span className="text-muted-foreground">{t('budget.variance')}:</span>{' '}
                             <strong className={alert.variance_percent > 0 ? 'text-red-600' : 'text-green-600'}>
                               {alert.variance_percent > 0 ? '+' : ''}{alert.variance_percent.toFixed(1)}%
                             </strong>
@@ -401,7 +409,7 @@ export default function BudgetAlerts() {
                     className="ml-4"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Confirmer
+                    {t('budget.confirm')}
                   </Button>
                 </div>
               </CardContent>
@@ -414,26 +422,35 @@ export default function BudgetAlerts() {
       {filteredAlerts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Niveaux de Sévérité</CardTitle>
+            <CardTitle className="text-sm">{t('budget.severityLevels')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-3 text-sm">
               <Alert className="border-red-200 bg-red-50">
                 <AlertTriangle className="h-4 w-4 text-red-600" />
                 <AlertDescription className="text-red-900">
-                  <strong>Critique:</strong> Action immédiate requise. Budget dépassé ou risque majeur.
+                  <strong>{t('treasury.severityCritical')}:</strong>{' '}
+                  {fr
+                    ? 'Action immédiate requise. Budget dépassé ou risque majeur.'
+                    : 'Immediate action required. Budget exceeded or major risk.'}
                 </AlertDescription>
               </Alert>
               <Alert className="border-orange-200 bg-orange-50">
                 <AlertCircle className="h-4 w-4 text-orange-600" />
                 <AlertDescription className="text-orange-900">
-                  <strong>Avertissement:</strong> Surveillance nécessaire. Approche du seuil d'alerte.
+                  <strong>{t('treasury.severityWarning')}:</strong>{' '}
+                  {fr
+                    ? "Surveillance nécessaire. Approche du seuil d'alerte."
+                    : 'Monitoring required. Approaching alert threshold.'}
                 </AlertDescription>
               </Alert>
               <Alert className="border-blue-200 bg-blue-50">
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-900">
-                  <strong>Info:</strong> Notification informative pour suivi et planification.
+                  <strong>Info:</strong>{' '}
+                  {fr
+                    ? 'Notification informative pour suivi et planification.'
+                    : 'Informational notification for tracking and planning.'}
                 </AlertDescription>
               </Alert>
             </div>

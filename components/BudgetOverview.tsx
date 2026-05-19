@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +56,9 @@ interface CategoryPerformance {
 }
 
 export default function BudgetOverview() {
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+
   const [budgets, setBudgets] = useState<BudgetSummary[]>([])
   const [selectedBudget, setSelectedBudget] = useState<string>('')
   const [budgetDetails, setBudgetDetails] = useState<BudgetSummary | null>(null)
@@ -109,7 +113,7 @@ export default function BudgetOverview() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(fr ? 'fr-CA' : 'en-CA', {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -117,58 +121,43 @@ export default function BudgetOverview() {
   }
 
   const getHealthScore = () => {
-    if (!budgetDetails) return { score: 0, level: 'unknown', color: 'bg-gray-500' }
+    if (!budgetDetails) return { score: 0, levelKey: 'budget.healthCritical', color: 'bg-gray-500' }
 
     let score = 100
 
-    // Pénalités basées sur les dépassements
     if (budgetDetails.over_budget_lines > 0) {
       score -= budgetDetails.over_budget_lines * 10
     }
-
-    // Pénalités pour lignes proches du seuil
     if (budgetDetails.near_threshold_lines > 0) {
       score -= budgetDetails.near_threshold_lines * 5
     }
 
-    // Pénalité pour variance globale dépenses
     const expenseVariancePct = budgetDetails.total_expense > 0
       ? ((budgetDetails.actual_expense - budgetDetails.total_expense) / budgetDetails.total_expense) * 100
       : 0
-    if (expenseVariancePct > 0) {
-      score -= expenseVariancePct * 0.5
-    }
+    if (expenseVariancePct > 0) score -= expenseVariancePct * 0.5
 
-    // Pénalité pour variance CAPEX
     const capexVariancePct = budgetDetails.total_capex > 0
       ? ((budgetDetails.actual_capex - budgetDetails.total_capex) / budgetDetails.total_capex) * 100
       : 0
-    if (capexVariancePct > 0) {
-      score -= capexVariancePct * 0.3
-    }
+    if (capexVariancePct > 0) score -= capexVariancePct * 0.3
 
-    // Bonus si revenus dépassent prévisions
     const revenueVariancePct = budgetDetails.total_revenue > 0
       ? ((budgetDetails.actual_revenue - budgetDetails.total_revenue) / budgetDetails.total_revenue) * 100
       : 0
-    if (revenueVariancePct > 0) {
-      score += Math.min(revenueVariancePct * 0.5, 10)
-    }
+    if (revenueVariancePct > 0) score += Math.min(revenueVariancePct * 0.5, 10)
 
-    // Bonus si aucun dépassement
-    if (budgetDetails.over_budget_lines === 0) {
-      score += 5
-    }
+    if (budgetDetails.over_budget_lines === 0) score += 5
 
     score = Math.max(0, Math.min(100, score))
 
-    let level = 'excellent'
+    let levelKey = 'budget.healthExcellent'
     let color = 'bg-green-600'
-    if (score < 80) { level = 'bon'; color = 'bg-blue-600' }
-    if (score < 60) { level = 'attention'; color = 'bg-yellow-600' }
-    if (score < 40) { level = 'critique'; color = 'bg-red-600' }
+    if (score < 80) { levelKey = 'budget.healthGood'; color = 'bg-blue-600' }
+    if (score < 60) { levelKey = 'budget.healthWarning'; color = 'bg-yellow-600' }
+    if (score < 40) { levelKey = 'budget.healthCritical'; color = 'bg-red-600' }
 
-    return { score: Math.round(score), level, color }
+    return { score: Math.round(score), levelKey, color }
   }
 
   const health = getHealthScore()
@@ -181,27 +170,27 @@ export default function BudgetOverview() {
   }
 
   const getStatusBadge = (status: string) => {
-    const badges = {
-      draft: <Badge variant="secondary">Brouillon</Badge>,
-      submitted: <Badge className="bg-blue-600">Soumis</Badge>,
-      approved: <Badge className="bg-green-600">Approuvé</Badge>,
-      active: <Badge className="bg-purple-600">Actif</Badge>,
-      closed: <Badge variant="outline">Clôturé</Badge>,
-      rejected: <Badge variant="destructive">Rejeté</Badge>,
+    const map: Record<string, JSX.Element> = {
+      draft:     <Badge variant="secondary">{t('budget.statusDraft')}</Badge>,
+      submitted: <Badge className="bg-blue-600">{t('budget.statusSubmitted')}</Badge>,
+      approved:  <Badge className="bg-green-600">{t('budget.statusApproved')}</Badge>,
+      active:    <Badge className="bg-purple-600">{t('budget.statusActive')}</Badge>,
+      closed:    <Badge variant="outline">{t('budget.statusClosed')}</Badge>,
+      rejected:  <Badge variant="destructive">{t('budget.statusRejected')}</Badge>,
     }
-    return badges[status as keyof typeof badges] || <Badge>{status}</Badge>
+    return map[status] || <Badge>{status}</Badge>
   }
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Vue d'Ensemble Budgétaire</h1>
-          <p className="text-muted-foreground mt-2">Analyse et performance des budgets</p>
+          <h1 className="text-3xl font-bold">{t('budget.overviewTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('budget.overviewSubtitle')}</p>
         </div>
         <Select value={selectedBudget} onValueChange={setSelectedBudget}>
           <SelectTrigger className="w-80">
-            <SelectValue placeholder="Sélectionner un budget" />
+            <SelectValue placeholder={t('budget.selectPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {budgets.map(b => (
@@ -222,14 +211,14 @@ export default function BudgetOverview() {
                 <div>
                   <CardTitle className="text-2xl">{budgetDetails.budget_name}</CardTitle>
                   <CardDescription className="mt-1">
-                    Année fiscale {budgetDetails.fiscal_year} • {getStatusBadge(budgetDetails.status)}
+                    {t('budget.fiscalYear')} {budgetDetails.fiscal_year} • {getStatusBadge(budgetDetails.status)}
                   </CardDescription>
                 </div>
                 <div className="text-center">
                   <div className={`text-6xl font-bold ${health.color.replace('bg-', 'text-')}`}>
                     {health.score}
                   </div>
-                  <Badge className={`${health.color} text-white mt-2`}>{health.level.toUpperCase()}</Badge>
+                  <Badge className={`${health.color} text-white mt-2`}>{t(health.levelKey as any)}</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -240,7 +229,7 @@ export default function BudgetOverview() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Revenus Budgétés</CardDescription>
+                  <CardDescription>{t('budget.budgetedRevenue')}</CardDescription>
                   <TrendingUp className="h-4 w-4 text-green-600" />
                 </div>
               </CardHeader>
@@ -248,7 +237,7 @@ export default function BudgetOverview() {
                 <div className="text-2xl font-bold">{formatCurrency(budgetDetails.total_revenue)}</div>
                 <Progress value={Math.min((budgetDetails.actual_revenue / budgetDetails.total_revenue) * 100, 100)} className="mt-2" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Réalisé: {formatCurrency(budgetDetails.actual_revenue)}
+                  {t('budget.realized')}: {formatCurrency(budgetDetails.actual_revenue)}
                 </p>
               </CardContent>
             </Card>
@@ -256,7 +245,7 @@ export default function BudgetOverview() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Dépenses Budgétées</CardDescription>
+                  <CardDescription>{t('budget.budgetedExpenses')}</CardDescription>
                   <TrendingDown className="h-4 w-4 text-red-600" />
                 </div>
               </CardHeader>
@@ -267,7 +256,7 @@ export default function BudgetOverview() {
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Dépensé: {formatCurrency(budgetDetails.actual_expense)}
+                  {t('budget.spent')}: {formatCurrency(budgetDetails.actual_expense)}
                 </p>
               </CardContent>
             </Card>
@@ -275,7 +264,7 @@ export default function BudgetOverview() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>CAPEX Budgété</CardDescription>
+                  <CardDescription>{t('budget.budgetedCapex')}</CardDescription>
                   <DollarSign className="h-4 w-4 text-blue-600" />
                 </div>
               </CardHeader>
@@ -286,7 +275,7 @@ export default function BudgetOverview() {
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Dépensé: {formatCurrency(budgetDetails.actual_capex)}
+                  {t('budget.spent')}: {formatCurrency(budgetDetails.actual_capex)}
                 </p>
               </CardContent>
             </Card>
@@ -294,7 +283,7 @@ export default function BudgetOverview() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Budget Net</CardDescription>
+                  <CardDescription>{t('budget.netBudget')}</CardDescription>
                   <Target className="h-4 w-4 text-purple-600" />
                 </div>
               </CardHeader>
@@ -303,7 +292,7 @@ export default function BudgetOverview() {
                   {formatCurrency(budgetDetails.net_budget)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Revenus - Dépenses - CAPEX
+                  {t('budget.revenueMinusDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -313,7 +302,7 @@ export default function BudgetOverview() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Variance Revenus</CardTitle>
+                <CardTitle className="text-lg">{t('budget.varianceRevenue')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className={`text-3xl font-bold ${budgetDetails.revenue_variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -336,7 +325,7 @@ export default function BudgetOverview() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Variance Dépenses</CardTitle>
+                <CardTitle className="text-lg">{t('budget.varianceExpenses')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className={`text-3xl font-bold ${budgetDetails.expense_variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -359,7 +348,7 @@ export default function BudgetOverview() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Variance CAPEX</CardTitle>
+                <CardTitle className="text-lg">{t('budget.varianceCapex')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className={`text-3xl font-bold ${budgetDetails.capex_variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -386,8 +375,10 @@ export default function BudgetOverview() {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Attention:</strong> {budgetDetails.over_budget_lines} ligne(s) budgétaire(s) en dépassement.
-                Révision recommandée.
+                <strong>{fr ? 'Attention:' : 'Warning:'}</strong>{' '}
+                {fr
+                  ? `${budgetDetails.over_budget_lines} ligne(s) budgétaire(s) en dépassement. Révision recommandée.`
+                  : `${budgetDetails.over_budget_lines} budget line(s) over budget. Revision recommended.`}
               </AlertDescription>
             </Alert>
           )}
@@ -396,7 +387,10 @@ export default function BudgetOverview() {
             <Alert className="border-orange-200 bg-orange-50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
               <AlertDescription className="text-orange-900">
-                <strong>Surveillance:</strong> {budgetDetails.near_threshold_lines} ligne(s) proche(s) du seuil d'alerte.
+                <strong>{fr ? 'Surveillance:' : 'Watch:'}</strong>{' '}
+                {fr
+                  ? `${budgetDetails.near_threshold_lines} ligne(s) proche(s) du seuil d'alerte.`
+                  : `${budgetDetails.near_threshold_lines} line(s) approaching the alert threshold.`}
               </AlertDescription>
             </Alert>
           )}
@@ -405,7 +399,9 @@ export default function BudgetOverview() {
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-900">
-                Budget en bonne santé. La performance financière est conforme aux prévisions.
+                {fr
+                  ? 'Budget en bonne santé. La performance financière est conforme aux prévisions.'
+                  : 'Budget is healthy. Financial performance is in line with forecasts.'}
               </AlertDescription>
             </Alert>
           )}
@@ -415,15 +411,15 @@ export default function BudgetOverview() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PieChart className="h-5 w-5" />
-                Performance par Catégorie
+                {t('budget.categoryPerf')}
               </CardTitle>
-              <CardDescription>Analyse détaillée par type de catégorie budgétaire</CardDescription>
+              <CardDescription>{t('budget.categoryPerfDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               {categoryPerformance.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Activity className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p>Aucune donnée de performance disponible</p>
+                  <p>{t('budget.noPerformanceData')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -434,27 +430,29 @@ export default function BudgetOverview() {
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h3 className="font-semibold">{cat.category_name}</h3>
-                            <p className="text-xs text-muted-foreground">{cat.total_lines} ligne(s)</p>
+                            <p className="text-xs text-muted-foreground">
+                              {cat.total_lines} {fr ? 'ligne(s)' : 'line(s)'}
+                            </p>
                           </div>
                           <div className="text-right">
                             <div className={`text-lg font-bold ${getConsumptionColor(consumptionRate)}`}>
                               {consumptionRate.toFixed(1)}%
                             </div>
-                            <p className="text-xs text-muted-foreground">Consommation</p>
+                            <p className="text-xs text-muted-foreground">{t('budget.consumption')}</p>
                           </div>
                         </div>
                         <Progress value={Math.min(consumptionRate, 100)} className="mb-2" />
                         <div className="grid grid-cols-3 gap-2 text-sm">
                           <div>
-                            <p className="text-muted-foreground">Budgété</p>
+                            <p className="text-muted-foreground">{t('budget.budgeted')}</p>
                             <p className="font-medium">{formatCurrency(cat.total_budgeted)}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Dépensé</p>
+                            <p className="text-muted-foreground">{t('budget.spent')}</p>
                             <p className="font-medium">{formatCurrency(cat.total_spent)}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Restant</p>
+                            <p className="text-muted-foreground">{t('budget.remaining')}</p>
                             <p className={`font-medium ${cat.total_remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>
                               {formatCurrency(cat.total_remaining)}
                             </p>
@@ -462,7 +460,7 @@ export default function BudgetOverview() {
                         </div>
                         {cat.over_budget_count > 0 && (
                           <Badge variant="destructive" className="mt-2">
-                            {cat.over_budget_count} ligne(s) en dépassement
+                            {cat.over_budget_count} {fr ? 'ligne(s) en dépassement' : 'line(s) over budget'}
                           </Badge>
                         )}
                       </div>
@@ -476,37 +474,37 @@ export default function BudgetOverview() {
           {/* Stats Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>Statistiques du Budget</CardTitle>
+              <CardTitle>{t('budget.statsTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Lignes Budgétaires</span>
+                  <span className="text-sm font-medium">{t('budget.totalLines')}</span>
                   <Badge variant="outline">{budgetDetails.total_lines}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Version du Budget</span>
+                  <span className="text-sm font-medium">{t('budget.budgetVersion')}</span>
                   <Badge variant="outline">v{budgetDetails.version}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Lignes en Dépassement</span>
+                  <span className="text-sm font-medium">{t('budget.overBudgetLines')}</span>
                   <Badge className={budgetDetails.over_budget_lines > 0 ? 'bg-red-600' : 'bg-green-600'}>
                     {budgetDetails.over_budget_lines}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Lignes Proches Seuil</span>
+                  <span className="text-sm font-medium">{t('budget.nearThresholdLines')}</span>
                   <Badge className={budgetDetails.near_threshold_lines > 0 ? 'bg-orange-600' : 'bg-green-600'}>
                     {budgetDetails.near_threshold_lines}
                   </Badge>
                 </div>
                 {budgetDetails.approved_at && (
-                  <>
-                    <div className="flex justify-between items-center col-span-2">
-                      <span className="text-sm font-medium">Date d'Approbation</span>
-                      <span className="text-sm">{new Date(budgetDetails.approved_at).toLocaleDateString('fr-CA')}</span>
-                    </div>
-                  </>
+                  <div className="flex justify-between items-center col-span-2">
+                    <span className="text-sm font-medium">{t('budget.approvalDate')}</span>
+                    <span className="text-sm">
+                      {new Date(budgetDetails.approved_at).toLocaleDateString(fr ? 'fr-CA' : 'en-CA')}
+                    </span>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -519,8 +517,8 @@ export default function BudgetOverview() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <Activity className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>Aucun budget trouvé</p>
-              <p className="text-sm mt-1">Créez votre premier budget pour commencer</p>
+              <p>{t('budget.noBudgets')}</p>
+              <p className="text-sm mt-1">{t('budget.createFirst')}</p>
             </div>
           </CardContent>
         </Card>

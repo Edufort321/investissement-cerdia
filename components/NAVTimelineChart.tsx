@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -17,13 +18,16 @@ interface TooltipPayload {
 }
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+
   if (!active || !payload?.length || !label) return null
   const nav = payload[0].value
   const pct = ((nav - 1) * 100).toFixed(2)
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-left">
       <p className="text-xs text-gray-500 mb-1">
-        {new Date(label + 'T00:00:00').toLocaleDateString('fr-CA', {
+        {new Date(label + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
           year: 'numeric', month: 'long', day: 'numeric',
         })}
       </p>
@@ -37,6 +41,8 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export default function NAVTimelineChart({ className = '' }: Props) {
   const { organization } = useOrganization()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
   const { data, loading } = useNAVTimeline(organization?.id ?? null)
   const [mounted, setMounted] = useState(false)
 
@@ -60,7 +66,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
   const chartData = data.map(d => ({
     date:  d.point_date,
     nav:   Math.round(d.nav_per_share * 10000) / 10000,
-    label: new Date(d.point_date + 'T00:00:00').toLocaleDateString('fr-CA', {
+    label: new Date(d.point_date + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
       month: 'short', year: '2-digit',
     }),
   }))
@@ -81,16 +87,18 @@ export default function NAVTimelineChart({ className = '' }: Props) {
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Évolution du NAV / part
+            {t('nav.evolutionTitle')} / {fr ? 'part' : 'share'}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Depuis les premières transactions</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {fr ? 'Depuis les premières transactions' : 'Since the first transactions'}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {current.toFixed(4)} $
           </p>
           <p className={`text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {Number(totalPct) >= 0 ? '+' : ''}{totalPct}% depuis lancement
+            {Number(totalPct) >= 0 ? '+' : ''}{totalPct}% {fr ? 'depuis lancement' : 'since launch'}
           </p>
         </div>
       </div>
@@ -110,7 +118,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
             dataKey="date"
             tick={{ fontSize: 11, fill: '#9ca3af' }}
             tickFormatter={(v) =>
-              new Date(v + 'T00:00:00').toLocaleDateString('fr-CA', { month: 'short' })
+              new Date(v + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', { month: 'short' })
             }
             tickLine={false}
             axisLine={false}
@@ -149,7 +157,9 @@ export default function NAVTimelineChart({ className = '' }: Props) {
 
       {data.length <= 2 && (
         <p className="text-xs text-center text-gray-400 mt-3">
-          Le graphique s'enrichira chaque mois au fil des transactions
+          {fr
+            ? "Le graphique s'enrichira chaque mois au fil des transactions"
+            : 'The chart will grow each month as transactions are recorded'}
         </p>
       )}
     </div>

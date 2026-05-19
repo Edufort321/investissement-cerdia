@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,9 @@ interface BudgetCategory {
 }
 
 export default function BudgetEditor() {
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+
   const [scenarios, setScenarios] = useState<any[]>([])
   const [categories, setCategories] = useState<BudgetCategory[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -150,7 +154,7 @@ export default function BudgetEditor() {
 
   const saveBudget = async () => {
     if (!budgetForm.scenario_id || !budgetForm.budget_name) {
-      alert('Veuillez remplir tous les champs requis')
+      alert(fr ? 'Veuillez remplir tous les champs requis' : 'Please fill in all required fields')
       return
     }
 
@@ -167,7 +171,7 @@ export default function BudgetEditor() {
 
     if (error) {
       console.error('Error creating budget:', error)
-      alert('Erreur lors de la création du budget')
+      alert(fr ? 'Erreur lors de la création du budget' : 'Error creating budget')
       setIsLoading(false)
       return
     }
@@ -197,7 +201,7 @@ export default function BudgetEditor() {
 
   const saveBudgetLine = async () => {
     if (!lineForm.line_name || !lineForm.category_id || lineForm.budgeted_amount === 0) {
-      alert('Veuillez remplir tous les champs requis')
+      alert(fr ? 'Veuillez remplir tous les champs requis' : 'Please fill in all required fields')
       return
     }
 
@@ -213,7 +217,7 @@ export default function BudgetEditor() {
 
     if (error) {
       console.error('Error saving budget line:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert(fr ? 'Erreur lors de la sauvegarde' : 'Error saving')
       setIsLoading(false)
       return
     }
@@ -224,7 +228,7 @@ export default function BudgetEditor() {
   }
 
   const deleteBudgetLine = async (lineId: string) => {
-    if (!confirm('Supprimer cette ligne budgétaire?')) return
+    if (!confirm(fr ? 'Supprimer cette ligne budgétaire?' : 'Delete this budget line?')) return
 
     setIsLoading(true)
     await supabase.from('budget_lines').delete().eq('id', lineId)
@@ -235,11 +239,13 @@ export default function BudgetEditor() {
   const submitForApproval = async () => {
     if (!selectedBudget) return
     if (budgetLines.length === 0) {
-      alert('Ajoutez au moins une ligne budgétaire avant de soumettre')
+      alert(fr
+        ? 'Ajoutez au moins une ligne budgétaire avant de soumettre'
+        : 'Add at least one budget line before submitting')
       return
     }
 
-    if (!confirm('Soumettre ce budget pour approbation?')) return
+    if (!confirm(fr ? 'Soumettre ce budget pour approbation?' : 'Submit this budget for approval?')) return
 
     setIsLoading(true)
     const { error } = await supabase
@@ -249,16 +255,16 @@ export default function BudgetEditor() {
 
     if (error) {
       console.error('Error submitting budget:', error)
-      alert('Erreur lors de la soumission')
+      alert(fr ? 'Erreur lors de la soumission' : 'Submission error')
     } else {
       await loadBudgets()
-      alert('Budget soumis pour approbation')
+      alert(fr ? 'Budget soumis pour approbation' : 'Budget submitted for approval')
     }
     setIsLoading(false)
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(fr ? 'fr-CA' : 'en-CA', {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -267,38 +273,37 @@ export default function BudgetEditor() {
 
   const getCategoryIcon = (type: string) => {
     const colors = {
-      revenue: 'bg-green-100 text-green-800',
-      expense: 'bg-red-100 text-red-800',
-      capex: 'bg-blue-100 text-blue-800',
+      revenue:   'bg-green-100 text-green-800',
+      expense:   'bg-red-100 text-red-800',
+      capex:     'bg-blue-100 text-blue-800',
       financing: 'bg-purple-100 text-purple-800'
     }
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
 
   const currentBudget = budgets.find(b => b.id === selectedBudget)
-  const totalBudgeted = budgetLines.reduce((sum, line) => sum + line.budgeted_amount, 0)
-  const revenueTotal = budgetLines.filter(l => l.category_type === 'revenue').reduce((sum, l) => sum + l.budgeted_amount, 0)
-  const expenseTotal = budgetLines.filter(l => l.category_type === 'expense').reduce((sum, l) => sum + l.budgeted_amount, 0)
-  const capexTotal = budgetLines.filter(l => l.category_type === 'capex').reduce((sum, l) => sum + l.budgeted_amount, 0)
-  const netBudget = revenueTotal - expenseTotal - capexTotal
+  const revenueTotal  = budgetLines.filter(l => l.category_type === 'revenue').reduce((sum, l) => sum + l.budgeted_amount, 0)
+  const expenseTotal  = budgetLines.filter(l => l.category_type === 'expense').reduce((sum, l) => sum + l.budgeted_amount, 0)
+  const capexTotal    = budgetLines.filter(l => l.category_type === 'capex').reduce((sum, l) => sum + l.budgeted_amount, 0)
+  const netBudget     = revenueTotal - expenseTotal - capexTotal
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Éditeur de Budget</h1>
-          <p className="text-muted-foreground mt-2">Créer et gérer les budgets avec lignes détaillées</p>
+          <h1 className="text-3xl font-bold">{t('budget.editorTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('budget.editorSubtitle')}</p>
         </div>
         <div className="flex gap-2">
           {selectedBudget && currentBudget?.status === 'draft' && (
             <Button onClick={submitForApproval} variant="outline" disabled={isLoading}>
               <Send className="h-4 w-4 mr-2" />
-              Soumettre
+              {t('budget.submit')}
             </Button>
           )}
           <Button onClick={openBudgetDialog} disabled={isLoading}>
             <Plus className="h-4 w-4 mr-2" />
-            Nouveau Budget
+            {t('budget.newBudget')}
           </Button>
         </div>
       </div>
@@ -306,12 +311,12 @@ export default function BudgetEditor() {
       {/* Budget Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Sélectionner un Budget</CardTitle>
+          <CardTitle>{t('budget.selectBudget')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Select value={selectedBudget} onValueChange={setSelectedBudget}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choisir un budget à éditer" />
+              <SelectValue placeholder={t('budget.selectBudgetPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {budgets.map(b => {
@@ -334,7 +339,7 @@ export default function BudgetEditor() {
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Revenus</CardDescription>
+                <CardDescription>{t('budget.revenue')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{formatCurrency(revenueTotal)}</div>
@@ -342,7 +347,7 @@ export default function BudgetEditor() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Dépenses</CardDescription>
+                <CardDescription>{t('budget.expenses')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{formatCurrency(expenseTotal)}</div>
@@ -358,7 +363,7 @@ export default function BudgetEditor() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Budget Net</CardDescription>
+                <CardDescription>{t('budget.netBudget')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${netBudget >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -373,15 +378,17 @@ export default function BudgetEditor() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Lignes Budgétaires</CardTitle>
-                  <CardDescription>{budgetLines.length} ligne(s)</CardDescription>
+                  <CardTitle>{t('budget.budgetLines')}</CardTitle>
+                  <CardDescription>
+                    {budgetLines.length} {fr ? 'ligne(s)' : 'line(s)'}
+                  </CardDescription>
                 </div>
                 <Button
                   onClick={() => openLineDialog()}
                   disabled={currentBudget.status !== 'draft' || isLoading}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Ajouter Ligne
+                  {t('budget.addLine')}
                 </Button>
               </div>
             </CardHeader>
@@ -390,7 +397,11 @@ export default function BudgetEditor() {
                 <Alert className="mb-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Ce budget est en statut <strong>{currentBudget.status}</strong> et ne peut plus être modifié.
+                    {fr
+                      ? `Ce budget est en statut `
+                      : `This budget has status `}
+                    <strong>{currentBudget.status}</strong>
+                    {fr ? ' et ne peut plus être modifié.' : ' and can no longer be edited.'}
                   </AlertDescription>
                 </Alert>
               )}
@@ -398,11 +409,11 @@ export default function BudgetEditor() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Ligne</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Montant Budgété</TableHead>
-                    <TableHead className="text-center">Seuil Alerte</TableHead>
+                    <TableHead>{t('budget.colCategory')}</TableHead>
+                    <TableHead>{t('budget.colLine')}</TableHead>
+                    <TableHead>{t('budget.colDescription')}</TableHead>
+                    <TableHead className="text-right">{t('budget.colBudgetedAmount')}</TableHead>
+                    <TableHead className="text-center">{t('budget.colAlertThreshold')}</TableHead>
                     {currentBudget.status === 'draft' && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -411,10 +422,10 @@ export default function BudgetEditor() {
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                        <p>Aucune ligne budgétaire</p>
+                        <p>{t('budget.noLines')}</p>
                         <Button onClick={() => openLineDialog()} className="mt-4" size="sm">
                           <Plus className="h-4 w-4 mr-2" />
-                          Ajouter la première ligne
+                          {t('budget.addFirstLine')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -473,13 +484,13 @@ export default function BudgetEditor() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Créer un Nouveau Budget</DialogTitle>
-            <DialogDescription>Définir les paramètres du budget</DialogDescription>
+            <DialogTitle>{t('budget.createTitle')}</DialogTitle>
+            <DialogDescription>{t('budget.createDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Projet / Scénario *</Label>
+                <Label>{t('budget.projectScenario')} *</Label>
                 <Select value={budgetForm.scenario_id} onValueChange={(v) => setBudgetForm({ ...budgetForm, scenario_id: v })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -492,7 +503,7 @@ export default function BudgetEditor() {
                 </Select>
               </div>
               <div>
-                <Label>Année Fiscale *</Label>
+                <Label>{t('budget.fiscalYearLabel')} *</Label>
                 <Input
                   type="number"
                   value={budgetForm.fiscal_year}
@@ -500,15 +511,15 @@ export default function BudgetEditor() {
                 />
               </div>
               <div className="col-span-2">
-                <Label>Nom du Budget *</Label>
+                <Label>{t('budget.budgetNameLabel')} *</Label>
                 <Input
                   value={budgetForm.budget_name}
                   onChange={(e) => setBudgetForm({ ...budgetForm, budget_name: e.target.value })}
-                  placeholder="Ex: Budget Opérationnel 2024"
+                  placeholder={fr ? 'Ex: Budget Opérationnel 2024' : 'Ex: Operational Budget 2024'}
                 />
               </div>
               <div>
-                <Label>Date Début *</Label>
+                <Label>{t('budget.startDate')} *</Label>
                 <Input
                   type="date"
                   value={budgetForm.start_date}
@@ -516,7 +527,7 @@ export default function BudgetEditor() {
                 />
               </div>
               <div>
-                <Label>Date Fin *</Label>
+                <Label>{t('budget.endDate')} *</Label>
                 <Input
                   type="date"
                   value={budgetForm.end_date}
@@ -524,21 +535,21 @@ export default function BudgetEditor() {
                 />
               </div>
               <div className="col-span-2">
-                <Label>Notes</Label>
+                <Label>{t('budget.notes')}</Label>
                 <Textarea
                   value={budgetForm.notes}
                   onChange={(e) => setBudgetForm({ ...budgetForm, notes: e.target.value })}
                   rows={3}
-                  placeholder="Notes additionnelles sur le budget"
+                  placeholder={t('budget.notesPlaceholder')}
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('budget.cancel')}</Button>
             <Button onClick={saveBudget} disabled={isLoading}>
               <Save className="h-4 w-4 mr-2" />
-              Créer Budget
+              {t('budget.createBudget')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -548,13 +559,15 @@ export default function BudgetEditor() {
       <Dialog open={isLineDialogOpen} onOpenChange={setIsLineDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingLine ? 'Modifier' : 'Nouvelle'} Ligne Budgétaire</DialogTitle>
-            <DialogDescription>Détails de la ligne budgétaire</DialogDescription>
+            <DialogTitle>
+              {editingLine ? t('budget.update') : t('budget.create')} — {t('budget.lineDetails')}
+            </DialogTitle>
+            <DialogDescription>{t('budget.lineDetails')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <Label>Catégorie Budgétaire *</Label>
+                <Label>{t('budget.budgetCategory')} *</Label>
                 <Select value={lineForm.category_id} onValueChange={(v) => setLineForm({ ...lineForm, category_id: v })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -569,24 +582,24 @@ export default function BudgetEditor() {
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label>Nom de la Ligne *</Label>
+                <Label>{t('budget.lineName')} *</Label>
                 <Input
                   value={lineForm.line_name}
                   onChange={(e) => setLineForm({ ...lineForm, line_name: e.target.value })}
-                  placeholder="Ex: Salaires équipe maintenance"
+                  placeholder={fr ? 'Ex: Salaires équipe maintenance' : 'Ex: Maintenance team salaries'}
                 />
               </div>
               <div className="col-span-2">
-                <Label>Description</Label>
+                <Label>{t('budget.description')}</Label>
                 <Textarea
                   value={lineForm.description}
                   onChange={(e) => setLineForm({ ...lineForm, description: e.target.value })}
                   rows={2}
-                  placeholder="Description optionnelle"
+                  placeholder={fr ? 'Description optionnelle' : 'Optional description'}
                 />
               </div>
               <div>
-                <Label>Montant Budgété ($) *</Label>
+                <Label>{t('budget.budgetedAmountLabel')} *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -595,7 +608,7 @@ export default function BudgetEditor() {
                 />
               </div>
               <div>
-                <Label>Seuil d'Alerte (%) *</Label>
+                <Label>{t('budget.alertThresholdLabel')} *</Label>
                 <Input
                   type="number"
                   min="0"
@@ -603,17 +616,15 @@ export default function BudgetEditor() {
                   value={lineForm.alert_threshold}
                   onChange={(e) => setLineForm({ ...lineForm, alert_threshold: parseFloat(e.target.value) })}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Alerte déclenchée à ce % de consommation
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{t('budget.alertThresholdDesc')}</p>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLineDialogOpen(false)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setIsLineDialogOpen(false)}>{t('budget.cancel')}</Button>
             <Button onClick={saveBudgetLine} disabled={isLoading}>
               <Save className="h-4 w-4 mr-2" />
-              {editingLine ? 'Mettre à Jour' : 'Créer'}
+              {editingLine ? t('budget.update') : t('budget.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

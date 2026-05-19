@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ExchangeRateData {
   current: {
@@ -20,19 +21,25 @@ interface ExchangeRateData {
 
 type TimePeriod = '30' | '90' | '180' | '365'
 
-const PERIOD_LABELS: Record<TimePeriod, string> = {
-  '30': '30 jours',
-  '90': '3 mois',
-  '180': '6 mois',
-  '365': '1 an'
-}
-
 export default function ExchangeRateWidget() {
   const { updateRate } = useExchangeRate()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
+
   const [data, setData] = useState<ExchangeRateData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('30')
+
+  const getPeriodLabel = (period: TimePeriod): string => {
+    const labels: Record<TimePeriod, [string, string]> = {
+      '30':  [fr ? '30 jours' : '30 days',   ''],
+      '90':  [fr ? '3 mois'   : '3 months',  ''],
+      '180': [fr ? '6 mois'   : '6 months',  ''],
+      '365': [fr ? '1 an'     : '1 year',    ''],
+    }
+    return labels[period][0]
+  }
 
   const fetchExchangeRate = async (days: string = selectedPeriod) => {
     try {
@@ -94,14 +101,13 @@ export default function ExchangeRateWidget() {
   // Préparer les données pour le graphique
   const minRate = Math.min(...history.map(h => h.rate))
   const maxRate = Math.max(...history.map(h => h.rate))
-  const rangeRate = maxRate - minRate || 0.01 // Éviter division par zéro
+  const rangeRate = maxRate - minRate || 0.01
 
   // Dimensions du graphique
   const width = 100
   const height = 40
   const padding = 2
 
-  // Créer les points du graphique (path SVG)
   const points = history.map((point, index) => {
     const x = (index / (history.length - 1)) * (width - padding * 2) + padding
     const y = height - padding - ((point.rate - minRate) / rangeRate) * (height - padding * 2)
@@ -112,7 +118,7 @@ export default function ExchangeRateWidget() {
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Taux de change USD → CAD</h3>
+          <h3 className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.exchangeRate')}</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-bold text-gray-900">
               {current.rate.toFixed(4)}
@@ -125,7 +131,8 @@ export default function ExchangeRateWidget() {
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Mis à jour: {new Date(current.date).toLocaleDateString('fr-CA', {
+            {fr ? 'Mis à jour:' : 'Updated:'}{' '}
+            {new Date(current.date).toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
               day: 'numeric',
               month: 'short',
               year: 'numeric'
@@ -136,7 +143,7 @@ export default function ExchangeRateWidget() {
           onClick={() => fetchExchangeRate()}
           disabled={loading}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          title="Rafraîchir"
+          title={fr ? 'Rafraîchir' : 'Refresh'}
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
@@ -144,7 +151,7 @@ export default function ExchangeRateWidget() {
 
       {/* Filtres de période */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {(Object.keys(PERIOD_LABELS) as TimePeriod[]).map((period) => (
+        {(['30', '90', '180', '365'] as TimePeriod[]).map((period) => (
           <button
             key={period}
             onClick={() => setSelectedPeriod(period)}
@@ -154,7 +161,7 @@ export default function ExchangeRateWidget() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {PERIOD_LABELS[period]}
+            {getPeriodLabel(period)}
           </button>
         ))}
       </div>
@@ -162,7 +169,9 @@ export default function ExchangeRateWidget() {
       {/* Graphique */}
       {history.length > 1 && (
         <div className="mt-4">
-          <p className="text-xs font-medium text-gray-600 mb-2">Évolution sur {PERIOD_LABELS[selectedPeriod]}</p>
+          <p className="text-xs font-medium text-gray-600 mb-2">
+            {fr ? `Évolution sur ${getPeriodLabel(selectedPeriod)}` : `Trend over ${getPeriodLabel(selectedPeriod)}`}
+          </p>
           <div className="relative">
             <svg
               viewBox={`0 0 ${width} ${height}`}
