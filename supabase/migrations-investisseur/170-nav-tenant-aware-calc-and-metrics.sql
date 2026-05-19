@@ -26,10 +26,12 @@ END $$;
 
 -- ==========================================
 -- 1. RECRÉER calculate_realistic_nav_v2 AVEC p_org_id
+--    CASCADE: supprime realistic_nav_current_v2, v_nav_summary,
+--             investor_performance_metrics (recréées ci-dessous)
 -- ==========================================
 
-DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE);
-DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE, UUID);
+DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE) CASCADE;
+DROP FUNCTION IF EXISTS calculate_realistic_nav_v2(DATE, UUID) CASCADE;
 
 CREATE OR REPLACE FUNCTION calculate_realistic_nav_v2(
   p_target_date DATE    DEFAULT CURRENT_DATE,
@@ -177,7 +179,65 @@ BEGIN
 END $$;
 
 -- ==========================================
--- 2. RECRÉER investor_performance_metrics AVEC FILTRE ORG
+-- 2. RECRÉER LES VUES SIMPLES DÉPENDANTES
+--    (supprimées par CASCADE ci-dessus)
+-- ==========================================
+
+CREATE OR REPLACE VIEW realistic_nav_current_v2 AS
+SELECT * FROM calculate_realistic_nav_v2(CURRENT_DATE);
+
+COMMENT ON VIEW realistic_nav_current_v2 IS
+  'Vue du NAV actuel temps réel (calculate_realistic_nav_v2) — org du user connecté';
+
+CREATE OR REPLACE VIEW v_nav_summary AS
+SELECT
+  current_nav.net_asset_value          AS current_nav,
+  current_nav.nav_per_share            AS current_nav_per_share,
+  current_nav.properties_appreciation  AS current_appreciation,
+
+  last_snapshot.snapshot_date          AS last_snapshot_date,
+  last_snapshot.nav_per_share          AS last_snapshot_nav_per_share,
+
+  first_snapshot.snapshot_date         AS first_snapshot_date,
+  first_snapshot.nav_per_share         AS first_snapshot_nav_per_share,
+
+  CASE
+    WHEN first_snapshot.nav_per_share > 0 THEN
+      ((current_nav.nav_per_share - first_snapshot.nav_per_share)
+       / first_snapshot.nav_per_share * 100)
+    ELSE NULL
+  END AS total_performance_pct,
+
+  CASE
+    WHEN last_snapshot.nav_per_share > 0 THEN
+      ((current_nav.nav_per_share - last_snapshot.nav_per_share)
+       / last_snapshot.nav_per_share * 100)
+    ELSE NULL
+  END AS since_last_snapshot_pct,
+
+  current_nav.total_investments,
+  current_nav.properties_current_value,
+  (SELECT COUNT(*) FROM nav_history WHERE organization_id = auth_get_org_id()) AS total_snapshots,
+  (SELECT MAX(snapshot_date) FROM nav_history WHERE organization_id = auth_get_org_id()) AS latest_snapshot_date
+
+FROM calculate_realistic_nav_v2(CURRENT_DATE) current_nav
+CROSS JOIN LATERAL (
+  SELECT * FROM nav_history WHERE organization_id = auth_get_org_id() ORDER BY snapshot_date DESC LIMIT 1
+) last_snapshot
+CROSS JOIN LATERAL (
+  SELECT * FROM nav_history WHERE organization_id = auth_get_org_id() ORDER BY snapshot_date ASC LIMIT 1
+) first_snapshot;
+
+COMMENT ON VIEW v_nav_summary IS
+  'Résumé NAV actuel + comparaison historique — org du user connecté';
+
+DO $$
+BEGIN
+  RAISE NOTICE '✅ realistic_nav_current_v2 et v_nav_summary recréées';
+END $$;
+
+-- ==========================================
+-- 4. RECRÉER investor_performance_metrics AVEC FILTRE ORG
 -- ==========================================
 
 DROP VIEW IF EXISTS investor_performance_metrics;
