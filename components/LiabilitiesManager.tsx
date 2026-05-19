@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Plus, X, Edit2, Check, AlertCircle } from 'lucide-react'
 
 interface Liability {
@@ -55,6 +56,9 @@ const EMPTY_FORM = {
 }
 
 export default function LiabilitiesManager({ exchangeRate = 1.40, onTotalChange }: LiabilitiesManagerProps) {
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
+
   const [liabilities, setLiabilities] = useState<Liability[]>([])
   const [properties, setProperties] = useState<Property[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -64,13 +68,13 @@ export default function LiabilitiesManager({ exchangeRate = 1.40, onTotalChange 
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (orgId) loadData()
+  }, [orgId])
 
   async function loadData() {
     const [{ data: liabData }, { data: propData }] = await Promise.all([
-      supabase.from('liabilities').select('*').order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, name').order('name'),
+      supabase.from('liabilities').select('*').eq('organization_id', orgId!).order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, name').eq('organization_id', orgId!).order('name'),
     ])
     setLiabilities(liabData || [])
     setProperties(propData || [])
@@ -112,6 +116,7 @@ export default function LiabilitiesManager({ exchangeRate = 1.40, onTotalChange 
     setError(null)
     try {
       const payload = {
+        organization_id: orgId,
         property_id: form.property_id || null,
         description: form.description.trim(),
         lender: form.lender.trim() || null,

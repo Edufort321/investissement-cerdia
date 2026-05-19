@@ -124,8 +124,8 @@ export default function NAVDashboard() {
   const [showMetrics, setShowMetrics] = useState(true)
 
   useEffect(() => {
-    loadNAVData()
-  }, [])
+    if (orgId) loadNAVData()
+  }, [orgId])
 
   async function exportNAVPDF() {
     if (!summary || !tlCurrent) return
@@ -491,9 +491,11 @@ export default function NAVDashboard() {
       }
 
       // Charger l'historique des snapshots (pour le graphique)
+      const orgId = organization?.id ?? null
       const { data: historyData, error: historyError } = await supabase
         .from('nav_history')
         .select('*')
+        .eq('organization_id', orgId!)
         .order('snapshot_date', { ascending: true })
 
       if (historyError && historyError.code !== 'PGRST116') throw historyError
@@ -530,11 +532,22 @@ export default function NAVDashboard() {
       // Stocker les données détaillées pour affichage
       setDetailedNavData(currentNavData)
 
-      // Charger les détails de chaque propriété
-      const { data: propertiesData, error: propertiesError } = await supabase
+      // Charger les IDs autorisés pour filtrage des vues sans organization_id
+      const [{ data: orgPropsRaw }, { data: orgInvestorsRaw }] = await Promise.all([
+        supabase.from('properties').select('id').eq('organization_id', orgId!),
+        supabase.from('investors').select('id').eq('organization_id', orgId!),
+      ])
+      const allowedPropIds = (orgPropsRaw || []).map((p: any) => p.id)
+      const allowedInvestorIds = (orgInvestorsRaw || []).map((i: any) => i.id)
+
+      // Charger les détails de chaque propriété (vue sans org_id — filtre via IDs)
+      const propQuery = supabase
         .from('current_property_values')
         .select('*')
         .order('acquisition_date', { ascending: false })
+      const { data: propertiesData, error: propertiesError } = allowedPropIds.length > 0
+        ? await propQuery.in('property_id', allowedPropIds)
+        : await propQuery.in('property_id', ['00000000-0000-0000-0000-000000000000'])
 
       if (propertiesError) {
         console.error('Erreur chargement propriétés:', propertiesError)
@@ -542,10 +555,11 @@ export default function NAVDashboard() {
         setProperties(propertiesData || [])
       }
 
-      // Métriques LP
-      const { data: metricsData } = await supabase
-        .from('investor_performance_metrics')
-        .select('*')
+      // Métriques LP (vue sans org_id — filtre via IDs)
+      const metricsQuery = supabase.from('investor_performance_metrics').select('*')
+      const { data: metricsData } = allowedInvestorIds.length > 0
+        ? await metricsQuery.in('investor_id', allowedInvestorIds)
+        : await metricsQuery.in('investor_id', ['00000000-0000-0000-0000-000000000000'])
       setInvestorMetrics(metricsData || [])
 
     } catch (err: any) {
