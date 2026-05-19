@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Filter, Settings, X, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useOrganization } from '@/contexts/OrganizationContext'
 
 interface Scenario {
   id: string
@@ -70,6 +71,7 @@ interface AddReservationForm {
 }
 
 export default function InvestorReservationsCalendar() {
+  const { organization } = useOrganization()
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [investors, setInvestors] = useState<Investor[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -110,8 +112,8 @@ export default function InvestorReservationsCalendar() {
   })
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (organization?.id) loadData()
+  }, [organization?.id])
 
   useEffect(() => {
     applyFilters()
@@ -120,20 +122,23 @@ export default function InvestorReservationsCalendar() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      // Charger les scénarios (projets purchased uniquement)
+      // Charger les scénarios (projets purchased uniquement, tenant courant)
+      const orgId = organization!.id
       const { data: scenariosData, error: scenariosError } = await supabase
         .from('scenarios')
         .select('id, name, unit_number, status, owner_occupation_days, management_company_name, management_company_contact, management_company_email')
+        .eq('organization_id', orgId)
         .in('status', ['purchased', 'livré'])
         .order('name', { ascending: true })
 
       if (scenariosError) throw scenariosError
       setScenarios(scenariosData || [])
 
-      // Charger les investisseurs (la table investors a first_name/last_name, pas name)
+      // Charger les investisseurs du tenant courant
       const { data: investorsData, error: investorsError } = await supabase
         .from('investors')
         .select('id, first_name, last_name, email')
+        .eq('organization_id', orgId)
         .order('last_name', { ascending: true })
 
       if (investorsError) throw investorsError
@@ -152,8 +157,9 @@ export default function InvestorReservationsCalendar() {
       // Charger les bookings commerciaux
       await loadCommercialBookings()
 
-      // Charger les quotas investisseurs
-      await loadInvestorQuotas()
+      // Charger les quotas — filtrer côté client par les investor IDs du tenant
+      const investorIds = (investorsData || []).map((i: any) => i.id)
+      await loadInvestorQuotas(investorIds)
 
     } catch (error) {
       console.error('Error loading data:', error)
@@ -199,14 +205,20 @@ export default function InvestorReservationsCalendar() {
     }
   }
 
-  const loadInvestorQuotas = async () => {
+  const loadInvestorQuotas = async (allowedInvestorIds?: string[]) => {
     try {
       const { data, error } = await supabase
         .from('investor_total_rights')
         .select('*')
 
       if (error) throw error
-      setInvestorQuotas(data || [])
+
+      // La vue n'a pas de organization_id — filtrer côté client pour isoler le tenant
+      const filtered = allowedInvestorIds && allowedInvestorIds.length > 0
+        ? (data || []).filter((q: any) => allowedInvestorIds.includes(q.investor_id))
+        : (data || [])
+
+      setInvestorQuotas(filtered)
     } catch (error) {
       console.error('Error loading investor quotas:', error)
     }
