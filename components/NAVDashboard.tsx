@@ -464,6 +464,48 @@ export default function NAVDashboard() {
     }
   }
 
+  async function loadInvestorMetrics(navPerShare: number, investorIds: string[]) {
+    if (!orgId || investorIds.length === 0) { setInvestorMetrics([]); return }
+    try {
+      const [{ data: invData }, { data: investData }, { data: distData }] = await Promise.all([
+        supabase.from('investors').select('id, first_name, last_name, access_level').eq('organization_id', orgId).neq('access_level', 'admin'),
+        supabase.from('investor_investments').select('investor_id, amount_invested, number_of_shares, investment_date').eq('organization_id', orgId).eq('status', 'active'),
+        supabase.from('transactions').select('investor_id, amount').eq('organization_id', orgId).in('type', ['remboursement_investisseur', 'dividende']).neq('status', 'cancelled').not('investor_id', 'is', null),
+      ])
+      const metrics: InvestorMetric[] = ((invData || []) as any[]).map((inv: any) => {
+        const invRecs = ((investData || []) as any[]).filter((i: any) => i.investor_id === inv.id)
+        const totalInvested = invRecs.reduce((s: number, i: any) => s + (i.amount_invested || 0), 0)
+        const totalShares = invRecs.reduce((s: number, i: any) => s + (i.number_of_shares || 0), 0)
+        const dates = invRecs.map((i: any) => new Date(i.investment_date).getTime()).filter(Boolean)
+        const firstDate = dates.length > 0 ? new Date(Math.min(...dates)).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        const totalDist = ((distData || []) as any[]).filter((t: any) => t.investor_id === inv.id).reduce((s: number, t: any) => s + Math.abs(t.amount || 0), 0)
+        const currentPortfolio = Math.round(totalShares * navPerShare * 100) / 100
+        const moic = totalInvested > 0 ? Math.round((currentPortfolio + totalDist) / totalInvested * 1000) / 1000 : 1
+        const dpi = totalInvested > 0 ? Math.round(totalDist / totalInvested * 1000) / 1000 : 0
+        const rvpi = totalInvested > 0 ? Math.round(currentPortfolio / totalInvested * 1000) / 1000 : 1
+        const yearsHeld = (Date.now() - new Date(firstDate).getTime()) / (365.25 * 24 * 3600 * 1000)
+        const annualizedReturn = totalInvested > 0 && yearsHeld > 1
+          ? Math.round((Math.pow(Math.max((currentPortfolio + totalDist) / totalInvested, 0.001), 1 / yearsHeld) - 1) * 10000) / 100
+          : null
+        return {
+          investor_id: inv.id,
+          investor_name: `${inv.first_name} ${inv.last_name}`,
+          total_invested: totalInvested,
+          total_shares: totalShares,
+          first_investment_date: firstDate,
+          total_distributions: totalDist,
+          current_portfolio_value: currentPortfolio,
+          moic, dpi, rvpi,
+          annualized_return_pct: annualizedReturn,
+          unrealized_gain: Math.round((currentPortfolio - totalInvested) * 100) / 100,
+        }
+      }).sort((a: InvestorMetric, b: InvestorMetric) => b.total_invested - a.total_invested)
+      setInvestorMetrics(metrics)
+    } catch (e) {
+      console.error('Erreur métriques investisseurs:', e)
+    }
+  }
+
   async function loadNAVData() {
     try {
       setLoading(true)
@@ -555,12 +597,10 @@ export default function NAVDashboard() {
         setProperties(propertiesData || [])
       }
 
-      // Métriques LP (vue sans org_id — filtre via IDs)
-      const metricsQuery = supabase.from('investor_performance_metrics').select('*')
-      const { data: metricsData } = allowedInvestorIds.length > 0
-        ? await metricsQuery.in('investor_id', allowedInvestorIds)
-        : await metricsQuery.in('investor_id', ['00000000-0000-0000-0000-000000000000'])
-      setInvestorMetrics(metricsData || [])
+      // Métriques LP — calculées en JS pour éviter le 2e appel à calculate_realistic_nav_v2
+      if (currentNavData?.nav_per_share != null) {
+        await loadInvestorMetrics(currentNavData.nav_per_share, allowedInvestorIds)
+      }
 
     } catch (err: any) {
       console.error('Error loading NAV data:', err)
