@@ -472,7 +472,8 @@ export default function NAVDashboard() {
       // Calculer le NAV actuel EN TEMPS RÉEL basé sur les transactions
       const { data: currentNavRaw, error: navError } = await supabase
         .rpc('calculate_realistic_nav_v2', {
-          p_target_date: new Date().toISOString().split('T')[0]
+          p_target_date: new Date().toISOString().split('T')[0],
+          p_org_id: orgId
         })
 
       if (navError) {
@@ -491,7 +492,6 @@ export default function NAVDashboard() {
       }
 
       // Charger l'historique des snapshots (pour le graphique)
-      const orgId = organization?.id ?? null
       const { data: historyData, error: historyError } = await supabase
         .from('nav_history')
         .select('*')
