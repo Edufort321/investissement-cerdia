@@ -1377,7 +1377,6 @@ export default function NAVDashboard() {
           <div className="mt-4 pt-4 border-t border-gray-100">
             <LiabilitiesManager
               exchangeRate={exchangeRate ?? 1.40}
-              onTotalChange={() => loadNAVData()}
             />
           </div>
         )}
