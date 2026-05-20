@@ -468,7 +468,7 @@ export default function NAVDashboard() {
     if (!orgId || investorIds.length === 0) { setInvestorMetrics([]); return }
     try {
       const [{ data: invData }, { data: investData }, { data: distData }] = await Promise.all([
-        supabase.from('investors').select('id, first_name, last_name, access_level').eq('organization_id', orgId).neq('access_level', 'admin'),
+        supabase.from('investors').select('id, first_name, last_name').eq('organization_id', orgId),
         supabase.from('investor_investments').select('investor_id, amount_invested, number_of_shares, investment_date').eq('organization_id', orgId).eq('status', 'active'),
         supabase.from('transactions').select('investor_id, amount').eq('organization_id', orgId).in('type', ['remboursement_investisseur', 'dividende']).neq('status', 'cancelled').not('investor_id', 'is', null),
       ])
