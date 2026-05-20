@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -36,6 +37,8 @@ interface VarianceData {
 }
 
 export default function VarianceAnalysis() {
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const [variances, setVariances] = useState<VarianceData[]>([])
   const [scenarios, setScenarios] = useState<any[]>([])
   const [selectedScenario, setSelectedScenario] = useState<string>('')
@@ -45,8 +48,8 @@ export default function VarianceAnalysis() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    loadScenarios()
-  }, [])
+    if (orgId) loadScenarios()
+  }, [orgId])
 
   useEffect(() => {
     if (selectedScenario) {
@@ -55,9 +58,11 @@ export default function VarianceAnalysis() {
   }, [selectedScenario, selectedYear])
 
   const loadScenarios = async () => {
+    if (!orgId) return
     const { data } = await supabase
       .from('scenarios')
       .select('id, name')
+      .eq('organization_id', orgId)
       .eq('status', 'purchased')
       .order('name')
     setScenarios(data || [])

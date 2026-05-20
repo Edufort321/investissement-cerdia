@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,8 @@ interface BudgetCategory {
 export default function BudgetEditor() {
   const { t, language } = useLanguage()
   const fr = language === 'fr'
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
 
   const [scenarios, setScenarios] = useState<any[]>([])
   const [categories, setCategories] = useState<BudgetCategory[]>([])
@@ -78,10 +81,8 @@ export default function BudgetEditor() {
   })
 
   useEffect(() => {
-    loadScenarios()
-    loadCategories()
-    loadBudgets()
-  }, [])
+    if (orgId) { loadScenarios(); loadCategories(); loadBudgets() }
+  }, [orgId])
 
   useEffect(() => {
     if (selectedBudget) {
@@ -90,9 +91,11 @@ export default function BudgetEditor() {
   }, [selectedBudget])
 
   const loadScenarios = async () => {
+    if (!orgId) return
     const { data } = await supabase
       .from('scenarios')
       .select('id, name')
+      .eq('organization_id', orgId)
       .eq('status', 'purchased')
       .order('name')
     setScenarios(data || [])
@@ -108,9 +111,17 @@ export default function BudgetEditor() {
   }
 
   const loadBudgets = async () => {
+    if (!orgId) return
+    const { data: scenData } = await supabase
+      .from('scenarios')
+      .select('id')
+      .eq('organization_id', orgId)
+    const scenIds = (scenData || []).map((s: any) => s.id)
+    if (scenIds.length === 0) { setBudgets([]); return }
     const { data } = await supabase
       .from('budgets')
       .select('*')
+      .in('scenario_id', scenIds)
       .order('fiscal_year', { ascending: false })
     setBudgets(data || [])
   }

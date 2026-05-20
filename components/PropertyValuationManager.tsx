@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Save, X, Plus, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface Property {
@@ -37,6 +38,8 @@ interface PropertyValuation {
 
 export default function PropertyValuationManager() {
   const { t, language } = useLanguage()
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const { rate: exchangeRate, loading: rateLoading, refreshRate } = useExchangeRate()
   const [properties, setProperties] = useState<Property[]>([])
   const [valuations, setValuations] = useState<any[]>([])
@@ -55,15 +58,16 @@ export default function PropertyValuationManager() {
   })
 
   useEffect(() => {
-    loadProperties()
-    loadValuations()
-  }, [])
+    if (orgId) { loadProperties(); loadValuations() }
+  }, [orgId])
 
   const loadProperties = async () => {
+    if (!orgId) return
     try {
       const { data, error } = await supabase
         .from('properties')
         .select('id, name, location, total_cost, currency, status, expected_roi, origin_scenario_id')
+        .eq('organization_id', orgId)
         .order('name')
       if (error) throw error
       setProperties(data || [])
@@ -95,10 +99,12 @@ export default function PropertyValuationManager() {
   }
 
   const loadValuations = async () => {
+    if (!orgId) return
     try {
       const { data, error } = await supabase
         .from('property_valuations')
         .select(`*, properties:property_id (name, location, currency)`)
+        .eq('organization_id', orgId)
         .order('valuation_date', { ascending: false })
       if (error) throw error
       setValuations(data || [])

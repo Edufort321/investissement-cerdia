@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { FileText, Download, Calendar, ExternalLink } from 'lucide-react'
 import jsPDF from 'jspdf'
 
@@ -66,6 +67,8 @@ interface T2209Data {
 
 export default function TaxReports() {
   const { t, language } = useLanguage()
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [properties, setProperties] = useState<Property[]>([])
@@ -76,34 +79,35 @@ export default function TaxReports() {
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
   useEffect(() => {
-    fetchData()
-  }, [selectedYear])
+    if (orgId) fetchData()
+  }, [selectedYear, orgId])
 
   useEffect(() => {
-    if (activeReport === 'comptable') fetchData()
+    if (activeReport === 'comptable' && orgId) fetchData()
   }, [activeReport])
 
   const fetchData = async () => {
+    if (!orgId) return
     try {
       setLoading(true)
 
-      // Fetch transactions for the selected year
       const startDate = `${selectedYear}-01-01`
       const endDate = `${selectedYear}-12-31`
 
       const { data: transData, error: transError } = await supabase
         .from('transactions')
         .select('*')
+        .eq('organization_id', orgId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true })
 
       if (transError) throw transError
 
-      // Fetch all properties
       const { data: propData, error: propError } = await supabase
         .from('properties')
         .select('*')
+        .eq('organization_id', orgId)
 
       if (propError) throw propError
 

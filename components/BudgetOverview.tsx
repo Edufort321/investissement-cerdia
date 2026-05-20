@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -58,6 +59,8 @@ interface CategoryPerformance {
 export default function BudgetOverview() {
   const { t, language } = useLanguage()
   const fr = language === 'fr'
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
 
   const [budgets, setBudgets] = useState<BudgetSummary[]>([])
   const [selectedBudget, setSelectedBudget] = useState<string>('')
@@ -66,8 +69,8 @@ export default function BudgetOverview() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    loadBudgets()
-  }, [])
+    if (orgId) loadBudgets()
+  }, [orgId])
 
   useEffect(() => {
     if (selectedBudget) {
@@ -80,10 +83,19 @@ export default function BudgetOverview() {
   }, [selectedBudget, budgets])
 
   const loadBudgets = async () => {
+    if (!orgId) return
     setIsLoading(true)
+    const { data: scenData } = await supabase
+      .from('scenarios')
+      .select('id')
+      .eq('organization_id', orgId)
+    const scenIds = (scenData || []).map((s: any) => s.id)
+    if (scenIds.length === 0) { setBudgets([]); setIsLoading(false); return }
+
     const { data, error } = await supabase
       .from('budget_summary')
       .select('*')
+      .in('scenario_id', scenIds)
       .order('fiscal_year', { ascending: false })
 
     if (error) {

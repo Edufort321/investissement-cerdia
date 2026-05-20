@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import OccupationStats from './OccupationStats'
 
@@ -28,21 +29,33 @@ interface PropertyPerformance {
 
 export default function PerformanceTracker() {
   const { t, language } = useLanguage()
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const [performances, setPerformances] = useState<PropertyPerformance[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [expandedOccupation, setExpandedOccupation] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchPerformances()
-  }, [])
+    if (orgId) fetchPerformances()
+  }, [orgId])
 
   const fetchPerformances = async () => {
+    if (!orgId) return
     try {
       setLoading(true)
+      const { data: propIds } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('organization_id', orgId)
+
+      const ids = (propIds || []).map((p: any) => p.id)
+      if (ids.length === 0) { setPerformances([]); setLoading(false); return }
+
       const { data, error } = await supabase
         .from('property_performance')
         .select('*')
+        .in('property_id', ids)
         .order('roi_variance', { ascending: true })
 
       if (error) throw error
