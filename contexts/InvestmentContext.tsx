@@ -1077,9 +1077,11 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [shareSettings])
 
-  // Load all data when authenticated (une seule fois)
+  // Load all data when authenticated + org known (une seule fois)
+  // Attendre effectiveOrgId pour éviter un premier fetch sans filtre org
+  // qui mélangerait les données de tous les tenants (race condition).
   useEffect(() => {
-    if (isAuthenticated && !hasLoadedRef.current) {
+    if (isAuthenticated && effectiveOrgId && !hasLoadedRef.current) {
       hasLoadedRef.current = true
       setLoading(true)
       Promise.all([
@@ -1097,7 +1099,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       hasLoadedRef.current = false
       setLoading(false)
     }
-  }, [isAuthenticated, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
+  }, [isAuthenticated, effectiveOrgId, fetchInvestors, fetchProperties, fetchTransactions, fetchAccounts, fetchPaymentSchedules, fetchShareSettings, fetchInvestorInvestments, fetchInvestorSummaries])
 
   // Re-compute investor summaries once shareSettings loads (fixes race condition with Promise.all)
   useEffect(() => {
