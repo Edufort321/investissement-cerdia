@@ -25,11 +25,16 @@ interface Org {
   status: string
   is_demo: boolean
   is_billable: boolean
+  contact_name: string | null
+  contact_email: string | null
+  billing_address: string | null
   next_renewal_date: string | null
   last_reminder_sent_at: string | null
   suspended_at: string | null
   created_at: string
 }
+
+type PaymentStatus = 'ok' | 'invoice_due' | 'grace' | 'overdue_block'
 
 interface CreateResponse {
   organization: Org
@@ -50,11 +55,31 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
   const [revPeriod, setRevPeriod] = useState<'day' | 'month' | 'year'>('year')
   const [editOrg, setEditOrg] = useState<Org | null>(null)
-  const [editBillable, setEditBillable] = useState(true)
+  const [editForm, setEditForm] = useState({
+    is_billable: true,
+    contact_name: '',
+    contact_email: '',
+    billing_address: '',
+  })
   const [savingEdit, setSavingEdit] = useState(false)
 
+  const getPaymentStatus = (org: Org): PaymentStatus => {
+    if (!org.is_billable) return 'ok'
+    const days = daysUntilRenewal(org.next_renewal_date)
+    if (days === null) return 'ok'
+    if (days > 60) return 'ok'
+    if (days >= 0) return 'invoice_due'
+    if (days >= -30) return 'grace'
+    return 'overdue_block'
+  }
+
   const openEditOrg = (org: Org) => {
-    setEditBillable(org.is_billable)
+    setEditForm({
+      is_billable: org.is_billable,
+      contact_name: org.contact_name ?? '',
+      contact_email: org.contact_email ?? '',
+      billing_address: org.billing_address ?? '',
+    })
     setEditOrg(org)
   }
 
@@ -63,7 +88,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     setSavingEdit(true)
     const { error } = await supabase
       .from('organizations')
-      .update({ is_billable: editBillable })
+      .update({
+        is_billable: editForm.is_billable,
+        contact_name: editForm.contact_name.trim() || null,
+        contact_email: editForm.contact_email.trim() || null,
+        billing_address: editForm.billing_address.trim() || null,
+      })
       .eq('id', editOrg.id)
     setSavingEdit(false)
     if (error) { toast({ msg: `Erreur: ${error.message}`, type: 'error' }); return }
@@ -509,6 +539,67 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         </div>
       </div>
 
+      {/* Alertes paiement */}
+      {(() => {
+        const invoiceDue = orgs.filter(o => getPaymentStatus(o) === 'invoice_due')
+        const grace = orgs.filter(o => getPaymentStatus(o) === 'grace')
+        const overdue = orgs.filter(o => getPaymentStatus(o) === 'overdue_block')
+        if (invoiceDue.length === 0 && grace.length === 0 && overdue.length === 0) return null
+        return (
+          <div className="space-y-2">
+            {invoiceDue.length > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-800 dark:text-amber-200">
+                  <span className="font-semibold">Facture à envoyer dans les 60 prochains jours :</span>{' '}
+                  {invoiceDue.map(o => {
+                    const d = daysUntilRenewal(o.next_renewal_date)
+                    return `${o.name} (dans ${d}j)`
+                  }).join(' · ')}
+                </div>
+              </div>
+            )}
+            {grace.length > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl">
+                <AlertCircle size={16} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-orange-800 dark:text-orange-200">
+                  <span className="font-semibold">Paiement en attente (période de grâce) :</span>{' '}
+                  {grace.map(o => {
+                    const d = daysUntilRenewal(o.next_renewal_date)
+                    return `${o.name} (${Math.abs(d!)}j retard)`
+                  }).join(' · ')}
+                </div>
+              </div>
+            )}
+            {overdue.length > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
+                <AlertCircle size={16} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 text-xs text-red-800 dark:text-red-200">
+                  <span className="font-semibold">Suspension recommandée — retard de plus de 30 jours :</span>{' '}
+                  {overdue.map(o => {
+                    const d = daysUntilRenewal(o.next_renewal_date)
+                    return `${o.name} (${Math.abs(d!)}j retard)`
+                  }).join(' · ')}
+                  {overdue.some(o => o.status === 'active') && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {overdue.filter(o => o.status === 'active').map(o => (
+                        <button
+                          key={o.id}
+                          onClick={() => updateStatus(o, 'suspended')}
+                          className="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                        >
+                          Bloquer {o.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Liste */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
@@ -592,30 +683,37 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     </td>
                     <td className="px-4 py-3 text-xs hidden lg:table-cell">
                       {(() => {
-                        if (org.plan === 'internal') return <span className="text-gray-400">—</span>
+                        if (!org.is_billable) return <span className="text-gray-400">Non facturable</span>
                         if (!org.next_renewal_date) return <span className="text-gray-400">Non défini</span>
                         const days = daysUntilRenewal(org.next_renewal_date)
-                        let cls = 'text-gray-700 dark:text-gray-300'
-                        let label = ''
-                        if (days === null) {
-                          cls = 'text-gray-400'
-                        } else if (days < -30) {
-                          cls = 'text-red-700 font-semibold'
-                          label = ` (${Math.abs(days)}j retard — suspendu)`
-                        } else if (days < 0) {
-                          cls = 'text-red-600'
-                          label = ` (${Math.abs(days)}j retard)`
-                        } else if (days <= 60) {
-                          cls = 'text-amber-700 font-medium'
-                          label = ` (dans ${days}j)`
-                        } else {
-                          label = ` (dans ${days}j)`
-                        }
+                        const ps = getPaymentStatus(org)
+                        const dateStr = new Date(org.next_renewal_date).toLocaleDateString('fr-CA')
                         return (
-                          <span className={cls}>
-                            {new Date(org.next_renewal_date).toLocaleDateString('fr-CA')}
-                            <span className="text-gray-500 font-normal">{label}</span>
-                          </span>
+                          <div className="space-y-1">
+                            <span className="text-gray-700 dark:text-gray-300">{dateStr}</span>
+                            {ps === 'ok' && days !== null && (
+                              <div><span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 rounded text-xs">dans {days}j</span></div>
+                            )}
+                            {ps === 'invoice_due' && (
+                              <div><span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded text-xs">Envoyer facture — {days}j</span></div>
+                            )}
+                            {ps === 'grace' && (
+                              <div><span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded text-xs">En attente — {Math.abs(days!)}j retard</span></div>
+                            )}
+                            {ps === 'overdue_block' && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded text-xs font-semibold">{Math.abs(days!)}j retard</span>
+                                {org.status === 'active' && (
+                                  <button
+                                    onClick={() => updateStatus(org, 'suspended')}
+                                    className="px-1.5 py-0.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
+                                  >
+                                    Bloquer
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )
                       })()}
                     </td>
@@ -714,12 +812,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
 
       {/* Modal — modifier profil org */}
       {editOrg && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !savingEdit && setEditOrg(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => !savingEdit && setEditOrg(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 my-8 w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Building2 size={16} className="text-purple-600" />
-                {editOrg.name}
+                Profil — {editOrg.name}
               </h3>
               <button onClick={() => setEditOrg(null)} disabled={savingEdit} className="text-gray-400 hover:text-gray-700">
                 <X size={18} />
@@ -727,29 +825,65 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
             </div>
 
             <div className="space-y-4">
-              {/* Facturable */}
-              <label className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={editBillable}
-                  onChange={e => setEditBillable(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 accent-purple-600"
-                />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Facturable</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Inclure ce tenant dans le calcul des revenus SaaS. Désactiver pour les comptes démo, internes, ou en période d'essai.
-                  </p>
+              {/* Infos client */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Contact de facturation</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom du contact</label>
+                    <input
+                      type="text"
+                      value={editForm.contact_name}
+                      onChange={e => setEditForm(f => ({ ...f, contact_name: e.target.value }))}
+                      placeholder="Jean Tremblay"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email de facturation</label>
+                    <input
+                      type="email"
+                      value={editForm.contact_email}
+                      onChange={e => setEditForm(f => ({ ...f, contact_email: e.target.value }))}
+                      placeholder="facturation@client.com"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adresse de facturation</label>
+                    <textarea
+                      value={editForm.billing_address}
+                      onChange={e => setEditForm(f => ({ ...f, billing_address: e.target.value }))}
+                      placeholder={'123 rue Principale\nMontréal, QC H2X 1Y5\nCanada'}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
+                    />
+                  </div>
                 </div>
-              </label>
+              </div>
 
-              {!editBillable && (
-                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Ce tenant ne sera plus comptabilisé dans l'ARR ni dans le dashboard revenus.
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Facturation SaaS</p>
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={editForm.is_billable}
+                    onChange={e => setEditForm(f => ({ ...f, is_billable: e.target.checked }))}
+                    className="mt-0.5 w-4 h-4 accent-purple-600"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Facturable</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Inclure dans le calcul ARR et le dashboard revenus. Désactiver pour les démos, comptes internes, ou périodes d'essai.
+                    </p>
+                  </div>
+                </label>
+                {!editForm.is_billable && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 px-1">
+                    Ce tenant ne sera plus comptabilisé dans l'ARR.
                   </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
