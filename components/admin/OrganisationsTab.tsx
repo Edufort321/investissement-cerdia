@@ -24,6 +24,7 @@ interface Org {
   plan: string
   status: string
   is_demo: boolean
+  is_billable: boolean
   next_renewal_date: string | null
   last_reminder_sent_at: string | null
   suspended_at: string | null
@@ -48,6 +49,28 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
   const [revPeriod, setRevPeriod] = useState<'day' | 'month' | 'year'>('year')
+  const [editOrg, setEditOrg] = useState<Org | null>(null)
+  const [editBillable, setEditBillable] = useState(true)
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const openEditOrg = (org: Org) => {
+    setEditBillable(org.is_billable)
+    setEditOrg(org)
+  }
+
+  const saveOrgProfile = async () => {
+    if (!editOrg) return
+    setSavingEdit(true)
+    const { error } = await supabase
+      .from('organizations')
+      .update({ is_billable: editBillable })
+      .eq('id', editOrg.id)
+    setSavingEdit(false)
+    if (error) { toast({ msg: `Erreur: ${error.message}`, type: 'error' }); return }
+    await load()
+    setEditOrg(null)
+    toast({ msg: 'Profil mis à jour.', type: 'success' })
+  }
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, orgId: string) => {
     if (openMenuId === orgId) { setOpenMenuId(null); setMenuPos(null); return }
@@ -346,7 +369,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
 
       {/* Dashboard revenus SaaS */}
       {(() => {
-        const payingOrgs = orgs.filter(o => o.plan !== 'internal' && o.plan !== 'demo' && o.status !== 'archived')
+        const payingOrgs = orgs.filter(o => o.is_billable && o.status !== 'archived')
         const divisor = revPeriod === 'year' ? 1 : revPeriod === 'month' ? 12 : 365
         const perOrg = annualPrice > 0 ? annualPrice / divisor : 0
         const total = perOrg * payingOrgs.length
@@ -629,6 +652,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               style={{ top: menuPos.top, right: menuPos.right }}
             >
               <button
+                onClick={() => { closeMenu(); openEditOrg(org) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+              >
+                <Building2 size={12} /> Modifier profil
+              </button>
+              <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+              <button
                 onClick={() => { closeMenu(); handleRenew(org) }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
@@ -681,6 +711,59 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           </>
         )
       })()}
+
+      {/* Modal — modifier profil org */}
+      {editOrg && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !savingEdit && setEditOrg(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Building2 size={16} className="text-purple-600" />
+                {editOrg.name}
+              </h3>
+              <button onClick={() => setEditOrg(null)} disabled={savingEdit} className="text-gray-400 hover:text-gray-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Facturable */}
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={editBillable}
+                  onChange={e => setEditBillable(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-purple-600"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Facturable</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Inclure ce tenant dans le calcul des revenus SaaS. Désactiver pour les comptes démo, internes, ou en période d'essai.
+                  </p>
+                </div>
+              </label>
+
+              {!editBillable && (
+                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Ce tenant ne sera plus comptabilisé dans l'ARR ni dans le dashboard revenus.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <button onClick={() => setEditOrg(null)} disabled={savingEdit} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300">
+                Annuler
+              </button>
+              <button onClick={saveOrgProfile} disabled={savingEdit} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl disabled:opacity-50 flex items-center gap-2">
+                {savingEdit ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                {savingEdit ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal — création */}
       {showForm && (
