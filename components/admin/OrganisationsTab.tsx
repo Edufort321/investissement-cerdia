@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import {
   Plus, Eye, Shield, Building2, Copy, Check, AlertCircle, X, RefreshCw, ExternalLink,
-  Pause, Play, Archive, Trash2, MoreVertical,
+  Pause, Play, Archive, Trash2, MoreVertical, TrendingUp,
 } from 'lucide-react'
 
 interface Org {
@@ -47,6 +47,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   const [copied, setCopied] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
+  const [revPeriod, setRevPeriod] = useState<'day' | 'month' | 'year'>('year')
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, orgId: string) => {
     if (openMenuId === orgId) { setOpenMenuId(null); setMenuPos(null); return }
@@ -342,6 +343,99 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           </button>
         </div>
       </div>
+
+      {/* Dashboard revenus SaaS */}
+      {(() => {
+        const payingOrgs = orgs.filter(o => o.plan !== 'internal' && o.plan !== 'demo' && o.status !== 'archived')
+        const divisor = revPeriod === 'year' ? 1 : revPeriod === 'month' ? 12 : 365
+        const perOrg = annualPrice > 0 ? annualPrice / divisor : 0
+        const total = perOrg * payingOrgs.length
+        const fmt = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        const periodLabel = revPeriod === 'year' ? 'annuel' : revPeriod === 'month' ? 'mensuel' : 'quotidien'
+        return (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <TrendingUp size={18} className="text-emerald-600" />
+                Revenus SaaS
+              </h3>
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                {(['day', 'month', 'year'] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setRevPeriod(p)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      revPeriod === p
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm font-medium'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    {p === 'day' ? 'Quotidien' : p === 'month' ? 'Mensuel' : 'Annuel'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div className="sm:col-span-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4">
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                  Revenu {periodLabel} total
+                </p>
+                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
+                  {annualPrice > 0 ? `${fmt(total)} CAD` : <span className="text-base font-medium text-amber-600">Prix non défini</span>}
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                  {payingOrgs.length} tenant{payingOrgs.length !== 1 ? 's' : ''} payant{payingOrgs.length !== 1 ? 's' : ''}
+                  {annualPrice > 0 && ` × ${fmt(perOrg)} CAD`}
+                </p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ARR</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {annualPrice > 0 ? `${fmt(annualPrice * payingOrgs.length)} CAD` : '—'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Annual recurring revenue</p>
+              </div>
+            </div>
+
+            {payingOrgs.length > 0 ? (
+              <div className="space-y-1">
+                {payingOrgs.map(org => {
+                  const days = daysUntilRenewal(org.next_renewal_date)
+                  const renewalBadge = days === null ? null
+                    : days < 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded">{Math.abs(days)}j retard</span>
+                    : days <= 60 ? <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">dans {days}j</span>
+                    : null
+                  return (
+                    <div key={org.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-500 flex-shrink-0">
+                          {org.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{org.name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              org.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' :
+                              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                            }`}>{org.status}</span>
+                            {renewalBadge}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0 ml-3">
+                        {annualPrice > 0 ? `${fmt(perOrg)} CAD` : '—'}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-3">Aucun tenant payant actif.</p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Prix annuel SaaS — éditable par super_admin (stocké dans CERDIA Globale settings) */}
       <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-4">
