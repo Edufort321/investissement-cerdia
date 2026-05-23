@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Upload, File, X, Download, Eye } from 'lucide-react'
 import { Document } from '@/types/investment'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface FileUploadProps {
   onFilesUploaded: (documents: Document[]) => void
@@ -21,6 +22,8 @@ export default function FileUpload({
   existingDocuments = [],
   onRemoveDocument
 }: FileUploadProps) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -40,20 +43,20 @@ export default function FileUpload({
 
         // Vérifier le type de fichier
         if (!acceptedTypes.includes(file.type)) {
-          setError(`Type de fichier non accepté: ${file.name}`)
+          setError(fr ? `Type de fichier non accepté: ${file.name}` : `Unsupported file type: ${file.name}`)
           continue
         }
 
         // Vérifier la taille du fichier
         const fileSizeMB = file.size / (1024 * 1024)
         if (fileSizeMB > maxSizeMB) {
-          setError(`Fichier trop volumineux: ${file.name} (max ${maxSizeMB}MB)`)
+          setError(fr ? `Fichier trop volumineux: ${file.name} (max ${maxSizeMB}MB)` : `File too large: ${file.name} (max ${maxSizeMB}MB)`)
           continue
         }
 
         // Vérifier le nombre max de fichiers
         if (existingDocuments.length + newDocuments.length >= maxFiles) {
-          setError(`Nombre maximum de fichiers atteint (${maxFiles})`)
+          setError(fr ? `Nombre maximum de fichiers atteint (${maxFiles})` : `Maximum number of files reached (${maxFiles})`)
           break
         }
 
@@ -85,7 +88,7 @@ export default function FileUpload({
 
     } catch (err) {
       console.error('Error uploading files:', err)
-      setError('Erreur lors du téléchargement des fichiers')
+      setError(fr ? 'Erreur lors du téléchargement des fichiers' : 'Error uploading files')
     } finally {
       setUploading(false)
     }
@@ -151,7 +154,7 @@ export default function FileUpload({
           </div>
           <div>
             <p className="text-sm font-medium text-gray-700">
-              Cliquez pour télécharger ou glissez-déposez
+              {fr ? 'Cliquez pour télécharger ou glissez-déposez' : 'Click to upload or drag and drop'}
             </p>
             <p className="text-xs text-gray-500 mt-1">
               PDF, Excel, Images (max {maxSizeMB}MB par fichier)
@@ -176,7 +179,7 @@ export default function FileUpload({
       {existingDocuments.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-gray-700">
-            Documents attachés ({existingDocuments.length}/{maxFiles})
+            {fr ? 'Documents attachés' : 'Attached documents'} ({existingDocuments.length}/{maxFiles})
           </h4>
           <div className="space-y-2">
             {existingDocuments.map((doc) => (
@@ -199,14 +202,14 @@ export default function FileUpload({
                   <button
                     onClick={() => viewDocument(doc)}
                     className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                    title="Voir"
+                    title={fr ? 'Voir' : 'View'}
                   >
                     <Eye size={16} className="text-gray-600" />
                   </button>
                   <button
                     onClick={() => downloadDocument(doc)}
                     className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                    title="Télécharger"
+                    title={fr ? 'Télécharger' : 'Download'}
                   >
                     <Download size={16} className="text-gray-600" />
                   </button>
@@ -214,7 +217,7 @@ export default function FileUpload({
                     <button
                       onClick={() => onRemoveDocument(doc.id)}
                       className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                      title="Supprimer"
+                      title={fr ? 'Supprimer' : 'Delete'}
                     >
                       <X size={16} className="text-red-600" />
                     </button>

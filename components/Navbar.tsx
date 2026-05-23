@@ -7,9 +7,12 @@ import { usePathname } from 'next/navigation'
 import { Menu, X, Sun, Moon } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -64,7 +67,7 @@ export default function Navbar() {
           <button
             onClick={toggleTheme}
             className="bg-[#5e5e5e] text-white p-2 rounded-full hover:bg-[#3e3e3e] transition"
-            title={isDark ? 'Mode jour' : 'Mode sombre'}
+            title={isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -73,12 +76,12 @@ export default function Navbar() {
           </button>
           <Link href="/">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Accueil
+              {fr ? 'Accueil' : 'Home'}
             </button>
           </Link>
           <Link href="/investir">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Investir
+              {fr ? 'Investir' : 'Invest'}
             </button>
           </Link>
           <Link href="/vision-cerdia">
@@ -93,12 +96,12 @@ export default function Navbar() {
           </Link>
           <Link href="/demo">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Démo
+              {fr ? 'Démo' : 'Demo'}
             </button>
           </Link>
           <Link href="/connexion?redirect=/dashboard">
             <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Investisseur
+              {fr ? 'Investisseur' : 'Investor'}
             </button>
           </Link>
         </nav>
@@ -123,19 +126,19 @@ export default function Navbar() {
               className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm flex items-center justify-center gap-2"
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
-              <span>{isDark ? 'Mode jour' : 'Mode sombre'}</span>
+              <span>{isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}</span>
             </button>
             <button className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm text-center">
               <LanguageSwitcher />
             </button>
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
-                Accueil
+                {fr ? 'Accueil' : 'Home'}
               </button>
             </Link>
             <Link href="/investir" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
-                Investir
+                {fr ? 'Investir' : 'Invest'}
               </button>
             </Link>
             <Link href="/vision-cerdia" onClick={() => setMobileMenuOpen(false)}>
@@ -150,12 +153,12 @@ export default function Navbar() {
             </Link>
             <Link href="/demo" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
-                Démo
+                {fr ? 'Démo' : 'Demo'}
               </button>
             </Link>
             <Link href="/connexion?redirect=/dashboard" onClick={() => setMobileMenuOpen(false)}>
               <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
-                Investisseur
+                {fr ? 'Investisseur' : 'Investor'}
               </button>
             </Link>
           </nav>

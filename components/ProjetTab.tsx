@@ -59,6 +59,7 @@ export default function ProjetTab() {
   const { t, language } = useLanguage()
   const { currentUser } = useAuth()
   const isAdmin = currentUser?.role === 'admin'
+  const fr = language === 'fr'
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -101,10 +102,10 @@ export default function ProjetTab() {
   })
 
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
-    { label: 'Acompte', amount_type: 'percentage', percentage: 50, fixed_amount: 0, due_date: new Date().toISOString().split('T')[0] },
-    { label: '2e versement', amount_type: 'percentage', percentage: 20, fixed_amount: 0, due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0] },
-    { label: '3e versement', amount_type: 'percentage', percentage: 20, fixed_amount: 0, due_date: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0] },
-    { label: 'Versement final', amount_type: 'percentage', percentage: 10, fixed_amount: 0, due_date: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0] }
+    { label: fr ? 'Acompte' : 'Down payment', amount_type: 'percentage', percentage: 50, fixed_amount: 0, due_date: new Date().toISOString().split('T')[0] },
+    { label: fr ? '2e versement' : '2nd payment', amount_type: 'percentage', percentage: 20, fixed_amount: 0, due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0] },
+    { label: fr ? '3e versement' : '3rd payment', amount_type: 'percentage', percentage: 20, fixed_amount: 0, due_date: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0] },
+    { label: fr ? 'Versement final' : 'Final payment', amount_type: 'percentage', percentage: 10, fixed_amount: 0, due_date: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0] }
   ])
 
   // Fetch payment schedules when component mounts
@@ -266,7 +267,7 @@ export default function ProjetTab() {
       reservation: { bg: 'bg-blue-100', text: 'text-blue-800', label: t('status.reservation') },
       en_construction: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: t('status.construction') },
       complete: { bg: 'bg-green-100', text: 'text-green-800', label: t('status.completed') },
-      livré: { bg: 'bg-teal-100', text: 'text-teal-800', label: 'Livré' },
+      livré: { bg: 'bg-teal-100', text: 'text-teal-800', label: fr ? 'Livré' : 'Delivered' },
       actif: { bg: 'bg-purple-100', text: 'text-purple-800', label: t('status.active') }
     }
     const badge = badges[status] || badges.reservation
@@ -282,7 +283,7 @@ export default function ProjetTab() {
     if (status === 'paid') {
       return {
         emoji: '🟢',
-        label: 'Payé',
+        label: fr ? 'Payé' : 'Paid',
         bgClass: 'bg-green-50 border-green-200',
         textClass: 'text-green-700'
       }
@@ -299,7 +300,9 @@ export default function ProjetTab() {
       // En retard
       return {
         emoji: '🔴',
-        label: `En retard (${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''})`,
+        label: fr
+          ? `En retard (${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''})`
+          : `Overdue (${Math.abs(daysUntil)} day${Math.abs(daysUntil) > 1 ? 's' : ''})`,
         bgClass: 'bg-red-50 border-red-200',
         textClass: 'text-red-700'
       }
@@ -307,7 +310,9 @@ export default function ProjetTab() {
       // À venir bientôt (7 jours ou moins)
       return {
         emoji: '🟡',
-        label: daysUntil === 0 ? "Aujourd'hui" : `Dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}`,
+        label: daysUntil === 0
+          ? (fr ? "Aujourd'hui" : 'Today')
+          : (fr ? `Dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}` : `In ${daysUntil} day${daysUntil > 1 ? 's' : ''}`),
         bgClass: 'bg-orange-50 border-orange-200',
         textClass: 'text-orange-700'
       }
@@ -315,7 +320,7 @@ export default function ProjetTab() {
       // Futur (plus de 7 jours)
       return {
         emoji: '⚪',
-        label: `Dans ${daysUntil} jours`,
+        label: fr ? `Dans ${daysUntil} jours` : `In ${daysUntil} days`,
         bgClass: 'bg-gray-50 border-gray-200',
         textClass: 'text-gray-700'
       }
@@ -392,7 +397,7 @@ export default function ProjetTab() {
       const fmtCurr = (n: number | null | undefined, cur: string) => cur === 'USD' ? fmtUSD(n) : fmtCAD(n)
       const fmtPct  = (n: number | null | undefined, dec = 1) => n == null ? '-' : `${Number(n).toFixed(dec)} %`
       const fmtDate = (d: string | null | undefined) =>
-        d ? new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+        d ? new Date(d).toLocaleDateString(fr ? 'fr-CA' : 'en-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
 
       const loadBase64 = async (url: string) => {
         try {
@@ -436,13 +441,13 @@ export default function ProjetTab() {
       const addFooter = (pageNum: number, total: number, titleStr: string) => {
         doc.setDrawColor(...C.gray); doc.setLineWidth(0.3); doc.line(15, 280, 195, 280)
         doc.setFontSize(7.5); doc.setTextColor(...C.sub)
-        doc.text('CERDIA — Document confidentiel', 105, 285, { align: 'center' })
+        doc.text(fr ? 'CERDIA — Document confidentiel' : 'CERDIA — Confidential document', 105, 285, { align: 'center' })
         doc.text(`Page ${pageNum} / ${total}`, 195, 285, { align: 'right' })
         doc.text(titleStr, 15, 285)
       }
 
       const logo = await loadBase64('/logo-cerdia3.png')
-      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+      const today = new Date().toLocaleDateString(fr ? 'fr-CA' : 'en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
 
       // ── Données ───────────────────────────────────────────────────────────
       const currency       = property.currency || 'CAD'
@@ -461,10 +466,14 @@ export default function ProjetTab() {
       const propTx         = transactions.filter(t => t.property_id === property.id)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-      const statusLabels: Record<string,string> = {
+      const statusLabels: Record<string,string> = fr ? {
         reservation: 'Reservation', en_construction: 'En construction',
         acquired: 'Acquis', complete: 'Complete', actif: 'Actif',
         en_location: 'En location', vendu: 'Vendu', livré: 'Livre',
+      } : {
+        reservation: 'Reservation', en_construction: 'Under construction',
+        acquired: 'Acquired', complete: 'Complete', actif: 'Active',
+        en_location: 'For rent', vendu: 'Sold', livré: 'Delivered',
       }
       const statusColors: Record<string,[number,number,number]> = {
         reservation: [37,99,235], en_construction: [217,119,6],
@@ -487,7 +496,7 @@ export default function ProjetTab() {
       doc.setFontSize(16); doc.setTextColor(...C.white); doc.setFont('helvetica', 'bold')
       doc.text(property.name, W - 15, 20, { align: 'right' })
       doc.setFontSize(9); doc.setTextColor(196,196,196); doc.setFont('helvetica', 'normal')
-      doc.text(`${property.location || 'Localisation inconnue'}   |   Genere le ${today}`, W - 15, 28, { align: 'right' })
+      doc.text(`${property.location || (fr ? 'Localisation inconnue' : 'Unknown location')}   |   ${fr ? 'Genere le' : 'Generated on'} ${today}`, W - 15, 28, { align: 'right' })
 
       // Badge statut
       box(15, 8, 40, 8, statusColor)
@@ -498,14 +507,14 @@ export default function ProjetTab() {
       let y = 45
 
       // ── Section 1: Informations générales ───────────────────────────────
-      y = sectionTitle('Informations generales', y)
+      y = sectionTitle(fr ? 'Informations generales' : 'General information', y)
       autoTable(doc, {
         startY: y,
         body: [
-          ['Nom du projet', property.name, 'Statut', statusLabels[property.status] || property.status],
-          ['Localisation', property.location || '-', 'Devise', currency],
-          ['Date reservation', fmtDate(property.reservation_date), 'Date livraison prevue', fmtDate(property.completion_date)],
-          ['ROI attendu', fmtPct(property.expected_roi), 'Jours proprietaire/an', `${property.owner_occupation_days || 60} jours`],
+          [fr ? 'Nom du projet' : 'Project name', property.name, fr ? 'Statut' : 'Status', statusLabels[property.status] || property.status],
+          [fr ? 'Localisation' : 'Location', property.location || '-', fr ? 'Devise' : 'Currency', currency],
+          [fr ? 'Date reservation' : 'Reservation date', fmtDate(property.reservation_date), fr ? 'Date livraison prevue' : 'Expected delivery', fmtDate(property.completion_date)],
+          [fr ? 'ROI attendu' : 'Expected ROI', fmtPct(property.expected_roi), fr ? 'Jours proprietaire/an' : 'Owner days/year', `${property.owner_occupation_days || 60} ${fr ? 'jours' : 'days'}`],
         ],
         theme: 'plain',
         styles: { fontSize: 9, cellPadding: 3 },
@@ -525,22 +534,22 @@ export default function ProjetTab() {
       y = (doc as any).lastAutoTable.finalY + 8
 
       // ── Section 2: Progression financière ──────────────────────────────
-      y = sectionTitle('Progression financiere', y, C.blue)
+      y = sectionTitle(fr ? 'Progression financiere' : 'Financial progress', y, C.blue)
 
       // Barre de progression
       doc.setFontSize(9); doc.setTextColor(...C.text); doc.setFont('helvetica', 'bold')
       doc.text(`${pctPaid.toFixed(1)} %`, W - 15, y + 5, { align: 'right' })
       doc.setFont('helvetica', 'normal'); doc.setTextColor(...C.sub)
-      doc.text('Progression du financement', 15, y + 5)
+      doc.text(fr ? 'Progression du financement' : 'Financing progress', 15, y + 5)
       y += 8
       progressBar(15, y, 180, 5, pctPaid, C.blue)
       y += 10
 
       // 3 cartes KPI
       const kpis = [
-        { label: 'Prix contractuel', value: fmtCurr(property.total_cost, currency), bg: C.blueL, border: C.blueB, textC: C.blue },
-        { label: 'Verse a ce jour',  value: fmtCurr(totalPaidCurr, currency),        bg: C.greenL, border: C.greenB, textC: C.green },
-        { label: 'Solde restant',    value: fmtCurr(remaining, currency),             bg: remaining > 0 ? C.orangeL : C.greenL, border: remaining > 0 ? [253,186,116] as [number,number,number] : C.greenB, textC: remaining > 0 ? C.orange : C.green },
+        { label: fr ? 'Prix contractuel' : 'Contract price', value: fmtCurr(property.total_cost, currency), bg: C.blueL, border: C.blueB, textC: C.blue },
+        { label: fr ? 'Verse a ce jour' : 'Paid to date',    value: fmtCurr(totalPaidCurr, currency),        bg: C.greenL, border: C.greenB, textC: C.green },
+        { label: fr ? 'Solde restant' : 'Remaining balance', value: fmtCurr(remaining, currency),             bg: remaining > 0 ? C.orangeL : C.greenL, border: remaining > 0 ? [253,186,116] as [number,number,number] : C.greenB, textC: remaining > 0 ? C.orange : C.green },
       ]
       const cardW = 57; const cardH = 18; const gap = 4; let cx = 15
       for (const k of kpis) {
@@ -559,44 +568,49 @@ export default function ProjetTab() {
         box(15, y, 87, 14, C.blueL, C.blueB)
         box(108, y, 87, 14, C.greenL, C.greenB)
         doc.setFontSize(7.5); doc.setTextColor(...C.sub); doc.setFont('helvetica', 'normal')
-        doc.text('Montant contrat (USD)', 19, y + 4.5)
-        doc.text('Reellement paye (CAD)', 112, y + 4.5)
+        doc.text(fr ? 'Montant contrat (USD)' : 'Contract amount (USD)', 19, y + 4.5)
+        doc.text(fr ? 'Reellement paye (CAD)' : 'Actually paid (CAD)', 112, y + 4.5)
         doc.setFontSize(9.5); doc.setFont('helvetica', 'bold')
         doc.setTextColor(...C.blue);  doc.text(fmtUSD(totalPaidUSD_), 19, y + 11)
         doc.setTextColor(...C.green); doc.text(fmtCAD(totalPaidCAD_), 112, y + 11)
         doc.setFontSize(7); doc.setTextColor(...C.sub); doc.setFont('helvetica', 'normal')
-        doc.text(`Taux moyen: ${rate.toFixed(4)}`, W - 15, y + 11, { align: 'right' })
+        doc.text(`${fr ? 'Taux moyen' : 'Avg. rate'}: ${rate.toFixed(4)}`, W - 15, y + 11, { align: 'right' })
         y += 20
       }
 
       // ── Section 3: Scénario d'évaluation (si dispo) ──────────────────────
       if (originScenario && moderate) {
-        y = sectionTitle('Analyse scenarielle (scenario modere)', y, C.purple)
+        y = sectionTitle(fr ? 'Analyse scenarielle (scenario modere)' : 'Scenario analysis (moderate)', y, C.purple)
         box(15, y, 180, 32, C.purpleL, C.purpleB)
+        const recLabel = moderate.summary?.recommendation === 'recommended'
+          ? (fr ? 'Recommande' : 'Recommended')
+          : moderate.summary?.recommendation === 'not_recommended'
+            ? (fr ? 'Deconseille' : 'Not recommended')
+            : (fr ? 'A considerer' : 'To consider')
         const cols = [
-          { label: 'Rendement annuel moyen', value: fmtPct(moderate.summary?.avg_annual_return, 2) },
-          { label: 'Retour total',           value: fmtPct(moderate.summary?.total_return, 1) },
-          { label: 'Point mort',             value: moderate.summary?.break_even_year ? `Annee ${moderate.summary.break_even_year}` : '-' },
-          { label: 'Recommandation',         value: moderate.summary?.recommendation === 'recommended' ? 'Recommande' : moderate.summary?.recommendation === 'not_recommended' ? 'Deconseille' : 'A considerer' },
+          { label: fr ? 'Rendement annuel moyen' : 'Avg. annual return', value: fmtPct(moderate.summary?.avg_annual_return, 2) },
+          { label: fr ? 'Retour total' : 'Total return',                  value: fmtPct(moderate.summary?.total_return, 1) },
+          { label: fr ? 'Point mort' : 'Break-even',                      value: moderate.summary?.break_even_year ? `${fr ? 'Annee' : 'Year'} ${moderate.summary.break_even_year}` : '-' },
+          { label: fr ? 'Recommandation' : 'Recommendation',              value: recLabel },
         ]
         const colW = 42; let colX = 18
         for (const col of cols) {
           doc.setFontSize(7.5); doc.setTextColor(...C.purpleB); doc.setFont('helvetica', 'normal')
           doc.text(col.label, colX, y + 8)
-          const isRec = col.value === 'Recommande'; const isDec = col.value === 'Deconseille'
+          const isRec = col.value === (fr ? 'Recommande' : 'Recommended'); const isDec = col.value === (fr ? 'Deconseille' : 'Not recommended')
           doc.setFontSize(11); doc.setFont('helvetica', 'bold')
           doc.setTextColor(...(isRec ? C.green : isDec ? C.red : C.purple))
           doc.text(col.value, colX, y + 20)
           colX += colW + 2
         }
         doc.setFontSize(7); doc.setTextColor(...C.sub); doc.setFont('helvetica', 'normal')
-        doc.text(`Scenario cree le ${new Date(originScenario.created_at).toLocaleDateString('fr-CA')}`, 18, y + 29)
+        doc.text(`${fr ? 'Scenario cree le' : 'Scenario created on'} ${new Date(originScenario.created_at).toLocaleDateString(fr ? 'fr-CA' : 'en-CA')}`, 18, y + 29)
         y += 38
       }
 
       // ── Section 4: Bilan budgétaire ────────────────────────────────────
       if (originScenario && (totalPaidUSD_ > 0 || totalPaidCAD_ > 0)) {
-        y = sectionTitle('Bilan budgetaire: Prevu vs Reel', y, [14, 116, 144])
+        y = sectionTitle(fr ? 'Bilan budgetaire: Prevu vs Reel' : 'Budget summary: Planned vs Actual', y, [14, 116, 144])
         const budgetPct = property.total_cost > 0 ? (totalPaidUSD_ / property.total_cost) * 100 : 0
         const ecart = property.total_cost - totalPaidUSD_
         const isSaving = ecart >= 0
@@ -605,15 +619,15 @@ export default function ProjetTab() {
         box(15, y, 87, 22, C.blueL, C.blueB)
         box(108, y, 87, 22, isSaving ? C.greenL : C.redL, isSaving ? C.greenB : [252,165,165])
         doc.setFontSize(7.5); doc.setTextColor(...C.sub)
-        doc.text('Prix prevu (scenario)', 19, y + 5)
-        doc.text('Prix reel paye', 112, y + 5)
+        doc.text(fr ? 'Prix prevu (scenario)' : 'Planned price (scenario)', 19, y + 5)
+        doc.text(fr ? 'Prix reel paye' : 'Actual price paid', 112, y + 5)
         doc.setFontSize(10); doc.setFont('helvetica', 'bold')
         doc.setTextColor(...C.blue);  doc.text(fmtUSD(property.total_cost), 19, y + 14)
         doc.setTextColor(isSaving ? C.green[0] : C.red[0], isSaving ? C.green[1] : C.red[1], isSaving ? C.green[2] : C.red[2])
         doc.text(fmtUSD(totalPaidUSD_), 112, y + 14)
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(7); doc.setTextColor(...C.sub)
-        doc.text(`${budgetPct.toFixed(1)} % du budget`, 112, y + 19.5)
+        doc.text(`${budgetPct.toFixed(1)} % ${fr ? 'du budget' : 'of budget'}`, 112, y + 19.5)
         y += 28
 
         // Écart
@@ -622,14 +636,16 @@ export default function ProjetTab() {
         box(15, y, 180, 10, ecartBox, ecartBorder)
         doc.setFontSize(8.5); doc.setFont('helvetica', 'bold')
         doc.setTextColor(isSaving ? C.green[0] : C.red[0], isSaving ? C.green[1] : C.red[1], isSaving ? C.green[2] : C.red[2])
-        const ecartLabel = isSaving ? `Economie de ${fmtUSD(Math.abs(ecart))} (${((Math.abs(ecart)/property.total_cost)*100).toFixed(1)} %)` : `Depassement de ${fmtUSD(Math.abs(ecart))} (${((Math.abs(ecart)/property.total_cost)*100).toFixed(1)} %)`
+        const ecartLabel = isSaving
+          ? `${fr ? 'Economie de' : 'Savings of'} ${fmtUSD(Math.abs(ecart))} (${((Math.abs(ecart)/property.total_cost)*100).toFixed(1)} %)`
+          : `${fr ? 'Depassement de' : 'Overrun of'} ${fmtUSD(Math.abs(ecart))} (${((Math.abs(ecart)/property.total_cost)*100).toFixed(1)} %)`
         doc.text(ecartLabel, 105, y + 6.5, { align: 'center' })
         y += 15
 
         // Graphique barres prévu/réel par versement
         if (propPayments.length > 0) {
           doc.setFontSize(8); doc.setTextColor(...C.text); doc.setFont('helvetica', 'bold')
-          doc.text('Echeancier: Prevu vs Reel', 15, y + 5); y += 8
+          doc.text(fr ? 'Echeancier: Prevu vs Reel' : 'Schedule: Planned vs Actual', 15, y + 5); y += 8
 
           for (const payment of propPayments) {
             if (y > 265) { doc.addPage(); y = 20 }
@@ -645,17 +661,17 @@ export default function ProjetTab() {
             box(45, y, barW, 4, [229,231,235])
             box(45, y, (planned / maxAmt) * barW, 4, C.blue)
             doc.setFontSize(6.5); doc.setTextColor(...C.blue)
-            doc.text(`Prevu ${fmtUSD(planned)}`, 168, y + 3.5)
+            doc.text(`${fr ? 'Prevu' : 'Planned'} ${fmtUSD(planned)}`, 168, y + 3.5)
             y += 6
             // Réel
             box(45, y, barW, 4, [229,231,235])
             if (actual > 0) {
               box(45, y, (actual / maxAmt) * barW, 4, actual <= planned ? C.green : C.red)
               doc.setFontSize(6.5); doc.setTextColor(actual <= planned ? C.green[0] : C.red[0], actual <= planned ? C.green[1] : C.red[1], actual <= planned ? C.green[2] : C.red[2])
-              doc.text(`Reel ${fmtUSD(actual)}`, 168, y + 3.5)
+              doc.text(`${fr ? 'Reel' : 'Actual'} ${fmtUSD(actual)}`, 168, y + 3.5)
             } else {
               doc.setFontSize(6.5); doc.setTextColor(...C.gray)
-              doc.text('Non paye', 168, y + 3.5)
+              doc.text(fr ? 'Non paye' : 'Unpaid', 168, y + 3.5)
             }
             y += 8
           }
@@ -669,13 +685,13 @@ export default function ProjetTab() {
         if (overdueCount > 0) {
           box(15, y, 180, 9, C.redL, [252,165,165])
           doc.setFontSize(8.5); doc.setTextColor(...C.red); doc.setFont('helvetica', 'bold')
-          doc.text(`${overdueCount} paiement(s) en retard — action requise`, 105, y + 6, { align: 'center' })
+          doc.text(fr ? `${overdueCount} paiement(s) en retard — action requise` : `${overdueCount} overdue payment(s) — action required`, 105, y + 6, { align: 'center' })
           y += 12
         }
         if (pendingCount > 0) {
           box(15, y, 180, 9, C.orangeL, [253,186,116])
           doc.setFontSize(8.5); doc.setTextColor(...C.orange); doc.setFont('helvetica', 'bold')
-          doc.text(`${pendingCount} paiement(s) en attente`, 105, y + 6, { align: 'center' })
+          doc.text(fr ? `${pendingCount} paiement(s) en attente` : `${pendingCount} pending payment(s)`, 105, y + 6, { align: 'center' })
           y += 12
         }
         doc.setFont('helvetica', 'normal'); y += 2
@@ -686,16 +702,20 @@ export default function ProjetTab() {
       // ════════════════════════════════════════════════════════════════════
       if (propPayments.length > 0) {
         doc.addPage(); y = 20
-        y = sectionTitle(`Calendrier de paiements (${propPayments.length} versements)`, y)
+        y = sectionTitle(fr ? `Calendrier de paiements (${propPayments.length} versements)` : `Payment schedule (${propPayments.length} payments)`, y)
         const payStatusColors: Record<string, [number,number,number]> = {
           paid: C.green, overdue: C.red, partial: C.orange, pending: C.gray, cancelled: C.gray,
         }
-        const payStatusLabels: Record<string,string> = {
+        const payStatusLabels: Record<string,string> = fr ? {
           paid: 'Paye', overdue: 'En retard', partial: 'Partiel', pending: 'En attente', cancelled: 'Annule',
+        } : {
+          paid: 'Paid', overdue: 'Overdue', partial: 'Partial', pending: 'Pending', cancelled: 'Cancelled',
         }
         autoTable(doc, {
           startY: y,
-          head: [['#', 'Versement', 'Montant', 'Echeance', 'Date paiement', 'Statut']],
+          head: [fr
+            ? ['#', 'Versement', 'Montant', 'Echeance', 'Date paiement', 'Statut']
+            : ['#', 'Payment', 'Amount', 'Due date', 'Payment date', 'Status']],
           body: propPayments.map((ps, i) => [
             String(i + 1),
             ps.term_label || `Versement ${ps.term_number}`,
@@ -731,12 +751,16 @@ export default function ProjetTab() {
       // ════════════════════════════════════════════════════════════════════
       if (propTx.length > 0) {
         doc.addPage(); y = 20
-        y = sectionTitle(`Historique des transactions (${propTx.length})`, y)
+        y = sectionTitle(fr ? `Historique des transactions (${propTx.length})` : `Transaction history (${propTx.length})`, y)
 
-        const txTypeLabels: Record<string,string> = {
+        const txTypeLabels: Record<string,string> = fr ? {
           paiement:'Paiement', investissement:'Investissement', depense:'Depense',
           capex:'CAPEX', maintenance:'Maintenance', admin:'Administration',
           loyer:'Loyer', revenu:'Revenu', loyer_locatif:'Rev. locatif',
+        } : {
+          paiement:'Payment', investissement:'Investment', depense:'Expense',
+          capex:'CAPEX', maintenance:'Maintenance', admin:'Admin',
+          loyer:'Rent', revenu:'Revenue', loyer_locatif:'Rental rev.',
         }
         const txSignedUrls: Record<string,string> = {}
         await Promise.all(propTx.filter(t => t.attachment_storage_path).map(async t => {
@@ -747,7 +771,9 @@ export default function ProjetTab() {
 
         autoTable(doc, {
           startY: y,
-          head: [['Date', 'Type', 'Description', 'Montant (CAD)', 'Piece jointe']],
+          head: [fr
+            ? ['Date', 'Type', 'Description', 'Montant (CAD)', 'Piece jointe']
+            : ['Date', 'Type', 'Description', 'Amount (CAD)', 'Attachment']],
           body: propTx.map(t => [
             new Date(t.date).toLocaleDateString('fr-CA'),
             txTypeLabels[t.type] || t.type,
@@ -791,9 +817,12 @@ export default function ProjetTab() {
         .eq('property_id', property.id).order('uploaded_at', { ascending: false })
 
       if (attachments && attachments.length > 0) {
-        const catLabels: Record<string,string> = {
+        const catLabels: Record<string,string> = fr ? {
           photo:'Photo', document:'Document', plan:'Plan',
           contract:'Contrat', invoice:'Facture', general:'General',
+        } : {
+          photo:'Photo', document:'Document', plan:'Plan',
+          contract:'Contract', invoice:'Invoice', general:'General',
         }
         const attSignedUrls: Record<string,string> = {}
         await Promise.all(attachments.map(async (att: any) => {
@@ -803,16 +832,18 @@ export default function ProjetTab() {
         }))
 
         doc.addPage(); y = 20
-        y = sectionTitle(`Pieces jointes du projet (${attachments.length})`, y, C.purple)
+        y = sectionTitle(fr ? `Pieces jointes du projet (${attachments.length})` : `Project attachments (${attachments.length})`, y, C.purple)
 
         autoTable(doc, {
           startY: y,
-          head: [['Fichier', 'Categorie', 'Description', 'Lien']],
+          head: [fr
+            ? ['Fichier', 'Categorie', 'Description', 'Lien']
+            : ['File', 'Category', 'Description', 'Link']],
           body: attachments.map((att: any) => [
             att.file_name,
             catLabels[att.attachment_category] || att.attachment_category,
             att.description || '-',
-            attSignedUrls[att.id] ? 'Ouvrir' : '-',
+            attSignedUrls[att.id] ? (fr ? 'Ouvrir' : 'Open') : '-',
           ]),
           theme: 'grid',
           headStyles: { fillColor: C.dark, textColor: C.white, fontStyle: 'bold', fontSize: 8 },
@@ -868,7 +899,7 @@ export default function ProjetTab() {
       const pageCount = doc.getNumberOfPages()
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
-        addFooter(i, pageCount, `Fiche de Projet — ${property.name}`)
+        addFooter(i, pageCount, `${fr ? 'Fiche de Projet' : 'Project Report'} — ${property.name}`)
       }
 
       const safeName = property.name.replace(/[^a-zA-Z0-9]/g, '_')
