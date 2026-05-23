@@ -128,7 +128,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     loading
   } = useInvestment()
 
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
   const { organization } = useOrganization()
   const orgId = organization?.id ?? null
   const { current: navCurrent } = useNAVTimeline(orgId)
@@ -1224,15 +1225,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">Gestion des Investisseurs</h2>
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">Gérez les investisseurs et leurs documents</p>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">{t('investors.title')}</h2>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">{t('investors.subtitle')}</p>
         </div>
         <button
           onClick={handleToggleAddInvestor}
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-3 sm:px-4 py-2 rounded-full transition-colors w-full sm:w-auto justify-center flex-shrink-0 text-sm sm:text-base"
         >
           {showAddInvestorForm ? <X size={18} className="sm:w-5 sm:h-5" /> : <Plus size={18} className="sm:w-5 sm:h-5" />}
-          {showAddInvestorForm ? 'Annuler' : 'Ajouter un investisseur'}
+          {showAddInvestorForm ? t('common.cancel') : t('investors.add')}
         </button>
       </div>
 
@@ -2407,32 +2408,32 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <div className="absolute left-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg w-72 py-1 overflow-hidden">
                   {/* Filtres */}
                   <div className="px-4 pt-2 pb-3 space-y-2 border-b border-gray-100">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Filtres</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('admin.tx.filters')}</p>
                     <select
                       value={filterType} onChange={e => setFilterType(e.target.value)}
                       className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-gray-400"
                     >
-                      <option value="all">Tous les types</option>
-                      <option value="investissement">Investissement</option>
-                      <option value="loyer">Loyer</option>
-                      <option value="loyer_locatif">Revenu locatif</option>
-                      <option value="revenu">Revenu</option>
-                      <option value="dividende">Dividende</option>
-                      <option value="paiement">Paiement</option>
-                      <option value="depense">Dépense</option>
+                      <option value="all">{t('transactions.allTypes')}</option>
+                      <option value="investissement">{fr ? 'Investissement' : 'Investment'}</option>
+                      <option value="loyer">{fr ? 'Loyer' : 'Rent'}</option>
+                      <option value="loyer_locatif">{fr ? 'Revenu locatif' : 'Rental income'}</option>
+                      <option value="revenu">{fr ? 'Revenu' : 'Revenue'}</option>
+                      <option value="dividende">{fr ? 'Dividende' : 'Dividend'}</option>
+                      <option value="paiement">{fr ? 'Paiement' : 'Payment'}</option>
+                      <option value="depense">{fr ? 'Dépense' : 'Expense'}</option>
                       <option value="capex">CAPEX</option>
                       <option value="maintenance">Maintenance</option>
                       <option value="admin">Administration</option>
-                      <option value="remboursement_investisseur">Remboursement investisseur</option>
-                      <option value="transfert">Transfert</option>
+                      <option value="remboursement_investisseur">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
+                      <option value="transfert">{fr ? 'Transfert' : 'Transfer'}</option>
                     </select>
                     <select
                       value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
                       className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-gray-400"
                     >
-                      <option value="all">Toutes les catégories</option>
+                      <option value="all">{t('transactions.allCategories')}</option>
                       <option value="capital">Capital</option>
-                      <option value="operation">Opération</option>
+                      <option value="operation">{fr ? 'Opération' : 'Operation'}</option>
                       <option value="maintenance">Maintenance</option>
                       <option value="admin">Administration</option>
                     </select>
@@ -2440,7 +2441,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       value={filterYear} onChange={e => setFilterYear(e.target.value)}
                       className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-gray-400"
                     >
-                      <option value="all">Toutes les années</option>
+                      <option value="all">{t('admin.tx.allYears')}</option>
                       {availableYears.map(y => (
                         <option key={y} value={y.toString()}>{y}</option>
                       ))}
@@ -2452,13 +2453,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     onClick={() => { setShowMonthlyControl(true); setShowTxMenu(false) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    🗓️ Contrôle mensuel
+                    🗓️ {t('admin.tx.monthlyControl')}
                   </button>
                   <button
                     onClick={() => { setTxInnerTab(txInnerTab === 'guide' ? 'liste' : 'guide'); setShowTxMenu(false) }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
                   >
-                    📖 Guide de saisie
+                    📖 {t('admin.tx.dataEntryGuide')}
                   </button>
                   <div className="border-t border-gray-100 my-1" />
                   <button
@@ -2467,12 +2468,12 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     <FileDown size={15} />
-                    {exportingPDF ? 'Génération...' : 'Exporter PDF'}
+                    {exportingPDF ? t('admin.tx.generating') : t('admin.tx.exportPDF')}
                   </button>
                   <div className="px-4 py-2">
                     <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
                       <input type="checkbox" checked={pdfIncludeLinks} onChange={e => setPdfIncludeLinks(e.target.checked)} className="accent-gray-700 w-3.5 h-3.5" />
-                      Inclure liens PJ dans PDF
+                      {t('admin.tx.includePJLinks')}
                     </label>
                   </div>
                 </div>
@@ -2493,7 +2494,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           >
             {monthlyStatus === 'ok' ? '✅' : monthlyStatus === 'late' ? '⚠️' : '🗓️'}
             <span className="hidden sm:inline">
-              {monthlyStatus === 'ok' ? 'Solde validé' : monthlyStatus === 'late' ? 'Contrôle en retard' : 'Contrôle mensuel'}
+              {monthlyStatus === 'ok' ? t('admin.tx.balanceValidated') : monthlyStatus === 'late' ? t('admin.tx.controlLate') : t('admin.tx.monthlyControl')}
             </span>
           </button>
         </div>
@@ -2504,7 +2505,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-4 py-2 rounded-full transition-colors text-sm font-medium"
         >
           {showAddTransactionForm ? <X size={18} /> : <Plus size={18} />}
-          {showAddTransactionForm ? 'Annuler' : 'Nouvelle transaction'}
+          {showAddTransactionForm ? t('common.cancel') : t('transactions.new')}
         </button>
       </div>
 
@@ -2541,7 +2542,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-green-700">Entrées</span>
+            <span className="text-sm font-medium text-green-700">{t('transactions.totalIn')}</span>
             <TrendingUp className="text-green-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-900">
@@ -2551,7 +2552,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
         <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-red-700">Sorties</span>
+            <span className="text-sm font-medium text-red-700">{t('transactions.totalOut')}</span>
             <TrendingDown className="text-red-600" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-900">
@@ -2566,7 +2567,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className={`bg-gradient-to-br ${isPos ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-4 rounded-lg border`}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-sm font-medium ${isPos ? 'text-blue-700' : 'text-orange-700'}`}>
-                  {isFiltered ? 'Solde (filtré)' : 'Solde Compte Courant'}
+                  {isFiltered ? t('admin.tx.filteredBalance') : t('admin.tx.currentAccountBalance')}
                 </span>
                 <DollarSign className={isPos ? 'text-blue-600' : 'text-orange-600'} size={20} />
               </div>
@@ -2597,7 +2598,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             : 'w-full'
           }>
           <h3 className="text-base sm:text-lg font-semibold mb-4">
-            {editingTransactionId ? 'Modifier la transaction' : 'Nouvelle transaction'}
+            {editingTransactionId ? t('transactions.edit') : t('transactions.new')}
           </h3>
           <form onSubmit={handleTransactionSubmit} className="space-y-6">
             {/* SECTION 1: INFORMATIONS DE BASE */}
@@ -2614,7 +2615,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">📋 Type (À quoi sert l'argent) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📋 Type (À quoi sert l'argent) *" : '📋 Type (Purpose) *'}</label>
                 <select
                   value={transactionFormData.type}
                   onChange={(e) => setTransactionFormData({
@@ -2630,68 +2631,68 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <optgroup label="── Entrées d'argent ──">
-                    <option value="investissement">Investissement</option>
-                    <option value="loyer">Loyer</option>
-                    <option value="loyer_locatif">Revenu locatif (avec compte dest.)</option>
-                    <option value="revenu">Revenu général</option>
-                    <option value="dividende">Dividende</option>
+                  <optgroup label={fr ? "── Entrées d'argent ──" : '── Money in ──'}>
+                    <option value="investissement">{fr ? 'Investissement' : 'Investment'}</option>
+                    <option value="loyer">{fr ? 'Loyer' : 'Rent'}</option>
+                    <option value="loyer_locatif">{fr ? 'Revenu locatif (avec compte dest.)' : 'Rental income (with dest. account)'}</option>
+                    <option value="revenu">{fr ? 'Revenu général' : 'General revenue'}</option>
+                    <option value="dividende">{fr ? 'Dividende' : 'Dividend'}</option>
                   </optgroup>
-                  <optgroup label="── Sorties d'argent ──">
-                    <option value="paiement">Paiement</option>
-                    <option value="depense">Dépense</option>
+                  <optgroup label={fr ? '── Sorties d\'argent ──' : '── Money out ──'}>
+                    <option value="paiement">{fr ? 'Paiement' : 'Payment'}</option>
+                    <option value="depense">{fr ? 'Dépense' : 'Expense'}</option>
                     <option value="capex">CAPEX</option>
                     <option value="maintenance">Maintenance</option>
                     <option value="admin">Administration</option>
-                    <option value="remboursement_investisseur">Remboursement investisseur</option>
+                    <option value="remboursement_investisseur">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
                   </optgroup>
-                  <optgroup label="── Autre ──">
-                    <option value="transfert">Transfert (courant ↔ CAPEX)</option>
+                  <optgroup label={fr ? '── Autre ──' : '── Other ──'}>
+                    <option value="transfert">{fr ? 'Transfert (courant ↔ CAPEX)' : 'Transfer (current ↔ CAPEX)'}</option>
                   </optgroup>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">🧾 Catégorie fiscale</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🧾 Catégorie fiscale' : '🧾 Fiscal category'}</label>
                 <select
                   value={transactionFormData.fiscal_category || ''}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
-                  <option value="">— Aucune —</option>
-                  <optgroup label="── REVENUS ──">
-                    <option value="rental_income">Revenu locatif</option>
-                    <option value="dividend_income">Dividende / distribution</option>
-                    <option value="interest_income">Intérêts reçus</option>
-                    <option value="other_income">Autre revenu</option>
+                  <option value="">{fr ? '— Aucune —' : '— None —'}</option>
+                  <optgroup label={fr ? '── REVENUS ──' : '── REVENUES ──'}>
+                    <option value="rental_income">{fr ? 'Revenu locatif' : 'Rental income'}</option>
+                    <option value="dividend_income">{fr ? 'Dividende / distribution' : 'Dividend / distribution'}</option>
+                    <option value="interest_income">{fr ? 'Intérêts reçus' : 'Interest received'}</option>
+                    <option value="other_income">{fr ? 'Autre revenu' : 'Other revenue'}</option>
                   </optgroup>
-                  <optgroup label="── OPEX (déduit immédiatement) ──">
-                    <option value="management_fee">Frais de gestion</option>
-                    <option value="insurance">Assurance propriété</option>
-                    <option value="property_tax">Taxes foncières</option>
-                    <option value="condo_fees">Frais de condo / charges</option>
-                    <option value="utilities">Services publics (eau, élec.)</option>
-                    <option value="maintenance_repair">Entretien & réparations</option>
-                    <option value="professional_fees">Honoraires prof. (comptable, notaire)</option>
-                    <option value="advertising">Publicité / location</option>
-                    <option value="travel">Frais de déplacement</option>
-                    <option value="interest_expense">Intérêts hypothécaires</option>
-                    <option value="bank_fees">Frais bancaires / conversion</option>
-                    <option value="other_opex">Autre OPEX</option>
+                  <optgroup label={fr ? '── OPEX (déduit immédiatement) ──' : '── OPEX (deducted immediately) ──'}>
+                    <option value="management_fee">{fr ? 'Frais de gestion' : 'Management fees'}</option>
+                    <option value="insurance">{fr ? 'Assurance propriété' : 'Property insurance'}</option>
+                    <option value="property_tax">{fr ? 'Taxes foncières' : 'Property taxes'}</option>
+                    <option value="condo_fees">{fr ? 'Frais de condo / charges' : 'Condo fees / charges'}</option>
+                    <option value="utilities">{fr ? 'Services publics (eau, élec.)' : 'Utilities (water, electricity)'}</option>
+                    <option value="maintenance_repair">{fr ? 'Entretien & réparations' : 'Maintenance & repairs'}</option>
+                    <option value="professional_fees">{fr ? 'Honoraires prof. (comptable, notaire)' : 'Professional fees (accountant, notary)'}</option>
+                    <option value="advertising">{fr ? 'Publicité / location' : 'Advertising / rental'}</option>
+                    <option value="travel">{fr ? 'Frais de déplacement' : 'Travel expenses'}</option>
+                    <option value="interest_expense">{fr ? 'Intérêts hypothécaires' : 'Mortgage interest'}</option>
+                    <option value="bank_fees">{fr ? 'Frais bancaires / conversion' : 'Bank / conversion fees'}</option>
+                    <option value="other_opex">{fr ? 'Autre OPEX' : 'Other OPEX'}</option>
                   </optgroup>
-                  <optgroup label="── CAPEX (amorti sur plusieurs années) ──">
-                    <option value="property_purchase">Acquisition propriété (prix d'achat)</option>
-                    <option value="renovation">Rénovation majeure</option>
-                    <option value="equipment">Équipements & appareils</option>
-                    <option value="furnishing">Ameublement</option>
-                    <option value="acquisition_costs">Frais d'acquisition (notaire, inspection)</option>
-                    <option value="land_improvement">Amélioration terrain</option>
-                    <option value="other_capex">Autre CAPEX</option>
+                  <optgroup label={fr ? '── CAPEX (amorti sur plusieurs années) ──' : '── CAPEX (amortized over multiple years) ──'}>
+                    <option value="property_purchase">{fr ? "Acquisition propriété (prix d'achat)" : 'Property acquisition (purchase price)'}</option>
+                    <option value="renovation">{fr ? 'Rénovation majeure' : 'Major renovation'}</option>
+                    <option value="equipment">{fr ? 'Équipements & appareils' : 'Equipment & appliances'}</option>
+                    <option value="furnishing">{fr ? 'Ameublement' : 'Furnishing'}</option>
+                    <option value="acquisition_costs">{fr ? "Frais d'acquisition (notaire, inspection)" : 'Acquisition costs (notary, inspection)'}</option>
+                    <option value="land_improvement">{fr ? 'Amélioration terrain' : 'Land improvement'}</option>
+                    <option value="other_capex">{fr ? 'Autre CAPEX' : 'Other CAPEX'}</option>
                   </optgroup>
-                  <optgroup label="── FINANCEMENT ──">
-                    <option value="loan_principal">Remboursement capital prêt</option>
-                    <option value="investor_capital">Capital investisseur</option>
-                    <option value="investor_repayment">Remboursement investisseur</option>
+                  <optgroup label={fr ? '── FINANCEMENT ──' : '── FINANCING ──'}>
+                    <option value="loan_principal">{fr ? 'Remboursement capital prêt' : 'Loan principal repayment'}</option>
+                    <option value="investor_capital">{fr ? 'Capital investisseur' : 'Investor capital'}</option>
+                    <option value="investor_repayment">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
                   </optgroup>
                 </select>
               </div>
@@ -2700,7 +2701,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1b: REVENU LOCATIF — compte destination */}
             {transactionFormData.type === 'loyer_locatif' && (
               <div className="border-2 border-teal-300 rounded-lg p-4 bg-teal-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">🏦 Compte de destination *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '🏦 Compte de destination *' : '🏦 Destination account *'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -2711,8 +2712,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-teal-300'
                     }`}
                   >
-                    🏢 COMPTE COURANT
-                    <div className="text-xs mt-1 opacity-75">Le revenu va dans le compte courant</div>
+                    🏢 {fr ? 'COMPTE COURANT' : 'CURRENT ACCOUNT'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Le revenu va dans le compte courant' : 'Revenue goes into current account'}</div>
                   </button>
                   <button
                     type="button"
@@ -2724,11 +2725,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     }`}
                   >
                     🏗️ CAPEX
-                    <div className="text-xs mt-1 opacity-75">Le revenu va dans la réserve CAPEX</div>
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Le revenu va dans la réserve CAPEX' : 'Revenue goes into CAPEX reserve'}</div>
                   </button>
                 </div>
                 {!transactionFormData.target_account && (
-                  <p className="text-xs text-red-600 mt-2">⚠️ Veuillez sélectionner un compte de destination</p>
+                  <p className="text-xs text-red-600 mt-2">⚠️ {fr ? 'Veuillez sélectionner un compte de destination' : 'Please select a destination account'}</p>
                 )}
               </div>
             )}
@@ -2736,7 +2737,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1c: PAIEMENT RÉCURRENT */}
             {transactionFormData.type === 'paiement' && (
               <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">🔁 Occurrence du paiement</label>
+                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '🔁 Occurrence du paiement' : '🔁 Payment occurrence'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <button
                     type="button"
@@ -2747,8 +2748,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
                     }`}
                   >
-                    1️⃣ UNIQUE
-                    <div className="text-xs mt-1 opacity-75">Un seul paiement</div>
+                    1️⃣ {fr ? 'UNIQUE' : 'ONE-TIME'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Un seul paiement' : 'Single payment'}</div>
                   </button>
                   <button
                     type="button"
@@ -2759,28 +2760,28 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
                     }`}
                   >
-                    🔁 RÉCURRENT
-                    <div className="text-xs mt-1 opacity-75">Paiements répétés</div>
+                    🔁 {fr ? 'RÉCURRENT' : 'RECURRING'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Paiements répétés' : 'Repeated payments'}</div>
                   </button>
                 </div>
                 {transactionFormData.occurrence_type === 'récurrent' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Fréquence' : 'Frequency'}</label>
                       <select
                         value={transactionFormData.recurrence_frequency || 'mensuel'}
                         onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_frequency: e.target.value as any })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                       >
-                        <option value="quotidien">Quotidien</option>
-                        <option value="hebdomadaire">Hebdomadaire</option>
-                        <option value="mensuel">Mensuel</option>
-                        <option value="trimestriel">Trimestriel</option>
-                        <option value="annuel">Annuel</option>
+                        <option value="quotidien">{fr ? 'Quotidien' : 'Daily'}</option>
+                        <option value="hebdomadaire">{fr ? 'Hebdomadaire' : 'Weekly'}</option>
+                        <option value="mensuel">{fr ? 'Mensuel' : 'Monthly'}</option>
+                        <option value="trimestriel">{fr ? 'Trimestriel' : 'Quarterly'}</option>
+                        <option value="annuel">{fr ? 'Annuel' : 'Annual'}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Date de fin' : 'End date'}</label>
                       <input
                         type="date"
                         value={transactionFormData.recurrence_end_date || ''}
@@ -2794,7 +2795,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           checked={!!transactionFormData.recurrence_no_end}
                           onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_no_end: e.target.checked, recurrence_end_date: null })}
                         />
-                        Pas de date de fin (max 120 occurrences)
+                        {fr ? 'Pas de date de fin (max 120 occurrences)' : 'No end date (max 120 occurrences)'}
                       </label>
                     </div>
                   </div>
@@ -2805,7 +2806,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1d: TRANSFERT entre courant et CAPEX */}
             {transactionFormData.type === 'transfert' && (
               <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">↔️ Compte source du transfert *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '↔️ Compte source du transfert *' : '↔️ Transfer source account *'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -2816,8 +2817,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300'
                     }`}
                   >
-                    🏢 COURANT → CAPEX
-                    <div className="text-xs mt-1 opacity-75">Transférer du compte courant vers CAPEX</div>
+                    🏢 {fr ? 'COURANT → CAPEX' : 'CURRENT → CAPEX'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Transférer du compte courant vers CAPEX' : 'Transfer from current account to CAPEX'}</div>
                   </button>
                   <button
                     type="button"
@@ -2828,19 +2829,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300'
                     }`}
                   >
-                    🏗️ CAPEX → COURANT
-                    <div className="text-xs mt-1 opacity-75">Transférer du CAPEX vers le compte courant</div>
+                    🏗️ {fr ? 'CAPEX → COURANT' : 'CAPEX → CURRENT'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? 'Transférer du CAPEX vers le compte courant' : 'Transfer from CAPEX to current account'}</div>
                   </button>
                 </div>
                 {!transactionFormData.transfer_source && (
-                  <p className="text-xs text-red-600 mt-2">⚠️ Veuillez sélectionner le sens du transfert</p>
+                  <p className="text-xs text-red-600 mt-2">⚠️ {fr ? 'Veuillez sélectionner le sens du transfert' : 'Please select the transfer direction'}</p>
                 )}
               </div>
             )}
 
             {/* SECTION 2: SOURCE DE L'ARGENT - NOUVEAU! */}
             <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
-              <label className="block text-sm font-medium text-gray-900 mb-3">💰 D'où vient l'argent? *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? "💰 D'où vient l'argent? *" : '💰 Where does the money come from? *'}</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
@@ -2859,8 +2860,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
                   }`}
                 >
-                  🏢 COMPTE COURANT
-                  <div className="text-xs mt-1 opacity-75">L'entreprise paie</div>
+                  🏢 {fr ? 'COMPTE COURANT' : 'CURRENT ACCOUNT'}
+                  <div className="text-xs mt-1 opacity-75">{fr ? "L'entreprise paie" : 'Company pays'}</div>
                 </button>
 
                 <button
@@ -2881,7 +2882,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   }`}
                 >
                   🏗️ CAPEX
-                  <div className="text-xs mt-1 opacity-75">Budget CAPEX</div>
+                  <div className="text-xs mt-1 opacity-75">{fr ? 'Budget CAPEX' : 'CAPEX budget'}</div>
                 </button>
 
                 <button
@@ -2897,13 +2898,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       : 'border-gray-300 bg-white text-gray-700 hover:border-green-300'
                   }`}
                 >
-                  👤 INVESTISSEUR
-                  <div className="text-xs mt-1 opacity-75">Payé directement</div>
+                  👤 {fr ? 'INVESTISSEUR' : 'INVESTOR'}
+                  <div className="text-xs mt-1 opacity-75">{fr ? 'Payé directement' : 'Paid directly'}</div>
                 </button>
               </div>
               {transactionFormData.investor_id && (
                 <p className="text-xs text-green-700 mt-2">
-                  ℹ️ Un investisseur est sélectionné → La source est automatiquement "Investisseur direct"
+                  {fr ? 'ℹ️ Un investisseur est sélectionné → La source est automatiquement "Investisseur direct"' : 'ℹ️ An investor is selected → Source is automatically "Direct investor"'}
                 </p>
               )}
             </div>
@@ -2911,7 +2912,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 3: MONTANT ET CATÉGORIE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">💵 Montant ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💵 Montant ($) *' : '💵 Amount ($) *'}</label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -2933,7 +2934,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">📂 Catégorie (Où va l'argent) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📂 Catégorie (Où va l'argent) *" : '📂 Category (Where does money go) *'}</label>
                 <select
                   value={transactionFormData.category}
                   onChange={(e) => setTransactionFormData({
@@ -2945,11 +2946,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="projet">🏠 Projet (Propriété)</option>
-                  <option value="capex">🏗️ CAPEX (Transfert réserve)</option>
-                  <option value="operation">⚙️ Opération (Coûts opération)</option>
-                  <option value="maintenance">🔧 Maintenance (Coûts opération)</option>
-                  <option value="admin">📋 Administration (Coûts opération)</option>
+                  <option value="projet">{fr ? '🏠 Projet (Propriété)' : '🏠 Project (Property)'}</option>
+                  <option value="capex">{fr ? '🏗️ CAPEX (Transfert réserve)' : '🏗️ CAPEX (Reserve transfer)'}</option>
+                  <option value="operation">{fr ? '⚙️ Opération (Coûts opération)' : '⚙️ Operation (Operating costs)'}</option>
+                  <option value="maintenance">{fr ? '🔧 Maintenance (Coûts opération)' : '🔧 Maintenance (Operating costs)'}</option>
+                  <option value="admin">{fr ? '📋 Administration (Coûts opération)' : '📋 Administration (Operating costs)'}</option>
                 </select>
               </div>
             </div>
@@ -2957,7 +2958,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 4: SÉLECTEUR PROPRIÉTÉ (Visible seulement si catégorie = Projet) */}
             {transactionFormData.category === 'projet' && (
               <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
-                <label className="block text-sm font-medium text-gray-900 mb-2">🏠 Propriété associée *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">{fr ? '🏠 Propriété associée *' : '🏠 Associated property *'}</label>
                 <select
                   value={transactionFormData.property_id || ''}
                   onChange={(e) => setTransactionFormData({
@@ -2968,7 +2969,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="">-- Sélectionner une propriété --</option>
+                  <option value="">{fr ? '-- Sélectionner une propriété --' : '-- Select a property --'}</option>
                   {properties.map(prop => (
                     <option key={prop.id} value={prop.id}>
                       {prop.name}
@@ -2981,36 +2982,36 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 5: DÉTAILS TRANSACTION */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">💳 Méthode de paiement *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💳 Méthode de paiement *' : '💳 Payment method *'}</label>
                 <select
                   value={transactionFormData.payment_method}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_method: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="virement">Virement</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="especes">Espèces</option>
-                  <option value="carte">Carte</option>
+                  <option value="virement">{fr ? 'Virement' : 'Wire transfer'}</option>
+                  <option value="cheque">{fr ? 'Chèque' : 'Cheque'}</option>
+                  <option value="especes">{fr ? 'Espèces' : 'Cash'}</option>
+                  <option value="carte">{fr ? 'Carte' : 'Card'}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">✅ Statut *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '✅ Statut *' : '✅ Status *'}</label>
                 <select
                   value={transactionFormData.status}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, status: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <option value="complete">Complété</option>
-                  <option value="en_attente">En attente</option>
-                  <option value="annule">Annulé</option>
+                  <option value="complete">{fr ? 'Complété' : 'Completed'}</option>
+                  <option value="en_attente">{fr ? 'En attente' : 'Pending'}</option>
+                  <option value="annule">{fr ? 'Annulé' : 'Cancelled'}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">👤 Investisseur (optionnel)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '👤 Investisseur (optionnel)' : '👤 Investor (optional)'}</label>
                 <select
                   value={transactionFormData.investor_id || ''}
                   onChange={(e) => {
@@ -3025,7 +3026,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
-                  <option value="">Aucun</option>
+                  <option value="">{fr ? 'Aucun' : 'None'}</option>
                   {investors.map(inv => (
                     <option key={inv.id} value={inv.id}>
                       {inv.first_name} {inv.last_name}
@@ -3038,8 +3039,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 6: SI INVESTISSEUR SÉLECTIONNÉ - Type de paiement */}
             {transactionFormData.investor_id && (
               <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 Type de paiement investisseur</h4>
-                <p className="text-xs text-gray-600 mb-3">L'investisseur paie directement - précisez le type:</p>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">{fr ? '💰 Type de paiement investisseur' : '💰 Investor payment type'}</h4>
+                <p className="text-xs text-gray-600 mb-3">{fr ? "L'investisseur paie directement - précisez le type:" : 'The investor pays directly — specify the type:'}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -3053,8 +3054,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300'
                     }`}
                   >
-                    💵 ACHAT DE PARTS
-                    <div className="text-xs mt-1 opacity-75">L'investisseur achète des parts avec son propre argent</div>
+                    💵 {fr ? 'ACHAT DE PARTS' : 'SHARE PURCHASE'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? "L'investisseur achète des parts avec son propre argent" : 'The investor purchases shares with their own money'}</div>
                   </button>
 
                   <button
@@ -3069,16 +3070,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         : 'border-gray-300 bg-white text-gray-700 hover:border-orange-300'
                     }`}
                   >
-                    📝 DETTE À REMBOURSER
-                    <div className="text-xs mt-1 opacity-75">L'entreprise doit rembourser cet investisseur</div>
+                    📝 {fr ? 'DETTE À REMBOURSER' : 'DEBT TO REPAY'}
+                    <div className="text-xs mt-1 opacity-75">{fr ? "L'entreprise doit rembourser cet investisseur" : 'The company must repay this investor'}</div>
                   </button>
                 </div>
 
                 {transactionFormData.investor_payment_type === 'dette_a_rembourser' && (
                   <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <p className="text-xs text-orange-800">
-                      ⚠️ Une dette sera automatiquement créée pour cet investisseur.
-                      Elle apparaîtra dans le tableau des dettes à rembourser.
+                      {fr ? '⚠️ Une dette sera automatiquement créée pour cet investisseur. Elle apparaîtra dans le tableau des dettes à rembourser.' : '⚠️ A debt will be automatically created for this investor. It will appear in the debt repayment table.'}
                     </p>
                   </div>
                 )}
@@ -3090,14 +3090,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Paiement lié (optionnel)
+                      {fr ? 'Paiement lié (optionnel)' : 'Linked payment (optional)'}
                     </label>
                     <select
                       value={transactionFormData.payment_schedule_id || ''}
                       onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null, payment_completion_status: e.target.value ? 'full' : null })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                     >
-                      <option value="">Aucun paiement lié</option>
+                      <option value="">{fr ? 'Aucun paiement lié' : 'No linked payment'}</option>
                       {paymentSchedules
                         .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue'))
                         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
@@ -3109,7 +3109,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                             <option key={payment.id} value={payment.id}>
                               {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
                               {' '}({dueDate.toLocaleDateString('fr-CA')})
-                              {isOverdue ? ' 🔴 EN RETARD' : ''}
+                              {isOverdue ? (fr ? ' 🔴 EN RETARD' : ' 🔴 OVERDUE') : ''}
                             </option>
                           )
                         })
@@ -3121,24 +3121,24 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   {transactionFormData.payment_schedule_id && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Statut du paiement
+                        {fr ? 'Statut du paiement' : 'Payment status'}
                       </label>
                       <select
                         value={transactionFormData.payment_completion_status || 'full'}
                         onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_completion_status: e.target.value as 'full' | 'partial' })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                       >
-                        <option value="full">✅ Paiement complet - Le paiement sera marqué comme "payé"</option>
-                        <option value="partial">⚠️ Paiement partiel - Le paiement restera "en attente"</option>
+                        <option value="full">{fr ? '✅ Paiement complet - Le paiement sera marqué comme "payé"' : '✅ Full payment - The payment will be marked as "paid"'}</option>
+                        <option value="partial">{fr ? '⚠️ Paiement partiel - Le paiement restera "en attente"' : '⚠️ Partial payment - The payment will remain "pending"'}</option>
                       </select>
                       {transactionFormData.payment_completion_status === 'full' && (
                         <p className="mt-1 text-xs text-green-600">
-                          ✓ Ce paiement sera automatiquement marqué comme "payé" lors de l'enregistrement de la transaction.
+                          {fr ? '✓ Ce paiement sera automatiquement marqué comme "payé" lors de l\'enregistrement de la transaction.' : '✓ This payment will be automatically marked as "paid" when the transaction is saved.'}
                         </p>
                       )}
                       {transactionFormData.payment_completion_status === 'partial' && (
                         <p className="mt-1 text-xs text-orange-600">
-                          ⚠️ Ce paiement restera en attente. Vous pourrez créer une autre transaction pour compléter le paiement.
+                          {fr ? '⚠️ Ce paiement restera en attente. Vous pourrez créer une autre transaction pour compléter le paiement.' : '⚠️ This payment will remain pending. You can create another transaction to complete the payment.'}
                         </p>
                       )}
                     </div>
@@ -3160,7 +3160,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">🔢 Numéro de référence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🔢 Numéro de référence' : '🔢 Reference number'}</label>
                 <input
                   type="text"
                   value={transactionFormData.reference_number}
@@ -3173,10 +3173,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* Section Fiscalité Internationale */}
             <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Fiscalité Internationale (Optionnel)</h4>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">{fr ? 'Fiscalité Internationale (Optionnel)' : 'International Taxation (Optional)'}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Devise source</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Devise source' : 'Source currency'}</label>
                   <select
                     value={transactionFormData.source_currency}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, source_currency: e.target.value })}
@@ -3190,7 +3190,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Montant devise source</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Montant devise source' : 'Source amount'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3212,12 +3212,12 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       }
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder="Montant original"
+                    placeholder={fr ? 'Montant original' : 'Original amount'}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Frais bancaires/conversion (CAD $)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais bancaires/conversion (CAD $)' : 'Bank/conversion fees (CAD $)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3246,7 +3246,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux de change (calculé auto)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux de change (calculé auto)' : 'Exchange rate (auto-calculated)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3264,22 +3264,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
                     placeholder="1.0000"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Se calcule automatiquement ou modifiable manuellement</p>
+                  <p className="text-xs text-gray-500 mt-1">{fr ? 'Se calcule automatiquement ou modifiable manuellement' : 'Auto-calculated or manually editable'}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Pays source</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Pays source' : 'Source country'}</label>
                   <input
                     type="text"
                     value={transactionFormData.source_country || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, source_country: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder="Ex: République Dominicaine"
+                    placeholder={fr ? 'Ex: République Dominicaine' : 'Ex: Dominican Republic'}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Impôt étranger payé (CAD $)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Impôt étranger payé (CAD $)' : 'Foreign tax paid (CAD $)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3300,7 +3300,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Taux impôt étranger (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux impôt étranger (%)' : 'Foreign tax rate (%)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3324,11 +3324,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 {gmailInvoices.length > 0 && (
                   <div className="sm:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
                     <label className="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-3">
-                      📬 Associer une facture Gmail (optionnel)
+                      {fr ? '📬 Associer une facture Gmail (optionnel)' : '📬 Link a Gmail invoice (optional)'}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Facture Gmail non assignée</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{fr ? 'Facture Gmail non assignée' : 'Unassigned Gmail invoice'}</label>
                         <select
                           value={linkedGmailId}
                           onChange={e => {
@@ -3343,7 +3343,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           }}
                           className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
                         >
-                          <option value="">— Aucune —</option>
+                          <option value="">{fr ? '— Aucune —' : '— None —'}</option>
                           {gmailInvoices.map(inv => (
                             <option key={inv.id} value={inv.id}>
                               {inv.document_date ?? '?'} · {inv.vendor_name ?? 'Inconnu'} · {inv.amount ? `${inv.amount} ${inv.currency ?? 'CAD'}` : '—'} [{inv.category === 'FACTURE' ? 'Facture' : 'Reçu'}]
@@ -3353,7 +3353,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       </div>
                       {linkedGmailId && (
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assigner à la compagnie</label>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{fr ? 'Assigner à la compagnie' : 'Assign to company'}</label>
                           <select
                             value={linkedGmailCompany}
                             onChange={e => setLinkedGmailCompany(e.target.value)}
@@ -3364,7 +3364,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                             <option value="Commerce CERDIA">Commerce CERDIA</option>
                           </select>
                           <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            ✓ La facture sera assignée et retirée de la liste "À classer"
+                            {fr ? '✓ La facture sera assignée et retirée de la liste "À classer"' : '✓ The invoice will be assigned and removed from the "To classify" list'}
                           </p>
                         </div>
                       )}
@@ -3373,19 +3373,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom du vendeur/compagnie</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Nom du vendeur/compagnie' : 'Vendor/company name'}</label>
                   <input
                     type="text"
                     value={transactionFormData.vendor_name || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, vendor_name: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder="Nom du fournisseur"
+                    placeholder={fr ? 'Nom du fournisseur' : 'Supplier name'}
                   />
                 </div>
 
                 {/* Crédit impôt calculé automatiquement (read-only) */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Crédit d'impôt réclamable (calculé auto)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "Crédit d'impôt réclamable (calculé auto)" : 'Claimable tax credit (auto-calculated)'}</label>
                   <input
                     type="number"
                     value={transactionFormData.tax_credit_claimable}
@@ -3393,17 +3393,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     readOnly
                     disabled
                   />
-                  <p className="text-xs text-gray-500 mt-1">Ce montant est calculé automatiquement par le système</p>
+                  <p className="text-xs text-gray-500 mt-1">{fr ? 'Ce montant est calculé automatiquement par le système' : 'This amount is automatically calculated by the system'}</p>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes comptable</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Notes comptable' : 'Accounting notes'}</label>
                   <textarea
                     value={transactionFormData.accountant_notes || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, accountant_notes: e.target.value || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     rows={2}
-                    placeholder="Notes pour le comptable..."
+                    placeholder={fr ? 'Notes pour le comptable...' : 'Notes for accountant...'}
                   />
                 </div>
               </div>
@@ -3413,7 +3413,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className="pt-4 border-t border-gray-200">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Paperclip size={18} />
-                Pièces Jointes
+                {fr ? 'Pièces Jointes' : 'Attachments'}
               </h4>
 
               {editingTransactionId ? (
@@ -3421,7 +3421,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   {/* Pièce jointe legacy (ancienne, 1 seul fichier) — rétrocompatibilité */}
                   {transactionFormData.attachment_storage_path && (
                     <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-xs font-medium text-yellow-700 mb-2">Ancienne pièce jointe (format précédent)</p>
+                      <p className="text-xs font-medium text-yellow-700 mb-2">{fr ? 'Ancienne pièce jointe (format précédent)' : 'Legacy attachment (previous format)'}</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <FileText size={18} className="text-yellow-600 flex-shrink-0" />
@@ -3466,7 +3466,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               ) : (
                 /* Mode création : sélecteur multi-fichiers en attente */
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-500">Les pièces jointes seront uploadées après la création de la transaction.</p>
+                  <p className="text-xs text-gray-500">{fr ? 'Les pièces jointes seront uploadées après la création de la transaction.' : 'Attachments will be uploaded after the transaction is created.'}</p>
                   <input
                     type="file"
                     multiple
@@ -3475,7 +3475,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       const files = Array.from(e.target.files || [])
                       const valid = files.filter(f => {
                         if (f.size > 10 * 1024 * 1024) {
-                          alert(`"${f.name}" dépasse 10 MB et ne sera pas ajouté.`)
+                          alert(fr ? `"${f.name}" dépasse 10 MB et ne sera pas ajouté.` : `"${f.name}" exceeds 10 MB and will not be added.`)
                           return false
                         }
                         return true
@@ -3505,7 +3505,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-gray-400">Tous formats acceptés • Max 10 MB par fichier</p>
+                  <p className="text-xs text-gray-400">{fr ? 'Tous formats acceptés • Max 10 MB par fichier' : 'All formats accepted • Max 10 MB per file'}</p>
                 </div>
               )}
             </div>
@@ -3517,19 +3517,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 className="w-full sm:w-auto bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-2 rounded-full transition-colors disabled:opacity-50"
               >
                 {uploadingAttachment
-                  ? 'Upload en cours...'
+                  ? t('admin.tx.uploading')
                   : loading
-                  ? 'Enregistrement...'
+                  ? t('common.saving')
                   : editingTransactionId
-                  ? 'Modifier'
-                  : 'Ajouter'}
+                  ? t('common.edit')
+                  : t('common.add')}
               </button>
               <button
                 type="button"
                 onClick={resetTransactionForm}
                 className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -3541,11 +3541,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {filteredTransactions.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('transactions.noTransactions')}</h3>
           <p className="text-gray-600 mb-4">
             {isFiltered
-              ? 'Aucune transaction ne correspond aux filtres sélectionnés'
-              : 'Commencez par ajouter votre première transaction'}
+              ? t('transactions.noMatch')
+              : t('transactions.addFirst')}
           </p>
         </div>
       ) : (
@@ -3554,13 +3554,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                  <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pièce jointe</th>
-                  <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.date')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.type')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.description')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.amount')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.status')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.tx.attachmentCol')}</th>
+                  <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -3600,10 +3600,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       <td className="px-3 sm:px-6 py-4">
                         <div className="text-xs sm:text-sm font-medium text-gray-900">{transaction.description}</div>
                         {investor && (
-                          <div className="text-xs text-gray-500">Investisseur: {investor.first_name} {investor.last_name}</div>
+                          <div className="text-xs text-gray-500">{fr ? 'Investisseur' : 'Investor'}: {investor.first_name} {investor.last_name}</div>
                         )}
                         {property && (
-                          <div className="text-xs text-gray-500">Propriété: {property.name}</div>
+                          <div className="text-xs text-gray-500">{fr ? 'Propriété' : 'Property'}: {property.name}</div>
                         )}
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -3620,8 +3620,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           transaction.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {transaction.status === 'complete' ? 'Complété' :
-                           transaction.status === 'en_attente' ? 'En attente' : 'Annulé'}
+                          {transaction.status === 'complete' ? (fr ? 'Complété' : 'Completed') :
+                           transaction.status === 'en_attente' ? (fr ? 'En attente' : 'Pending') : (fr ? 'Annulé' : 'Cancelled')}
                         </span>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">

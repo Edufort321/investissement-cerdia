@@ -1362,6 +1362,20 @@ const translations = {
     'voyage.endDate': 'Date de fin',
     'voyage.totalBudget': 'Budget total',
     'voyage.currency': 'Devise',
+    // Admin - Transaction UI
+    'admin.tx.filters': 'Filtres',
+    'admin.tx.allYears': 'Toutes les années',
+    'admin.tx.monthlyControl': 'Contrôle mensuel',
+    'admin.tx.dataEntryGuide': 'Guide de saisie',
+    'admin.tx.generating': 'Génération...',
+    'admin.tx.exportPDF': 'Exporter PDF',
+    'admin.tx.includePJLinks': 'Inclure liens PJ dans PDF',
+    'admin.tx.balanceValidated': 'Solde validé',
+    'admin.tx.controlLate': 'Contrôle en retard',
+    'admin.tx.filteredBalance': 'Solde (filtré)',
+    'admin.tx.currentAccountBalance': 'Solde Compte Courant',
+    'admin.tx.attachmentCol': 'Pièce jointe',
+    'admin.tx.uploading': 'Upload en cours...',
   },
   en: {
     // Navigation
@@ -2714,6 +2728,20 @@ const translations = {
     'voyage.endDate': 'End date',
     'voyage.totalBudget': 'Total budget',
     'voyage.currency': 'Currency',
+    // Admin - Transaction UI
+    'admin.tx.filters': 'Filters',
+    'admin.tx.allYears': 'All years',
+    'admin.tx.monthlyControl': 'Monthly control',
+    'admin.tx.dataEntryGuide': 'Data entry guide',
+    'admin.tx.generating': 'Generating...',
+    'admin.tx.exportPDF': 'Export PDF',
+    'admin.tx.includePJLinks': 'Include attachment links in PDF',
+    'admin.tx.balanceValidated': 'Balance validated',
+    'admin.tx.controlLate': 'Control overdue',
+    'admin.tx.filteredBalance': 'Balance (filtered)',
+    'admin.tx.currentAccountBalance': 'Current Account Balance',
+    'admin.tx.attachmentCol': 'Attachment',
+    'admin.tx.uploading': 'Uploading...',
   }
 }
 
