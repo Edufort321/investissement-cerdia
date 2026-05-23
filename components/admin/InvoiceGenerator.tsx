@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useInvestment } from '@/contexts/InvestmentContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import {
   Plus, Trash2, Download, Send, CheckCircle, Eye, ArrowLeft,
   Edit2, X, FileText, Users, Copy, ExternalLink, CreditCard,
@@ -116,6 +117,8 @@ const fmt = (n: number) =>
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function InvoiceGenerator({ module = 'investor' }: { module?: 'investor' | 'commerce' } = {}) {
   const { addTransaction } = useInvestment()
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
 
   // Views
   const [view, setView] = useState<'list' | 'form' | 'preview' | 'settings' | 'clients'>('list')
@@ -178,9 +181,15 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
+      let invQ = supabase.from('invoices').select('*').eq('module', module)
+      if (orgId) invQ = invQ.eq('organization_id', orgId)
+
+      let cliQ = supabase.from('invoice_clients').select('*').order('name')
+      if (orgId) cliQ = cliQ.eq('organization_id', orgId)
+
       const [{ data: inv }, { data: cli }] = await Promise.all([
-        supabase.from('invoices').select('*').eq('module', module).order('created_at', { ascending: false }),
-        supabase.from('invoice_clients').select('*').order('name'),
+        invQ.order('created_at', { ascending: false }),
+        cliQ,
       ])
       setInvoices(inv || [])
       setClients(cli || [])
@@ -189,7 +198,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [orgId, module])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -319,7 +328,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       const client = clients.find(c => c.id === selectedClientId)
       const invoiceNum = editingId ? invoiceNumberPreview : await generateInvoiceNumber()
 
-      const invoiceData = {
+      const invoiceData: Record<string, any> = {
         invoice_number: invoiceNum,
         client_id: selectedClientId,
         client_snapshot: client,
@@ -334,6 +343,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         total: grandTotal,
         notes: notes || null,
         payment_terms: paymentTerms,
+        ...(orgId ? { organization_id: orgId } : {}),
       }
 
       let invoiceId = editingId
@@ -686,7 +696,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       if (editingClientId) {
         await supabase.from('invoice_clients').update({ ...clientForm, updated_at: new Date().toISOString() }).eq('id', editingClientId)
       } else {
-        await supabase.from('invoice_clients').insert({ ...clientForm })
+        await supabase.from('invoice_clients').insert({ ...clientForm, ...(orgId ? { organization_id: orgId } : {}) })
       }
       await loadData()
       setClientForm({ province: 'QC', country: 'Canada' })
@@ -1281,7 +1291,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                     onClick={async () => {
                       if (!clientForm.name?.trim()) { setError('Nom requis'); return }
                       setSaving(true)
-                      const { data, error: err } = await supabase.from('invoice_clients').insert({ ...clientForm }).select().single()
+                      const { data, error: err } = await supabase.from('invoice_clients').insert({ ...clientForm, ...(orgId ? { organization_id: orgId } : {}) }).select().single()
                       setSaving(false)
                       if (err) { setError(`Erreur Supabase : ${err.message}${err.code === '42501' ? ' — Exécutez la migration 132 dans Supabase.' : ''}`); return }
                       await loadData()
