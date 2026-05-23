@@ -46,6 +46,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   const [lastCreated, setLastCreated] = useState<CreateResponse | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
+
+  const openMenu = (e: React.MouseEvent<HTMLButtonElement>, orgId: string) => {
+    if (openMenuId === orgId) { setOpenMenuId(null); setMenuPos(null); return }
+    const rect = e.currentTarget.getBoundingClientRect()
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    setOpenMenuId(orgId)
+  }
+  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null) }
 
   const [form, setForm] = useState({
     name: '',
@@ -497,71 +506,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                       {new Date(org.created_at).toLocaleDateString('fr-CA')}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenMenuId(openMenuId === org.id ? null : org.id)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Actions"
-                        >
-                          <MoreVertical size={16} className="text-gray-500" />
-                        </button>
-                        {openMenuId === org.id && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                            <div className="absolute right-0 top-9 z-20 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 text-left">
-                              <button
-                                onClick={() => { setOpenMenuId(null); handleRenew(org) }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                🔄 Renouveler
-                              </button>
-                              {!isReal && (
-                                <button
-                                  onClick={() => { setOpenMenuId(null); switchOrg(org.id) }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                >
-                                  <Eye size={12} /> Voir
-                                </button>
-                              )}
-                              {org.status === 'active' && (
-                                <button
-                                  onClick={() => { setOpenMenuId(null); updateStatus(org, 'suspended') }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-                                >
-                                  <Pause size={12} /> Suspendre
-                                </button>
-                              )}
-                              {org.status === 'suspended' && (
-                                <button
-                                  onClick={() => { setOpenMenuId(null); updateStatus(org, 'active') }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
-                                >
-                                  <Play size={12} /> Réactiver
-                                </button>
-                              )}
-                              {org.status !== 'archived' && (
-                                <button
-                                  onClick={() => { setOpenMenuId(null); updateStatus(org, 'archived') }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  <Archive size={12} /> Archiver
-                                </button>
-                              )}
-                              {org.plan !== 'internal' && (
-                                <>
-                                  <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
-                                  <button
-                                    onClick={() => { setOpenMenuId(null); handleDelete(org) }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                  >
-                                    <Trash2 size={12} /> Supprimer
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <button
+                        onClick={(e) => openMenu(e, org.id)}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        title="Actions"
+                      >
+                        <MoreVertical size={16} className="text-gray-500" />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -570,6 +521,72 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           </table>
         )}
       </div>
+
+      {/* Dropdown actions — rendu en fixed pour échapper au overflow-hidden de la table */}
+      {openMenuId && menuPos && (() => {
+        const org = orgs.find(o => o.id === openMenuId)
+        if (!org) return null
+        const isReal = realOrganization?.id === org.id
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onClick={closeMenu} />
+            <div
+              className="fixed z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 text-left"
+              style={{ top: menuPos.top, right: menuPos.right }}
+            >
+              <button
+                onClick={() => { closeMenu(); handleRenew(org) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <RefreshCw size={12} /> Renouveler
+              </button>
+              {!isReal && (
+                <button
+                  onClick={() => { closeMenu(); switchOrg(org.id) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <Eye size={12} /> Voir
+                </button>
+              )}
+              {org.status === 'active' && (
+                <button
+                  onClick={() => { closeMenu(); updateStatus(org, 'suspended') }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                >
+                  <Pause size={12} /> Suspendre
+                </button>
+              )}
+              {org.status === 'suspended' && (
+                <button
+                  onClick={() => { closeMenu(); updateStatus(org, 'active') }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                >
+                  <Play size={12} /> Réactiver
+                </button>
+              )}
+              {org.status !== 'archived' && (
+                <button
+                  onClick={() => { closeMenu(); updateStatus(org, 'archived') }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Archive size={12} /> Archiver
+                </button>
+              )}
+              {org.plan !== 'internal' && (
+                <>
+                  <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                  <button
+                    onClick={() => { closeMenu(); handleDelete(org) }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <Trash2 size={12} /> Supprimer
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )
+      })()}
 
       {/* Modal — création */}
       {showForm && (
