@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Building2, FileText, Users, Gavel, Calendar, Plus, Upload, Trash2, Edit2, X, Filter, ChevronDown, DollarSign, FileDown, MoreVertical } from 'lucide-react'
 
 interface CorporateBookEntry {
@@ -45,22 +46,22 @@ interface FormData {
 }
 
 const ENTRY_TYPES = {
-  property_acquisition: { label: '🏢 Achat immobilier', icon: Building2, color: 'blue' },
-  property_sale: { label: '💰 Vente immobilier', icon: Building2, color: 'green' },
-  share_issuance: { label: '📈 Émission de parts', icon: Users, color: 'purple' },
-  share_transfer: { label: '🔄 Transfert de parts', icon: Users, color: 'orange' },
-  share_redemption: { label: '📉 Rachat de parts', icon: Users, color: 'red' },
-  general_meeting: { label: '👥 Assemblée générale', icon: Calendar, color: 'indigo' },
-  board_meeting: { label: '🏛️ Conseil d\'administration', icon: Gavel, color: 'slate' },
-  resolution: { label: '📜 Résolution', icon: FileText, color: 'amber' },
-  legal_document: { label: '⚖️ Document légal', icon: FileText, color: 'gray' },
-  other: { label: '📋 Autre', icon: FileText, color: 'gray' }
+  property_acquisition: { label: '🏢 Achat immobilier', enLabel: '🏢 Property Acquisition', icon: Building2, color: 'blue' },
+  property_sale: { label: '💰 Vente immobilier', enLabel: '💰 Property Sale', icon: Building2, color: 'green' },
+  share_issuance: { label: '📈 Émission de parts', enLabel: '📈 Share Issuance', icon: Users, color: 'purple' },
+  share_transfer: { label: '🔄 Transfert de parts', enLabel: '🔄 Share Transfer', icon: Users, color: 'orange' },
+  share_redemption: { label: '📉 Rachat de parts', enLabel: '📉 Share Redemption', icon: Users, color: 'red' },
+  general_meeting: { label: '👥 Assemblée générale', enLabel: '👥 General Meeting', icon: Calendar, color: 'indigo' },
+  board_meeting: { label: '🏛️ Conseil d\'administration', enLabel: '🏛️ Board Meeting', icon: Gavel, color: 'slate' },
+  resolution: { label: '📜 Résolution', enLabel: '📜 Resolution', icon: FileText, color: 'amber' },
+  legal_document: { label: '⚖️ Document légal', enLabel: '⚖️ Legal Document', icon: FileText, color: 'gray' },
+  other: { label: '📋 Autre', enLabel: '📋 Other', icon: FileText, color: 'gray' }
 }
 
 const STATUS_OPTIONS = {
-  draft: { label: 'Brouillon', color: 'gray' },
-  approved: { label: 'Approuvé', color: 'green' },
-  filed: { label: 'Archivé', color: 'blue' }
+  draft: { label: 'Brouillon', enLabel: 'Draft', color: 'gray' },
+  approved: { label: 'Approuvé', enLabel: 'Approved', color: 'green' },
+  filed: { label: 'Archivé', enLabel: 'Filed', color: 'blue' }
 }
 
 export default function CorporateBookTab() {
@@ -82,6 +83,10 @@ export default function CorporateBookTab() {
   const [pdfIncludeLinks, setPdfIncludeLinks] = useState(true)
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
+
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
   const [formData, setFormData] = useState<FormData>({
     entry_type: 'property_acquisition',
@@ -219,11 +224,11 @@ export default function CorporateBookTab() {
 
       if (error) {
         console.error('Error updating entry:', error)
-        alert('Erreur lors de la mise à jour')
+        alert(fr ? 'Erreur lors de la mise à jour' : 'Error updating entry')
       } else {
         // Upload new documents if any
         await uploadDocuments(editingId)
-        alert('Entrée mise à jour avec succès!')
+        alert(fr ? 'Entrée mise à jour avec succès!' : 'Entry updated successfully!')
         setShowAddForm(false)
         setEditingId(null)
         setExistingDocuments([])
@@ -238,11 +243,11 @@ export default function CorporateBookTab() {
 
       if (error) {
         console.error('Error creating entry:', error)
-        alert('Erreur lors de la création')
+        alert(fr ? 'Erreur lors de la création' : 'Error creating entry')
       } else if (data && data[0]) {
         // Upload documents if any
         await uploadDocuments(data[0].id)
-        alert('Entrée créée avec succès!')
+        alert(fr ? 'Entrée créée avec succès!' : 'Entry created successfully!')
         setShowAddForm(false)
         resetForm()
         fetchData()
@@ -290,7 +295,7 @@ export default function CorporateBookTab() {
   }
 
   const deleteExistingDocument = async (docId: string, storagePath: string) => {
-    if (!confirm('Supprimer ce document?')) return
+    if (!confirm(fr ? 'Supprimer ce document?' : 'Delete this document?')) return
 
     // Delete from storage
     const { error: storageError } = await supabase.storage
@@ -309,10 +314,10 @@ export default function CorporateBookTab() {
 
     if (dbError) {
       console.error('Error deleting document:', dbError)
-      alert('Erreur lors de la suppression du document')
+      alert(fr ? 'Erreur lors de la suppression du document' : 'Error deleting document')
     } else {
       setExistingDocuments(existingDocuments.filter(d => d.id !== docId))
-      alert('Document supprimé avec succès!')
+      alert(fr ? 'Document supprimé avec succès!' : 'Document deleted successfully!')
     }
   }
 
@@ -355,7 +360,7 @@ export default function CorporateBookTab() {
   }
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${title}" ?`)) return
+    if (!confirm(fr ? `Êtes-vous sûr de vouloir supprimer "${title}" ?` : `Are you sure you want to delete "${title}"?`)) return
 
     const { error } = await supabase
       .from('corporate_book')
@@ -364,9 +369,9 @@ export default function CorporateBookTab() {
 
     if (error) {
       console.error('Error deleting entry:', error)
-      alert('Erreur lors de la suppression')
+      alert(fr ? 'Erreur lors de la suppression' : 'Error deleting entry')
     } else {
-      alert('Entrée supprimée avec succès!')
+      alert(fr ? 'Entrée supprimée avec succès!' : 'Entry deleted successfully!')
       fetchData()
     }
   }
@@ -796,7 +801,7 @@ export default function CorporateBookTab() {
       doc.save(`livre_entreprise_${new Date().toISOString().split('T')[0]}.pdf`)
     } catch (err) {
       console.error('Erreur export PDF:', err)
-      alert('Erreur lors de la generation du PDF')
+      alert(fr ? 'Erreur lors de la generation du PDF' : 'Error generating PDF')
     } finally {
       setExportingCorporateBookPDF(false)
     }
@@ -815,9 +820,9 @@ export default function CorporateBookTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Livre d'entreprise</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{fr ? "Livre d'entreprise" : 'Corporate Book'}</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Registre officiel pour notaires, avocats et conformité légale • {filteredEntries.length} entrée{filteredEntries.length > 1 ? 's' : ''}
+            {fr ? 'Registre officiel pour notaires, avocats et conformité légale' : 'Official register for notaries, lawyers and legal compliance'} • {filteredEntries.length} {fr ? `entrée${filteredEntries.length > 1 ? 's' : ''}` : `entr${filteredEntries.length > 1 ? 'ies' : 'y'}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -827,18 +832,18 @@ export default function CorporateBookTab() {
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-[#3e3e3e] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              title="Vue liste"
+              title={fr ? 'Vue liste' : 'List view'}
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="2" width="16" height="2" rx="1"/><rect x="0" y="7" width="16" height="2" rx="1"/><rect x="0" y="12" width="16" height="2" rx="1"/></svg>
-              <span className="hidden sm:inline">Liste</span>
+              <span className="hidden sm:inline">{fr ? 'Liste' : 'List'}</span>
             </button>
             <button
               onClick={() => setViewMode('cards')}
               className={`px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'cards' ? 'bg-[#3e3e3e] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              title="Vue cartes"
+              title={fr ? 'Vue cartes' : 'Card view'}
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="1"/><rect x="9" y="0" width="7" height="7" rx="1"/><rect x="0" y="9" width="7" height="7" rx="1"/><rect x="9" y="9" width="7" height="7" rx="1"/></svg>
-              <span className="hidden sm:inline">Cartes</span>
+              <span className="hidden sm:inline">{fr ? 'Cartes' : 'Cards'}</span>
             </button>
           </div>
 
@@ -849,7 +854,7 @@ export default function CorporateBookTab() {
               className="flex items-center gap-2 px-3 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-full text-sm font-medium transition-colors"
             >
               <MoreVertical size={16} />
-              <span className="hidden sm:inline">Menu</span>
+              <span className="hidden sm:inline">{fr ? 'Menu' : 'Menu'}</span>
             </button>
 
             {showHamburgerMenu && (
@@ -859,11 +864,11 @@ export default function CorporateBookTab() {
                 <div className="px-3 pt-3 pb-1">
                   <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-1">
                     <Filter size={11} />
-                    Filtrer par type
+                    {fr ? 'Filtrer par type' : 'Filter by type'}
                     {selectedFilter !== 'all' && (
                       <span className="ml-auto text-blue-600 text-xs font-normal normal-case cursor-pointer hover:underline"
                         onClick={() => setSelectedFilter('all')}>
-                        Réinitialiser
+                        {fr ? 'Réinitialiser' : 'Reset'}
                       </span>
                     )}
                   </div>
@@ -871,7 +876,7 @@ export default function CorporateBookTab() {
                     onClick={() => { setSelectedFilter('all'); setShowHamburgerMenu(false); }}
                     className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between text-sm transition-colors ${selectedFilter === 'all' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
-                    <span>Tous</span>
+                    <span>{fr ? 'Tous' : 'All'}</span>
                     <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{entries.length}</span>
                   </button>
                   <div className="max-h-44 overflow-y-auto mt-1 space-y-0.5">
@@ -886,7 +891,7 @@ export default function CorporateBookTab() {
                           className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm transition-colors ${selectedFilter === key ? `bg-${value.color}-50 text-${value.color}-700 font-medium` : 'text-gray-700 hover:bg-gray-50'}`}
                         >
                           <Icon size={13} />
-                          <span className="flex-1">{value.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</span>
+                          <span className="flex-1">{(fr ? value.label : value.enLabel).replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</span>
                           <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">{count}</span>
                         </button>
                       )
@@ -900,7 +905,7 @@ export default function CorporateBookTab() {
                 <div className="px-3 pb-1">
                   <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2 flex items-center gap-2">
                     <FileDown size={11} />
-                    Export PDF
+                    {fr ? 'Export PDF' : 'Export PDF'}
                   </div>
                   <label className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 cursor-pointer hover:bg-gray-50 rounded-lg select-none">
                     <input
@@ -909,7 +914,7 @@ export default function CorporateBookTab() {
                       onChange={e => setPdfIncludeLinks(e.target.checked)}
                       className="rounded"
                     />
-                    Inclure les liens documents
+                    {fr ? 'Inclure les liens documents' : 'Include document links'}
                   </label>
                   <button
                     onClick={() => { exportCorporateBookPDF(); setShowHamburgerMenu(false); }}
@@ -917,7 +922,7 @@ export default function CorporateBookTab() {
                     className="w-full mt-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <FileDown size={15} className="text-gray-500" />
-                    {exportingCorporateBookPDF ? 'Génération en cours...' : 'Exporter en PDF'}
+                    {exportingCorporateBookPDF ? (fr ? 'Génération en cours...' : 'Generating...') : (fr ? 'Exporter en PDF' : 'Export to PDF')}
                   </button>
                 </div>
 
@@ -927,35 +932,35 @@ export default function CorporateBookTab() {
                 <div className="px-3 pb-1">
                   <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2 flex items-center gap-2">
                     <Plus size={11} />
-                    Action rapide
+                    {fr ? 'Action rapide' : 'Quick action'}
                   </div>
                   <button
                     onClick={() => { handleQuickAction('general_meeting'); setShowHamburgerMenu(false); }}
                     className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
                     <Calendar size={15} className="text-indigo-600" />
-                    Assemblée Générale
+                    {fr ? 'Assemblée Générale' : 'General Meeting'}
                   </button>
                   <button
                     onClick={() => { handleQuickAction('board_meeting'); setShowHamburgerMenu(false); }}
                     className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
                     <Gavel size={15} className="text-slate-600" />
-                    Réunion du CA
+                    {fr ? 'Réunion du CA' : 'Board Meeting'}
                   </button>
                   <button
                     onClick={() => { handleQuickAction('resolution'); setShowHamburgerMenu(false); }}
                     className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
                     <FileText size={15} className="text-amber-600" />
-                    Résolution
+                    {fr ? 'Résolution' : 'Resolution'}
                   </button>
                   <button
                     onClick={() => { handleQuickAction('share_issuance'); setShowHamburgerMenu(false); }}
                     className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-gray-700 transition-colors"
                   >
                     <Users size={15} className="text-purple-600" />
-                    Émission de Parts
+                    {fr ? 'Émission de Parts' : 'Share Issuance'}
                   </button>
                 </div>
 
@@ -968,7 +973,7 @@ export default function CorporateBookTab() {
                     className="w-full flex items-center gap-2 px-3 py-2.5 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     <Plus size={15} />
-                    Nouvelle entrée
+                    {fr ? 'Nouvelle entrée' : 'New entry'}
                   </button>
                 </div>
 
@@ -982,8 +987,8 @@ export default function CorporateBookTab() {
       {filteredEntries.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md border border-gray-200 text-center">
           <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Aucune entrée dans le livre d'entreprise</h3>
-          <p className="text-sm text-gray-500">Cliquez sur "Nouvelle entrée" ou "+Action" pour commencer</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{fr ? "Aucune entrée dans le livre d'entreprise" : 'No entries in the corporate book'}</h3>
+          <p className="text-sm text-gray-500">{fr ? 'Cliquez sur "Nouvelle entrée" ou "+Action" pour commencer' : 'Click "New entry" or "+Action" to get started'}</p>
         </div>
       ) : viewMode === 'list' ? (
 
@@ -991,13 +996,13 @@ export default function CorporateBookTab() {
         <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
           {/* En-tête colonnes */}
           <div className="hidden sm:grid grid-cols-[90px_160px_1fr_130px_100px_80px_80px] gap-3 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            <span>Date</span>
-            <span>Type</span>
-            <span>Titre</span>
-            <span>Propriété</span>
-            <span>Montant</span>
-            <span>Statut</span>
-            <span className="text-right">Actions</span>
+            <span>{fr ? 'Date' : 'Date'}</span>
+            <span>{fr ? 'Type' : 'Type'}</span>
+            <span>{fr ? 'Titre' : 'Title'}</span>
+            <span>{fr ? 'Propriété' : 'Property'}</span>
+            <span>{fr ? 'Montant' : 'Amount'}</span>
+            <span>{fr ? 'Statut' : 'Status'}</span>
+            <span className="text-right">{fr ? 'Actions' : 'Actions'}</span>
           </div>
 
           <div className="divide-y divide-gray-100">
@@ -1017,7 +1022,7 @@ export default function CorporateBookTab() {
 
                   {/* Date */}
                   <div className="text-xs text-gray-500 font-mono">
-                    {new Date(entry.entry_date).toLocaleDateString('fr-CA')}
+                    {new Date(entry.entry_date).toLocaleDateString(locale)}
                   </div>
 
                   {/* Type */}
@@ -1026,7 +1031,7 @@ export default function CorporateBookTab() {
                       <Icon size={13} className={`text-${typeInfo?.color || 'gray'}-600`} />
                     </div>
                     <span className="text-xs text-gray-600 leading-tight">
-                      {typeInfo?.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}
+                      {(fr ? typeInfo?.label : typeInfo?.enLabel)?.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}
                     </span>
                   </div>
 
@@ -1063,7 +1068,7 @@ export default function CorporateBookTab() {
                   {/* Montant */}
                   <div className="text-sm font-semibold text-gray-800">
                     {entry.amount
-                      ? <span>{entry.amount.toLocaleString('fr-CA')} <span className="text-xs font-normal text-gray-500">{entry.currency}</span></span>
+                      ? <span>{entry.amount.toLocaleString(locale)} <span className="text-xs font-normal text-gray-500">{entry.currency}</span></span>
                       : <span className="text-gray-300">—</span>
                     }
                   </div>
@@ -1071,7 +1076,7 @@ export default function CorporateBookTab() {
                   {/* Statut */}
                   <div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[entry.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {statusInfo?.label || entry.status}
+                      {(fr ? statusInfo?.label : statusInfo?.enLabel) || entry.status}
                     </span>
                   </div>
 
@@ -1080,14 +1085,14 @@ export default function CorporateBookTab() {
                     <button
                       onClick={() => handleEdit(entry)}
                       className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                      title="Modifier"
+                      title={fr ? 'Modifier' : 'Edit'}
                     >
                       <Edit2 size={14} />
                     </button>
                     <button
                       onClick={() => handleDelete(entry.id, entry.title)}
                       className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      title="Supprimer"
+                      title={fr ? 'Supprimer' : 'Delete'}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1116,7 +1121,7 @@ export default function CorporateBookTab() {
                     </div>
                     <div className="flex flex-col gap-2 items-end">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${statusInfo?.color || 'gray'}-100 text-${statusInfo?.color || 'gray'}-800`}>
-                        {statusInfo?.label || entry.status}
+                        {(fr ? statusInfo?.label : statusInfo?.enLabel) || entry.status}
                       </span>
                       {entry.has_documents && (
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 flex items-center gap-1">
@@ -1127,11 +1132,11 @@ export default function CorporateBookTab() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">{typeInfo?.label.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</div>
+                    <div className="text-xs text-gray-500 mb-1">{(fr ? typeInfo?.label : typeInfo?.enLabel)?.replace(/[🏢💰📈🔄📉👥🏛️📜⚖️📋]/g, '').trim()}</div>
                     <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">{entry.title}</h3>
                     <div className="flex items-center text-sm text-gray-600 gap-1 mb-2">
                       <Calendar size={14} />
-                      {new Date(entry.entry_date).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {new Date(entry.entry_date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
                   </div>
                 </div>
@@ -1147,7 +1152,7 @@ export default function CorporateBookTab() {
                     {entry.amount && (
                       <div className="flex items-center gap-2 text-gray-900 font-semibold">
                         <DollarSign size={14} />
-                        {entry.amount.toLocaleString('fr-CA')} {entry.currency}
+                        {entry.amount.toLocaleString(locale)} {entry.currency}
                       </div>
                     )}
                     {entry.legal_reference && (
@@ -1159,20 +1164,20 @@ export default function CorporateBookTab() {
                   </div>
                   {entry.notes && (
                     <div className="pt-3 border-t border-gray-100">
-                      <div className="text-xs text-gray-500 mb-1">Notes</div>
+                      <div className="text-xs text-gray-500 mb-1">{fr ? 'Notes' : 'Notes'}</div>
                       <p className="text-xs text-gray-600 line-clamp-2">{entry.notes}</p>
                     </div>
                   )}
                 </div>
                 <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                   <div className="text-xs text-gray-500">
-                    Créé le {new Date(entry.created_at).toLocaleDateString('fr-CA')}
+                    {fr ? 'Créé le' : 'Created'} {new Date(entry.created_at).toLocaleDateString(locale)}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(entry)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Modifier">
+                    <button onClick={() => handleEdit(entry)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={fr ? 'Modifier' : 'Edit'}>
                       <Edit2 size={16} />
                     </button>
-                    <button onClick={() => handleDelete(entry.id, entry.title)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                    <button onClick={() => handleDelete(entry.id, entry.title)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={fr ? 'Supprimer' : 'Delete'}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -1189,7 +1194,7 @@ export default function CorporateBookTab() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900">
-                {editingId ? 'Modifier l\'entrée' : 'Nouvelle entrée au livre'}
+                {editingId ? (fr ? 'Modifier l\'entrée' : 'Edit entry') : (fr ? 'Nouvelle entrée au livre' : 'New book entry')}
               </h3>
               <button
                 onClick={() => { setShowAddForm(false); setEditingId(null); resetForm(); }}
@@ -1203,7 +1208,7 @@ export default function CorporateBookTab() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type d'entrée *
+                    {fr ? "Type d'entrée *" : 'Entry type *'}
                   </label>
                   <select
                     required
@@ -1212,14 +1217,14 @@ export default function CorporateBookTab() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {Object.entries(ENTRY_TYPES).map(([key, value]) => (
-                      <option key={key} value={key}>{value.label}</option>
+                      <option key={key} value={key}>{fr ? value.label : value.enLabel}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date *
+                    {fr ? 'Date *' : 'Date *'}
                   </label>
                   <input
                     type="date"
@@ -1232,7 +1237,7 @@ export default function CorporateBookTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Statut *
+                    {fr ? 'Statut *' : 'Status *'}
                   </label>
                   <select
                     required
@@ -1241,14 +1246,14 @@ export default function CorporateBookTab() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {Object.entries(STATUS_OPTIONS).map(([key, value]) => (
-                      <option key={key} value={key}>{value.label}</option>
+                      <option key={key} value={key}>{fr ? value.label : value.enLabel}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Titre *
+                    {fr ? 'Titre *' : 'Title *'}
                   </label>
                   <input
                     type="text"
@@ -1256,33 +1261,33 @@ export default function CorporateBookTab() {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ex: Achat du condo 301 - Édifice Prestige"
+                    placeholder={fr ? 'Ex: Achat du condo 301 - Édifice Prestige' : 'e.g. Purchase of unit 301 - Prestige Building'}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
+                    {fr ? 'Description' : 'Description'}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Description détaillée de l'entrée..."
+                    placeholder={fr ? "Description détaillée de l'entrée..." : 'Detailed description of the entry...'}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Propriété liée
+                    {fr ? 'Propriété liée' : 'Linked property'}
                   </label>
                   <select
                     value={formData.property_id}
                     onChange={(e) => setFormData({ ...formData, property_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Aucune</option>
+                    <option value="">{fr ? 'Aucune' : 'None'}</option>
                     {properties.map(prop => (
                       <option key={prop.id} value={prop.id}>
                         {prop.name} - {prop.location}
@@ -1293,18 +1298,18 @@ export default function CorporateBookTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Transaction liée
-                    <span className="ml-2 text-xs text-gray-500">(auto-remplit les champs)</span>
+                    {fr ? 'Transaction liée' : 'Linked transaction'}
+                    <span className="ml-2 text-xs text-gray-500">{fr ? '(auto-remplit les champs)' : '(auto-fills fields)'}</span>
                   </label>
                   <select
                     value={formData.transaction_id}
                     onChange={(e) => handleTransactionChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Aucune</option>
+                    <option value="">{fr ? 'Aucune' : 'None'}</option>
                     {transactions.map(tx => (
                       <option key={tx.id} value={tx.id}>
-                        {new Date(tx.date).toLocaleDateString('fr-CA')} - {tx.description} ({tx.amount} CAD)
+                        {new Date(tx.date).toLocaleDateString(locale)} - {tx.description} ({tx.amount} CAD)
                       </option>
                     ))}
                   </select>
@@ -1312,14 +1317,14 @@ export default function CorporateBookTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Investisseur lié
+                    {fr ? 'Investisseur lié' : 'Linked investor'}
                   </label>
                   <select
                     value={formData.investor_id}
                     onChange={(e) => setFormData({ ...formData, investor_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Aucun</option>
+                    <option value="">{fr ? 'Aucun' : 'None'}</option>
                     {investors.map(inv => (
                       <option key={inv.id} value={inv.id}>
                         {inv.first_name} {inv.last_name}
@@ -1330,7 +1335,7 @@ export default function CorporateBookTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant
+                    {fr ? 'Montant' : 'Amount'}
                   </label>
                   <input
                     type="number"
@@ -1344,7 +1349,7 @@ export default function CorporateBookTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Devise
+                    {fr ? 'Devise' : 'Currency'}
                   </label>
                   <select
                     value={formData.currency}
@@ -1358,40 +1363,40 @@ export default function CorporateBookTab() {
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Référence légale
+                    {fr ? 'Référence légale' : 'Legal reference'}
                   </label>
                   <input
                     type="text"
                     value={formData.legal_reference}
                     onChange={(e) => setFormData({ ...formData, legal_reference: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ex: Acte notarié #12345, Résolution #2024-001"
+                    placeholder={fr ? 'Ex: Acte notarié #12345, Résolution #2024-001' : 'e.g. Notarial deed #12345, Resolution #2024-001'}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
+                    {fr ? 'Notes' : 'Notes'}
                   </label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Notes internes, remarques..."
+                    placeholder={fr ? 'Notes internes, remarques...' : 'Internal notes, remarks...'}
                   />
                 </div>
 
                 {/* Document Upload Section */}
                 <div className="sm:col-span-2 pt-4 border-t border-gray-200">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Documents légaux
+                    {fr ? 'Documents légaux' : 'Legal documents'}
                   </label>
 
                   {/* Existing documents */}
                   {existingDocuments.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-xs text-gray-600 mb-2">Documents existants:</p>
+                      <p className="text-xs text-gray-600 mb-2">{fr ? 'Documents existants:' : 'Existing documents:'}</p>
                       <div className="space-y-2">
                         {existingDocuments.map(doc => (
                           <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
@@ -1431,10 +1436,10 @@ export default function CorporateBookTab() {
                     >
                       <Upload size={32} className="text-gray-400 mb-2" />
                       <span className="text-sm text-gray-600">
-                        Cliquer pour ajouter des documents
+                        {fr ? 'Cliquer pour ajouter des documents' : 'Click to add documents'}
                       </span>
                       <span className="text-xs text-gray-500 mt-1">
-                        PDF, Word, Images (max 10 MB par fichier)
+                        {fr ? 'PDF, Word, Images (max 10 MB par fichier)' : 'PDF, Word, Images (max 10 MB per file)'}
                       </span>
                     </label>
                   </div>
@@ -1442,7 +1447,7 @@ export default function CorporateBookTab() {
                   {/* Selected files */}
                   {uploadedFiles.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-xs text-gray-600 mb-2">Fichiers sélectionnés:</p>
+                      <p className="text-xs text-gray-600 mb-2">{fr ? 'Fichiers sélectionnés:' : 'Selected files:'}</p>
                       <div className="space-y-2">
                         {uploadedFiles.map((file, index) => (
                           <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
@@ -1474,14 +1479,14 @@ export default function CorporateBookTab() {
                   onClick={() => { setShowAddForm(false); setEditingId(null); resetForm(); }}
                   className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  Annuler
+                  {fr ? 'Annuler' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={uploadingDocs}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:bg-gray-400"
                 >
-                  {uploadingDocs ? 'Envoi des documents...' : editingId ? 'Mettre à jour' : 'Créer l\'entrée'}
+                  {uploadingDocs ? (fr ? 'Envoi des documents...' : 'Uploading documents...') : editingId ? (fr ? 'Mettre à jour' : 'Update') : (fr ? "Créer l'entrée" : 'Create entry')}
                 </button>
               </div>
             </form>
