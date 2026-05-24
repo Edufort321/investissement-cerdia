@@ -9,10 +9,13 @@
  */
 
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Shield, X } from 'lucide-react'
 
 export default function SuperAdminViewBanner() {
   const { isViewingAsOther, organization, realOrganization, clearOverride } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
 
   if (!isViewingAsOther || !organization || !realOrganization) return null
 
@@ -21,9 +24,13 @@ export default function SuperAdminViewBanner() {
       <div className="max-w-screen-2xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2 min-w-0">
           <Shield size={16} className="flex-shrink-0" />
-          <span className="font-semibold whitespace-nowrap">Mode support actif</span>
+          <span className="font-semibold whitespace-nowrap">
+            {fr ? 'Mode support actif' : 'Support mode active'}
+          </span>
           <span className="opacity-90 truncate hidden sm:inline">
-            — Tu regardes <strong>{organization.name}</strong> (vraie org : {realOrganization.name})
+            {fr
+              ? <>— Tu regardes <strong>{organization.name}</strong> (vraie org : {realOrganization.name})</>
+              : <>— Viewing <strong>{organization.name}</strong> (real org: {realOrganization.name})</>}
           </span>
         </div>
         <button
@@ -31,7 +38,7 @@ export default function SuperAdminViewBanner() {
           className="flex items-center gap-1 px-3 py-1 bg-amber-700 hover:bg-amber-800 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0"
         >
           <X size={12} />
-          Quitter
+          {fr ? 'Quitter' : 'Exit'}
         </button>
       </div>
     </div>

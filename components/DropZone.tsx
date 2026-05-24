@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Upload, Camera, Folder } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ProcessedFile {
   file: File
@@ -17,9 +18,9 @@ interface DropZoneProps {
   accept?: string
   multiple?: boolean
   className?: string
-  maxSize?: number // en MB
-  showCamera?: boolean // Support prise de photo mobile
-  showFolderSelect?: boolean // Support sélection de dossier
+  maxSize?: number
+  showCamera?: boolean
+  showFolderSelect?: boolean
   label?: string
 }
 
@@ -31,8 +32,10 @@ export function DropZone({
   maxSize = 10,
   showCamera = false,
   showFolderSelect = false,
-  label = 'Glissez-déposez vos fichiers ici ou'
+  label
 }: DropZoneProps) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const [isDragOver, setIsDragOver] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
@@ -216,40 +219,37 @@ export function DropZone({
         {isUploading ? (
           <>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            <p className="text-gray-600">Traitement des fichiers...</p>
+            <p className="text-gray-600">{fr ? 'Traitement des fichiers...' : 'Processing files...'}</p>
           </>
         ) : (
           <>
-            <div className={`p-3 rounded-full ${
-              isDragOver ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-            }`}>
+            <div className={`p-3 rounded-full ${isDragOver ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
               <Upload size={32} />
             </div>
 
             {isDragOver ? (
               <p className="text-blue-600 font-medium">
-                Relâchez pour déposer les fichiers
+                {fr ? 'Relâchez pour déposer les fichiers' : 'Release to drop files'}
               </p>
             ) : (
               <>
                 <p className="text-gray-600">
-                  {label}{' '}
+                  {label ?? (fr ? 'Glissez-déposez vos fichiers ici ou' : 'Drag and drop your files here or')}{' '}
                   <label htmlFor="file-input" className="text-blue-600 font-medium cursor-pointer hover:underline">
-                    cliquez pour sélectionner
+                    {fr ? 'cliquez pour sélectionner' : 'click to select'}
                   </label>
                 </p>
 
                 <div className="text-sm text-gray-500">
                   {accept === 'image/*' && (
-                    <p>Images acceptées : JPG, PNG, GIF, WebP</p>
+                    <p>{fr ? 'Images acceptées : JPG, PNG, GIF, WebP' : 'Accepted images: JPG, PNG, GIF, WebP'}</p>
                   )}
                   {multiple && (
-                    <p>Sélection multiple autorisée</p>
+                    <p>{fr ? 'Sélection multiple autorisée' : 'Multiple selection allowed'}</p>
                   )}
-                  <p>Taille maximale : {maxSize}MB</p>
+                  <p>{fr ? `Taille maximale : ${maxSize}MB` : `Max size: ${maxSize}MB`}</p>
                 </div>
 
-                {/* Boutons supplémentaires */}
                 {(showCamera || showFolderSelect) && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {showCamera && (
@@ -258,17 +258,16 @@ export function DropZone({
                         className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2"
                       >
                         <Camera size={16} />
-                        Prendre une photo
+                        {fr ? 'Prendre une photo' : 'Take a photo'}
                       </label>
                     )}
-
                     {showFolderSelect && (
                       <label
                         htmlFor="folder-input"
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2"
                       >
                         <Folder size={16} />
-                        Sélectionner un dossier
+                        {fr ? 'Sélectionner un dossier' : 'Select a folder'}
                       </label>
                     )}
                   </div>

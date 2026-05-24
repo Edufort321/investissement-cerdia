@@ -2,6 +2,7 @@
 
 import { Summary, Transaction, Dividend } from '@/types/investment'
 import { Printer } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PrintableReportProps {
   type: 'trimestriel' | 'annuel' | 'mensuel'
@@ -18,26 +19,17 @@ export default function PrintableReport({
   transactions = [],
   dividends = []
 }: PrintableReportProps) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
-  const handlePrint = () => {
-    window.print()
-  }
+  const handlePrint = () => { window.print() }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount)
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
     <div className="space-y-6">
@@ -48,7 +40,7 @@ export default function PrintableReport({
           className="flex items-center gap-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white px-6 py-3 rounded-full transition-colors"
         >
           <Printer size={20} />
-          Imprimer le rapport
+          {fr ? 'Imprimer le rapport' : 'Print report'}
         </button>
       </div>
 
@@ -62,11 +54,11 @@ export default function PrintableReport({
                 {summary.companyName}
               </h1>
               <p className="text-lg text-gray-600">
-                Rapport {type} - {period}
+                {fr ? `Rapport ${type}` : `${type} report`} - {period}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">Date du rapport</p>
+              <p className="text-sm text-gray-600">{fr ? 'Date du rapport' : 'Report date'}</p>
               <p className="text-lg font-semibold">{formatDate(summary.lastUpdated)}</p>
             </div>
           </div>
@@ -74,23 +66,23 @@ export default function PrintableReport({
 
         {/* Sommaire exécutif */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Sommaire Exécutif</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{fr ? 'Sommaire Exécutif' : 'Executive Summary'}</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Valeur Totale</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? 'Valeur Totale' : 'Total Value'}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(summary.currentTotalValue)}
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Total Investi</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? 'Total Investi' : 'Total Invested'}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(summary.totalInvested)}
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Nombre d'Actions</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? "Nombre d'Actions" : 'Number of Shares'}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {summary.totalShares.toFixed(2)}
               </p>
@@ -105,19 +97,19 @@ export default function PrintableReport({
 
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Compte Courant</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? 'Compte Courant' : 'Current Account'}</p>
               <p className="text-lg font-bold text-blue-900">
                 {formatCurrency(summary.currentAccount)}
               </p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Compte CAPEX</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? 'Compte CAPEX' : 'CAPEX Account'}</p>
               <p className="text-lg font-bold text-purple-900">
                 {formatCurrency(summary.capexAccount)}
               </p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Liquidité Disponible</p>
+              <p className="text-sm text-gray-600 mb-1">{fr ? 'Liquidité Disponible' : 'Available Liquidity'}</p>
               <p className="text-lg font-bold text-green-900">
                 {formatCurrency(summary.availableLiquidity)}
               </p>
@@ -127,15 +119,15 @@ export default function PrintableReport({
 
         {/* Répartition des investisseurs */}
         <section className="mb-8 page-break-before">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Répartition des Investisseurs</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{fr ? 'Répartition des Investisseurs' : 'Investor Breakdown'}</h2>
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-900">
-                <th className="text-left py-3 font-semibold">Investisseur</th>
-                <th className="text-right py-3 font-semibold">Investi</th>
-                <th className="text-right py-3 font-semibold">Actions</th>
-                <th className="text-right py-3 font-semibold">Valeur Actuelle</th>
-                <th className="text-right py-3 font-semibold">% Part</th>
+                <th className="text-left py-3 font-semibold">{fr ? 'Investisseur' : 'Investor'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Investi' : 'Invested'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Actions' : 'Shares'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Valeur Actuelle' : 'Current Value'}</th>
+                <th className="text-right py-3 font-semibold">% {fr ? 'Part' : 'Share'}</th>
               </tr>
             </thead>
             <tbody>
@@ -167,15 +159,15 @@ export default function PrintableReport({
 
         {/* Portefeuille immobilier */}
         <section className="mb-8 page-break-before">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Portefeuille Immobilier</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{fr ? 'Portefeuille Immobilier' : 'Real Estate Portfolio'}</h2>
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-900">
-                <th className="text-left py-3 font-semibold">Propriété</th>
-                <th className="text-right py-3 font-semibold">Coût Total</th>
-                <th className="text-right py-3 font-semibold">Montant Payé</th>
-                <th className="text-right py-3 font-semibold">Solde</th>
-                <th className="text-left py-3 font-semibold">Statut</th>
+                <th className="text-left py-3 font-semibold">{fr ? 'Propriété' : 'Property'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Coût Total' : 'Total Cost'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Montant Payé' : 'Amount Paid'}</th>
+                <th className="text-right py-3 font-semibold">{fr ? 'Solde' : 'Balance'}</th>
+                <th className="text-left py-3 font-semibold">{fr ? 'Statut' : 'Status'}</th>
               </tr>
             </thead>
             <tbody>
@@ -196,15 +188,15 @@ export default function PrintableReport({
         {transactions.length > 0 && (
           <section className="mb-8 page-break-before">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Transactions de la période
+              {fr ? 'Transactions de la période' : 'Period transactions'}
             </h2>
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b-2 border-gray-900">
-                  <th className="text-left py-2 font-semibold">Date</th>
-                  <th className="text-left py-2 font-semibold">Description</th>
-                  <th className="text-left py-2 font-semibold">Type</th>
-                  <th className="text-right py-2 font-semibold">Montant</th>
+                  <th className="text-left py-2 font-semibold">{fr ? 'Date' : 'Date'}</th>
+                  <th className="text-left py-2 font-semibold">{fr ? 'Description' : 'Description'}</th>
+                  <th className="text-left py-2 font-semibold">{fr ? 'Type' : 'Type'}</th>
+                  <th className="text-right py-2 font-semibold">{fr ? 'Montant' : 'Amount'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -224,7 +216,7 @@ export default function PrintableReport({
         {/* Dividendes */}
         {dividends.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Dividendes Distribués</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">{fr ? 'Dividendes Distribués' : 'Distributed Dividends'}</h2>
             {dividends.map((dividend) => (
               <div key={dividend.id} className="mb-6">
                 <h3 className="text-lg font-semibold mb-3">
@@ -233,11 +225,11 @@ export default function PrintableReport({
                 <div className="bg-gray-50 p-4 rounded-lg mb-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Montant Total</p>
+                      <p className="text-sm text-gray-600">{fr ? 'Montant Total' : 'Total Amount'}</p>
                       <p className="text-xl font-bold">{formatCurrency(dividend.totalAmount)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Par Action</p>
+                      <p className="text-sm text-gray-600">{fr ? 'Par Action' : 'Per Share'}</p>
                       <p className="text-xl font-bold">{formatCurrency(dividend.amountPerShare)}</p>
                     </div>
                   </div>
@@ -245,10 +237,10 @@ export default function PrintableReport({
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="text-left py-2 font-semibold">Investisseur</th>
-                      <th className="text-right py-2 font-semibold">Actions</th>
-                      <th className="text-right py-2 font-semibold">Montant</th>
-                      <th className="text-left py-2 font-semibold">Statut</th>
+                      <th className="text-left py-2 font-semibold">{fr ? 'Investisseur' : 'Investor'}</th>
+                      <th className="text-right py-2 font-semibold">{fr ? 'Actions' : 'Shares'}</th>
+                      <th className="text-right py-2 font-semibold">{fr ? 'Montant' : 'Amount'}</th>
+                      <th className="text-left py-2 font-semibold">{fr ? 'Statut' : 'Status'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -263,7 +255,7 @@ export default function PrintableReport({
                               ? 'bg-green-100 text-green-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
-                            {allocation.paid ? 'Payé' : 'En attente'}
+                            {allocation.paid ? (fr ? 'Payé' : 'Paid') : (fr ? 'En attente' : 'Pending')}
                           </span>
                         </td>
                       </tr>
@@ -278,8 +270,8 @@ export default function PrintableReport({
         {/* Pied de page */}
         <footer className="mt-12 pt-6 border-t-2 border-gray-900">
           <div className="text-center text-sm text-gray-600">
-            <p>Ce rapport a été généré automatiquement par le système de gestion CERDIA</p>
-            <p className="mt-1">© {new Date().getFullYear()} {summary.companyName} - Tous droits réservés</p>
+            <p>{fr ? 'Ce rapport a été généré automatiquement par le système de gestion CERDIA' : 'This report was automatically generated by the CERDIA management system'}</p>
+            <p className="mt-1">© {new Date().getFullYear()} {summary.companyName} - {fr ? 'Tous droits réservés' : 'All rights reserved'}</p>
           </div>
         </footer>
       </div>
