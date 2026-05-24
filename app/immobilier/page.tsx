@@ -174,7 +174,7 @@ export default function ImmobilierPage() {
 
       {/* Contact Section */}
       <div className="mt-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-8 text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-3">Besoin d'informations?</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-3">{language === 'fr' ? "Besoin d'informations?" : 'Need more information?'}</h3>
         <p className="text-gray-600 mb-4">{tr.contact}</p>
         <a
           href="mailto:eric.dufort@cerdia.ai"

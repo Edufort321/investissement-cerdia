@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { CheckCircle, AlertTriangle, Calendar, RefreshCw, FileDown, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
 interface Verification {
@@ -191,6 +192,8 @@ async function buildPDFDoc(
 }
 
 export default function MonthlyControl({ onClose, onStatusChange }: Props) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const [startDate, setStartDate] = useState(prevMonthStart())
   const [endDate, setEndDate] = useState(prevMonthEnd())
   const [ccActual, setCcActual] = useState('')
@@ -424,16 +427,16 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <Calendar size={16} className="text-gray-500" />
-          Période de vérification
+          {fr ? 'Periode de verification' : 'Verification period'}
         </h4>
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Date de début</label>
+            <label className="block text-xs text-gray-500 mb-1">{fr ? 'Date de debut' : 'Start date'}</label>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
               className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Date de fin</label>
+            <label className="block text-xs text-gray-500 mb-1">{fr ? 'Date de fin' : 'End date'}</label>
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
               className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400" />
           </div>
@@ -443,7 +446,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
             className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50"
           >
             <RefreshCw size={14} className={calculating ? 'animate-spin' : ''} />
-            {calculating ? 'Calcul...' : 'Calculer les soldes'}
+            {calculating ? (fr ? 'Calcul...' : 'Calculating...') : (fr ? 'Calculer les soldes' : 'Calculate balances')}
           </button>
         </div>
       </div>
@@ -455,27 +458,27 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Compte courant */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-              <h5 className="text-sm font-semibold text-gray-800 border-b pb-2">🏢 Compte courant</h5>
+              <h5 className="text-sm font-semibold text-gray-800 border-b pb-2">🏢 {fr ? 'Compte courant' : 'Current account'}</h5>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Solde d'ouverture</span>
+                  <span className="text-gray-500">{fr ? "Solde d'ouverture" : 'Opening balance'}</span>
                   <span className="font-medium">{fmt(calcResult.cc.opening)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">+ Entrées période</span>
+                  <span className="text-gray-500">{fr ? '+ Entrees periode' : '+ Period inflows'}</span>
                   <span className="text-green-600 font-medium">{fmt(calcResult.cc.in)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">− Sorties période</span>
+                  <span className="text-gray-500">{fr ? '- Sorties periode' : '- Period outflows'}</span>
                   <span className="text-red-600 font-medium">{fmt(calcResult.cc.out)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1.5 font-semibold">
-                  <span>Solde calculé (système)</span>
+                  <span>{fr ? 'Solde calcule (systeme)' : 'Calculated balance (system)'}</span>
                   <span>{fmt(calcResult.cc.closing)}</span>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Solde réel (relevé bancaire)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Solde reel (releve bancaire)' : 'Actual balance (bank statement)'}</label>
                 <input
                   type="number" step="0.01" value={ccActual}
                   onChange={e => setCcActual(e.target.value)}
@@ -485,7 +488,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
               </div>
               {ccVar !== null && (
                 <div className={`flex items-center justify-between p-3 rounded-lg font-semibold text-sm ${Math.abs(ccVar) < 0.01 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  <span>{Math.abs(ccVar) < 0.01 ? '✅ Conforme' : '⚠️ Écart détecté'}</span>
+                  <span>{Math.abs(ccVar) < 0.01 ? (fr ? '✅ Conforme' : '✅ Balanced') : (fr ? '⚠️ Ecart detecte' : '⚠️ Discrepancy found')}</span>
                   <span>{fmt(ccVar)}</span>
                 </div>
               )}
@@ -493,27 +496,27 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
 
             {/* CAPEX */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-              <h5 className="text-sm font-semibold text-gray-800 border-b pb-2">🏗️ Compte CAPEX</h5>
+              <h5 className="text-sm font-semibold text-gray-800 border-b pb-2">🏗️ {fr ? 'Compte CAPEX' : 'CAPEX account'}</h5>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Solde d'ouverture</span>
+                  <span className="text-gray-500">{fr ? "Solde d'ouverture" : 'Opening balance'}</span>
                   <span className="font-medium">{fmt(calcResult.capex.opening)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">+ Entrées période</span>
+                  <span className="text-gray-500">{fr ? '+ Entrees periode' : '+ Period inflows'}</span>
                   <span className="text-green-600 font-medium">{fmt(calcResult.capex.in)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">− Sorties période</span>
+                  <span className="text-gray-500">{fr ? '- Sorties periode' : '- Period outflows'}</span>
                   <span className="text-red-600 font-medium">{fmt(calcResult.capex.out)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1.5 font-semibold">
-                  <span>Solde calculé (système)</span>
+                  <span>{fr ? 'Solde calcule (systeme)' : 'Calculated balance (system)'}</span>
                   <span>{fmt(calcResult.capex.closing)}</span>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Solde réel (relevé CAPEX)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Solde reel (releve CAPEX)' : 'Actual balance (CAPEX statement)'}</label>
                 <input
                   type="number" step="0.01" value={capexActual}
                   onChange={e => setCapexActual(e.target.value)}
@@ -523,7 +526,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
               </div>
               {capexVar !== null && (
                 <div className={`flex items-center justify-between p-3 rounded-lg font-semibold text-sm ${Math.abs(capexVar) < 0.01 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  <span>{Math.abs(capexVar) < 0.01 ? '✅ Conforme' : '⚠️ Écart détecté'}</span>
+                  <span>{Math.abs(capexVar) < 0.01 ? (fr ? '✅ Conforme' : '✅ Balanced') : (fr ? '⚠️ Ecart detecte' : '⚠️ Discrepancy found')}</span>
                   <span>{fmt(capexVar)}</span>
                 </div>
               )}
@@ -538,9 +541,11 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
                 : <AlertTriangle size={22} className="text-red-600 flex-shrink-0" />}
               <div className="flex-1">
                 <p className={`font-semibold text-sm ${isConform ? 'text-green-800' : 'text-red-800'}`}>
-                  {isConform ? '✅ CONFORME — Tous les soldes balancent' : '⚠️ ÉCART DÉTECTÉ — Vérifiez les transactions'}
+                  {isConform
+                    ? (fr ? '✅ CONFORME — Tous les soldes balancent' : '✅ BALANCED — All balances match')
+                    : (fr ? '⚠️ ECART DETECTE — Verifiez les transactions' : '⚠️ DISCREPANCY — Check the transactions')}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{calcResult.txCount} transaction(s) dans la période</p>
+                <p className="text-xs text-gray-500 mt-0.5">{calcResult.txCount} {fr ? 'transaction(s) dans la periode' : 'transaction(s) in the period'}</p>
               </div>
             </div>
           )}
@@ -548,28 +553,28 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
           {/* Notes + actions */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optionnel)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Notes (optionnel)' : 'Notes (optional)'}</label>
               <textarea
                 value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                placeholder="Ex: Écart de 5$ dû à frais bancaires non enregistrés..."
+                placeholder={fr ? 'Ex: Ecart de 5$ du a frais bancaires non enregistres...' : 'Ex: $5 gap due to unrecorded bank fees...'}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400"
               />
             </div>
             {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
-            {saved && <p className="text-sm text-green-600 bg-green-50 rounded p-2">✅ Vérification enregistrée et PDF sauvegardé</p>}
+            {saved && <p className="text-sm text-green-600 bg-green-50 rounded p-2">{fr ? '✅ Verification enregistree et PDF sauvegarde' : '✅ Verification saved and PDF uploaded'}</p>}
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={handleSave} disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50"
               >
-                {saving ? 'Enregistrement...' : '✅ Valider et enregistrer'}
+                {saving ? (fr ? 'Enregistrement...' : 'Saving...') : (fr ? '✅ Valider et enregistrer' : '✅ Validate and save')}
               </button>
               <button
                 onClick={handleExportPDF} disabled={generatingPDF}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 <FileDown size={14} />
-                {generatingPDF ? 'Génération...' : 'Télécharger PDF'}
+                {generatingPDF ? (fr ? 'Generation...' : 'Generating...') : (fr ? 'Telecharger PDF' : 'Download PDF')}
               </button>
             </div>
           </div>
@@ -583,7 +588,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
             onClick={() => setShowHistory(h => !h)}
             className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
-            <span>Historique des contrôles ({verifications.length})</span>
+            <span>{fr ? `Historique des controles (${verifications.length})` : `Control history (${verifications.length})`}</span>
             {showHistory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showHistory && (
@@ -591,15 +596,15 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500">Période</th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-500">CC calculé</th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-500">CC réel</th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-500">Écart CC</th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-500">CAPEX calculé</th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-500">Écart CAPEX</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-500">{fr ? 'Periode' : 'Period'}</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">{fr ? 'CC calcule' : 'CC calculated'}</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">{fr ? 'CC reel' : 'CC actual'}</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">{fr ? 'Ecart CC' : 'CC gap'}</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">{fr ? 'CAPEX calcule' : 'CAPEX calculated'}</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-500">{fr ? 'Ecart CAPEX' : 'CAPEX gap'}</th>
                     <th className="px-3 py-2 text-center font-medium text-gray-500">Statut</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500">Vérifié le</th>
-                    <th className="px-3 py-2 text-center font-medium text-gray-500">Rapport</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-500">{fr ? 'Verifie le' : 'Verified on'}</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-500">{fr ? 'Rapport' : 'Report'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -619,8 +624,8 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
                       </td>
                       <td className="px-3 py-2 text-center">
                         {v.status === 'verified'
-                          ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">✅ Conforme</span>
-                          : <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">⚠️ Écart</span>}
+                          ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">{fr ? '✅ Conforme' : '✅ Balanced'}</span>
+                          : <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{fr ? '⚠️ Ecart' : '⚠️ Gap'}</span>}
                       </td>
                       <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                         {new Date(v.verified_at).toLocaleDateString('fr-CA')}
@@ -635,7 +640,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
                             {openingPDF === v.id
                               ? <RefreshCw size={11} className="animate-spin" />
                               : <ExternalLink size={11} />}
-                            Ouvrir
+                            {fr ? 'Ouvrir' : 'Open'}
                           </button>
                         ) : (
                           <button
@@ -646,7 +651,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
                             {openingPDF === v.id
                               ? <RefreshCw size={11} className="animate-spin" />
                               : <FileDown size={11} />}
-                            Générer
+                            {fr ? 'Generer' : 'Generate'}
                           </button>
                         )}
                       </td>

@@ -59,7 +59,7 @@ export default function DashboardPage() {
   const getColorFlag = (dueDate: string, status: string): { color: string; emoji: string; label: string } => {
     // Si payé, toujours vert
     if (status === 'paid') {
-      return { color: 'green', emoji: '🟢', label: 'Payé' }
+      return { color: 'green', emoji: '🟢', label: language === 'fr' ? 'Paye' : 'Paid' }
     }
 
     const today = new Date()
@@ -184,7 +184,7 @@ export default function DashboardPage() {
 
       return {
         ...payment,
-        property_name: property?.name || 'Propriété inconnue',
+        property_name: property?.name || (language === 'fr' ? 'Propriete inconnue' : 'Unknown property'),
         property_location: property?.location || '',
         days_until_due: daysUntil,
         color_flag: flag,
@@ -1121,7 +1121,7 @@ export default function DashboardPage() {
                 <div className="p-4 sm:p-6">
                   <GmailFacturesTab
                     filterCompanies={['CERDIA Globale', 'CERDIA S.E.C.']}
-                    title="Factures Courriel — Investissement"
+                    title={language === 'fr' ? 'Factures Courriel — Investissement' : 'Gmail Invoices — Investment'}
                   />
                 </div>
               )}
