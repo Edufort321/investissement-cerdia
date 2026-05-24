@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Card,
   CardContent,
@@ -90,6 +91,10 @@ interface FormData {
 
 export default function ProjectTimeline() {
 
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenario, setSelectedScenario] = useState<string>('')
   const [phases, setPhases] = useState<ProjectPhase[]>([])
@@ -110,12 +115,12 @@ export default function ProjectTimeline() {
   })
 
   const statusOptions = [
-    { value: 'not_started', label: 'Non démarré', color: 'bg-gray-100 text-gray-800' },
-    { value: 'in_progress', label: 'En cours', color: 'bg-blue-100 text-blue-800' },
-    { value: 'completed', label: 'Complété', color: 'bg-green-100 text-green-800' },
-    { value: 'delayed', label: 'En retard', color: 'bg-red-100 text-red-800' },
-    { value: 'on_hold', label: 'En pause', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'cancelled', label: 'Annulé', color: 'bg-gray-300 text-gray-700' },
+    { value: 'not_started', label: fr ? 'Non démarré' : 'Not started', color: 'bg-gray-100 text-gray-800' },
+    { value: 'in_progress', label: fr ? 'En cours' : 'In progress', color: 'bg-blue-100 text-blue-800' },
+    { value: 'completed', label: fr ? 'Complété' : 'Completed', color: 'bg-green-100 text-green-800' },
+    { value: 'delayed', label: fr ? 'En retard' : 'Delayed', color: 'bg-red-100 text-red-800' },
+    { value: 'on_hold', label: fr ? 'En pause' : 'On hold', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'cancelled', label: fr ? 'Annulé' : 'Cancelled', color: 'bg-gray-300 text-gray-700' },
   ]
 
   useEffect(() => {
@@ -207,7 +212,7 @@ export default function ProjectTimeline() {
 
   const savePhase = async () => {
     if (!formData.phase_name || !formData.planned_start_date || !formData.planned_end_date) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      alert(fr ? 'Veuillez remplir tous les champs obligatoires' : 'Please fill in all required fields')
       return
     }
 
@@ -246,7 +251,7 @@ export default function ProjectTimeline() {
 
     if (error) {
       console.error('Error saving phase:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert(fr ? 'Erreur lors de la sauvegarde' : 'Error saving phase')
       setIsLoading(false)
       return
     }
@@ -257,7 +262,7 @@ export default function ProjectTimeline() {
   }
 
   const deletePhase = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette phase?')) {
+    if (!confirm(fr ? 'Êtes-vous sûr de vouloir supprimer cette phase?' : 'Are you sure you want to delete this phase?')) {
       return
     }
 
@@ -270,7 +275,7 @@ export default function ProjectTimeline() {
 
     if (error) {
       console.error('Error deleting phase:', error)
-      alert('Erreur lors de la suppression')
+      alert(fr ? 'Erreur lors de la suppression' : 'Error deleting phase')
       setIsLoading(false)
       return
     }
@@ -339,7 +344,7 @@ export default function ProjectTimeline() {
   const stats = calculateStats()
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -347,7 +352,7 @@ export default function ProjectTimeline() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-CA', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -359,15 +364,15 @@ export default function ProjectTimeline() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Timeline de Projet</h1>
+          <h1 className="text-3xl font-bold">{fr ? 'Timeline de Projet' : 'Project Timeline'}</h1>
           <p className="text-muted-foreground mt-2">
-            Visualisez et gérez les phases de vos projets
+            {fr ? 'Visualisez et gérez les phases de vos projets' : 'Visualize and manage your project phases'}
           </p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedScenario} onValueChange={setSelectedScenario}>
             <SelectTrigger className="w-64">
-              <SelectValue placeholder="Sélectionner un projet" />
+              <SelectValue placeholder={fr ? 'Sélectionner un projet' : 'Select a project'} />
             </SelectTrigger>
             <SelectContent>
               {scenarios.map(scenario => (
@@ -379,7 +384,7 @@ export default function ProjectTimeline() {
           </Select>
           <Button onClick={() => openDialog()} disabled={!selectedScenario}>
             <Plus className="h-4 w-4 mr-2" />
-            Nouvelle Phase
+            {fr ? 'Nouvelle Phase' : 'New Phase'}
           </Button>
         </div>
       </div>
@@ -389,42 +394,42 @@ export default function ProjectTimeline() {
         <div className="grid gap-4 md:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Phases</CardDescription>
+              <CardDescription>{fr ? 'Total Phases' : 'Total Phases'}</CardDescription>
               <CardTitle className="text-2xl">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Complétées</CardDescription>
+              <CardDescription>{fr ? 'Complétées' : 'Completed'}</CardDescription>
               <CardTitle className="text-2xl text-green-600">{stats.completed}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>En cours</CardDescription>
+              <CardDescription>{fr ? 'En cours' : 'In Progress'}</CardDescription>
               <CardTitle className="text-2xl text-blue-600">{stats.inProgress}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>En retard</CardDescription>
+              <CardDescription>{fr ? 'En retard' : 'Delayed'}</CardDescription>
               <CardTitle className="text-2xl text-red-600">{stats.delayed}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Progression Moy.</CardDescription>
+              <CardDescription>{fr ? 'Progression Moy.' : 'Avg Progress'}</CardDescription>
               <CardTitle className="text-2xl">{stats.avgProgress}%</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Budget Utilisé</CardDescription>
+              <CardDescription>{fr ? 'Budget Utilisé' : 'Budget Used'}</CardDescription>
               <CardTitle className="text-xl">
                 {stats.totalBudget > 0
                   ? Math.round((stats.totalSpent / stats.totalBudget) * 100)
@@ -438,39 +443,39 @@ export default function ProjectTimeline() {
       {/* Timeline Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Phases du Projet</CardTitle>
+          <CardTitle>{fr ? 'Phases du Projet' : 'Project Phases'}</CardTitle>
           <CardDescription>
             {selectedScenario
-              ? `${stats.total} phase(s) · Budget total: ${formatCurrency(stats.totalBudget)} · Dépensé: ${formatCurrency(stats.totalSpent)}`
-              : 'Sélectionnez un projet pour voir ses phases'}
+              ? `${stats.total} phase(s) · ${fr ? 'Budget total' : 'Total budget'}: ${formatCurrency(stats.totalBudget)} · ${fr ? 'Dépensé' : 'Spent'}: ${formatCurrency(stats.totalSpent)}`
+              : (fr ? 'Sélectionnez un projet pour voir ses phases' : 'Select a project to view its phases')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!selectedScenario ? (
             <div className="text-center py-8 text-muted-foreground">
-              Veuillez sélectionner un projet
+              {fr ? 'Veuillez sélectionner un projet' : 'Please select a project'}
             </div>
           ) : phases.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>Aucune phase créée pour ce projet</p>
+              <p>{fr ? 'Aucune phase créée pour ce projet' : 'No phases created for this project'}</p>
               <Button onClick={() => openDialog()} className="mt-4">
                 <Plus className="h-4 w-4 mr-2" />
-                Créer la première phase
+                {fr ? 'Créer la première phase' : 'Create the first phase'}
               </Button>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Phase</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead>Durée</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Progression</TableHead>
-                  <TableHead>Budget</TableHead>
-                  <TableHead>Responsable</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{fr ? 'Phase' : 'Phase'}</TableHead>
+                  <TableHead>{fr ? 'Dates' : 'Dates'}</TableHead>
+                  <TableHead>{fr ? 'Durée' : 'Duration'}</TableHead>
+                  <TableHead>{fr ? 'Statut' : 'Status'}</TableHead>
+                  <TableHead>{fr ? 'Progression' : 'Progress'}</TableHead>
+                  <TableHead>{fr ? 'Budget' : 'Budget'}</TableHead>
+                  <TableHead>{fr ? 'Responsable' : 'Owner'}</TableHead>
+                  <TableHead>{fr ? 'Actions' : 'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -490,7 +495,7 @@ export default function ProjectTimeline() {
                             {phase.critical_path && (
                               <Badge variant="destructive" className="text-xs">
                                 <TrendingUp className="h-3 w-3 mr-1" />
-                                Critique
+                                {fr ? 'Critique' : 'Critical'}
                               </Badge>
                             )}
                           </div>
@@ -512,17 +517,17 @@ export default function ProjectTimeline() {
                         </div>
                         {phase.status !== 'completed' && daysRemaining < 0 && (
                           <div className="text-xs text-red-600 mt-1">
-                            {Math.abs(daysRemaining)}j de retard
+                            {fr ? `${Math.abs(daysRemaining)}j de retard` : `${Math.abs(daysRemaining)}d late`}
                           </div>
                         )}
                         {phase.status !== 'completed' && daysRemaining >= 0 && daysRemaining <= 7 && (
                           <div className="text-xs text-orange-600 mt-1">
-                            {daysRemaining}j restants
+                            {fr ? `${daysRemaining}j restants` : `${daysRemaining}d left`}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{duration}</span> jours
+                        <span className="font-medium">{duration}</span> {fr ? 'jours' : 'days'}
                       </TableCell>
                       <TableCell>{getStatusBadge(phase.status)}</TableCell>
                       <TableCell>
@@ -552,7 +557,7 @@ export default function ProjectTimeline() {
                               / {formatCurrency(phase.budget_allocated)}
                             </div>
                             <div className={`text-xs mt-1 ${budgetUsage > 100 ? 'text-red-600' : 'text-gray-600'}`}>
-                              {budgetUsage}% utilisé
+                              {budgetUsage}% {fr ? 'utilisé' : 'used'}
                             </div>
                           </div>
                         ) : (
@@ -597,38 +602,38 @@ export default function ProjectTimeline() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingPhase ? 'Modifier la Phase' : 'Nouvelle Phase'}
+              {editingPhase ? (fr ? 'Modifier la Phase' : 'Edit Phase') : (fr ? 'Nouvelle Phase' : 'New Phase')}
             </DialogTitle>
             <DialogDescription>
-              Définissez les détails de la phase du projet
+              {fr ? 'Définissez les détails de la phase du projet' : 'Define the project phase details'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <Label htmlFor="phase_name">Nom de la Phase *</Label>
+                <Label htmlFor="phase_name">{fr ? 'Nom de la Phase *' : 'Phase Name *'}</Label>
                 <Input
                   id="phase_name"
                   value={formData.phase_name}
                   onChange={(e) => setFormData({ ...formData, phase_name: e.target.value })}
-                  placeholder="Ex: Fondations"
+                  placeholder={fr ? 'Ex: Fondations' : 'e.g. Foundations'}
                 />
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{fr ? 'Description' : 'Description'}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Détails de la phase..."
+                  placeholder={fr ? 'Détails de la phase...' : 'Phase details...'}
                   rows={2}
                 />
               </div>
 
               <div>
-                <Label htmlFor="start_date">Date de Début *</Label>
+                <Label htmlFor="start_date">{fr ? 'Date de Début *' : 'Start Date *'}</Label>
                 <Input
                   id="start_date"
                   type="date"
@@ -638,7 +643,7 @@ export default function ProjectTimeline() {
               </div>
 
               <div>
-                <Label htmlFor="end_date">Date de Fin *</Label>
+                <Label htmlFor="end_date">{fr ? 'Date de Fin *' : 'End Date *'}</Label>
                 <Input
                   id="end_date"
                   type="date"
@@ -648,7 +653,7 @@ export default function ProjectTimeline() {
               </div>
 
               <div>
-                <Label htmlFor="status">Statut</Label>
+                <Label htmlFor="status">{fr ? 'Statut' : 'Status'}</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -664,7 +669,7 @@ export default function ProjectTimeline() {
               </div>
 
               <div>
-                <Label htmlFor="progress">Progression (%)</Label>
+                <Label htmlFor="progress">{fr ? 'Progression (%)' : 'Progress (%)'}</Label>
                 <Input
                   id="progress"
                   type="number"
@@ -676,7 +681,7 @@ export default function ProjectTimeline() {
               </div>
 
               <div>
-                <Label htmlFor="budget">Budget Alloué (CAD)</Label>
+                <Label htmlFor="budget">{fr ? 'Budget Alloué (CAD)' : 'Allocated Budget (CAD)'}</Label>
                 <Input
                   id="budget"
                   type="number"
@@ -688,12 +693,12 @@ export default function ProjectTimeline() {
               </div>
 
               <div>
-                <Label htmlFor="responsible">Responsable</Label>
+                <Label htmlFor="responsible">{fr ? 'Responsable' : 'Owner'}</Label>
                 <Input
                   id="responsible"
                   value={formData.responsible_person}
                   onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                  placeholder="Nom du responsable"
+                  placeholder={fr ? 'Nom du responsable' : 'Owner name'}
                 />
               </div>
 
@@ -706,17 +711,17 @@ export default function ProjectTimeline() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="critical_path" className="cursor-pointer">
-                  Phase critique (sur le chemin critique du projet)
+                  {fr ? 'Phase critique (sur le chemin critique du projet)' : 'Critical phase (on the critical path)'}
                 </Label>
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">{fr ? 'Notes' : 'Notes'}</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Notes supplémentaires..."
+                  placeholder={fr ? 'Notes supplémentaires...' : 'Additional notes...'}
                   rows={3}
                 />
               </div>
@@ -725,10 +730,10 @@ export default function ProjectTimeline() {
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </Button>
             <Button onClick={savePhase} disabled={isLoading}>
-              {editingPhase ? 'Mettre à Jour' : 'Créer'}
+              {editingPhase ? (fr ? 'Mettre à Jour' : 'Update') : (fr ? 'Créer' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
