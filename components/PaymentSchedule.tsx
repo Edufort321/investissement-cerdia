@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Card,
   CardContent,
@@ -87,6 +88,9 @@ interface TreasuryPosition {
 }
 
 export default function PaymentSchedule() {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
   const [payments, setPayments] = useState<PaymentObligation[]>([])
   const [scenarios, setScenarios] = useState<Scenario[]>([])
@@ -107,7 +111,7 @@ export default function PaymentSchedule() {
     priority: '3',
   })
 
-  const obligationTypes = [
+  const obligationTypes = fr ? [
     { value: 'contractor_payment', label: 'Paiement Entrepreneur' },
     { value: 'supplier_payment', label: 'Paiement Fournisseur' },
     { value: 'loan_payment', label: 'Remboursement Prêt' },
@@ -115,6 +119,14 @@ export default function PaymentSchedule() {
     { value: 'insurance', label: 'Assurance' },
     { value: 'utilities', label: 'Services Publics' },
     { value: 'other', label: 'Autre' },
+  ] : [
+    { value: 'contractor_payment', label: 'Contractor Payment' },
+    { value: 'supplier_payment', label: 'Supplier Payment' },
+    { value: 'loan_payment', label: 'Loan Repayment' },
+    { value: 'tax_payment', label: 'Tax Payment' },
+    { value: 'insurance', label: 'Insurance' },
+    { value: 'utilities', label: 'Utilities' },
+    { value: 'other', label: 'Other' },
   ]
 
   useEffect(() => {
@@ -252,7 +264,7 @@ export default function PaymentSchedule() {
 
   const savePayment = async () => {
     if (!formData.vendor_name || !formData.due_date || !formData.amount) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      alert(fr ? 'Veuillez remplir tous les champs obligatoires' : 'Please fill in all required fields')
       return
     }
 
@@ -290,7 +302,7 @@ export default function PaymentSchedule() {
 
     if (error) {
       console.error('Error saving payment:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert(fr ? 'Erreur lors de la sauvegarde' : 'Error saving')
       setIsLoading(false)
       return
     }
@@ -301,7 +313,7 @@ export default function PaymentSchedule() {
   }
 
   const deletePayment = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette obligation?')) {
+    if (!confirm(fr ? 'Êtes-vous sûr de vouloir supprimer cette obligation?' : 'Are you sure you want to delete this obligation?')) {
       return
     }
 
@@ -314,7 +326,7 @@ export default function PaymentSchedule() {
 
     if (error) {
       console.error('Error deleting payment:', error)
-      alert('Erreur lors de la suppression')
+      alert(fr ? 'Erreur lors de la suppression' : 'Error deleting')
       setIsLoading(false)
       return
     }
@@ -333,7 +345,7 @@ export default function PaymentSchedule() {
 
     if (error) {
       console.error('Error marking as paid:', error)
-      alert('Erreur lors de la mise à jour')
+      alert(fr ? 'Erreur lors de la mise à jour' : 'Error updating')
       setIsLoading(false)
       return
     }
@@ -355,7 +367,7 @@ export default function PaymentSchedule() {
       return (
         <Badge variant="default" className="bg-green-600">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          Payé
+          {fr ? 'Payé' : 'Paid'}
         </Badge>
       )
     }
@@ -363,7 +375,7 @@ export default function PaymentSchedule() {
     if (payment.status === 'cancelled') {
       return (
         <Badge variant="secondary">
-          Annulé
+          {fr ? 'Annulé' : 'Cancelled'}
         </Badge>
       )
     }
@@ -374,7 +386,7 @@ export default function PaymentSchedule() {
       return (
         <Badge variant="destructive">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          En retard ({Math.abs(daysUntil)}j)
+          {fr ? `En retard (${Math.abs(daysUntil)}j)` : `Late (${Math.abs(daysUntil)}d)`}
         </Badge>
       )
     }
@@ -383,7 +395,7 @@ export default function PaymentSchedule() {
       return (
         <Badge variant="destructive">
           <Clock className="h-3 w-3 mr-1" />
-          Aujourd'hui
+          {fr ? "Aujourd'hui" : 'Today'}
         </Badge>
       )
     }
@@ -415,21 +427,23 @@ export default function PaymentSchedule() {
   }
 
   const getPriorityLabel = (priority: number) => {
-    const labels = ['', 'Critique', 'Élevée', 'Moyenne', 'Basse', 'Très Basse']
+    const labels = fr
+      ? ['', 'Critique', 'Élevée', 'Moyenne', 'Basse', 'Très Basse']
+      : ['', 'Critical', 'High', 'Medium', 'Low', 'Very Low']
     return labels[priority] || 'N/A'
   }
 
   const getPriorityBadge = (priority: number) => {
     if (priority === 1) {
-      return <Badge variant="destructive">Critique</Badge>
+      return <Badge variant="destructive">{fr ? 'Critique' : 'Critical'}</Badge>
     }
     if (priority === 2) {
-      return <Badge variant="destructive" className="bg-orange-600">Élevée</Badge>
+      return <Badge variant="destructive" className="bg-orange-600">{fr ? 'Élevée' : 'High'}</Badge>
     }
     if (priority === 3) {
-      return <Badge variant="secondary">Moyenne</Badge>
+      return <Badge variant="secondary">{fr ? 'Moyenne' : 'Medium'}</Badge>
     }
-    return <Badge variant="outline">Basse</Badge>
+    return <Badge variant="outline">{fr ? 'Basse' : 'Low'}</Badge>
   }
 
   const calculateTotals = () => {
@@ -446,14 +460,14 @@ export default function PaymentSchedule() {
   const totals = calculateTotals()
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'CAD',
     }).format(amount)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-CA', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -464,9 +478,9 @@ export default function PaymentSchedule() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Calendrier de Paiements</h1>
+        <h1 className="text-3xl font-bold">{fr ? 'Calendrier de Paiements' : 'Payment Schedule'}</h1>
         <p className="text-muted-foreground mt-2">
-          Gérez vos obligations de paiement et planifiez votre trésorerie
+          {fr ? 'Gérez vos obligations de paiement et planifiez votre trésorerie' : 'Manage your payment obligations and plan your cash flow'}
         </p>
       </div>
 
@@ -474,14 +488,14 @@ export default function PaymentSchedule() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total à Payer</CardDescription>
+            <CardDescription>{fr ? 'Total à Payer' : 'Total Due'}</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(totals.total)}</CardTitle>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>En Retard ({totals.overdueCount})</CardDescription>
+            <CardDescription>{fr ? 'En Retard' : 'Overdue'} ({totals.overdueCount})</CardDescription>
             <CardTitle className="text-2xl text-red-600">
               {formatCurrency(totals.overdueAmount)}
             </CardTitle>
@@ -490,7 +504,7 @@ export default function PaymentSchedule() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>7 Prochains Jours ({totals.urgentCount})</CardDescription>
+            <CardDescription>{fr ? '7 Prochains Jours' : 'Next 7 Days'} ({totals.urgentCount})</CardDescription>
             <CardTitle className="text-2xl text-orange-600">
               {formatCurrency(totals.urgentAmount)}
             </CardTitle>
@@ -499,7 +513,7 @@ export default function PaymentSchedule() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Trésorerie Disponible</CardDescription>
+            <CardDescription>{fr ? 'Trésorerie Disponible' : 'Available Cash'}</CardDescription>
             <CardTitle className="text-2xl text-green-600">
               {treasuryPosition ? formatCurrency(treasuryPosition.net_available_cash) : '-'}
             </CardTitle>
@@ -512,9 +526,9 @@ export default function PaymentSchedule() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Attention:</strong> Les paiements urgents ({formatCurrency(totals.urgentAmount)}) dépassent votre trésorerie disponible ({formatCurrency(treasuryPosition.net_available_cash)}).
-            <br />
-            Déficit: {formatCurrency(totals.urgentAmount - treasuryPosition.net_available_cash)}
+            {fr
+              ? <><strong>Attention :</strong> Les paiements urgents ({formatCurrency(totals.urgentAmount)}) dépassent votre trésorerie disponible ({formatCurrency(treasuryPosition.net_available_cash)}). <br />Déficit : {formatCurrency(totals.urgentAmount - treasuryPosition.net_available_cash)}</>
+              : <><strong>Warning:</strong> Urgent payments ({formatCurrency(totals.urgentAmount)}) exceed your available cash ({formatCurrency(treasuryPosition.net_available_cash)}). <br />Shortfall: {formatCurrency(totals.urgentAmount - treasuryPosition.net_available_cash)}</>}
           </AlertDescription>
         </Alert>
       )}
@@ -525,50 +539,50 @@ export default function PaymentSchedule() {
           <div className="flex flex-col md:flex-row gap-4 justify-between">
             <div className="flex gap-4 flex-wrap">
               <div>
-                <Label>Période</Label>
+                <Label>{fr ? 'Période' : 'Period'}</Label>
                 <Select value={timeRange} onValueChange={setTimeRange}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 prochains jours</SelectItem>
-                    <SelectItem value="30">30 prochains jours</SelectItem>
-                    <SelectItem value="60">60 prochains jours</SelectItem>
-                    <SelectItem value="90">90 prochains jours</SelectItem>
-                    <SelectItem value="all">Toutes les dates</SelectItem>
+                    <SelectItem value="7">{fr ? '7 prochains jours' : 'Next 7 days'}</SelectItem>
+                    <SelectItem value="30">{fr ? '30 prochains jours' : 'Next 30 days'}</SelectItem>
+                    <SelectItem value="60">{fr ? '60 prochains jours' : 'Next 60 days'}</SelectItem>
+                    <SelectItem value="90">{fr ? '90 prochains jours' : 'Next 90 days'}</SelectItem>
+                    <SelectItem value="all">{fr ? 'Toutes les dates' : 'All dates'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>Statut</Label>
+                <Label>{fr ? 'Statut' : 'Status'}</Label>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous (sauf annulés)</SelectItem>
-                    <SelectItem value="pending">En attente</SelectItem>
-                    <SelectItem value="overdue">En retard</SelectItem>
-                    <SelectItem value="paid">Payé</SelectItem>
-                    <SelectItem value="cancelled">Annulé</SelectItem>
+                    <SelectItem value="all">{fr ? 'Tous (sauf annulés)' : 'All (except cancelled)'}</SelectItem>
+                    <SelectItem value="pending">{fr ? 'En attente' : 'Pending'}</SelectItem>
+                    <SelectItem value="overdue">{fr ? 'En retard' : 'Overdue'}</SelectItem>
+                    <SelectItem value="paid">{fr ? 'Payé' : 'Paid'}</SelectItem>
+                    <SelectItem value="cancelled">{fr ? 'Annulé' : 'Cancelled'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>Priorité</Label>
+                <Label>{fr ? 'Priorité' : 'Priority'}</Label>
                 <Select value={selectedPriority} onValueChange={setSelectedPriority}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="1">Critique</SelectItem>
-                    <SelectItem value="2">Élevée</SelectItem>
-                    <SelectItem value="3">Moyenne</SelectItem>
-                    <SelectItem value="4">Basse</SelectItem>
-                    <SelectItem value="5">Très Basse</SelectItem>
+                    <SelectItem value="all">{fr ? 'Toutes' : 'All'}</SelectItem>
+                    <SelectItem value="1">{fr ? 'Critique' : 'Critical'}</SelectItem>
+                    <SelectItem value="2">{fr ? 'Élevée' : 'High'}</SelectItem>
+                    <SelectItem value="3">{fr ? 'Moyenne' : 'Medium'}</SelectItem>
+                    <SelectItem value="4">{fr ? 'Basse' : 'Low'}</SelectItem>
+                    <SelectItem value="5">{fr ? 'Très Basse' : 'Very Low'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -577,7 +591,7 @@ export default function PaymentSchedule() {
             <div className="flex items-end">
               <Button onClick={() => openDialog()}>
                 <Plus className="h-4 w-4 mr-2" />
-                Nouveau Paiement
+                {fr ? 'Nouveau Paiement' : 'New Payment'}
               </Button>
             </div>
           </div>
@@ -587,21 +601,21 @@ export default function PaymentSchedule() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date Échéance</TableHead>
-                <TableHead>Urgence</TableHead>
-                <TableHead>Fournisseur</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Projet</TableHead>
-                <TableHead>Priorité</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>{fr ? 'Date Échéance' : 'Due Date'}</TableHead>
+                <TableHead>{fr ? 'Urgence' : 'Urgency'}</TableHead>
+                <TableHead>{fr ? 'Fournisseur' : 'Vendor'}</TableHead>
+                <TableHead>{fr ? 'Type' : 'Type'}</TableHead>
+                <TableHead>{fr ? 'Projet' : 'Project'}</TableHead>
+                <TableHead>{fr ? 'Priorité' : 'Priority'}</TableHead>
+                <TableHead className="text-right">{fr ? 'Montant' : 'Amount'}</TableHead>
+                <TableHead>{fr ? 'Actions' : 'Actions'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {payments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    Aucun paiement trouvé
+                    {fr ? 'Aucun paiement trouvé' : 'No payments found'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -676,33 +690,33 @@ export default function PaymentSchedule() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingPayment ? 'Modifier l\'Obligation' : 'Nouvelle Obligation de Paiement'}
+              {editingPayment ? (fr ? "Modifier l'Obligation" : 'Edit Obligation') : (fr ? 'Nouvelle Obligation de Paiement' : 'New Payment Obligation')}
             </DialogTitle>
             <DialogDescription>
-              Saisissez les détails du paiement à effectuer
+              {fr ? 'Saisissez les détails du paiement à effectuer' : 'Enter the details of the payment to be made'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="vendor_name">Fournisseur / Bénéficiaire *</Label>
+                <Label htmlFor="vendor_name">{fr ? 'Fournisseur / Bénéficiaire *' : 'Vendor / Beneficiary *'}</Label>
                 <Input
                   id="vendor_name"
                   value={formData.vendor_name}
                   onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
-                  placeholder="Nom du fournisseur"
+                  placeholder={fr ? 'Nom du fournisseur' : 'Vendor name'}
                 />
               </div>
 
               <div>
-                <Label htmlFor="scenario">Projet (Optionnel)</Label>
+                <Label htmlFor="scenario">{fr ? 'Projet (Optionnel)' : 'Project (Optional)'}</Label>
                 <Select value={formData.scenario_id} onValueChange={(value) => setFormData({ ...formData, scenario_id: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un projet" />
+                    <SelectValue placeholder={fr ? 'Sélectionner un projet' : 'Select a project'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun projet</SelectItem>
+                    <SelectItem value="">{fr ? 'Aucun projet' : 'No project'}</SelectItem>
                     {scenarios.map(scenario => (
                       <SelectItem key={scenario.id} value={scenario.id}>
                         {scenario.name}
@@ -715,7 +729,7 @@ export default function PaymentSchedule() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="obligation_type">Type de Paiement</Label>
+                <Label htmlFor="obligation_type">{fr ? 'Type de Paiement' : 'Payment Type'}</Label>
                 <Select value={formData.obligation_type} onValueChange={(value) => setFormData({ ...formData, obligation_type: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -731,17 +745,17 @@ export default function PaymentSchedule() {
               </div>
 
               <div>
-                <Label htmlFor="priority">Priorité</Label>
+                <Label htmlFor="priority">{fr ? 'Priorité' : 'Priority'}</Label>
                 <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 - Critique</SelectItem>
-                    <SelectItem value="2">2 - Élevée</SelectItem>
-                    <SelectItem value="3">3 - Moyenne</SelectItem>
-                    <SelectItem value="4">4 - Basse</SelectItem>
-                    <SelectItem value="5">5 - Très Basse</SelectItem>
+                    <SelectItem value="1">1 - {fr ? 'Critique' : 'Critical'}</SelectItem>
+                    <SelectItem value="2">2 - {fr ? 'Élevée' : 'High'}</SelectItem>
+                    <SelectItem value="3">3 - {fr ? 'Moyenne' : 'Medium'}</SelectItem>
+                    <SelectItem value="4">4 - {fr ? 'Basse' : 'Low'}</SelectItem>
+                    <SelectItem value="5">5 - {fr ? 'Très Basse' : 'Very Low'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -749,7 +763,7 @@ export default function PaymentSchedule() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="due_date">Date d'Échéance *</Label>
+                <Label htmlFor="due_date">{fr ? "Date d'Échéance *" : 'Due Date *'}</Label>
                 <Input
                   id="due_date"
                   type="date"
@@ -759,7 +773,7 @@ export default function PaymentSchedule() {
               </div>
 
               <div>
-                <Label htmlFor="amount">Montant (CAD) *</Label>
+                <Label htmlFor="amount">{fr ? 'Montant (CAD) *' : 'Amount (CAD) *'}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -772,12 +786,12 @@ export default function PaymentSchedule() {
             </div>
 
             <div>
-              <Label htmlFor="description">Description / Notes</Label>
+              <Label htmlFor="description">{fr ? 'Description / Notes' : 'Description / Notes'}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Détails supplémentaires..."
+                placeholder={fr ? 'Détails supplémentaires...' : 'Additional details...'}
                 rows={3}
               />
             </div>
@@ -785,10 +799,10 @@ export default function PaymentSchedule() {
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </Button>
             <Button onClick={savePayment} disabled={isLoading}>
-              {editingPayment ? 'Mettre à Jour' : 'Créer'}
+              {editingPayment ? (fr ? 'Mettre à Jour' : 'Update') : (fr ? 'Créer' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>

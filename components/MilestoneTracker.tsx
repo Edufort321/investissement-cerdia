@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Card,
   CardContent,
@@ -70,6 +71,9 @@ interface ProjectPhase {
 }
 
 export default function MilestoneTracker() {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenario, setSelectedScenario] = useState<string>('')
   const [phases, setPhases] = useState<ProjectPhase[]>([])
@@ -174,7 +178,7 @@ export default function MilestoneTracker() {
 
   const saveMilestone = async () => {
     if (!formData.milestone_name || !formData.due_date) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      alert(fr ? 'Veuillez remplir tous les champs obligatoires' : 'Please fill in all required fields')
       return
     }
 
@@ -192,7 +196,7 @@ export default function MilestoneTracker() {
 
     if (error) {
       console.error('Error saving milestone:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert(fr ? 'Erreur lors de la sauvegarde' : 'Error saving')
     } else {
       await loadMilestones()
       setIsDialogOpen(false)
@@ -202,7 +206,7 @@ export default function MilestoneTracker() {
   }
 
   const deleteMilestone = async (id: string) => {
-    if (!confirm('Supprimer ce jalon?')) return
+    if (!confirm(fr ? 'Supprimer ce jalon?' : 'Delete this milestone?')) return
     setIsLoading(true)
     await supabase.from('project_milestones').delete().eq('id', id)
     await loadMilestones()
@@ -221,10 +225,10 @@ export default function MilestoneTracker() {
 
   const getUrgencyBadge = (milestone: Milestone) => {
     if (milestone.status === 'completed') {
-      return <Badge variant="default" className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />Complété</Badge>
+      return <Badge variant="default" className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />{fr ? 'Complété' : 'Completed'}</Badge>
     }
     if (milestone.status === 'missed') {
-      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Manqué</Badge>
+      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />{fr ? 'Manqué' : 'Missed'}</Badge>
     }
 
     const today = new Date()
@@ -232,7 +236,7 @@ export default function MilestoneTracker() {
     const daysUntil = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     if (daysUntil < 0) {
-      return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />{Math.abs(daysUntil)}j retard</Badge>
+      return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />{Math.abs(daysUntil)}{fr ? 'j retard' : 'd late'}</Badge>
     }
     if (daysUntil <= 3) {
       return <Badge variant="destructive" className="bg-orange-600"><Clock className="h-3 w-3 mr-1" />{daysUntil}j</Badge>
@@ -269,13 +273,13 @@ export default function MilestoneTracker() {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Suivi des Jalons</h1>
-          <p className="text-muted-foreground mt-2">Gérez les jalons critiques de vos projets</p>
+          <h1 className="text-3xl font-bold">{fr ? 'Suivi des Jalons' : 'Milestone Tracker'}</h1>
+          <p className="text-muted-foreground mt-2">{fr ? 'Gérez les jalons critiques de vos projets' : 'Manage critical project milestones'}</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedScenario} onValueChange={setSelectedScenario}>
             <SelectTrigger className="w-64">
-              <SelectValue placeholder="Sélectionner un projet" />
+              <SelectValue placeholder={fr ? 'Sélectionner un projet' : 'Select a project'} />
             </SelectTrigger>
             <SelectContent>
               {scenarios.map(s => (
@@ -284,7 +288,7 @@ export default function MilestoneTracker() {
             </SelectContent>
           </Select>
           <Button onClick={() => openDialog()} disabled={!selectedScenario}>
-            <Plus className="h-4 w-4 mr-2" />Nouveau Jalon
+            <Plus className="h-4 w-4 mr-2" />{fr ? 'Nouveau Jalon' : 'New Milestone'}
           </Button>
         </div>
       </div>
@@ -293,17 +297,19 @@ export default function MilestoneTracker() {
         <>
           <div className="grid gap-4 md:grid-cols-5">
             <Card><CardHeader className="pb-2"><CardDescription>Total</CardDescription><CardTitle className="text-2xl">{stats.total}</CardTitle></CardHeader></Card>
-            <Card><CardHeader className="pb-2"><CardDescription>En cours</CardDescription><CardTitle className="text-2xl text-blue-600">{stats.pending}</CardTitle></CardHeader></Card>
-            <Card><CardHeader className="pb-2"><CardDescription>7 prochains jours</CardDescription><CardTitle className="text-2xl text-orange-600">{stats.upcoming}</CardTitle></CardHeader></Card>
-            <Card><CardHeader className="pb-2"><CardDescription>Complétés</CardDescription><CardTitle className="text-2xl text-green-600">{stats.completed}</CardTitle></CardHeader></Card>
-            <Card><CardHeader className="pb-2"><CardDescription>Manqués</CardDescription><CardTitle className="text-2xl text-red-600">{stats.missed}</CardTitle></CardHeader></Card>
+            <Card><CardHeader className="pb-2"><CardDescription>{fr ? 'En cours' : 'Pending'}</CardDescription><CardTitle className="text-2xl text-blue-600">{stats.pending}</CardTitle></CardHeader></Card>
+            <Card><CardHeader className="pb-2"><CardDescription>{fr ? '7 prochains jours' : 'Next 7 days'}</CardDescription><CardTitle className="text-2xl text-orange-600">{stats.upcoming}</CardTitle></CardHeader></Card>
+            <Card><CardHeader className="pb-2"><CardDescription>{fr ? 'Complétés' : 'Completed'}</CardDescription><CardTitle className="text-2xl text-green-600">{stats.completed}</CardTitle></CardHeader></Card>
+            <Card><CardHeader className="pb-2"><CardDescription>{fr ? 'Manqués' : 'Missed'}</CardDescription><CardTitle className="text-2xl text-red-600">{stats.missed}</CardTitle></CardHeader></Card>
           </div>
 
           {stats.upcoming > 0 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Attention:</strong> {stats.upcoming} jalon(s) arrivent à échéance dans les 7 prochains jours.
+                {fr
+                  ? <><strong>Attention :</strong> {stats.upcoming} jalon(s) arrivent à échéance dans les 7 prochains jours.</>
+                  : <><strong>Warning:</strong> {stats.upcoming} milestone(s) due in the next 7 days.</>}
               </AlertDescription>
             </Alert>
           )}
@@ -311,17 +317,17 @@ export default function MilestoneTracker() {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Jalons du Projet</CardTitle>
+                <CardTitle>{fr ? 'Jalons du Projet' : 'Project Milestones'}</CardTitle>
                 <Select value={filter} onValueChange={setFilter}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
-                    <SelectItem value="pending">En cours</SelectItem>
-                    <SelectItem value="at_risk">À risque</SelectItem>
-                    <SelectItem value="completed">Complétés</SelectItem>
-                    <SelectItem value="missed">Manqués</SelectItem>
+                    <SelectItem value="all">{fr ? 'Tous' : 'All'}</SelectItem>
+                    <SelectItem value="pending">{fr ? 'En cours' : 'Pending'}</SelectItem>
+                    <SelectItem value="at_risk">{fr ? 'À risque' : 'At risk'}</SelectItem>
+                    <SelectItem value="completed">{fr ? 'Complétés' : 'Completed'}</SelectItem>
+                    <SelectItem value="missed">{fr ? 'Manqués' : 'Missed'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -330,8 +336,8 @@ export default function MilestoneTracker() {
               {milestones.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Flag className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p>Aucun jalon trouvé</p>
-                  <Button onClick={() => openDialog()} className="mt-4"><Plus className="h-4 w-4 mr-2" />Créer un jalon</Button>
+                  <p>{fr ? 'Aucun jalon trouvé' : 'No milestones found'}</p>
+                  <Button onClick={() => openDialog()} className="mt-4"><Plus className="h-4 w-4 mr-2" />{fr ? 'Créer un jalon' : 'Create milestone'}</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -347,15 +353,15 @@ export default function MilestoneTracker() {
                               {m.is_payment_trigger && (
                                 <Badge variant="outline" className="bg-green-50">
                                   <DollarSign className="h-3 w-3 mr-1" />
-                                  Paiement: {new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(m.payment_amount || 0)}
+                                  {fr ? 'Paiement' : 'Payment'}: {new Intl.NumberFormat(locale, { style: 'currency', currency: 'CAD' }).format(m.payment_amount || 0)}
                                 </Badge>
                               )}
                             </div>
                             {m.description && <p className="text-sm text-muted-foreground mb-2">{m.description}</p>}
                             <div className="flex gap-4 text-sm">
-                              <span><strong>Échéance:</strong> {new Date(m.due_date).toLocaleDateString('fr-CA')}</span>
-                              {m.responsible_person && <span><strong>Responsable:</strong> {m.responsible_person}</span>}
-                              {m.completion_date && <span><strong>Complété:</strong> {new Date(m.completion_date).toLocaleDateString('fr-CA')}</span>}
+                              <span><strong>{fr ? 'Échéance' : 'Due'}:</strong> {new Date(m.due_date).toLocaleDateString(locale)}</span>
+                              {m.responsible_person && <span><strong>{fr ? 'Responsable' : 'Owner'}:</strong> {m.responsible_person}</span>}
+                              {m.completion_date && <span><strong>{fr ? 'Complété' : 'Completed'}:</strong> {new Date(m.completion_date).toLocaleDateString(locale)}</span>}
                             </div>
                           </div>
                           <div className="flex gap-2 ml-4">
@@ -385,68 +391,68 @@ export default function MilestoneTracker() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingMilestone ? 'Modifier le Jalon' : 'Nouveau Jalon'}</DialogTitle>
-            <DialogDescription>Définissez les détails du jalon critique</DialogDescription>
+            <DialogTitle>{editingMilestone ? (fr ? 'Modifier le Jalon' : 'Edit Milestone') : (fr ? 'Nouveau Jalon' : 'New Milestone')}</DialogTitle>
+            <DialogDescription>{fr ? 'Définissez les détails du jalon critique' : 'Define the critical milestone details'}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <Label>Nom du Jalon *</Label>
-                <Input value={formData.milestone_name} onChange={(e) => setFormData({ ...formData, milestone_name: e.target.value })} placeholder="Ex: Fin des fondations" />
+                <Label>{fr ? 'Nom du Jalon *' : 'Milestone Name *'}</Label>
+                <Input value={formData.milestone_name} onChange={(e) => setFormData({ ...formData, milestone_name: e.target.value })} placeholder={fr ? 'Ex: Fin des fondations' : 'E.g.: Foundation completion'} />
               </div>
               <div className="col-span-2">
-                <Label>Description</Label>
+                <Label>{fr ? 'Description' : 'Description'}</Label>
                 <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} />
               </div>
               <div>
-                <Label>Phase (optionnel)</Label>
+                <Label>{fr ? 'Phase (optionnel)' : 'Phase (optional)'}</Label>
                 <Select value={formData.phase_id} onValueChange={(v) => setFormData({ ...formData, phase_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Aucune phase" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={fr ? 'Aucune phase' : 'No phase'} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucune phase</SelectItem>
+                    <SelectItem value="">{fr ? 'Aucune phase' : 'No phase'}</SelectItem>
                     {phases.map(p => <SelectItem key={p.id} value={p.id}>{p.phase_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Date d'Échéance *</Label>
+                <Label>{fr ? "Date d'Échéance *" : 'Due Date *'}</Label>
                 <Input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} />
               </div>
               <div>
-                <Label>Importance</Label>
+                <Label>{fr ? 'Importance' : 'Importance'}</Label>
                 <Select value={formData.importance} onValueChange={(v) => setFormData({ ...formData, importance: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="critical">Critique</SelectItem>
-                    <SelectItem value="high">Élevée</SelectItem>
-                    <SelectItem value="medium">Moyenne</SelectItem>
-                    <SelectItem value="low">Basse</SelectItem>
+                    <SelectItem value="critical">{fr ? 'Critique' : 'Critical'}</SelectItem>
+                    <SelectItem value="high">{fr ? 'Élevée' : 'High'}</SelectItem>
+                    <SelectItem value="medium">{fr ? 'Moyenne' : 'Medium'}</SelectItem>
+                    <SelectItem value="low">{fr ? 'Basse' : 'Low'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Responsable</Label>
+                <Label>{fr ? 'Responsable' : 'Owner'}</Label>
                 <Input value={formData.responsible_person} onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })} />
               </div>
               <div className="col-span-2 flex items-center gap-2">
                 <input type="checkbox" id="payment" checked={formData.is_payment_trigger} onChange={(e) => setFormData({ ...formData, is_payment_trigger: e.target.checked })} className="h-4 w-4" />
-                <Label htmlFor="payment" className="cursor-pointer">Ce jalon déclenche un paiement</Label>
+                <Label htmlFor="payment" className="cursor-pointer">{fr ? 'Ce jalon déclenche un paiement' : 'This milestone triggers a payment'}</Label>
               </div>
               {formData.is_payment_trigger && (
                 <div>
-                  <Label>Montant du Paiement (CAD)</Label>
+                  <Label>{fr ? 'Montant du Paiement (CAD)' : 'Payment Amount (CAD)'}</Label>
                   <Input type="number" step="0.01" value={formData.payment_amount} onChange={(e) => setFormData({ ...formData, payment_amount: e.target.value })} placeholder="0.00" />
                 </div>
               )}
               <div className="col-span-2">
-                <Label>Notes</Label>
+                <Label>{fr ? 'Notes' : 'Notes'}</Label>
                 <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-            <Button onClick={saveMilestone} disabled={isLoading}>{editingMilestone ? 'Mettre à Jour' : 'Créer'}</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
+            <Button onClick={saveMilestone} disabled={isLoading}>{editingMilestone ? (fr ? 'Mettre à Jour' : 'Update') : (fr ? 'Créer' : 'Create')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
