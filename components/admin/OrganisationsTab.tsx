@@ -1,16 +1,17 @@
 'use client'
 
 /**
- * Onglet Multi-Tenant — visible uniquement aux super_admin.
- * Liste les organisations existantes + permet d'en créer en 1 clic.
+ * Onglet Multi-Tenant -- visible uniquement aux super_admin.
+ * Liste les organisations existantes + permet d'en creer en 1 clic.
  *
  * Le SELECT sur organizations passe automatiquement par RLS :
- * super_admin_all_orgs (mig 145) → Eric voit toutes les organisations.
+ * super_admin_all_orgs (mig 145) -> Eric voit toutes les organisations.
  */
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Plus, Eye, Shield, Building2, Copy, Check, AlertCircle, X, RefreshCw, ExternalLink,
   Pause, Play, Archive, Trash2, MoreVertical, TrendingUp,
@@ -45,6 +46,10 @@ interface CreateResponse {
 
 export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'error' }) => void }) {
   const { isSuperAdmin, realOrganization, switchOrg, isViewingAsOther } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const [orgs, setOrgs] = useState<Org[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -64,7 +69,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   })
   const [savingEdit, setSavingEdit] = useState(false)
 
-  // is_billable controls ARR only — alerts/status apply to any org with a renewal date
+  // is_billable controls ARR only -- alerts/status apply to any org with a renewal date
   const getPaymentStatus = (org: Org): PaymentStatus => {
     const days = daysUntilRenewal(org.next_renewal_date)
     if (days === null) return 'ok'
@@ -99,10 +104,10 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       })
       .eq('id', editOrg.id)
     setSavingEdit(false)
-    if (error) { toast({ msg: `Erreur: ${error.message}`, type: 'error' }); return }
+    if (error) { toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${error.message}`, type: 'error' }); return }
     await load()
     setEditOrg(null)
-    toast({ msg: 'Profil mis à jour.', type: 'success' })
+    toast({ msg: fr ? 'Profil mis a jour.' : 'Profile updated.', type: 'success' })
   }
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, orgId: string) => {
@@ -122,7 +127,6 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     start_date: new Date().toISOString().split('T')[0],
   })
 
-  // ─── Prix annuel SaaS — stocke dans CERDIA Globale settings.saas_pricing.annual_amount_cad ───
   const CERDIA_UUID = 'c0000000-0000-0000-0000-000000000001'
   const [annualPrice, setAnnualPrice] = useState<number>(0)
   const [editingPrice, setEditingPrice] = useState(false)
@@ -144,11 +148,10 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     const raw = priceInput.replace(',', '.')
     const newPrice = parseFloat(raw)
     if (isNaN(newPrice) || newPrice < 0) {
-      toast({ msg: 'Montant invalide.', type: 'error' })
+      toast({ msg: fr ? 'Montant invalide.' : 'Invalid amount.', type: 'error' })
       return
     }
     setSavingPrice(true)
-    // Lit settings actuel pour merger (pas écraser)
     const { data: current } = await supabase
       .from('organizations')
       .select('settings')
@@ -164,12 +167,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       .eq('id', CERDIA_UUID)
     setSavingPrice(false)
     if (error) {
-      toast({ msg: `Erreur: ${error.message}`, type: 'error' })
+      toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${error.message}`, type: 'error' })
       return
     }
     setAnnualPrice(newPrice)
     setEditingPrice(false)
-    toast({ msg: 'Prix annuel mis à jour.', type: 'success' })
+    toast({ msg: fr ? 'Prix annuel mis a jour.' : 'Annual price updated.', type: 'success' })
   }
 
   const load = useCallback(async () => {
@@ -184,27 +187,31 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   }, [])
 
   const handleRenew = async (org: Org) => {
-    if (!confirm(`Renouveler "${org.name}" pour 1 an ?\n\n(À faire après réception du paiement annuel.)`)) return
+    if (!confirm(fr
+      ? `Renouveler "${org.name}" pour 1 an ?\n\n(A faire apres reception du paiement annuel.)`
+      : `Renew "${org.name}" for 1 year?\n\n(To do after receiving the annual payment.)`)) return
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      if (!token) { toast({ msg: 'Non authentifié.', type: 'error' }); return }
+      if (!token) { toast({ msg: fr ? 'Non authentifie.' : 'Not authenticated.', type: 'error' }); return }
       const res = await fetch(`/api/admin/organizations/${org.id}/renew`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
       const json = await res.json()
       if (!res.ok) {
-        toast({ msg: `Erreur: ${json.error}`, type: 'error' })
+        toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${json.error}`, type: 'error' })
         return
       }
       await load()
       toast({
-        msg: `${org.name} renouvelé jusqu'au ${json.next_renewal}${json.reactivated ? ' (réactivé)' : ''}.`,
+        msg: fr
+          ? `${org.name} renouvele jusqu'au ${json.next_renewal}${json.reactivated ? ' (reactive)' : ''}.`
+          : `${org.name} renewed until ${json.next_renewal}${json.reactivated ? ' (reactivated)' : ''}.`,
         type: 'success',
       })
     } catch (e: any) {
-      toast({ msg: e.message || 'Erreur réseau', type: 'error' })
+      toast({ msg: e.message || (fr ? 'Erreur reseau' : 'Network error'), type: 'error' })
     }
   }
 
@@ -228,14 +235,14 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
   }
 
   const handleCreate = async () => {
-    if (!form.name.trim()) { toast({ msg: 'Nom requis.', type: 'error' }); return }
-    if (!form.admin_email.trim()) { toast({ msg: 'Email admin requis.', type: 'error' }); return }
+    if (!form.name.trim()) { toast({ msg: fr ? 'Nom requis.' : 'Name required.', type: 'error' }); return }
+    if (!form.admin_email.trim()) { toast({ msg: fr ? 'Email admin requis.' : 'Admin email required.', type: 'error' }); return }
     setCreating(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (!token) {
-        toast({ msg: 'Non authentifié.', type: 'error' })
+        toast({ msg: fr ? 'Non authentifie.' : 'Not authenticated.', type: 'error' })
         setCreating(false)
         return
       }
@@ -256,15 +263,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       })
       const json = await res.json()
       if (!res.ok) {
-        toast({ msg: `Erreur: ${json.error || res.status}`, type: 'error' })
+        toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${json.error || res.status}`, type: 'error' })
         setCreating(false)
         return
       }
       setLastCreated(json)
       await load()
-      toast({ msg: 'Organisation créée !', type: 'success' })
+      toast({ msg: fr ? 'Organisation creee !' : 'Organization created!', type: 'success' })
     } catch (e: any) {
-      toast({ msg: e.message || 'Erreur réseau', type: 'error' })
+      toast({ msg: e.message || (fr ? 'Erreur reseau' : 'Network error'), type: 'error' })
     } finally {
       setCreating(false)
     }
@@ -276,38 +283,38 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       setCopied(label)
       setTimeout(() => setCopied(null), 2000)
     } catch {
-      toast({ msg: 'Impossible de copier.', type: 'error' })
+      toast({ msg: fr ? 'Impossible de copier.' : 'Unable to copy.', type: 'error' })
     }
   }
 
   const updateStatus = async (org: Org, newStatus: 'active' | 'suspended' | 'archived') => {
-    const labels: Record<string, string> = {
-      active: 'réactiver', suspended: 'suspendre', archived: 'archiver',
-    }
-    if (!confirm(`Voulez-vous ${labels[newStatus]} "${org.name}" ?`)) return
+    const frLabels: Record<string, string> = { active: 'reactiver', suspended: 'suspendre', archived: 'archiver' }
+    const enLabels: Record<string, string> = { active: 'reactivate', suspended: 'suspend', archived: 'archive' }
+    const lbl = fr ? frLabels[newStatus] : enLabels[newStatus]
+    if (!confirm(fr ? `Voulez-vous ${lbl} "${org.name}" ?` : `Do you want to ${lbl} "${org.name}"?`)) return
     const { error } = await supabase
       .from('organizations')
       .update({ status: newStatus })
       .eq('id', org.id)
     if (error) {
-      toast({ msg: `Erreur: ${error.message}`, type: 'error' })
+      toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${error.message}`, type: 'error' })
       return
     }
     await load()
-    toast({ msg: `Organisation ${labels[newStatus]}e.`, type: 'success' })
+    toast({ msg: fr ? `Organisation ${lbl}e.` : `Organization ${lbl}d.`, type: 'success' })
   }
 
   const handleDelete = async (org: Org) => {
     if (org.plan === 'internal') {
-      toast({ msg: 'Le tenant interne CERDIA ne peut pas être supprimé.', type: 'error' })
+      toast({ msg: fr ? 'Le tenant interne CERDIA ne peut pas etre supprime.' : 'The internal CERDIA tenant cannot be deleted.', type: 'error' })
       return
     }
-    const confirmName = window.prompt(
-      `⚠️ SUPPRESSION DÉFINITIVE (cascade)\n\nTape exactement le nom pour confirmer :\n"${org.name}"\n\n` +
-      `Le tenant + son user admin seront supprimés. Si l'organisation a des données (propriétés, transactions, etc.), la suppression sera refusée — utilise "Archiver" à la place.`
-    )
+    const confirmMsg = fr
+      ? `SUPPRESSION DEFINITIVE (cascade)\n\nTape exactement le nom pour confirmer :\n"${org.name}"\n\nLe tenant + son user admin seront supprimes. Si l'organisation a des donnees (proprietes, transactions, etc.), la suppression sera refusee -- utilise "Archiver" a la place.`
+      : `PERMANENT DELETION (cascade)\n\nType the exact name to confirm:\n"${org.name}"\n\nThe tenant + admin user will be deleted. If the organization has data (properties, transactions, etc.), deletion will be refused -- use "Archive" instead.`
+    const confirmName = window.prompt(confirmMsg)
     if (confirmName !== org.name) {
-      if (confirmName !== null) toast({ msg: 'Nom incorrect, suppression annulée.', type: 'error' })
+      if (confirmName !== null) toast({ msg: fr ? 'Nom incorrect, suppression annulee.' : 'Incorrect name, deletion cancelled.', type: 'error' })
       return
     }
 
@@ -319,7 +326,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (!token) {
-        toast({ msg: 'Non authentifié.', type: 'error' })
+        toast({ msg: fr ? 'Non authentifie.' : 'Not authenticated.', type: 'error' })
         return
       }
       const url = `/api/admin/organizations/${org.id}${force ? '?force=true' : ''}`
@@ -330,20 +337,18 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       const json = await res.json()
       if (!res.ok) {
         if (res.status === 409 && json.tables) {
-          // Propose le cascade force
           const tablesList = json.tables.join('\n  - ')
-          const confirmCascade = window.confirm(
-            `⚠️ "${org.name}" a des données liées :\n\n  - ${tablesList}\n\n` +
-            `Veux-tu TOUT supprimer définitivement en cascade ?\n` +
-            `(toutes ces données + le tenant + l'utilisateur admin)`
-          )
+          const cascadeMsg = fr
+            ? `"${org.name}" a des donnees liees :\n\n  - ${tablesList}\n\nVeux-tu TOUT supprimer definitivement en cascade ?\n(toutes ces donnees + le tenant + l'utilisateur admin)`
+            : `"${org.name}" has linked data:\n\n  - ${tablesList}\n\nDo you want to permanently delete EVERYTHING in cascade?\n(all this data + the tenant + the admin user)`
+          const confirmCascade = window.confirm(cascadeMsg)
           if (confirmCascade) {
             await doDelete(org, true)
           } else {
-            toast({ msg: 'Suppression annulée. Tu peux archiver à la place.', type: 'error' })
+            toast({ msg: fr ? 'Suppression annulee. Tu peux archiver a la place.' : 'Deletion cancelled. You can archive instead.', type: 'error' })
           }
         } else {
-          toast({ msg: `Erreur: ${json.error || res.status}${json.detail ? ' — ' + json.detail : ''}`, type: 'error' })
+          toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${json.error || res.status}${json.detail ? ' -- ' + json.detail : ''}`, type: 'error' })
         }
         return
       }
@@ -351,9 +356,9 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       const cascadedMsg = json.cascade?.length
         ? ` + ${json.cascade.reduce((s: number, c: any) => s + c.deleted, 0)} rows cascade`
         : ''
-      toast({ msg: `${org.name} supprimée (${json.profiles_removed} user${json.profiles_removed !== 1 ? 's' : ''}${cascadedMsg}).`, type: 'success' })
+      toast({ msg: `${org.name} ${fr ? 'supprimee' : 'deleted'} (${json.profiles_removed} user${json.profiles_removed !== 1 ? 's' : ''}${cascadedMsg}).`, type: 'success' })
     } catch (e: any) {
-      toast({ msg: e.message || 'Erreur réseau', type: 'error' })
+      toast({ msg: e.message || (fr ? 'Erreur reseau' : 'Network error'), type: 'error' })
     }
   }
 
@@ -361,9 +366,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
         <Shield size={32} className="text-gray-400 mx-auto mb-3" />
-        <h3 className="font-bold text-gray-900 dark:text-white mb-2">Accès super_admin requis</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+          {fr ? 'Acces super_admin requis' : 'super_admin access required'}
+        </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Cet onglet est réservé aux administrateurs CERDIA pour gérer les organisations clients.
+          {fr
+            ? "Cet onglet est reserve aux administrateurs CERDIA pour gerer les organisations clients."
+            : "This tab is reserved for CERDIA administrators to manage client organizations."}
         </p>
       </div>
     )
@@ -376,10 +385,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Building2 size={22} className="text-purple-600" />
-            Organisations
+            {fr ? 'Organisations' : 'Organizations'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Gère les tenants SaaS de la plateforme. {orgs.length} organisation{orgs.length > 1 ? 's' : ''}.
+            {fr
+              ? `Gere les tenants SaaS de la plateforme. ${orgs.length} organisation${orgs.length > 1 ? 's' : ''}.`
+              : `Manage the platform SaaS tenants. ${orgs.length} organization${orgs.length !== 1 ? 's' : ''}.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -387,15 +398,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
             onClick={load}
             className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            <RefreshCw size={14} /> Rafraîchir
+            <RefreshCw size={14} /> {fr ? 'Rafraichir' : 'Refresh'}
           </button>
           <button
             onClick={() => { resetForm(); setShowForm(true) }}
             disabled={annualPrice <= 0}
-            title={annualPrice <= 0 ? 'Définis d\'abord le prix annuel ci-dessous' : ''}
+            title={annualPrice <= 0 ? (fr ? "Definis d'abord le prix annuel ci-dessous" : 'Set the annual price below first') : ''}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus size={14} /> Nouvelle organisation
+            <Plus size={14} /> {fr ? 'Nouvelle organisation' : 'New organization'}
           </button>
         </div>
       </div>
@@ -406,14 +417,16 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         const divisor = revPeriod === 'year' ? 1 : revPeriod === 'month' ? 12 : 365
         const perOrg = annualPrice > 0 ? annualPrice / divisor : 0
         const total = perOrg * payingOrgs.length
-        const fmt = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-        const periodLabel = revPeriod === 'year' ? 'annuel' : revPeriod === 'month' ? 'mensuel' : 'quotidien'
+        const fmtNum = (n: number) => n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        const periodLabel = fr
+          ? (revPeriod === 'year' ? 'annuel' : revPeriod === 'month' ? 'mensuel' : 'quotidien')
+          : (revPeriod === 'year' ? 'annual' : revPeriod === 'month' ? 'monthly' : 'daily')
         return (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <TrendingUp size={18} className="text-emerald-600" />
-                Revenus SaaS
+                {fr ? 'Revenus SaaS' : 'SaaS Revenue'}
               </h3>
               <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 {(['day', 'month', 'year'] as const).map(p => (
@@ -426,7 +439,11 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
-                    {p === 'day' ? 'Quotidien' : p === 'month' ? 'Mensuel' : 'Annuel'}
+                    {p === 'day'
+                      ? (fr ? 'Quotidien' : 'Daily')
+                      : p === 'month'
+                      ? (fr ? 'Mensuel' : 'Monthly')
+                      : (fr ? 'Annuel' : 'Annual')}
                   </button>
                 ))}
               </div>
@@ -435,20 +452,21 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <div className="sm:col-span-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4">
                 <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
-                  Revenu {periodLabel} total
+                  {fr ? `Revenu ${periodLabel} total` : `Total ${periodLabel} revenue`}
                 </p>
                 <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
-                  {annualPrice > 0 ? `${fmt(total)} CAD` : <span className="text-base font-medium text-amber-600">Prix non défini</span>}
+                  {annualPrice > 0 ? `${fmtNum(total)} CAD` : <span className="text-base font-medium text-amber-600">{fr ? 'Prix non defini' : 'Price not set'}</span>}
                 </p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                  {payingOrgs.length} tenant{payingOrgs.length !== 1 ? 's' : ''} payant{payingOrgs.length !== 1 ? 's' : ''}
-                  {annualPrice > 0 && ` × ${fmt(perOrg)} CAD`}
+                  {fr
+                    ? `${payingOrgs.length} tenant${payingOrgs.length !== 1 ? 's' : ''} payant${payingOrgs.length !== 1 ? 's' : ''}${annualPrice > 0 ? ` x ${fmtNum(perOrg)} CAD` : ''}`
+                    : `${payingOrgs.length} paying tenant${payingOrgs.length !== 1 ? 's' : ''}${annualPrice > 0 ? ` x ${fmtNum(perOrg)} CAD` : ''}`}
                 </p>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ARR</p>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
-                  {annualPrice > 0 ? `${fmt(annualPrice * payingOrgs.length)} CAD` : '—'}
+                  {annualPrice > 0 ? `${fmtNum(annualPrice * payingOrgs.length)} CAD` : '—'}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Annual recurring revenue</p>
               </div>
@@ -459,8 +477,8 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                 {payingOrgs.map(org => {
                   const days = daysUntilRenewal(org.next_renewal_date)
                   const renewalBadge = days === null ? null
-                    : days < 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded">{Math.abs(days)}j retard</span>
-                    : days <= 60 ? <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">dans {days}j</span>
+                    : days < 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded">{Math.abs(days)}{fr ? 'j retard' : 'd late'}</span>
+                    : days <= 60 ? <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">{fr ? `dans ${days}j` : `in ${days}d`}</span>
                     : null
                   return (
                     <div key={org.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
@@ -480,20 +498,22 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                         </div>
                       </div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0 ml-3">
-                        {annualPrice > 0 ? `${fmt(perOrg)} CAD` : '—'}
+                        {annualPrice > 0 ? `${fmtNum(perOrg)} CAD` : '—'}
                       </p>
                     </div>
                   )
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-3">Aucun tenant payant actif.</p>
+              <p className="text-sm text-gray-400 text-center py-3">
+                {fr ? 'Aucun tenant payant actif.' : 'No active paying tenants.'}
+              </p>
             )}
           </div>
         )
       })()}
 
-      {/* Prix annuel SaaS — éditable par super_admin (stocké dans CERDIA Globale settings) */}
+      {/* Prix annuel SaaS */}
       <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -501,9 +521,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               <Building2 size={18} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-purple-900 dark:text-purple-200">Plateforme Multi-Tenant Organisation</p>
+              <p className="text-sm font-semibold text-purple-900 dark:text-purple-200">
+                {fr ? 'Plateforme Multi-Tenant Organisation' : 'Multi-Tenant Organization Platform'}
+              </p>
               <p className="text-xs text-purple-700 dark:text-purple-300">
-                Prix annuel appliqué à chaque nouvelle organisation créée.
+                {fr
+                  ? "Prix annuel applique a chaque nouvelle organisation creee."
+                  : "Annual price applied to each new organization created."}
               </p>
             </div>
           </div>
@@ -520,22 +544,24 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               />
               <span className="text-sm text-purple-700 dark:text-purple-300">CAD/an</span>
               <button onClick={savePrice} disabled={savingPrice} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium disabled:opacity-50">
-                {savingPrice ? '...' : 'Enregistrer'}
+                {savingPrice ? '...' : (fr ? 'Enregistrer' : 'Save')}
               </button>
               <button onClick={() => { setEditingPrice(false); setPriceInput(annualPrice > 0 ? String(annualPrice) : '') }} className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                Annuler
+                {fr ? 'Annuler' : 'Cancel'}
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
               <span className="text-2xl font-bold text-purple-900 dark:text-purple-200">
-                {annualPrice > 0 ? `${annualPrice.toFixed(2)} CAD/an` : <span className="text-amber-600 text-base font-medium">Non défini</span>}
+                {annualPrice > 0
+                  ? `${annualPrice.toFixed(2)} CAD/an`
+                  : <span className="text-amber-600 text-base font-medium">{fr ? 'Non defini' : 'Not set'}</span>}
               </span>
               <button
                 onClick={() => setEditingPrice(true)}
                 className="px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/40 transition-colors"
               >
-                {annualPrice > 0 ? 'Modifier' : 'Définir'}
+                {annualPrice > 0 ? (fr ? 'Modifier' : 'Edit') : (fr ? 'Definir' : 'Set')}
               </button>
             </div>
           )}
@@ -554,10 +580,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
                 <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-amber-800 dark:text-amber-200">
-                  <span className="font-semibold">Facture à envoyer dans les 60 prochains jours :</span>{' '}
+                  <span className="font-semibold">
+                    {fr ? 'Facture a envoyer dans les 60 prochains jours :' : 'Invoice to send within 60 days:'}
+                  </span>{' '}
                   {invoiceDue.map(o => {
                     const d = daysUntilRenewal(o.next_renewal_date)
-                    return `${o.name} (dans ${d}j)`
+                    return fr ? `${o.name} (dans ${d}j)` : `${o.name} (in ${d}d)`
                   }).join(' · ')}
                 </div>
               </div>
@@ -566,10 +594,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               <div className="flex items-start gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl">
                 <AlertCircle size={16} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-orange-800 dark:text-orange-200">
-                  <span className="font-semibold">Paiement en attente (période de grâce) :</span>{' '}
+                  <span className="font-semibold">
+                    {fr ? 'Paiement en attente (periode de grace) :' : 'Payment pending (grace period):'}
+                  </span>{' '}
                   {grace.map(o => {
                     const d = daysUntilRenewal(o.next_renewal_date)
-                    return `${o.name} (${Math.abs(d!)}j retard)`
+                    return fr ? `${o.name} (${Math.abs(d!)}j retard)` : `${o.name} (${Math.abs(d!)}d late)`
                   }).join(' · ')}
                 </div>
               </div>
@@ -578,10 +608,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               <div className="flex items-start gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
                 <AlertCircle size={16} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 text-xs text-red-800 dark:text-red-200">
-                  <span className="font-semibold">Suspension recommandée — retard de plus de 30 jours :</span>{' '}
+                  <span className="font-semibold">
+                    {fr ? 'Suspension recommandee -- retard de plus de 30 jours :' : 'Suspension recommended -- more than 30 days late:'}
+                  </span>{' '}
                   {overdue.map(o => {
                     const d = daysUntilRenewal(o.next_renewal_date)
-                    return `${o.name} (${Math.abs(d!)}j retard)`
+                    return fr ? `${o.name} (${Math.abs(d!)}j retard)` : `${o.name} (${Math.abs(d!)}d late)`
                   }).join(' · ')}
                   {overdue.some(o => o.status === 'active') && (
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -591,7 +623,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                           onClick={() => updateStatus(o, 'suspended')}
                           className="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                         >
-                          Bloquer {o.name}
+                          {fr ? `Bloquer ${o.name}` : `Block ${o.name}`}
                         </button>
                       ))}
                     </div>
@@ -606,18 +638,18 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       {/* Liste */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-500">Chargement…</div>
+          <div className="p-8 text-center text-sm text-gray-500">{fr ? 'Chargement...' : 'Loading...'}</div>
         ) : orgs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">Aucune organisation.</div>
+          <div className="p-8 text-center text-sm text-gray-500">{fr ? 'Aucune organisation.' : 'No organizations.'}</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Organisation</th>
+                <th className="text-left px-4 py-3 font-medium">{fr ? 'Organisation' : 'Organization'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Plan</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Status</th>
-                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Prochain renouvellement</th>
-                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Créée le</th>
+                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Prochain renouvellement' : 'Next renewal'}</th>
+                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Creee le' : 'Created'}</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
@@ -639,7 +671,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 dark:text-white truncate flex items-center gap-1.5">
                             {org.name}
-                            {isReal && <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">Vous</span>}
+                            {isReal && <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{fr ? 'Vous' : 'You'}</span>}
                             {org.is_demo && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">DEMO</span>}
                           </p>
                           {org.slug && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{org.slug}</p>}
@@ -654,7 +686,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
-                                  title="Ouvrir la démo dans un nouvel onglet"
+                                  title={fr ? 'Ouvrir la demo dans un nouvel onglet' : 'Open demo in a new tab'}
                                 >
                                   {demoUrl.replace(/^https?:\/\//, '')}
                                 </a>
@@ -662,9 +694,11 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                                   type="button"
                                   onClick={() => handleCopy(demoUrl, `demo-url-${org.id}`)}
                                   className="text-xs px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded inline-flex items-center gap-1"
-                                  title="Copier le lien à partager"
+                                  title={fr ? 'Copier le lien a partager' : 'Copy shareable link'}
                                 >
-                                  {copied === `demo-url-${org.id}` ? <><Check size={10} /> Copié</> : <><Copy size={10} /> Copier</>}
+                                  {copied === `demo-url-${org.id}`
+                                    ? <><Check size={10} /> {fr ? 'Copie' : 'Copied'}</>
+                                    : <><Copy size={10} /> {fr ? 'Copier' : 'Copy'}</>}
                                 </button>
                               </div>
                             )
@@ -686,31 +720,39 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     </td>
                     <td className="px-4 py-3 text-xs hidden lg:table-cell">
                       {(() => {
-                        if (!org.next_renewal_date) return <span className="text-gray-400">Non défini</span>
+                        if (!org.next_renewal_date) return <span className="text-gray-400">{fr ? 'Non defini' : 'Not set'}</span>
                         const days = daysUntilRenewal(org.next_renewal_date)
                         const ps = getPaymentStatus(org)
-                        const dateStr = new Date(org.next_renewal_date).toLocaleDateString('fr-CA')
+                        const dateStr = new Date(org.next_renewal_date).toLocaleDateString(locale)
                         return (
                           <div className="space-y-1">
                             <span className="text-gray-700 dark:text-gray-300">{dateStr}</span>
                             {ps === 'ok' && days !== null && (
-                              <div><span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 rounded text-xs">dans {days}j</span></div>
+                              <div><span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 rounded text-xs">
+                                {fr ? `dans ${days}j` : `in ${days}d`}
+                              </span></div>
                             )}
                             {ps === 'invoice_due' && (
-                              <div><span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded text-xs">Envoyer facture — {days}j</span></div>
+                              <div><span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded text-xs">
+                                {fr ? `Envoyer facture -- ${days}j` : `Send invoice -- ${days}d`}
+                              </span></div>
                             )}
                             {ps === 'grace' && (
-                              <div><span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded text-xs">En attente — {Math.abs(days!)}j retard</span></div>
+                              <div><span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded text-xs">
+                                {fr ? `En attente -- ${Math.abs(days!)}j retard` : `Pending -- ${Math.abs(days!)}d late`}
+                              </span></div>
                             )}
                             {ps === 'overdue_block' && (
                               <div className="flex items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded text-xs font-semibold">{Math.abs(days!)}j retard</span>
+                                <span className="px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded text-xs font-semibold">
+                                  {fr ? `${Math.abs(days!)}j retard` : `${Math.abs(days!)}d late`}
+                                </span>
                                 {org.status === 'active' && (
                                   <button
                                     onClick={() => updateStatus(org, 'suspended')}
                                     className="px-1.5 py-0.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
                                   >
-                                    Bloquer
+                                    {fr ? 'Bloquer' : 'Block'}
                                   </button>
                                 )}
                               </div>
@@ -720,7 +762,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                       })()}
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
-                      {new Date(org.created_at).toLocaleDateString('fr-CA')}
+                      {new Date(org.created_at).toLocaleDateString(locale)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -739,7 +781,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         )}
       </div>
 
-      {/* Dropdown actions — rendu en fixed pour échapper au overflow-hidden de la table */}
+      {/* Dropdown actions -- rendu en fixed pour echapper au overflow-hidden de la table */}
       {openMenuId && menuPos && (() => {
         const org = orgs.find(o => o.id === openMenuId)
         if (!org) return null
@@ -755,21 +797,21 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                 onClick={() => { closeMenu(); openEditOrg(org) }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
               >
-                <Building2 size={12} /> Modifier profil
+                <Building2 size={12} /> {fr ? 'Modifier profil' : 'Edit profile'}
               </button>
               <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
               <button
                 onClick={() => { closeMenu(); handleRenew(org) }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <RefreshCw size={12} /> Renouveler
+                <RefreshCw size={12} /> {fr ? 'Renouveler' : 'Renew'}
               </button>
               {!isReal && (
                 <button
                   onClick={() => { closeMenu(); switchOrg(org.id) }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                 >
-                  <Eye size={12} /> Voir
+                  <Eye size={12} /> {fr ? 'Voir' : 'View'}
                 </button>
               )}
               {org.status === 'active' && (
@@ -777,7 +819,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                   onClick={() => { closeMenu(); updateStatus(org, 'suspended') }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                 >
-                  <Pause size={12} /> Suspendre
+                  <Pause size={12} /> {fr ? 'Suspendre' : 'Suspend'}
                 </button>
               )}
               {org.status === 'suspended' && (
@@ -785,7 +827,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                   onClick={() => { closeMenu(); updateStatus(org, 'active') }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                 >
-                  <Play size={12} /> Réactiver
+                  <Play size={12} /> {fr ? 'Reactiver' : 'Reactivate'}
                 </button>
               )}
               {org.status !== 'archived' && (
@@ -793,7 +835,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                   onClick={() => { closeMenu(); updateStatus(org, 'archived') }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <Archive size={12} /> Archiver
+                  <Archive size={12} /> {fr ? 'Archiver' : 'Archive'}
                 </button>
               )}
               {org.plan !== 'internal' && (
@@ -803,7 +845,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     onClick={() => { closeMenu(); handleDelete(org) }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
-                    <Trash2 size={12} /> Supprimer
+                    <Trash2 size={12} /> {fr ? 'Supprimer' : 'Delete'}
                   </button>
                 </>
               )}
@@ -812,14 +854,14 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         )
       })()}
 
-      {/* Modal — modifier profil org */}
+      {/* Modal -- modifier profil org */}
       {editOrg && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => !savingEdit && setEditOrg(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 my-8 w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Building2 size={16} className="text-purple-600" />
-                Profil — {editOrg.name}
+                {fr ? 'Profil --' : 'Profile --'} {editOrg.name}
               </h3>
               <button onClick={() => setEditOrg(null)} disabled={savingEdit} className="text-gray-400 hover:text-gray-700">
                 <X size={18} />
@@ -827,12 +869,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
             </div>
 
             <div className="space-y-4">
-              {/* Infos client */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Contact de facturation</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  {fr ? 'Contact de facturation' : 'Billing contact'}
+                </p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom du contact</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Nom du contact' : 'Contact name'}
+                    </label>
                     <input
                       type="text"
                       value={editForm.contact_name}
@@ -842,21 +887,25 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email de facturation</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Email de facturation' : 'Billing email'}
+                    </label>
                     <input
                       type="email"
                       value={editForm.contact_email}
                       onChange={e => setEditForm(f => ({ ...f, contact_email: e.target.value }))}
-                      placeholder="facturation@client.com"
+                      placeholder={fr ? 'facturation@client.com' : 'billing@client.com'}
                       className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adresse de facturation</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Adresse de facturation' : 'Billing address'}
+                    </label>
                     <textarea
                       value={editForm.billing_address}
                       onChange={e => setEditForm(f => ({ ...f, billing_address: e.target.value }))}
-                      placeholder={'123 rue Principale\nMontréal, QC H2X 1Y5\nCanada'}
+                      placeholder={'123 rue Principale\nMontreal, QC H2X 1Y5\nCanada'}
                       rows={3}
                       className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
                     />
@@ -865,9 +914,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               </div>
 
               <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Renouvellement</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  {fr ? 'Renouvellement' : 'Renewal'}
+                </p>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de prochain paiement</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {fr ? 'Date de prochain paiement' : 'Next payment date'}
+                  </label>
                   <input
                     type="date"
                     value={editForm.next_renewal_date}
@@ -878,16 +931,18 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     const days = daysUntilRenewal(editForm.next_renewal_date)
                     if (days === null) return null
                     const abs = Math.abs(days)
-                    if (days > 60) return <p className="text-xs text-emerald-600 mt-1">Dans {days} jours</p>
-                    if (days >= 0) return <p className="text-xs text-amber-600 mt-1">Dans {days} jours — envoyer la facture</p>
-                    if (days >= -30) return <p className="text-xs text-orange-600 mt-1">{abs} jours de retard — période de grâce</p>
-                    return <p className="text-xs text-red-600 font-semibold mt-1">{abs} jours de retard — suspendre le tenant</p>
+                    if (days > 60) return <p className="text-xs text-emerald-600 mt-1">{fr ? `Dans ${days} jours` : `In ${days} days`}</p>
+                    if (days >= 0) return <p className="text-xs text-amber-600 mt-1">{fr ? `Dans ${days} jours -- envoyer la facture` : `In ${days} days -- send the invoice`}</p>
+                    if (days >= -30) return <p className="text-xs text-orange-600 mt-1">{fr ? `${abs} jours de retard -- periode de grace` : `${abs} days late -- grace period`}</p>
+                    return <p className="text-xs text-red-600 font-semibold mt-1">{fr ? `${abs} jours de retard -- suspendre le tenant` : `${abs} days late -- suspend the tenant`}</p>
                   })()}
                 </div>
               </div>
 
               <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Facturation SaaS</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  {fr ? 'Facturation SaaS' : 'SaaS billing'}
+                </p>
                 <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <input
                     type="checkbox"
@@ -896,15 +951,21 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     className="mt-0.5 w-4 h-4 accent-purple-600"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Facturable</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {fr ? 'Facturable' : 'Billable'}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Inclure dans le calcul ARR et le dashboard revenus. Désactiver pour les démos, comptes internes, ou périodes d'essai.
+                      {fr
+                        ? "Inclure dans le calcul ARR et le dashboard revenus. Desactiver pour les demos, comptes internes, ou periodes d'essai."
+                        : "Include in ARR calculation and revenue dashboard. Disable for demos, internal accounts, or trial periods."}
                     </p>
                   </div>
                 </label>
                 {!editForm.is_billable && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 px-1">
-                    Ce tenant ne sera plus comptabilisé dans l'ARR.
+                    {fr
+                      ? "Ce tenant ne sera plus comptabilise dans l'ARR."
+                      : "This tenant will no longer be counted in the ARR."}
                   </p>
                 )}
               </div>
@@ -912,115 +973,151 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
 
             <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
               <button onClick={() => setEditOrg(null)} disabled={savingEdit} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300">
-                Annuler
+                {fr ? 'Annuler' : 'Cancel'}
               </button>
               <button onClick={saveOrgProfile} disabled={savingEdit} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl disabled:opacity-50 flex items-center gap-2">
                 {savingEdit ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-                {savingEdit ? 'Enregistrement…' : 'Enregistrer'}
+                {savingEdit ? (fr ? 'Enregistrement...' : 'Saving...') : (fr ? 'Enregistrer' : 'Save')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal — création */}
+      {/* Modal -- creation */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => !creating && setShowForm(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 my-8 w-full max-w-2xl" onClick={e => e.stopPropagation()}>
             {lastCreated ? (
-              // Mode "résultat" : montre le magic link + mot de passe
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <Check size={18} /> Organisation créée
+                    <Check size={18} /> {fr ? 'Organisation creee' : 'Organization created'}
                   </h3>
                   <button onClick={() => { setLastCreated(null); setShowForm(false) }} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
                 </div>
                 <div className="space-y-4 text-sm">
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400 mb-1">Organisation :</p>
+                    <p className="text-gray-600 dark:text-gray-400 mb-1">{fr ? 'Organisation :' : 'Organization:'}</p>
                     <p className="font-semibold">{lastCreated.organization.name}</p>
                   </div>
                   <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
                     <p className="font-semibold text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-1">
-                      <AlertCircle size={14} /> Partage ces infos au client (à ne montrer qu'une fois)
+                      <AlertCircle size={14} />
+                      {fr
+                        ? "Partage ces infos au client (a ne montrer qu'une fois)"
+                        : "Share this info with the client (show only once)"}
                     </p>
                     {lastCreated.magic_link && (
                       <div className="mb-3">
-                        <label className="text-xs text-gray-600 dark:text-gray-400">Magic link (recommandé)</label>
+                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                          {fr ? 'Magic link (recommande)' : 'Magic link (recommended)'}
+                        </label>
                         <div className="flex items-center gap-2 mt-1">
                           <input type="text" readOnly value={lastCreated.magic_link} className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg font-mono" />
                           <button onClick={() => handleCopy(lastCreated.magic_link!, 'link')} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs flex items-center gap-1">
-                            {copied === 'link' ? <><Check size={12} /> Copié</> : <><Copy size={12} /> Copier</>}
+                            {copied === 'link'
+                              ? <><Check size={12} /> {fr ? 'Copie' : 'Copied'}</>
+                              : <><Copy size={12} /> {fr ? 'Copier' : 'Copy'}</>}
                           </button>
                         </div>
                       </div>
                     )}
                     <div>
-                      <label className="text-xs text-gray-600 dark:text-gray-400">Mot de passe temporaire (alternatif)</label>
+                      <label className="text-xs text-gray-600 dark:text-gray-400">
+                        {fr ? 'Mot de passe temporaire (alternatif)' : 'Temporary password (alternative)'}
+                      </label>
                       <div className="flex items-center gap-2 mt-1">
                         <input type="text" readOnly value={lastCreated.temp_password} className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg font-mono" />
                         <button onClick={() => handleCopy(lastCreated.temp_password, 'pwd')} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs flex items-center gap-1">
-                          {copied === 'pwd' ? <><Check size={12} /> Copié</> : <><Copy size={12} /> Copier</>}
+                          {copied === 'pwd'
+                            ? <><Check size={12} /> {fr ? 'Copie' : 'Copied'}</>
+                            : <><Copy size={12} /> {fr ? 'Copier' : 'Copy'}</>}
                         </button>
                       </div>
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <button onClick={() => { setLastCreated(null); resetForm() }} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl">Créer une autre</button>
-                    <button onClick={() => { setLastCreated(null); setShowForm(false) }} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl">Terminé</button>
+                    <button onClick={() => { setLastCreated(null); resetForm() }} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl">
+                      {fr ? 'Creer une autre' : 'Create another'}
+                    </button>
+                    <button onClick={() => { setLastCreated(null); setShowForm(false) }} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl">
+                      {fr ? 'Termine' : 'Done'}
+                    </button>
                   </div>
                 </div>
               </>
             ) : (
-              // Mode "formulaire"
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Nouvelle organisation</h3>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    {fr ? 'Nouvelle organisation' : 'New organization'}
+                  </h3>
                   <button onClick={() => setShowForm(false)} disabled={creating} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom de l'organisation *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? "Nom de l'organisation *" : 'Organization name *'}
+                    </label>
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="ACME Holdings inc." value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Slug (URL-friendly)</label>
-                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="acme (auto si vide)" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
+                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder={fr ? 'acme (auto si vide)' : 'acme (auto if empty)'} value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de début</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Date de debut' : 'Start date'}
+                    </label>
                     <input type="date" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email admin *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Email admin *' : 'Admin email *'}
+                    </label>
                     <input type="email" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="boss@acme.com" value={form.admin_email} onChange={e => setForm(f => ({ ...f, admin_email: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom de l'admin</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? "Nom de l'admin" : "Admin's name"}
+                    </label>
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="Jean Tremblay" value={form.admin_full_name} onChange={e => setForm(f => ({ ...f, admin_full_name: e.target.value }))} />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo URL (optionnel — fallback CERDIA si vide)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {fr ? 'Logo URL (optionnel -- fallback CERDIA si vide)' : 'Logo URL (optional -- CERDIA fallback if empty)'}
+                    </label>
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="https://..." value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} />
                   </div>
                   <div className="sm:col-span-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl">
                     <p className="text-xs text-purple-900 dark:text-purple-200">
-                      <strong>Prix annuel appliqué :</strong> {annualPrice > 0 ? `${annualPrice.toFixed(2)} CAD/an` : 'NON DÉFINI'}
-                      {annualPrice <= 0 && <span className="text-amber-700 dark:text-amber-300"> ⚠️ Définis-le d'abord ci-dessus dans le header.</span>}
+                      <strong>{fr ? 'Prix annuel applique :' : 'Applied annual price:'}</strong>{' '}
+                      {annualPrice > 0 ? `${annualPrice.toFixed(2)} CAD/an` : (fr ? 'NON DEFINI' : 'NOT SET')}
+                      {annualPrice <= 0 && (
+                        <span className="text-amber-700 dark:text-amber-300">
+                          {fr ? " Definis-le d'abord ci-dessus dans le header." : " Set it above in the header first."}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <button onClick={() => setShowForm(false)} disabled={creating} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl">Annuler</button>
+                  <button onClick={() => setShowForm(false)} disabled={creating} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl">
+                    {fr ? 'Annuler' : 'Cancel'}
+                  </button>
                   <button onClick={handleCreate} disabled={creating} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl disabled:opacity-50 flex items-center gap-2">
                     {creating ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                    {creating ? 'Création…' : 'Créer en 1 clic'}
+                    {creating ? (fr ? 'Creation...' : 'Creating...') : (fr ? 'Creer en 1 clic' : 'Create in 1 click')}
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 flex items-start gap-2">
                   <ExternalLink size={12} className="mt-0.5 flex-shrink-0" />
-                  <span>La facturation annuelle automatique (rappel 60j + suspension 30j après échéance) sera ajoutée en Phase 3.3. Pour l'instant, le montant et la date sont stockés dans <code className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">organizations.settings.billing</code>.</span>
+                  <span>
+                    {fr
+                      ? <>La facturation annuelle automatique (rappel 60j + suspension 30j apres echeance) sera ajoutee en Phase 3.3. Pour l'instant, le montant et la date sont stockes dans <code className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">organizations.settings.billing</code>.</>
+                      : <>Automatic annual billing (60d reminder + 30d post-due suspension) will be added in Phase 3.3. For now, the amount and date are stored in <code className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">organizations.settings.billing</code>.</>}
+                  </span>
                 </p>
               </>
             )}
