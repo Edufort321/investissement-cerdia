@@ -223,186 +223,174 @@ export default function PortfolioTab() {
   const photoItems = items.filter(i => i.type === 'photo')
   const linkItems = items.filter(i => i.type === 'link')
 
-  const exportPDF = async (profile: Profile) => {
-    const pubUrl = publicUrl(profile)
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+  const exportPDF = (profile: Profile) => {
+    try {
+      const pubUrl = publicUrl(profile)
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+      const W = 215.9, H = 279.4
 
-    // Background
-    doc.setFillColor(15, 15, 20)
-    doc.rect(0, 0, 216, 280, 'F')
+      // ── Background sombre ──
+      doc.setFillColor(12, 10, 22)
+      doc.rect(0, 0, W, H, 'F')
 
-    // Accent line top
-    doc.setDrawColor(219, 39, 119)
-    doc.setLineWidth(0.8)
-    doc.line(20, 18, 196, 18)
+      // Gradient top accent band
+      doc.setFillColor(80, 0, 100)
+      doc.rect(0, 0, W, 8, 'F')
+      doc.setFillColor(150, 20, 80)
+      doc.rect(0, 0, W, 3, 'F')
 
-    // Name
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(28)
-    doc.setTextColor(255, 255, 255)
-    doc.text(profile.name, 108, 32, { align: 'center' })
+      let y = 22
 
-    // Tagline
-    if (profile.tagline) {
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(11)
-      doc.setTextColor(244, 114, 182)
-      doc.text(profile.tagline.toUpperCase(), 108, 40, { align: 'center' })
-    }
-
-    // Location
-    if (profile.location) {
-      doc.setFontSize(9)
-      doc.setTextColor(120, 120, 140)
-      doc.text(profile.location, 108, 47, { align: 'center' })
-    }
-
-    // Separator
-    doc.setDrawColor(80, 20, 120)
-    doc.setLineWidth(0.3)
-    doc.line(60, 52, 156, 52)
-
-    let y = 58
-
-    // Bio
-    if (profile.bio) {
-      doc.setFont('helvetica', 'italic')
-      doc.setFontSize(10)
-      doc.setTextColor(200, 200, 220)
-      const lines = doc.splitTextToSize(profile.bio, 160)
-      doc.text(lines, 108, y, { align: 'center' })
-      y += lines.length * 5 + 8
-    }
-
-    // Contact section
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(219, 39, 119)
-    doc.text('CONTACT', 20, y)
-    y += 5
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(180, 180, 200)
-
-    if (profile.contact_email) {
-      doc.text(`Email: ${profile.contact_email}`, 20, y)
-      doc.link(20, y - 4, 80, 5, { url: `mailto:${profile.contact_email}` })
-      y += 5
-    }
-    if (profile.phone) {
-      doc.text(`Tel: ${profile.phone}`, 20, y)
-      y += 5
-    }
-    if (profile.instagram_url) {
-      doc.setTextColor(244, 114, 182)
-      doc.text(`Instagram`, 20, y)
-      doc.link(20, y - 4, 30, 5, { url: profile.instagram_url })
-      doc.setTextColor(180, 180, 200)
-      y += 5
-    }
-    if (profile.tiktok_url) {
-      doc.setTextColor(168, 85, 247)
-      doc.text(`TikTok`, 20, y)
-      doc.link(20, y - 4, 20, 5, { url: profile.tiktok_url })
-      doc.setTextColor(180, 180, 200)
-      y += 5
-    }
-    y += 4
-
-    // Public portfolio link
-    doc.setFillColor(30, 20, 50)
-    doc.roundedRect(20, y, 176, 12, 2, 2, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9)
-    doc.setTextColor(219, 39, 119)
-    doc.text('Portfolio en ligne:', 26, y + 7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(168, 85, 247)
-    doc.text(pubUrl, 68, y + 7.5)
-    doc.link(20, y, 176, 12, { url: pubUrl })
-    y += 18
-
-    // Links section
-    if (linkItems.length > 0) {
+      // ── NOM ──
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(8)
-      doc.setTextColor(219, 39, 119)
-      doc.text('LIENS & PROJETS', 20, y)
-      y += 5
-      for (const link of linkItems.slice(0, 6)) {
-        doc.setFillColor(25, 15, 40)
-        doc.roundedRect(20, y, 176, 8, 1.5, 1.5, 'F')
+      doc.setFontSize(30)
+      doc.setTextColor(255, 255, 255)
+      doc.text(profile.name, W / 2, y, { align: 'center' })
+      y += 9
+
+      // ── Tagline ──
+      if (profile.tagline) {
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(8)
-        doc.setTextColor(200, 200, 220)
-        doc.text(link.title || link.url, 26, y + 5.5)
-        doc.setTextColor(168, 85, 247)
-        doc.text(link.url.length > 60 ? link.url.slice(0, 57) + '...' : link.url, 26 + (link.title ? 50 : 0), y + 5.5)
-        doc.link(20, y, 176, 8, { url: link.url })
-        y += 10
+        doc.setFontSize(11)
+        doc.setTextColor(244, 114, 182)
+        doc.text(profile.tagline.toUpperCase(), W / 2, y, { align: 'center' })
+        y += 6
       }
-      y += 4
-    }
 
-    // Photos section note
-    if (photoItems.length > 0) {
+      // ── Localisation ──
+      if (profile.location) {
+        doc.setFontSize(8)
+        doc.setTextColor(140, 120, 160)
+        doc.text(profile.location, W / 2, y, { align: 'center' })
+        y += 5
+      }
+
+      // Separateur
+      doc.setDrawColor(100, 20, 140)
+      doc.setLineWidth(0.3)
+      doc.line(50, y + 2, W - 50, y + 2)
+      y += 8
+
+      // ── Bio ──
+      if (profile.bio) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(10)
+        doc.setTextColor(200, 195, 215)
+        const lines = doc.splitTextToSize(profile.bio, 165)
+        doc.text(lines, W / 2, y, { align: 'center' })
+        y += lines.length * 5 + 8
+      }
+
+      // ── Contact ──
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(219, 39, 119)
+      doc.text('CONTACT', 20, y)
+      y += 5
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(190, 185, 205)
+
+      if (profile.contact_email) {
+        doc.text(`Email: ${profile.contact_email}`, 20, y)
+        doc.link(20, y - 4, 100, 5, { url: `mailto:${profile.contact_email}` })
+        y += 5
+      }
+      if (profile.phone) {
+        doc.text(`Tel: ${profile.phone}`, 20, y)
+        y += 5
+      }
+      if (profile.instagram_url) {
+        doc.setTextColor(244, 114, 182)
+        doc.text('Instagram  ->  ' + profile.instagram_url, 20, y)
+        doc.link(20, y - 4, 175, 5, { url: profile.instagram_url })
+        doc.setTextColor(190, 185, 205)
+        y += 5
+      }
+      if (profile.tiktok_url) {
+        doc.setTextColor(168, 85, 247)
+        doc.text('TikTok  ->  ' + profile.tiktok_url, 20, y)
+        doc.link(20, y - 4, 175, 5, { url: profile.tiktok_url })
+        doc.setTextColor(190, 185, 205)
+        y += 5
+      }
+      y += 6
+
+      // ── Liens projets ──
+      if (linkItems.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7)
+        doc.setTextColor(219, 39, 119)
+        doc.text('LIENS & PROJETS', 20, y)
+        y += 5
+
+        for (const link of linkItems.slice(0, 8)) {
+          doc.setFillColor(30, 18, 50)
+          doc.roundedRect(20, y - 3.5, W - 40, 8, 1.5, 1.5, 'F')
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(210, 205, 225)
+          if (link.title) {
+            doc.text(link.title, 26, y + 1)
+            doc.setTextColor(140, 100, 200)
+            const urlStr = link.url.length > 55 ? link.url.slice(0, 52) + '...' : link.url
+            doc.text(urlStr, 26 + 55, y + 1)
+          } else {
+            doc.setTextColor(140, 100, 200)
+            const urlStr = link.url.length > 80 ? link.url.slice(0, 77) + '...' : link.url
+            doc.text(urlStr, 26, y + 1)
+          }
+          doc.link(20, y - 3.5, W - 40, 8, { url: link.url })
+          y += 10
+        }
+        y += 4
+      }
+
+      // ── Portfolio en ligne — grand bouton cliquable ──
+      doc.setFillColor(60, 10, 90)
+      doc.roundedRect(20, y, W - 40, 16, 3, 3, 'F')
+      doc.setDrawColor(219, 39, 119)
+      doc.setLineWidth(0.4)
+      doc.roundedRect(20, y, W - 40, 16, 3, 3, 'S')
+
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8)
       doc.setTextColor(219, 39, 119)
-      doc.text(`PORTFOLIO (${photoItems.length} photos)`, 20, y)
-      y += 5
-      doc.setFont('helvetica', 'italic')
+      doc.text('VOIR LE PORTFOLIO EN LIGNE', W / 2, y + 5.5, { align: 'center' })
+      doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
-      doc.setTextColor(120, 120, 140)
-      doc.text('Voir toutes les photos sur le lien portfolio ci-dessus', 20, y)
-      y += 10
+      doc.setTextColor(168, 85, 247)
+      doc.text(pubUrl, W / 2, y + 11, { align: 'center' })
+      doc.link(20, y, W - 40, 16, { url: pubUrl })
+      y += 22
 
-      // Show up to 6 photos in a grid
-      const cols = 3
-      const imgW = 54
-      const imgH = 36
-      const gap = 4
-      const startX = 20
-      const photoSlice = photoItems.slice(0, 6)
-
-      for (let i = 0; i < photoSlice.length; i++) {
-        const photo = photoSlice[i]
-        const col = i % cols
-        const row = Math.floor(i / cols)
-        const x = startX + col * (imgW + gap)
-        const py = y + row * (imgH + gap)
-
-        try {
-          const resp = await fetch(photo.url)
-          const blob = await resp.blob()
-          const reader = new FileReader()
-          await new Promise<void>(resolve => {
-            reader.onload = () => {
-              const dataUrl = reader.result as string
-              const fmt = dataUrl.includes('image/jpeg') ? 'JPEG' : 'PNG'
-              doc.addImage(dataUrl, fmt, x, py, imgW, imgH, undefined, 'MEDIUM')
-              resolve()
-            }
-            reader.readAsDataURL(blob)
-          })
-        } catch { /* skip if CORS blocks */ }
+      // ── Mention photos ──
+      if (photoItems.length > 0) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(8)
+        doc.setTextColor(120, 100, 140)
+        doc.text(`${photoItems.length} photo${photoItems.length > 1 ? 's' : ''} disponible${photoItems.length > 1 ? 's' : ''} sur le portfolio en ligne.`, W / 2, y, { align: 'center' })
+        y += 6
       }
+
+      // ── Footer ──
+      doc.setDrawColor(80, 20, 120)
+      doc.setLineWidth(0.4)
+      doc.line(20, H - 14, W - 20, H - 14)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(90, 75, 110)
+      doc.text(`${profile.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 9, { align: 'center' })
+      doc.text(pubUrl, W / 2, H - 5, { align: 'center' })
+      doc.link(40, H - 12, W - 80, 8, { url: pubUrl })
+
+      doc.save(`portfolio-${profile.slug}.pdf`)
+      showToast('PDF exporte!')
+    } catch (err) {
+      console.error('PDF error:', err)
+      showToast('Erreur PDF: ' + (err instanceof Error ? err.message : String(err)), false)
     }
-
-    // Footer
-    doc.setDrawColor(219, 39, 119)
-    doc.setLineWidth(0.5)
-    doc.line(20, 265, 196, 265)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7)
-    doc.setTextColor(80, 80, 100)
-    doc.text(`${profile.name} — Portfolio Artistique — ${new Date().getFullYear()}`, 108, 270, { align: 'center' })
-    doc.text(pubUrl, 108, 274, { align: 'center' })
-    doc.link(60, 269, 96, 6, { url: pubUrl })
-
-    doc.save(`portfolio-${profile.slug}.pdf`)
-    showToast('PDF exporte!')
   }
 
   return (

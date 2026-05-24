@@ -308,19 +308,34 @@ export default function PortfolioFillPage() {
         {/* Section: Photos */}
         {activeSection === 'photos' && (
           <div className="space-y-5">
-            <label className="flex flex-col items-center gap-3 cursor-pointer w-full border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-2xl py-10 text-center transition-colors group">
-              <div className="w-14 h-14 rounded-full bg-pink-600/10 group-hover:bg-pink-600/20 flex items-center justify-center transition-colors">
-                <Upload size={24} className="text-pink-400" />
-              </div>
-              <div>
-                <p className="text-white font-medium text-sm">Ajouter des photos</p>
-                <p className="text-gray-500 text-xs mt-1">JPG, PNG — Clique ou glisse tes photos ici</p>
-              </div>
-              <input type="file" accept="image/*" multiple className="hidden"
-                onChange={e => {
-                  Array.from(e.target.files || []).forEach(f => uploadItemPhoto(f))
-                }} />
-            </label>
+            {/* Upload / Camera buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-2xl py-7 text-center transition-colors group">
+                <div className="w-12 h-12 rounded-full bg-pink-600/10 group-hover:bg-pink-600/20 flex items-center justify-center transition-colors">
+                  <Upload size={20} className="text-pink-400" />
+                </div>
+                <p className="text-white text-xs font-medium">Galerie</p>
+                <p className="text-gray-600 text-xs">Choisir depuis l&apos;album</p>
+                <input type="file" accept="image/*" multiple className="hidden"
+                  onChange={e => {
+                    Array.from(e.target.files || []).forEach(f => uploadItemPhoto(f))
+                    ;(e.target as HTMLInputElement).value = ''
+                  }} />
+              </label>
+
+              <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-purple-800/50 hover:border-purple-500 rounded-2xl py-7 text-center transition-colors group">
+                <div className="w-12 h-12 rounded-full bg-purple-600/10 group-hover:bg-purple-600/20 flex items-center justify-center transition-colors">
+                  <Camera size={20} className="text-purple-400" />
+                </div>
+                <p className="text-white text-xs font-medium">Appareil photo</p>
+                <p className="text-gray-600 text-xs">Prendre une photo</p>
+                <input type="file" accept="image/*" capture="environment" className="hidden"
+                  onChange={e => {
+                    if (e.target.files?.[0]) uploadItemPhoto(e.target.files[0])
+                    ;(e.target as HTMLInputElement).value = ''
+                  }} />
+              </label>
+            </div>
 
             {photos.length === 0 ? (
               <div className="text-center py-8 text-gray-600">
