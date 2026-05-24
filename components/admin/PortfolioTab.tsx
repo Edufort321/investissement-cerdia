@@ -152,9 +152,9 @@ export default function PortfolioTab() {
     setUploadProgress(`Upload ${field === 'headshot_url' ? 'photo profil' : 'couverture'}...`)
     const ext = file.name.split('.').pop()
     const path = `portfolio/${selectedProfile.id}/${field}-${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { upsert: true })
+    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (upErr) { showToast('Erreur upload: ' + upErr.message, false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
     const { error } = await supabase.from('portfolio_profiles').update({ [field]: publicUrl }).eq('id', selectedProfile.id)
     if (!error) {
       setSelectedProfile({ ...selectedProfile, [field]: publicUrl })
@@ -182,9 +182,9 @@ export default function PortfolioTab() {
     setUploadProgress('Upload photo...')
     const ext = file.name.split('.').pop()
     const path = `portfolio/${selectedProfile.id}/items/${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { upsert: true })
+    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (upErr) { showToast('Erreur: ' + upErr.message, false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
     setItemForm(f => ({ ...f, url: publicUrl, thumbnail_url: publicUrl }))
     setUploadProgress(null)
     showToast('Photo chargee!')

@@ -92,9 +92,9 @@ export default function PortfolioFillPage() {
     setUploadProgress('Upload...')
     const ext = file.name.split('.').pop()
     const path = `portfolio/${profile.id}/${field}-${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { upsert: true })
+    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (upErr) { showToast('Erreur upload', false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
     await supabase.from('portfolio_profiles').update({ [field]: publicUrl }).eq('id', profile.id)
     setProfile(p => p ? { ...p, [field]: publicUrl } : null)
     setUploadProgress(null)
@@ -106,9 +106,9 @@ export default function PortfolioFillPage() {
     setUploadProgress('Upload photo...')
     const ext = file.name.split('.').pop()
     const path = `portfolio/${profile.id}/items/${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { upsert: true })
+    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (upErr) { showToast('Erreur', false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
     const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
     await supabase.from('portfolio_items').insert([{
       profile_id: profile.id, type: 'photo', url: publicUrl,
