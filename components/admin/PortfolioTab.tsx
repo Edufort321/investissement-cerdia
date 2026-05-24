@@ -25,6 +25,7 @@ interface Profile {
   tiktok_url: string
   location: string
   is_published: boolean
+  uda_number: string
   created_at: string
 }
 
@@ -60,7 +61,7 @@ export default function PortfolioTab() {
 
   const [form, setForm] = useState({
     name: '', tagline: '', bio: '', contact_email: '', phone: '',
-    instagram_url: '', tiktok_url: '', location: '', slug: ''
+    instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: ''
   })
   const [itemForm, setItemForm] = useState({
     type: 'photo' as 'photo' | 'link' | 'video',
@@ -75,11 +76,19 @@ export default function PortfolioTab() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (keepSelectedId?: string) => {
     setIsLoading(true)
     const { data } = await supabase.from('portfolio_profiles').select('*').order('created_at', { ascending: false })
     setProfiles(data || [])
-    if (!selectedProfile && data && data.length > 0) setSelectedProfile(data[0])
+    if (data) {
+      const targetId = keepSelectedId ?? selectedProfile?.id
+      if (targetId) {
+        const refreshed = data.find(p => p.id === targetId)
+        if (refreshed) setSelectedProfile(refreshed)
+      } else if (data.length > 0) {
+        setSelectedProfile(data[0])
+      }
+    }
     setIsLoading(false)
   }
 
@@ -93,7 +102,7 @@ export default function PortfolioTab() {
     name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   const openNewProfile = () => {
-    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '' })
+    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '' })
     setSelectedProfile(null)
     setEditingProfile(true)
   }
@@ -103,7 +112,7 @@ export default function PortfolioTab() {
       name: p.name, tagline: p.tagline || '', bio: p.bio || '',
       contact_email: p.contact_email || '', phone: p.phone || '',
       instagram_url: p.instagram_url || '', tiktok_url: p.tiktok_url || '',
-      location: p.location || '', slug: p.slug
+      location: p.location || '', slug: p.slug, uda_number: p.uda_number || ''
     })
     setEditingProfile(true)
   }
@@ -116,13 +125,13 @@ export default function PortfolioTab() {
       const { error } = await supabase.from('portfolio_profiles').update({ ...form, slug }).eq('id', selectedProfile.id)
       if (error) { showToast('Erreur: ' + error.message, false); setIsLoading(false); return }
       showToast('Profil mis a jour')
+      await loadProfiles(selectedProfile.id)
     } else {
       const { data, error } = await supabase.from('portfolio_profiles').insert([{ ...form, slug }]).select().single()
       if (error) { showToast('Erreur: ' + error.message, false); setIsLoading(false); return }
-      setSelectedProfile(data)
       showToast('Profil cree!')
+      await loadProfiles(data.id)
     }
-    await loadProfiles()
     setEditingProfile(false)
     setIsLoading(false)
   }
@@ -313,6 +322,11 @@ export default function PortfolioTab() {
         doc.text('TikTok  ->  ' + profile.tiktok_url, 20, y)
         doc.link(20, y - 4, 175, 5, { url: profile.tiktok_url })
         doc.setTextColor(190, 185, 205)
+        y += 5
+      }
+      if (profile.uda_number) {
+        doc.setTextColor(190, 185, 205)
+        doc.text(`UDA: ${profile.uda_number}`, 20, y)
         y += 5
       }
       y += 6
@@ -507,6 +521,7 @@ export default function PortfolioTab() {
                     { key: 'tiktok_url', label: 'TikTok URL', placeholder: 'https://tiktok.com/@...' },
                     { key: 'location', label: 'Ville', placeholder: 'Montreal, QC' },
                     { key: 'slug', label: 'Slug URL', placeholder: 'sofia-dufort (auto)' },
+                    { key: 'uda_number', label: 'Numero UDA', placeholder: 'Ex: 12345 (Union des Artistes)' },
                   ].map(({ key, label, placeholder }) => (
                     <div key={key} className={key === 'bio' ? 'col-span-2' : ''}>
                       <label className="text-xs text-gray-400 mb-1 block">{label}</label>

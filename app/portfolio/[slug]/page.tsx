@@ -18,6 +18,7 @@ interface Profile {
   instagram_url: string
   tiktok_url: string
   location: string
+  uda_number: string
   is_published: boolean
 }
 
@@ -274,6 +275,16 @@ export default function PortfolioPublicPage() {
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
             >
               <MapPin size={11} /> {profile.location}
+            </p>
+          )}
+
+          {/* UDA */}
+          {profile.uda_number && (
+            <p
+              className="text-white/40 text-xs mt-1.5"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+            >
+              UDA {profile.uda_number}
             </p>
           )}
 

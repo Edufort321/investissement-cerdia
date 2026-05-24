@@ -1,5 +1,5 @@
 import '../styles/globals.css'
-import Navbar from '../components/Navbar'
+import NavbarWrapper from '../components/NavbarWrapper'
 import PWAWarning from '../components/PWAWarning'
 import SuperAdminViewBanner from '../components/SuperAdminViewBanner'
 import { Providers } from '../components/Providers'
@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <SuperAdminViewBanner />
           <PWAWarning />
-          <Navbar />
+          <NavbarWrapper />
           <main>
             {children}
           </main>
