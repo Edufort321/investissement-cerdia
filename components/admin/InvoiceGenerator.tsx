@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useInvestment } from '@/contexts/InvestmentContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Plus, Trash2, Download, Send, CheckCircle, Eye, ArrowLeft,
   Edit2, X, FileText, Users, Copy, ExternalLink, CreditCard,
@@ -118,6 +119,8 @@ const fmt = (n: number) =>
 export default function InvoiceGenerator({ module = 'investor' }: { module?: 'investor' | 'commerce' } = {}) {
   const { addTransaction } = useInvestment()
   const { organization } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const orgId = organization?.id ?? null
 
   // Views
@@ -194,7 +197,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       setInvoices(inv || [])
       setClients(cli || [])
     } catch (e) {
-      setError('Impossible de charger les données de facturation.')
+      setError(fr ? 'Impossible de charger les donnees de facturation.' : 'Failed to load billing data.')
     } finally {
       setLoading(false)
     }
@@ -319,9 +322,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
 
   // ─── Sauvegarder (draft ou send) ─────────────────────────────────────────────
   const saveInvoice = async (targetStatus: 'draft' | 'sent') => {
-    if (!selectedClientId) { setError('Veuillez sélectionner un client.'); return }
-    if (items.every(i => !i.description)) { setError('Ajoutez au moins un item.'); return }
-    if (grandTotal <= 0) { setError('Le total doit être supérieur à 0.'); return }
+    if (!selectedClientId) { setError(fr ? 'Veuillez selectionner un client.' : 'Please select a client.'); return }
+    if (items.every(i => !i.description)) { setError(fr ? 'Ajoutez au moins un item.' : 'Add at least one item.'); return }
+    if (grandTotal <= 0) { setError(fr ? 'Le total doit etre superieur a 0.' : 'Total must be greater than 0.'); return }
 
     setSaving(true)
     try {
@@ -392,14 +395,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         await generatePDF(fullInvoice, true)
         // Ouvrir Gmail Compose avec le message pré-rempli
         openGmailCompose(fullInvoice)
-        setSuccess('PDF téléchargé — attachez-le dans Gmail qui vient de s\'ouvrir !')
+        setSuccess(fr ? 'PDF telecharge — attachez-le dans Gmail qui vient de s\'ouvrir !' : 'PDF downloaded — attach it in the Gmail window that just opened!')
       } else {
-        setSuccess('Brouillon sauvegardé !')
+        setSuccess(fr ? 'Brouillon sauvegarde !' : 'Draft saved!')
       }
 
       setView('list')
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de la sauvegarde.')
+      setError(e.message || (fr ? 'Erreur lors de la sauvegarde.' : 'Save error.'))
     } finally {
       setSaving(false)
     }
@@ -436,9 +439,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       }).eq('id', inv.id)
 
       await loadData()
-      setSuccess(`Facture ${inv.invoice_number} marquée payée ! Transaction créée automatiquement.`)
+      setSuccess(fr ? `Facture ${inv.invoice_number} marquee payee ! Transaction creee automatiquement.` : `Invoice ${inv.invoice_number} marked as paid! Transaction created automatically.`)
     } catch (e: any) {
-      setError(e.message || 'Erreur lors du marquage comme payé.')
+      setError(e.message || (fr ? 'Erreur lors du marquage comme paye.' : 'Error marking as paid.'))
     } finally {
       setSaving(false)
     }
@@ -446,17 +449,17 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
 
   // ─── Annuler une facture (avec confirmation) ─────────────────────────────────
   const cancelInvoice = async (inv: Invoice) => {
-    if (!confirm(`Annuler la facture ${inv.invoice_number} ?\n\nCette action peut être rectifiée plus tard.`)) return
+    if (!confirm(fr ? `Annuler la facture ${inv.invoice_number} ?\n\nCette action peut etre rectifiee plus tard.` : `Cancel invoice ${inv.invoice_number}?\n\nThis can be reversed later.`)) return
     await supabase.from('invoices').update({ status: 'cancelled' }).eq('id', inv.id)
     await loadData()
-    setSuccess(`Facture ${inv.invoice_number} annulée.`)
+    setSuccess(fr ? `Facture ${inv.invoice_number} annulee.` : `Invoice ${inv.invoice_number} cancelled.`)
   }
 
   // ─── Rectifier une facture annulée → retour en brouillon ─────────────────────
   const rectifyInvoice = async (inv: Invoice) => {
     await supabase.from('invoices').update({ status: 'draft' }).eq('id', inv.id)
     await loadData()
-    setSuccess(`Facture ${inv.invoice_number} remise en brouillon — vous pouvez la modifier.`)
+    setSuccess(fr ? `Facture ${inv.invoice_number} remise en brouillon — vous pouvez la modifier.` : `Invoice ${inv.invoice_number} reset to draft — you can now edit it.`)
   }
 
   // ─── Prévisualiser ────────────────────────────────────────────────────────────
@@ -684,13 +687,13 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
   const saveCompanySettings = () => {
     setCompany(companyDraft)
     localStorage.setItem('cerdia_invoice_company', JSON.stringify(companyDraft))
-    setSuccess('Paramètres sauvegardés !')
+    setSuccess(fr ? 'Parametres sauvegardes !' : 'Settings saved!')
     setView('list')
   }
 
   // ─── Client CRUD ─────────────────────────────────────────────────────────────
   const saveClient = async () => {
-    if (!clientForm.name?.trim()) { setError('Le nom du client est requis.'); return }
+    if (!clientForm.name?.trim()) { setError(fr ? 'Le nom du client est requis.' : 'Client name is required.'); return }
     setSaving(true)
     try {
       if (editingClientId) {
@@ -702,7 +705,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       setClientForm({ province: 'QC', country: 'Canada' })
       setEditingClientId(null)
       setShowClientForm(false)
-      setSuccess('Client sauvegardé !')
+      setSuccess(fr ? 'Client sauvegarde !' : 'Client saved!')
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -724,7 +727,10 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       cancelled: 'bg-red-100 text-red-600',
     }
     const labels: Record<string, string> = {
-      draft: 'Brouillon', sent: 'Envoyée', paid: 'Payée', cancelled: 'Annulée'
+      draft: fr ? 'Brouillon' : 'Draft',
+      sent: fr ? 'Envoyee' : 'Sent',
+      paid: fr ? 'Payee' : 'Paid',
+      cancelled: fr ? 'Annulee' : 'Cancelled'
     }
     return (
       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status]}`}>
@@ -777,14 +783,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           <button onClick={() => setView('list')} className="text-gray-500 hover:text-gray-800 transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Paramètres de facturation</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{fr ? 'Parametres de facturation' : 'Billing Settings'}</h2>
         </div>
 
         <div className="space-y-6">
           {/* Infos entreprise */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Building2 size={16} /> Informations de l'entreprise
+              <Building2 size={16} /> {fr ? "Informations de l'entreprise" : 'Company Information'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
@@ -814,7 +820,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {/* Coordonnées bancaires */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <CreditCard size={16} /> Coordonnées bancaires (affichées sur les factures)
+              <CreditCard size={16} /> {fr ? 'Coordonnees bancaires (affichees sur les factures)' : 'Banking Details (shown on invoices)'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
@@ -835,16 +841,16 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
               ))}
             </div>
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-              Ces informations apparaissent sur chaque PDF de facture envoyé aux clients.
+              {fr ? 'Ces informations apparaissent sur chaque PDF de facture envoye aux clients.' : 'This information appears on every invoice PDF sent to clients.'}
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
             <button onClick={() => setView('list')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </button>
             <button onClick={saveCompanySettings} className="px-6 py-2 bg-[#5e5e5e] text-white rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors flex items-center gap-2">
-              <Save size={14} /> Sauvegarder
+              <Save size={14} /> {fr ? 'Sauvegarder' : 'Save'}
             </button>
           </div>
         </div>
@@ -862,20 +868,20 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             <button onClick={() => setView('list')} className="text-gray-500 hover:text-gray-800 transition-colors">
               <ArrowLeft size={20} />
             </button>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Gestion des clients</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{fr ? 'Gestion des clients' : 'Client Management'}</h2>
           </div>
           <button
             onClick={() => { setShowClientForm(true); setEditingClientId(null); setClientForm({ province: 'QC', country: 'Canada' }) }}
             className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors"
           >
-            <Plus size={14} /> Nouveau client
+            <Plus size={14} /> {fr ? 'Nouveau client' : 'New client'}
           </button>
         </div>
 
         {showClientForm && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {editingClientId ? 'Modifier le client' : 'Nouveau client'}
+              {editingClientId ? (fr ? 'Modifier le client' : 'Edit client') : (fr ? 'Nouveau client' : 'New client')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
@@ -899,9 +905,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
               ))}
             </div>
             <div className="flex justify-end gap-3 mt-4">
-              <button onClick={() => setShowClientForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
+              <button onClick={() => setShowClientForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">{fr ? 'Annuler' : 'Cancel'}</button>
               <button onClick={saveClient} disabled={saving} className="px-6 py-2 bg-[#5e5e5e] text-white rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors flex items-center gap-2 disabled:opacity-50">
-                <Save size={14} /> {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                <Save size={14} /> {saving ? (fr ? 'Sauvegarde...' : 'Saving...') : (fr ? 'Sauvegarder' : 'Save')}
               </button>
             </div>
           </div>
@@ -913,7 +919,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
               <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Rechercher un client..."
+                placeholder={fr ? 'Rechercher un client...' : 'Search client...'}
                 value={clientSearch}
                 onChange={e => setClientSearch(e.target.value)}
               />
@@ -922,7 +928,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {filteredClients.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
               <Users size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Aucun client. Cliquez sur "Nouveau client" pour commencer.</p>
+              <p className="text-sm">{fr ? 'Aucun client. Cliquez sur "Nouveau client" pour commencer.' : 'No clients. Click "New client" to get started.'}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -988,17 +994,17 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           <div className="flex items-center gap-2">
             {inv.status === 'draft' && (
               <button onClick={() => startEdit(inv)} className="flex items-center gap-2 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                <Edit2 size={14} /> Modifier
+                <Edit2 size={14} /> {fr ? 'Modifier' : 'Edit'}
               </button>
             )}
             {inv.status === 'sent' && (
               <button onClick={() => markAsPaid(inv)} disabled={saving} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50">
-                <CheckCircle size={14} /> Marquer payée
+                <CheckCircle size={14} /> {fr ? 'Marquer payee' : 'Mark as paid'}
               </button>
             )}
             {inv.status === 'cancelled' && (
               <button onClick={() => rectifyInvoice(inv)} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
-                <RotateCcw size={14} /> Rectifier
+                <RotateCcw size={14} /> {fr ? 'Rectifier' : 'Undo cancellation'}
               </button>
             )}
             {(inv.status === 'sent' || inv.status === 'draft') && (
@@ -1007,11 +1013,11 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 disabled={generatingPDF}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                <Send size={14} /> {generatingPDF ? '...' : 'Envoyer par Gmail'}
+                <Send size={14} /> {generatingPDF ? '...' : (fr ? 'Envoyer par Gmail' : 'Send via Gmail')}
               </button>
             )}
             <button onClick={() => generatePDF(inv)} disabled={generatingPDF} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors disabled:opacity-50">
-              <Download size={14} /> {generatingPDF ? 'Génération...' : 'Télécharger PDF'}
+              <Download size={14} /> {generatingPDF ? (fr ? 'Generation...' : 'Generating...') : (fr ? 'Telecharger PDF' : 'Download PDF')}
             </button>
           </div>
         </div>
@@ -1222,7 +1228,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           </button>
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {editingId ? 'Modifier la facture' : 'Nouvelle facture'}
+              {editingId ? (fr ? 'Modifier la facture' : 'Edit Invoice') : (fr ? 'Nouvelle facture' : 'New Invoice')}
             </h2>
             <p className="text-sm text-gray-500">{invoiceNumberPreview}</p>
           </div>
@@ -1241,7 +1247,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                   value={selectedClientId}
                   onChange={e => setSelectedClientId(e.target.value)}
                 >
-                  <option value="">— Sélectionner un client —</option>
+                  <option value="">{fr ? '— Selectionner un client —' : '— Select a client —'}</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name}{c.company ? ` (${c.company})` : ''}
@@ -1257,13 +1263,13 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 }}
                 className="flex items-center gap-1 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-gray-400 hover:text-gray-800 transition-colors whitespace-nowrap"
               >
-                <Plus size={14} /> Nouveau client
+                <Plus size={14} /> {fr ? 'Nouveau client' : 'New client'}
               </button>
             </div>
 
             {showClientForm && (
               <div className="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-750">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Nouveau client</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{fr ? 'Nouveau client' : 'New client'}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { label: 'Nom *', field: 'name' },
@@ -1286,24 +1292,24 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-3">
-                  <button onClick={() => setShowClientForm(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Annuler</button>
+                  <button onClick={() => setShowClientForm(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">{fr ? 'Annuler' : 'Cancel'}</button>
                   <button
                     onClick={async () => {
-                      if (!clientForm.name?.trim()) { setError('Nom requis'); return }
+                      if (!clientForm.name?.trim()) { setError(fr ? 'Nom requis' : 'Name required'); return }
                       setSaving(true)
                       const { data, error: err } = await supabase.from('invoice_clients').insert({ ...clientForm, ...(orgId ? { organization_id: orgId } : {}) }).select().single()
                       setSaving(false)
-                      if (err) { setError(`Erreur Supabase : ${err.message}${err.code === '42501' ? ' — Exécutez la migration 132 dans Supabase.' : ''}`); return }
+                      if (err) { setError(`${fr ? 'Erreur Supabase :' : 'Supabase error:'} ${err.message}${err.code === '42501' ? (fr ? ' — Executez la migration 132 dans Supabase.' : ' — Run migration 132 in Supabase.') : ''}`); return }
                       await loadData()
                       if (data) setSelectedClientId(data.id)
                       setShowClientForm(false)
                       setClientForm({ province: 'QC', country: 'Canada' })
-                      setSuccess('Client créé !')
+                      setSuccess(fr ? 'Client cree !' : 'Client created!')
                     }}
                     disabled={saving}
                     className="px-4 py-1.5 bg-[#5e5e5e] text-white rounded-lg text-sm hover:bg-[#3e3e3e] transition-colors disabled:opacity-50"
                   >
-                    {saving ? 'Sauvegarde...' : 'Créer'}
+                    {saving ? (fr ? 'Sauvegarde...' : 'Saving...') : (fr ? 'Creer' : 'Create')}
                   </button>
                 </div>
               </div>
@@ -1321,7 +1327,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {/* Détails facture */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Calendar size={16} /> Détails
+              <Calendar size={16} /> {fr ? 'Details' : 'Details'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -1348,7 +1354,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {/* Items */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Hash size={16} /> Items / Services
+              <Hash size={16} /> {fr ? 'Items / Services' : 'Line Items / Services'}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -1368,7 +1374,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                       <td className="py-2 pr-2">
                         <input
                           className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                          placeholder="Description du service ou produit..."
+                          placeholder={fr ? 'Description du service ou produit...' : 'Service or product description...'}
                           value={item.description}
                           onChange={e => updateItem(i, 'description', e.target.value)}
                         />
@@ -1413,7 +1419,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
               </table>
             </div>
             <button onClick={addItem} className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors">
-              <Plus size={14} /> Ajouter un item
+              <Plus size={14} /> {fr ? 'Ajouter un item' : 'Add item'}
             </button>
           </div>
 
@@ -1477,11 +1483,11 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
 
           {/* Notes */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes (optionnel)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Notes (optionnel)' : 'Notes (optional)'}</label>
             <textarea
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
               rows={3}
-              placeholder="Notes additionnelles, conditions particulières..."
+              placeholder={fr ? 'Notes additionnelles, conditions particulieres...' : 'Additional notes, special terms...'}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
@@ -1490,7 +1496,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {/* Actions */}
           <div className="flex flex-col sm:flex-row justify-between gap-3 pb-6">
             <button onClick={() => setView('list')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </button>
             <div className="flex gap-3">
               <button
@@ -1498,14 +1504,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-400 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
-                <Save size={14} /> {saving ? '...' : 'Brouillon'}
+                <Save size={14} /> {saving ? '...' : (fr ? 'Brouillon' : 'Save draft')}
               </button>
               <button
                 onClick={() => saveInvoice('sent')}
                 disabled={saving}
                 className="flex items-center gap-2 px-6 py-2 bg-[#5e5e5e] text-white rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors disabled:opacity-50"
               >
-                <Send size={14} /> {saving ? 'Envoi...' : 'Envoyer & Archiver'}
+                <Send size={14} /> {saving ? (fr ? 'Envoi...' : 'Sending...') : (fr ? 'Envoyer & Archiver' : 'Send & Archive')}
               </button>
             </div>
           </div>
@@ -1532,19 +1538,19 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <FileText size={20} className="text-[#5e5e5e]" />
-            Générateur de factures
+            {fr ? 'Generateur de factures' : 'Invoice Generator'}
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">TPS 5% + TVQ 9,975% calculées automatiquement</p>
+          <p className="text-sm text-gray-500 mt-0.5">{fr ? 'TPS 5% + TVQ 9,975% calculees automatiquement' : 'GST 5% + QST 9.975% calculated automatically'}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setView('clients')} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <Users size={14} /> Clients
+            <Users size={14} /> {fr ? 'Clients' : 'Clients'}
           </button>
           <button onClick={() => { setCompanyDraft(company); setView('settings') }} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <Settings size={14} /> Paramètres
+            <Settings size={14} /> {fr ? 'Parametres' : 'Settings'}
           </button>
           <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors">
-            <Plus size={14} /> Nouvelle facture
+            <Plus size={14} /> {fr ? 'Nouvelle facture' : 'New Invoice'}
           </button>
         </div>
       </div>
@@ -1552,10 +1558,10 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'En attente', value: stats.sent, sub: fmt(stats.pendingRevenue), color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
-          { label: 'Payées', value: stats.paid, sub: fmt(stats.totalRevenue), color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800' },
-          { label: 'Brouillons', value: stats.draft, sub: '', color: 'text-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/30', border: 'border-gray-200 dark:border-gray-600' },
-          { label: 'Total factures', value: stats.total, sub: '', color: 'text-[#5e5e5e]', bg: 'bg-white dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700' },
+          { label: fr ? 'En attente' : 'Pending', value: stats.sent, sub: fmt(stats.pendingRevenue), color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
+          { label: fr ? 'Payees' : 'Paid', value: stats.paid, sub: fmt(stats.totalRevenue), color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800' },
+          { label: fr ? 'Brouillons' : 'Drafts', value: stats.draft, sub: '', color: 'text-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/30', border: 'border-gray-200 dark:border-gray-600' },
+          { label: fr ? 'Total factures' : 'Total invoices', value: stats.total, sub: '', color: 'text-[#5e5e5e]', bg: 'bg-white dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700' },
         ].map(card => (
           <div key={card.label} className={`${card.bg} border ${card.border} rounded-xl p-4`}>
             <p className="text-xs text-gray-500 dark:text-gray-400">{card.label}</p>
@@ -1577,7 +1583,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            {s === 'all' ? 'Toutes' : s === 'draft' ? 'Brouillons' : s === 'sent' ? 'Envoyées' : s === 'paid' ? 'Payées' : 'Annulées'}
+            {s === 'all' ? (fr ? 'Toutes' : 'All') : s === 'draft' ? (fr ? 'Brouillons' : 'Drafts') : s === 'sent' ? (fr ? 'Envoyees' : 'Sent') : s === 'paid' ? (fr ? 'Payees' : 'Paid') : (fr ? 'Annulees' : 'Cancelled')}
           </button>
         ))}
       </div>
@@ -1587,15 +1593,15 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         {loading ? (
           <div className="py-16 text-center">
             <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-sm text-gray-500">Chargement...</p>
+            <p className="text-sm text-gray-500">{fr ? 'Chargement...' : 'Loading...'}</p>
           </div>
         ) : filteredInvoices.length === 0 ? (
           <div className="py-16 text-center">
             <FileText size={40} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500 font-medium">Aucune facture</p>
-            <p className="text-sm text-gray-400 mt-1">Cliquez sur "Nouvelle facture" pour commencer</p>
+            <p className="text-gray-500 font-medium">{fr ? 'Aucune facture' : 'No invoices'}</p>
+            <p className="text-sm text-gray-400 mt-1">{fr ? 'Cliquez sur "Nouvelle facture" pour commencer' : 'Click "New Invoice" to get started'}</p>
             <button onClick={startNew} className="mt-4 flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3e3e3e] transition-colors mx-auto">
-              <Plus size={14} /> Nouvelle facture
+              <Plus size={14} /> {fr ? 'Nouvelle facture' : 'New Invoice'}
             </button>
           </div>
         ) : (
@@ -1603,13 +1609,13 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <th className="text-left px-4 py-3">Facture</th>
-                  <th className="text-left px-4 py-3">Client</th>
-                  <th className="text-left px-4 py-3">Date</th>
-                  <th className="text-left px-4 py-3">Échéance</th>
+                  <th className="text-left px-4 py-3">{fr ? 'Facture' : 'Invoice'}</th>
+                  <th className="text-left px-4 py-3">{fr ? 'Client' : 'Client'}</th>
+                  <th className="text-left px-4 py-3">{fr ? 'Date' : 'Date'}</th>
+                  <th className="text-left px-4 py-3">{fr ? 'Echeance' : 'Due Date'}</th>
                   <th className="text-right px-4 py-3">Total</th>
-                  <th className="text-center px-4 py-3">Statut</th>
-                  <th className="text-right px-4 py-3">Actions</th>
+                  <th className="text-center px-4 py-3">{fr ? 'Statut' : 'Status'}</th>
+                  <th className="text-right px-4 py-3">{fr ? 'Actions' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -1650,16 +1656,16 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                       <td className="px-4 py-3 text-center">{statusBadge(inv.status)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openPreview(inv)} title="Voir" className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <button onClick={() => openPreview(inv)} title={fr ? 'Voir' : 'View'} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <Eye size={14} />
                           </button>
                           {inv.status === 'draft' && (
-                            <button onClick={() => startEdit(inv)} title="Modifier" className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
+                            <button onClick={() => startEdit(inv)} title={fr ? 'Modifier' : 'Edit'} className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
                               <Edit2 size={14} />
                             </button>
                           )}
                           {inv.status === 'sent' && (
-                            <button onClick={() => markAsPaid(inv)} disabled={saving} title="Marquer payée" className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50">
+                            <button onClick={() => markAsPaid(inv)} disabled={saving} title={fr ? 'Marquer payee' : 'Mark as paid'} className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50">
                               <CheckCircle size={14} />
                             </button>
                           )}
@@ -1669,18 +1675,18 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                               await generatePDF({ ...inv, items: itemsData || [] })
                             }}
                             disabled={generatingPDF}
-                            title="Télécharger PDF"
+                            title={fr ? 'Telecharger PDF' : 'Download PDF'}
                             className="p-1.5 text-gray-500 hover:text-[#5e5e5e] hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                           >
                             <Download size={14} />
                           </button>
                           {(inv.status === 'draft' || inv.status === 'sent') && (
-                            <button onClick={() => cancelInvoice(inv)} title="Annuler la facture" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <button onClick={() => cancelInvoice(inv)} title={fr ? 'Annuler la facture' : 'Cancel invoice'} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                               <Ban size={14} />
                             </button>
                           )}
                           {inv.status === 'cancelled' && (
-                            <button onClick={() => rectifyInvoice(inv)} title="Rectifier — remettre en brouillon" className="p-1.5 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors">
+                            <button onClick={() => rectifyInvoice(inv)} title={fr ? 'Rectifier — remettre en brouillon' : 'Undo cancellation — reset to draft'} className="p-1.5 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors">
                               <RotateCcw size={14} />
                             </button>
                           )}
