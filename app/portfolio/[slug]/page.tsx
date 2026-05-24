@@ -172,9 +172,10 @@ export default function PortfolioPublicPage() {
         </div>
       )}
 
-      {/* Hero with Carousel */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-end pb-16 overflow-hidden">
-        {/* Carousel background */}
+      {/* ══════════════ HERO — Carrousel plein écran ══════════════ */}
+      <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden">
+
+        {/* ── Carousel images ── */}
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((photo, idx) => (
@@ -183,90 +184,116 @@ export default function PortfolioPublicPage() {
                 src={photo.url}
                 alt=""
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000
-                  ${idx === carouselIdx ? 'opacity-50' : 'opacity-0'}`}
+                  ${idx === carouselIdx ? 'opacity-70' : 'opacity-0'}`}
               />
             ))}
+            {/* Vignettte edges */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-950 via-gray-950 to-gray-950" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-950 via-gray-950 to-black" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/50 to-black/20" />
 
-        {/* Carousel controls */}
+        {/* Bottom fade to page background */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-950 to-transparent" />
+        {/* Top fade */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
+
+        {/* ── Carousel controls ── */}
         {carouselPhotos.length > 1 && (
           <>
             <button
               onClick={prevCarousel}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-all"
+              className="absolute left-5 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 backdrop-blur-sm rounded-full text-white/60 hover:text-white transition-all"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={22} />
             </button>
             <button
               onClick={nextCarousel}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-all"
+              className="absolute right-5 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 backdrop-blur-sm rounded-full text-white/60 hover:text-white transition-all"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={22} />
             </button>
-            {/* Dots */}
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {/* Progress dots */}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2 z-20">
               {carouselPhotos.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCarouselIdx(idx)}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${idx === carouselIdx ? 'bg-pink-400 w-4' : 'bg-white/30'}`}
+                  className={`h-1 rounded-full transition-all duration-300 ${idx === carouselIdx ? 'bg-pink-400 w-6' : 'bg-white/30 w-2'}`}
                 />
               ))}
             </div>
           </>
         )}
 
-        {/* Decorative */}
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 w-px h-24 bg-gradient-to-b from-transparent via-pink-500/50 to-transparent" />
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 text-pink-500/40 text-xs tracking-[0.3em] uppercase">Portfolio</div>
+        {/* ── TITRE — centré, très visible ── */}
+        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl mx-auto">
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl mx-auto">
+          {/* Photo profil en médaillon */}
           {profile.headshot_url && (
-            <div className="mb-6 relative">
-              <div className="w-32 h-32 rounded-full overflow-hidden ring-2 ring-pink-500/40 ring-offset-4 ring-offset-gray-950">
+            <div className="mb-8 relative">
+              <div className="w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden ring-2 ring-pink-400/60 ring-offset-4 ring-offset-transparent shadow-2xl">
                 <img src={profile.headshot_url} alt={profile.name} className="w-full h-full object-cover" />
               </div>
-              {/* Gold accent */}
-              <div className="absolute -inset-2 rounded-full border border-yellow-400/10" />
+              <div className="absolute -inset-1.5 rounded-full border border-white/10" />
             </div>
           )}
 
-          <h1 className="text-5xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+          {/* Étiquette discrète */}
+          <p className="text-pink-400/70 text-xs tracking-[0.35em] uppercase mb-4 font-light">
+            ✦ Portfolio ✦
+          </p>
+
+          {/* NOM — grand, avec text-shadow fort */}
+          <h1
+            className="text-6xl md:text-8xl font-bold text-white mb-3 leading-none"
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.8), 0 0 60px rgba(0,0,0,0.6)',
+              letterSpacing: '-0.02em'
+            }}
+          >
             {profile.name}
           </h1>
 
+          {/* Tagline */}
           {profile.tagline && (
-            <p className="text-pink-300/80 text-sm tracking-[0.2em] uppercase mb-4">{profile.tagline}</p>
-          )}
-
-          {profile.location && (
-            <p className="flex items-center gap-1.5 text-gray-500 text-xs mb-6">
-              <MapPin size={12} /> {profile.location}
+            <p
+              className="text-pink-300 text-sm md:text-base tracking-[0.25em] uppercase mt-2 font-light"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}
+            >
+              {profile.tagline}
             </p>
           )}
 
-          {/* Social links */}
-          <div className="flex items-center gap-4">
+          {/* Lieu */}
+          {profile.location && (
+            <p
+              className="flex items-center gap-1.5 text-white/50 text-xs mt-3"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+            >
+              <MapPin size={11} /> {profile.location}
+            </p>
+          )}
+
+          {/* Liens sociaux */}
+          <div className="flex items-center gap-5 mt-6">
             {profile.instagram_url && (
               <a href={profile.instagram_url} target="_blank" rel="noopener"
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-pink-400 transition-colors">
-                <Instagram size={15} /> Instagram
+                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-pink-400 transition-colors backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
+                <Instagram size={13} /> Instagram
               </a>
             )}
             {profile.tiktok_url && (
               <a href={profile.tiktok_url} target="_blank" rel="noopener"
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-purple-400 transition-colors">
+                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-purple-400 transition-colors backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
                 <ExternalLink size={13} /> TikTok
               </a>
             )}
             {profile.contact_email && (
               <a href={`mailto:${profile.contact_email}`}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
                 <Mail size={13} /> Contact
               </a>
             )}

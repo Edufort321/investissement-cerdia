@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CircleCropModal from '@/components/ui/CircleCropModal'
 import { Save, Upload, Plus, Trash2, Check, ExternalLink, Sparkles, Camera, Link2, User, Star } from 'lucide-react'
 
 interface Profile {
@@ -37,6 +38,7 @@ export default function PortfolioFillPage() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [form, setForm] = useState<Partial<Profile>>({})
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<'profil' | 'photos' | 'liens'>('profil')
 
   useEffect(() => { if (token) load(token as string) }, [token])
@@ -71,6 +73,18 @@ export default function PortfolioFillPage() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     showToast('Profil sauvegarde!')
+  }
+
+  const openHeadshotCrop = (file: File) => {
+    const url = URL.createObjectURL(file)
+    setCropSrc(url)
+  }
+
+  const confirmHeadshotCrop = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    const file = new File([blob], `headshot-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    await uploadPhoto(file, 'headshot_url')
   }
 
   const uploadPhoto = async (file: File, field: 'headshot_url' | 'cover_url') => {
@@ -149,6 +163,15 @@ export default function PortfolioFillPage() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
+      {/* Crop modal */}
+      {cropSrc && (
+        <CircleCropModal
+          src={cropSrc}
+          onConfirm={confirmHeadshotCrop}
+          onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
+        />
+      )}
+
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium
@@ -227,7 +250,7 @@ export default function PortfolioFillPage() {
                 >
                   <Upload size={13} /> Changer ma photo
                   <input type="file" accept="image/*" className="hidden"
-                    onChange={e => e.target.files?.[0] && uploadPhoto(e.target.files[0], 'headshot_url')} />
+                    onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
                 </label>
                 <label
                   className="flex items-center gap-2 cursor-pointer bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs px-3 py-2 rounded-lg border border-gray-700 transition-colors"

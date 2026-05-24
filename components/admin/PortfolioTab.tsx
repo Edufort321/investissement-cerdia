@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
+import CircleCropModal from '@/components/ui/CircleCropModal'
 import {
   Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload,
   Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown,
@@ -55,6 +56,7 @@ export default function PortfolioTab() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '', tagline: '', bio: '', contact_email: '', phone: '',
@@ -160,6 +162,19 @@ export default function PortfolioTab() {
     }
     setUploadProgress(null)
     await loadProfiles()
+  }
+
+  const openHeadshotCrop = (file: File) => {
+    const url = URL.createObjectURL(file)
+    setCropSrc(url)
+  }
+
+  const confirmHeadshotCrop = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (!selectedProfile) return
+    const file = new File([blob], `headshot-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    await uploadPhoto(file, 'headshot_url')
   }
 
   const uploadItemPhoto = async (file: File) => {
@@ -392,6 +407,15 @@ export default function PortfolioTab() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
+      {/* Crop modal */}
+      {cropSrc && (
+        <CircleCropModal
+          src={cropSrc}
+          onConfirm={confirmHeadshotCrop}
+          onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
+        />
+      )}
+
       {/* Toast */}
       {toast && (
         <div className={`fixed top-6 right-6 z-50 px-6 py-3 rounded-xl shadow-xl text-sm font-medium transition-all
@@ -464,11 +488,27 @@ export default function PortfolioTab() {
           <div className="lg:col-span-2 space-y-6">
             {/* Profile form */}
             {editingProfile && (
-              <div className="bg-gray-900 rounded-xl border border-gray-700 p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Edit2 size={18} className="text-pink-400" />
-                  {selectedProfile ? 'Modifier le profil' : 'Nouveau profil'}
-                </h2>
+              <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                {/* ── Glamour banner ── */}
+                <div className="relative h-28 bg-gradient-to-r from-purple-950 via-pink-950 to-purple-950 flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(219,39,119,0.20)_0%,transparent_70%)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_50%,rgba(168,85,247,0.15)_0%,transparent_60%)]" />
+                  <div className="relative z-10 text-center px-4">
+                    <p className="text-pink-400/60 text-xs tracking-[0.35em] uppercase mb-2">
+                      ✦ Portfolio Artistique ✦
+                    </p>
+                    <h2
+                      className="text-3xl md:text-4xl font-bold text-white leading-tight"
+                      style={{
+                        fontFamily: 'Georgia, "Times New Roman", serif',
+                        textShadow: '0 2px 16px rgba(219,39,119,0.6), 0 0 40px rgba(168,85,247,0.3)'
+                      }}
+                    >
+                      {selectedProfile ? selectedProfile.name : 'Nouveau Portfolio'}
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6">
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { key: 'name', label: 'Nom *', placeholder: 'Ex: Sofia Dufort' },
@@ -516,6 +556,7 @@ export default function PortfolioTab() {
                     <X size={15} /> Annuler
                   </button>
                 </div>
+                </div>{/* /p-6 */}
               </div>
             )}
 
@@ -557,7 +598,7 @@ export default function PortfolioTab() {
                       </div>
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                      onChange={e => e.target.files?.[0] && uploadPhoto(e.target.files[0], 'headshot_url')} />
+                      onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
 
                     <div className="flex-1 pb-1">
                       <h2 className="text-xl font-bold text-white">{selectedProfile.name}</h2>
