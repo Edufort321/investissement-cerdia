@@ -32,6 +32,16 @@ interface Profile {
   theme: string
   theme_primary: string
   theme_accent: string
+  height_cm: number | null
+  weight_kg: number | null
+  eye_color: string
+  hair_color: string
+  hair_length: string
+  skin_tone: string
+  shoe_size: string
+  clothing_size: string
+  languages: string[]
+  special_skills: string
 }
 
 interface PortfolioItem {
@@ -174,6 +184,11 @@ export default function PortfolioFillPage() {
       gender: data.gender ?? '', age_class: data.age_class ?? '',
       theme: data.theme ?? defaultThemeForGender(data.gender),
       theme_primary: data.theme_primary ?? '', theme_accent: data.theme_accent ?? '',
+      height_cm: data.height_cm ?? null, weight_kg: data.weight_kg ?? null,
+      eye_color: data.eye_color ?? '', hair_color: data.hair_color ?? '',
+      hair_length: data.hair_length ?? '', skin_tone: data.skin_tone ?? '',
+      shoe_size: data.shoe_size ?? '', clothing_size: data.clothing_size ?? '',
+      languages: data.languages ?? [], special_skills: data.special_skills ?? '',
     })
     const { data: its } = await supabase.from('portfolio_items').select('*')
       .eq('profile_id', data.id).order('sort_order').order('created_at')
@@ -194,6 +209,12 @@ export default function PortfolioFillPage() {
         theme: (form as any).theme ?? 'rose',
         theme_primary: (form as any).theme_primary ?? '',
         theme_accent: (form as any).theme_accent ?? '',
+        height_cm: (form as any).height_cm || null,
+        weight_kg: (form as any).weight_kg || null,
+        eye_color: (form as any).eye_color ?? '', hair_color: (form as any).hair_color ?? '',
+        hair_length: (form as any).hair_length ?? '', skin_tone: (form as any).skin_tone ?? '',
+        shoe_size: (form as any).shoe_size ?? '', clothing_size: (form as any).clothing_size ?? '',
+        languages: (form as any).languages ?? [], special_skills: (form as any).special_skills ?? '',
       }
       const { error } = await supabase.from('portfolio_profiles').update(payload)
         .eq('fill_token', profile.fill_token ?? '')
@@ -530,7 +551,7 @@ export default function PortfolioFillPage() {
           ] as { key: Section; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveSection(key)}
               className={`flex items-center gap-1.5 px-3 py-3 text-xs font-medium border-b-2 transition-colors flex-1 justify-center
-                ${activeSection === key ? 'border-pink-500 text-pink-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+                ${activeSection === key ? 'border-pink-500 text-pink-400' : 'border-transparent text-gray-400 hover:text-gray-200'}`}>
               <Icon size={13} />
               <span className="hidden sm:inline">{label}</span>
               <span className="sm:hidden">{label.split(' ')[0]}</span>
@@ -548,7 +569,7 @@ export default function PortfolioFillPage() {
 
             {/* Photo section */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">{t.photos_section}</p>
+              <p className="text-xs text-gray-300 uppercase tracking-widest mb-3">{t.photos_section}</p>
               <div className="flex gap-3">
                 {/* Headshot */}
                 <label className="flex-1 cursor-pointer group">
@@ -592,17 +613,17 @@ export default function PortfolioFillPage() {
 
             {/* Form fields */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
-              <p className="text-xs text-gray-500 uppercase tracking-widest">{t.info}</p>
+              <p className="text-xs text-gray-300 uppercase tracking-widest">{t.info}</p>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.full_name}</label>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.full_name}</label>
                 <input value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder={t.name_ph}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.title_spec}</label>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.title_spec}</label>
                 <input value={form.tagline ?? ''} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
                   placeholder={t.tagline_ph}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
@@ -617,7 +638,7 @@ export default function PortfolioFillPage() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.city}</label>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.city}</label>
                 <input value={form.location ?? ''} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder={t.city_ph}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
@@ -625,13 +646,13 @@ export default function PortfolioFillPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.email}</label>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.email}</label>
                   <input type="email" value={form.contact_email ?? ''} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
                     placeholder={t.email_ph}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.phone}</label>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.phone}</label>
                   <input type="tel" value={form.phone ?? ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                     placeholder={t.phone_ph}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
@@ -639,7 +660,7 @@ export default function PortfolioFillPage() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.ig_url}</label>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.ig_url}</label>
                 <div className="relative">
                   <Instagram size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400/60" />
                   <input value={form.instagram_url ?? ''} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))}
@@ -649,14 +670,14 @@ export default function PortfolioFillPage() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">{t.tt_url}</label>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.tt_url}</label>
                 <input value={form.tiktok_url ?? ''} onChange={e => setForm(f => ({ ...f, tiktok_url: e.target.value }))}
                   placeholder={t.tt_ph}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">
                   {t.uda} <span className="text-gray-600 font-normal">{t.uda_desc}</span>
                 </label>
                 <input value={(form as any).uda_number ?? ''} onChange={e => setForm(f => ({ ...f, uda_number: e.target.value }))}
@@ -667,13 +688,13 @@ export default function PortfolioFillPage() {
 
             {/* Genre / Classe d'age / Theme */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
-              <p className="text-xs text-gray-500 uppercase tracking-widest font-medium flex items-center gap-1.5">
+              <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
                 <Palette size={11} /> {lang === 'fr' ? 'Identite & Apparence' : 'Identity & Appearance'}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">
                     {lang === 'fr' ? 'Genre' : 'Gender'}
                   </label>
                   <select value={(form as any).gender ?? ''}
@@ -689,7 +710,7 @@ export default function PortfolioFillPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">
                     {lang === 'fr' ? "Classe d'age" : 'Age class'}
                   </label>
                   <select value={(form as any).age_class ?? ''}
@@ -760,10 +781,116 @@ export default function PortfolioFillPage() {
               </div>
             </div>
 
+            {/* Caracteristiques physiques */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+              <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
+                {lang === 'fr' ? 'Caracteristiques physiques' : 'Physical attributes'}
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille (cm)' : 'Height (cm)'}</label>
+                  <input type="number" min={50} max={250} value={(form as any).height_cm ?? ''}
+                    onChange={e => setForm(f => ({ ...f, height_cm: e.target.value ? Number(e.target.value) : null }))}
+                    placeholder={lang === 'fr' ? 'Ex: 170' : 'e.g. 170'}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Poids (kg)' : 'Weight (kg)'}</label>
+                  <input type="number" min={20} max={300} step={0.1} value={(form as any).weight_kg ?? ''}
+                    onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
+                    placeholder={lang === 'fr' ? 'Ex: 58.5' : 'e.g. 58.5'}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des yeux' : 'Eye color'}</label>
+                  <select value={(form as any).eye_color ?? ''}
+                    onChange={e => setForm(f => ({ ...f, eye_color: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                    <option value="">--</option>
+                    {[['brun','Brown'],['bleu','Blue'],['vert','Green'],['gris','Gray'],['noisette','Hazel'],['noir','Dark'],['autre','Other']].map(([fr, en]) => (
+                      <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des cheveux' : 'Hair color'}</label>
+                  <select value={(form as any).hair_color ?? ''}
+                    onChange={e => setForm(f => ({ ...f, hair_color: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                    <option value="">--</option>
+                    {[['noir','Black'],['brun','Brown'],['chatain','Chestnut'],['blond','Blonde'],['roux','Red'],['gris','Gray'],['blanc','White'],['colore','Colored']].map(([fr, en]) => (
+                      <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Longueur cheveux' : 'Hair length'}</label>
+                  <select value={(form as any).hair_length ?? ''}
+                    onChange={e => setForm(f => ({ ...f, hair_length: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                    <option value="">--</option>
+                    {[['court','Short'],['mi-long','Medium'],['long','Long'],['tres-long','Very long']].map(([fr, en]) => (
+                      <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Teint' : 'Skin tone'}</label>
+                  <select value={(form as any).skin_tone ?? ''}
+                    onChange={e => setForm(f => ({ ...f, skin_tone: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                    <option value="">--</option>
+                    {[['clair','Fair'],['moyen','Medium'],['olive','Olive'],['fonce','Dark'],['tres-fonce','Very dark']].map(([fr, en]) => (
+                      <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Pointure' : 'Shoe size'}</label>
+                  <input value={(form as any).shoe_size ?? ''}
+                    onChange={e => setForm(f => ({ ...f, shoe_size: e.target.value }))}
+                    placeholder={lang === 'fr' ? 'Ex: 38' : 'e.g. 38'}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille vetement' : 'Clothing size'}</label>
+                  <input value={(form as any).clothing_size ?? ''}
+                    onChange={e => setForm(f => ({ ...f, clothing_size: e.target.value }))}
+                    placeholder={lang === 'fr' ? 'Ex: S, M, 36...' : 'e.g. S, M, 36...'}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Langues parlees' : 'Languages spoken'}</label>
+                  <input value={((form as any).languages ?? []).join(', ')}
+                    onChange={e => setForm(f => ({ ...f, languages: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }))}
+                    placeholder={lang === 'fr' ? 'francais, anglais...' : 'French, English...'}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Competences speciales' : 'Special skills'}</label>
+                <input value={(form as any).special_skills ?? ''}
+                  onChange={e => setForm(f => ({ ...f, special_skills: e.target.value }))}
+                  placeholder={lang === 'fr' ? 'Ex: danse, equitation, plongee, conduite...' : 'e.g. dancing, horseback riding, diving, driving...'}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+              </div>
+            </div>
+
             {/* Bio */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500 uppercase tracking-widest font-medium">{t.bio_label}</p>
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t.bio_label}</p>
                 <span className="text-xs text-gray-600">{(form.bio ?? '').length}/500</span>
               </div>
               <textarea
@@ -799,15 +926,16 @@ export default function PortfolioFillPage() {
         {/* ── PHOTOS ── */}
         {activeSection === 'photos' && (
           <div className="space-y-5">
-            {/* Upload buttons: 3 columns — galerie, camera, video */}
-            <div className="grid grid-cols-3 gap-2">
-              <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-2xl py-6 text-center transition-colors group">
-                <div className="w-10 h-10 rounded-full bg-pink-600/10 group-hover:bg-pink-600/20 flex items-center justify-center transition-colors">
-                  <Upload size={18} className="text-pink-400" />
+            {/* Upload buttons: photo (incl. camera via OS dialog) + video */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Photo — no capture: OS shows native picker (camera + gallery) */}
+              <label className="flex flex-col items-center gap-2.5 cursor-pointer border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-2xl py-8 text-center transition-colors group">
+                <div className="w-12 h-12 rounded-full bg-pink-600/10 group-hover:bg-pink-600/20 flex items-center justify-center transition-colors">
+                  <Camera size={20} className="text-pink-400" />
                 </div>
                 <div>
-                  <p className="text-white text-xs font-semibold">{t.gallery}</p>
-                  <p className="text-gray-600 text-[10px] mt-0.5 leading-tight">{t.gallery_desc}</p>
+                  <p className="text-white text-xs font-semibold">{lang === 'fr' ? 'Ajouter une photo' : 'Add a photo'}</p>
+                  <p className="text-gray-600 text-xs mt-0.5">{lang === 'fr' ? 'Camera ou galerie' : 'Camera or gallery'}</p>
                 </div>
                 <input type="file" accept="image/*" multiple className="hidden"
                   onChange={e => {
@@ -816,28 +944,14 @@ export default function PortfolioFillPage() {
                   }} />
               </label>
 
-              <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-purple-800/50 hover:border-purple-500 rounded-2xl py-6 text-center transition-colors group">
-                <div className="w-10 h-10 rounded-full bg-purple-600/10 group-hover:bg-purple-600/20 flex items-center justify-center transition-colors">
-                  <Camera size={18} className="text-purple-400" />
+              {/* Video */}
+              <label className="flex flex-col items-center gap-2.5 cursor-pointer border-2 border-dashed border-blue-800/50 hover:border-blue-500 rounded-2xl py-8 text-center transition-colors group">
+                <div className="w-12 h-12 rounded-full bg-blue-600/10 group-hover:bg-blue-600/20 flex items-center justify-center transition-colors">
+                  <Play size={20} className="text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-white text-xs font-semibold">{t.camera_btn}</p>
-                  <p className="text-gray-600 text-[10px] mt-0.5 leading-tight">{t.camera_desc}</p>
-                </div>
-                <input type="file" accept="image/*,video/*" capture="environment" className="hidden"
-                  onChange={e => {
-                    if (e.target.files?.[0]) uploadItemPhoto(e.target.files[0])
-                    ;(e.target as HTMLInputElement).value = ''
-                  }} />
-              </label>
-
-              <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-blue-800/50 hover:border-blue-500 rounded-2xl py-6 text-center transition-colors group">
-                <div className="w-10 h-10 rounded-full bg-blue-600/10 group-hover:bg-blue-600/20 flex items-center justify-center transition-colors">
-                  <Play size={18} className="text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-white text-xs font-semibold">{lang === 'fr' ? 'Video' : 'Video'}</p>
-                  <p className="text-gray-600 text-[10px] mt-0.5 leading-tight">{lang === 'fr' ? 'MP4, MOV (100MB)' : 'MP4, MOV (100MB)'}</p>
+                  <p className="text-white text-xs font-semibold">{lang === 'fr' ? 'Ajouter une video' : 'Add a video'}</p>
+                  <p className="text-gray-600 text-xs mt-0.5">{lang === 'fr' ? 'MP4 / MOV (100 MB max)' : 'MP4 / MOV (100 MB max)'}</p>
                 </div>
                 <input type="file" accept="video/*" className="hidden"
                   onChange={e => {
@@ -977,7 +1091,7 @@ function LinkSection({
   return (
     <div className="space-y-4">
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 space-y-3">
-        <p className="text-xs text-gray-500 uppercase tracking-widest font-medium">{t.add_link}</p>
+        <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t.add_link}</p>
         <div>
           <label className="text-xs text-gray-400 mb-1 block">{t.link_name}</label>
           <input value={title} onChange={e => setTitle(e.target.value)}

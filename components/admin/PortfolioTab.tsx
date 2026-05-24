@@ -31,6 +31,16 @@ interface Profile {
   theme: string
   theme_primary: string
   theme_accent: string
+  height_cm: number | null
+  weight_kg: number | null
+  eye_color: string
+  hair_color: string
+  hair_length: string
+  skin_tone: string
+  shoe_size: string
+  clothing_size: string
+  languages: string[]
+  special_skills: string
   created_at: string
 }
 
@@ -70,6 +80,9 @@ export default function PortfolioTab() {
     name: '', tagline: '', bio: '', contact_email: '', phone: '',
     instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '',
     gender: '', age_class: '', theme: 'rose', theme_primary: '', theme_accent: '',
+    height_cm: '' as string | number, weight_kg: '' as string | number,
+    eye_color: '', hair_color: '', hair_length: '', skin_tone: '',
+    shoe_size: '', clothing_size: '', languages: '', special_skills: '',
   })
   const [itemForm, setItemForm] = useState({
     type: 'photo' as 'photo' | 'link' | 'video',
@@ -110,7 +123,7 @@ export default function PortfolioTab() {
     name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   const openNewProfile = () => {
-    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '', gender: '', age_class: '', theme: 'rose', theme_primary: '', theme_accent: '' })
+    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '', gender: '', age_class: '', theme: 'rose', theme_primary: '', theme_accent: '', height_cm: '', weight_kg: '', eye_color: '', hair_color: '', hair_length: '', skin_tone: '', shoe_size: '', clothing_size: '', languages: '', special_skills: '' })
     setSelectedProfile(null)
     setEditingProfile(true)
   }
@@ -123,6 +136,11 @@ export default function PortfolioTab() {
       location: p.location || '', slug: p.slug, uda_number: p.uda_number || '',
       gender: p.gender || '', age_class: p.age_class || '',
       theme: p.theme || 'rose', theme_primary: p.theme_primary || '', theme_accent: p.theme_accent || '',
+      height_cm: p.height_cm ?? '', weight_kg: p.weight_kg ?? '',
+      eye_color: p.eye_color || '', hair_color: p.hair_color || '',
+      hair_length: p.hair_length || '', skin_tone: p.skin_tone || '',
+      shoe_size: p.shoe_size || '', clothing_size: p.clothing_size || '',
+      languages: (p.languages || []).join(', '), special_skills: p.special_skills || '',
     })
     setEditingProfile(true)
   }
@@ -130,14 +148,23 @@ export default function PortfolioTab() {
   const saveProfile = async () => {
     if (!form.name.trim()) { showToast('Le nom est requis', false); return }
     const slug = form.slug || slugify(form.name)
+    const langs = typeof form.languages === 'string'
+      ? form.languages.split(',').map(l => l.trim()).filter(Boolean)
+      : form.languages
+    const payload = {
+      ...form, slug,
+      height_cm: form.height_cm !== '' ? Number(form.height_cm) : null,
+      weight_kg: form.weight_kg !== '' ? Number(form.weight_kg) : null,
+      languages: langs,
+    }
     setIsLoading(true)
     if (selectedProfile) {
-      const { error } = await supabase.from('portfolio_profiles').update({ ...form, slug }).eq('id', selectedProfile.id)
+      const { error } = await supabase.from('portfolio_profiles').update(payload).eq('id', selectedProfile.id)
       if (error) { showToast('Erreur: ' + error.message, false); setIsLoading(false); return }
       showToast('Profil mis a jour')
       await loadProfiles(selectedProfile.id)
     } else {
-      const { data, error } = await supabase.from('portfolio_profiles').insert([{ ...form, slug }]).select().single()
+      const { data, error } = await supabase.from('portfolio_profiles').insert([payload]).select().single()
       if (error) { showToast('Erreur: ' + error.message, false); setIsLoading(false); return }
       showToast('Profil cree!')
       await loadProfiles(data.id)
@@ -366,6 +393,51 @@ export default function PortfolioTab() {
         const bioLines = doc.splitTextToSize(profile.bio, LC)
         doc.text(bioLines, LX, y)
         y += bioLines.length * 4.8 + 6
+      }
+
+      // FICHE PHYSIQUE
+      const physRows: { label: string; val: string }[] = []
+      if (profile.height_cm) physRows.push({ label: 'Taille', val: `${profile.height_cm} cm` })
+      if (profile.weight_kg) physRows.push({ label: 'Poids',  val: `${profile.weight_kg} kg` })
+      if (profile.eye_color)    physRows.push({ label: 'Yeux',    val: profile.eye_color })
+      if (profile.hair_color)   physRows.push({ label: 'Cheveux', val: profile.hair_color + (profile.hair_length ? ' / ' + profile.hair_length : '') })
+      if (profile.skin_tone)    physRows.push({ label: 'Teint',   val: profile.skin_tone })
+      if (profile.clothing_size) physRows.push({ label: 'Vetement', val: profile.clothing_size })
+      if (profile.shoe_size)    physRows.push({ label: 'Pointure', val: profile.shoe_size })
+      if (profile.languages?.length) physRows.push({ label: 'Langues', val: profile.languages.join(', ') })
+      if (profile.special_skills) physRows.push({ label: 'Competences', val: profile.special_skills })
+
+      if (physRows.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7)
+        doc.setTextColor(219, 39, 119)
+        doc.text('FICHE PHYSIQUE', LX, y)
+        y += 4
+
+        // 2-column mini table
+        const COL = LC / 2 - 1
+        for (let i = 0; i < physRows.length; i += 2) {
+          const left  = physRows[i]
+          const right = physRows[i + 1]
+          doc.setFillColor(22, 16, 38)
+          doc.roundedRect(LX,         y - 2.5, COL, 6, 0.8, 0.8, 'F')
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(160, 140, 190)
+          doc.text(left.label.toUpperCase(), LX + 2, y + 0.5)
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(230, 225, 245)
+          const lv = left.val.length > 16 ? left.val.slice(0, 14) + '..' : left.val
+          doc.text(lv, LX + 2, y + 3.5)
+          if (right) {
+            doc.setFillColor(22, 16, 38)
+            doc.roundedRect(LX + COL + 2, y - 2.5, COL, 6, 0.8, 0.8, 'F')
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(160, 140, 190)
+            doc.text(right.label.toUpperCase(), LX + COL + 4, y + 0.5)
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(230, 225, 245)
+            const rv = right.val.length > 16 ? right.val.slice(0, 14) + '..' : right.val
+            doc.text(rv, LX + COL + 4, y + 3.5)
+          }
+          y += 7
+        }
+        y += 4
       }
 
       // CONTACT
@@ -689,6 +761,99 @@ export default function PortfolioTab() {
                       rows={3}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 resize-none"
                     />
+                  </div>
+                  {/* Caracteristiques physiques */}
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-300 uppercase tracking-widest mb-2 mt-1">Caracteristiques physiques</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { key: 'height_cm', label: 'Taille (cm)', placeholder: 'Ex: 168', type: 'number' },
+                        { key: 'weight_kg', label: 'Poids (kg)', placeholder: 'Ex: 58', type: 'number' },
+                        { key: 'shoe_size', label: 'Pointure', placeholder: 'Ex: 38' },
+                        { key: 'clothing_size', label: 'Taille vetement', placeholder: 'Ex: S, M, 36...' },
+                      ].map(({ key, label, placeholder, type }) => (
+                        <div key={key}>
+                          <label className="text-xs text-gray-400 mb-1 block">{label}</label>
+                          <input
+                            type={type || 'text'}
+                            value={(form as any)[key]}
+                            onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                            placeholder={placeholder}
+                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500"
+                          />
+                        </div>
+                      ))}
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Couleur des yeux</label>
+                        <select value={form.eye_color} onChange={e => setForm(f => ({ ...f, eye_color: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                          <option value="">--</option>
+                          <option value="Marron">Marron</option>
+                          <option value="Noisette">Noisette</option>
+                          <option value="Vert">Vert</option>
+                          <option value="Bleu">Bleu</option>
+                          <option value="Gris">Gris</option>
+                          <option value="Noir">Noir</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Couleur des cheveux</label>
+                        <select value={form.hair_color} onChange={e => setForm(f => ({ ...f, hair_color: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                          <option value="">--</option>
+                          <option value="Noir">Noir</option>
+                          <option value="Brun">Brun</option>
+                          <option value="Chatain">Chatain</option>
+                          <option value="Blond">Blond</option>
+                          <option value="Roux">Roux</option>
+                          <option value="Gris / Blanc">Gris / Blanc</option>
+                          <option value="Colore">Colore</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Longueur cheveux</label>
+                        <select value={form.hair_length} onChange={e => setForm(f => ({ ...f, hair_length: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                          <option value="">--</option>
+                          <option value="Tres court">Tres court</option>
+                          <option value="Court">Court</option>
+                          <option value="Mi-long">Mi-long</option>
+                          <option value="Long">Long</option>
+                          <option value="Tres long">Tres long</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Teint</label>
+                        <select value={form.skin_tone} onChange={e => setForm(f => ({ ...f, skin_tone: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                          <option value="">--</option>
+                          <option value="Tres clair">Tres clair</option>
+                          <option value="Clair">Clair</option>
+                          <option value="Moyen">Moyen</option>
+                          <option value="Olive">Olive</option>
+                          <option value="Fonce">Fonce</option>
+                          <option value="Tres fonce">Tres fonce</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-gray-400 mb-1 block">Langues (separees par virgule)</label>
+                        <input
+                          value={form.languages as string}
+                          onChange={e => setForm(f => ({ ...f, languages: e.target.value }))}
+                          placeholder="Ex: Francais, Anglais, Espagnol"
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-gray-400 mb-1 block">Competences speciales</label>
+                        <input
+                          value={form.special_skills}
+                          onChange={e => setForm(f => ({ ...f, special_skills: e.target.value }))}
+                          placeholder="Ex: Conduite auto, Equitation, Chant..."
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-3 mt-4">
