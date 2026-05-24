@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Mail, ExternalLink, RefreshCw, Search, Filter,
   FileText, Receipt, AlertTriangle, CheckCircle, XCircle, Minus,
   Building2, TrendingUp, DollarSign, Trash2,
 } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types -------------------------------------------------------------------
 interface GmailInvoice {
   id: string
   message_id: string
@@ -32,10 +33,10 @@ type CategoryFilter = 'all' | 'FACTURE' | 'RECU_PAIEMENT' | 'non_assigne'
 
 const COMPANIES = ['CERDIA Globale', 'CERDIA S.E.C.', 'Commerce CERDIA']
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmt(n: number | null) {
+// --- Helpers -----------------------------------------------------------------
+function fmt(n: number | null, locale: string) {
   if (n == null) return '—'
-  return new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  return new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
 }
 
 function confBadge(v: number | null) {
@@ -48,43 +49,47 @@ function confBadge(v: number | null) {
   return <span className={`px-1.5 py-0.5 rounded text-xs font-mono font-semibold ${cls}`}>{pct}%</span>
 }
 
-function catBadge(cat: string) {
-  const map: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
-    FACTURE:       { label: 'Facture',  cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',       icon: FileText },
-    RECU_PAIEMENT: { label: 'Reçu',    cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400', icon: Receipt },
-    DOC_PROJET:    { label: 'Document', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',            icon: FileText },
-    A_REVISER:     { label: 'À réviser', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400', icon: AlertTriangle },
+function catBadge(cat: string, fr: boolean) {
+  const map: Record<string, { label: string; enLabel: string; cls: string; icon: React.ElementType }> = {
+    FACTURE:       { label: 'Facture',   enLabel: 'Invoice',    cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',         icon: FileText },
+    RECU_PAIEMENT: { label: 'Recu',      enLabel: 'Receipt',    cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400',  icon: Receipt },
+    DOC_PROJET:    { label: 'Document',  enLabel: 'Document',   cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',             icon: FileText },
+    A_REVISER:     { label: 'A reviser', enLabel: 'To review',  cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',  icon: AlertTriangle },
   }
-  const { label, cls, icon: Icon } = map[cat] ?? { label: cat, cls: 'bg-gray-100 text-gray-600', icon: FileText }
+  const entry = map[cat] ?? { label: cat, enLabel: cat, cls: 'bg-gray-100 text-gray-600', icon: FileText }
+  const { cls, icon: Icon } = entry
+  const displayLabel = fr ? entry.label : entry.enLabel
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      <Icon size={11} /> {label}
+      <Icon size={11} /> {displayLabel}
     </span>
   )
 }
 
-function paidBadge(v: boolean | null) {
-  if (v === true)  return <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle size={13} /> Oui</span>
-  if (v === false) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><XCircle size={13} /> Non</span>
-  return <span className="inline-flex items-center gap-1 text-xs text-gray-400"><Minus size={13} /> —</span>
+function paidBadge(v: boolean | null, fr: boolean) {
+  if (v === true)  return <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle size={13} /> {fr ? 'Oui' : 'Yes'}</span>
+  if (v === false) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><XCircle size={13} /> {fr ? 'Non' : 'No'}</span>
+  return <span className="inline-flex items-center gap-1 text-xs text-gray-400"><Minus size={13} /> &mdash;</span>
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ---------------------------------------------------------------
 interface Props {
-  /** Companies to display (shows their invoices + unassigned). */
   filterCompanies: string[]
-  /** Label shown in the section header */
   title?: string
 }
 
 export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gmail' }: Props) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const [invoices, setInvoices] = useState<GmailInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [savingCat, setSavingCat] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // id unique ou 'bulk'
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<CategoryFilter>('all')
   const [error, setError] = useState<string | null>(null)
@@ -104,7 +109,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
       if (err) throw err
       setInvoices(data ?? [])
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur de chargement')
+      setError(e instanceof Error ? e.message : (fr ? 'Erreur de chargement' : 'Loading error'))
     } finally {
       setLoading(false)
     }
@@ -112,7 +117,6 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
 
   useEffect(() => { load() }, [load])
 
-  // Assign company
   const assignCompany = async (id: string, company: string) => {
     setSaving(id)
     const { error: err } = await supabase
@@ -124,7 +128,6 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, cerdia_company: company || null } : inv))
   }
 
-  // Reclasser la catégorie (utile pour corriger un "À réviser" en Facture/Reçu)
   const assignCategory = async (id: string, category: GmailInvoice['category']) => {
     setSavingCat(id)
     const { error: err } = await supabase
@@ -136,7 +139,6 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, category } : inv))
   }
 
-  // Supprimer une seule facture (soft-delete : tombstone respecté par le sync Python)
   const deleteOne = async (id: string) => {
     setDeleting(id)
     const { error: err } = await supabase
@@ -150,7 +152,6 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setSelected(prev => { const s = new Set(prev); s.delete(id); return s })
   }
 
-  // Supprimer la sélection multiple (soft-delete)
   const deleteSelected = async () => {
     const ids = Array.from(selected)
     setDeleting('bulk')
@@ -165,14 +166,13 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     setSelected(new Set())
   }
 
-  // Toggle sélection
   const toggleSelect = (id: string) =>
     setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
   const toggleSelectAll = () =>
     setSelected(prev => prev.size === filtered.length ? new Set() : new Set(filtered.map(i => i.id)))
 
-  // ── Filtered list ─────────────────────────────────────────────────────────
+  // -- Filtered list ----------------------------------------------------------
   const filtered = invoices.filter(inv => {
     const q = search.toLowerCase()
     const matchSearch = !q ||
@@ -185,7 +185,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
     return matchSearch && matchCat
   })
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
+  // -- Stats ------------------------------------------------------------------
   const financial = invoices.filter(i => i.category === 'FACTURE' || i.category === 'RECU_PAIEMENT')
   const totalCAD  = financial.filter(i => (i.currency ?? 'CAD') === 'CAD').reduce((s, i) => s + (i.amount ?? 0), 0)
   const totalUSD  = financial.filter(i => i.currency === 'USD').reduce((s, i) => s + (i.amount ?? 0), 0)
@@ -194,23 +194,23 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
   const recus     = invoices.filter(i => i.category === 'RECU_PAIEMENT').length
 
   const statCards = [
-    { label: 'Factures',  value: factures,       icon: FileText,     color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { label: 'Reçus',     value: recus,           icon: Receipt,      color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20' },
-    { label: 'Total CAD', value: `${fmt(totalCAD)} $`, icon: DollarSign, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { label: 'Total USD', value: `${fmt(totalUSD)} $`, icon: TrendingUp, color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { label: 'À assigner', value: unassigned,     icon: AlertTriangle, color: unassigned > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500', bg: unassigned > 0 ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-800' },
+    { label: fr ? 'Factures' : 'Invoices',  value: factures,                  icon: FileText,      color: 'text-blue-600 dark:text-blue-400',            bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { label: fr ? 'Recus' : 'Receipts',     value: recus,                     icon: Receipt,       color: 'text-violet-600 dark:text-violet-400',         bg: 'bg-violet-50 dark:bg-violet-900/20' },
+    { label: 'Total CAD',                    value: `${fmt(totalCAD, locale)} $`, icon: DollarSign, color: 'text-emerald-600 dark:text-emerald-400',       bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { label: 'Total USD',                    value: `${fmt(totalUSD, locale)} $`, icon: TrendingUp, color: 'text-amber-600 dark:text-amber-400',           bg: 'bg-amber-50 dark:bg-amber-900/20' },
+    { label: fr ? 'A assigner' : 'To assign', value: unassigned,              icon: AlertTriangle, color: unassigned > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500', bg: unassigned > 0 ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-800' },
   ]
 
   const catTabs: { key: CategoryFilter; label: string }[] = [
-    { key: 'all',          label: `Tous (${invoices.length})` },
-    { key: 'FACTURE',      label: `Factures (${factures})` },
-    { key: 'RECU_PAIEMENT', label: `Reçus (${recus})` },
-    { key: 'non_assigne',  label: `À assigner (${unassigned})` },
+    { key: 'all',           label: fr ? `Tous (${invoices.length})` : `All (${invoices.length})` },
+    { key: 'FACTURE',       label: fr ? `Factures (${factures})` : `Invoices (${factures})` },
+    { key: 'RECU_PAIEMENT', label: fr ? `Recus (${recus})` : `Receipts (${recus})` },
+    { key: 'non_assigne',   label: fr ? `A assigner (${unassigned})` : `To assign (${unassigned})` },
   ]
 
   return (
     <div className="space-y-5">
-      {/* Modal confirmation suppression */}
+      {/* Confirmation modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-red-200 dark:border-red-800">
@@ -219,24 +219,29 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                 <Trash2 size={18} className="text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Confirmer la suppression</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                  {fr ? 'Confirmer la suppression' : 'Confirm deletion'}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {confirmDelete === 'bulk'
-                    ? `Supprimer ${selected.size} facture${selected.size > 1 ? 's' : ''} sélectionnée${selected.size > 1 ? 's' : ''} ?`
-                    : 'Supprimer cette facture ?'}
+                    ? (fr
+                        ? `Supprimer ${selected.size} facture${selected.size > 1 ? 's' : ''} selectionnee${selected.size > 1 ? 's' : ''} ?`
+                        : `Delete ${selected.size} selected invoice${selected.size > 1 ? 's' : ''}?`)
+                    : (fr ? 'Supprimer cette facture ?' : 'Delete this invoice?')}
                 </p>
               </div>
             </div>
             <p className="text-xs text-orange-700 dark:text-orange-400 mb-5 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
-              La facture sera masquée de la liste et le sync Gmail ne la réinsèrera plus.
-              Réversible via Supabase Studio si besoin.
+              {fr
+                ? 'La facture sera masquee de la liste et le sync Gmail ne la reinsarera plus. Reversible via Supabase Studio si besoin.'
+                : 'The invoice will be hidden from the list and the Gmail sync will no longer reinsert it. Reversible via Supabase Studio if needed.'}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDelete(null)}
                 className="flex-1 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                Annuler
+                {fr ? 'Annuler' : 'Cancel'}
               </button>
               <button
                 onClick={() => confirmDelete === 'bulk' ? deleteSelected() : deleteOne(confirmDelete)}
@@ -244,7 +249,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                 className="flex-1 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {deleting ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                Supprimer
+                {fr ? 'Supprimer' : 'Delete'}
               </button>
             </div>
           </div>
@@ -259,7 +264,9 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
             {title}
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Factures et reçus classifiés automatiquement depuis Gmail · {filterCompanies.join(' / ')}
+            {fr
+              ? `Factures et recus classifies automatiquement depuis Gmail · ${filterCompanies.join(' / ')}`
+              : `Invoices and receipts automatically classified from Gmail · ${filterCompanies.join(' / ')}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -268,7 +275,10 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
               onClick={() => setConfirmDelete('bulk')}
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
             >
-              <Trash2 size={13} /> Supprimer {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
+              <Trash2 size={13} />
+              {fr
+                ? `Supprimer ${selected.size} selectionne${selected.size > 1 ? 's' : ''}`
+                : `Delete ${selected.size} selected`}
             </button>
           )}
           <button
@@ -276,7 +286,8 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
             disabled={loading}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Actualiser
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            {fr ? 'Actualiser' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -303,7 +314,6 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-        {/* Category tabs */}
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {catTabs.map(({ key, label }) => (
             <button
@@ -320,12 +330,11 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
           ))}
         </div>
 
-        {/* Search */}
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Rechercher fournisseur…"
+            placeholder={fr ? 'Rechercher fournisseur...' : 'Search vendor...'}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -338,12 +347,12 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
         {loading ? (
           <div className="py-16 text-center text-gray-400 flex flex-col items-center gap-2">
             <RefreshCw size={24} className="animate-spin" />
-            <span className="text-sm">Chargement…</span>
+            <span className="text-sm">{fr ? 'Chargement...' : 'Loading...'}</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <Filter size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Aucun document trouvé</p>
+            <p className="text-sm">{fr ? 'Aucun document trouve' : 'No documents found'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -356,17 +365,17 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                       checked={filtered.length > 0 && selected.size === filtered.length}
                       onChange={toggleSelectAll}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      title="Tout sélectionner"
+                      title={fr ? 'Tout selectionner' : 'Select all'}
                     />
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Fournisseur</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Catégorie</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Montant</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Payé?</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{fr ? 'Fournisseur' : 'Vendor'}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{fr ? 'Categorie' : 'Category'}</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">{fr ? 'Montant' : 'Amount'}</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{fr ? 'Paye?' : 'Paid?'}</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Conf.</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 min-w-[180px]">
-                    <span className="flex items-center gap-1"><Building2 size={12} /> Compagnie CERDIA</span>
+                    <span className="flex items-center gap-1"><Building2 size={12} /> {fr ? 'Compagnie CERDIA' : 'CERDIA Company'}</span>
                   </th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Gmail</th>
                   <th className="px-3 py-3 w-8"></th>
@@ -398,7 +407,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                       {inv.document_date ?? '—'}
                     </td>
 
-                    {/* Fournisseur */}
+                    {/* Vendor */}
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[200px]">
                         {inv.vendor_name ?? '—'}
@@ -408,7 +417,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                       )}
                     </td>
 
-                    {/* Catégorie — éditable inline pour reclasser un À réviser */}
+                    {/* Category — editable inline */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="relative">
                         <select
@@ -422,10 +431,10 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                             'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700'
                           } ${savingCat === inv.id ? 'opacity-50 cursor-wait' : ''}`}
                         >
-                          <option value="FACTURE">Facture</option>
-                          <option value="RECU_PAIEMENT">Reçu</option>
+                          <option value="FACTURE">{fr ? 'Facture' : 'Invoice'}</option>
+                          <option value="RECU_PAIEMENT">{fr ? 'Recu' : 'Receipt'}</option>
                           <option value="DOC_PROJET">Document</option>
-                          <option value="A_REVISER">À réviser</option>
+                          <option value="A_REVISER">{fr ? 'A reviser' : 'To review'}</option>
                         </select>
                         {savingCat === inv.id && (
                           <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
@@ -435,25 +444,25 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                       </div>
                     </td>
 
-                    {/* Montant */}
+                    {/* Amount */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {inv.amount != null ? (
                         <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {fmt(inv.amount)}{' '}
+                          {fmt(inv.amount, locale)}{' '}
                           <span className="text-xs text-gray-400">{inv.currency ?? 'CAD'}</span>
                         </span>
                       ) : '—'}
                     </td>
 
-                    {/* Payé? */}
-                    <td className="px-4 py-3 text-center">{paidBadge(inv.is_paid)}</td>
+                    {/* Paid? */}
+                    <td className="px-4 py-3 text-center">{paidBadge(inv.is_paid, fr)}</td>
 
-                    {/* Confiance */}
+                    {/* Confidence */}
                     <td className="px-4 py-3 text-center">
                       {confBadge(inv.classification_confidence)}
                     </td>
 
-                    {/* Compagnie CERDIA dropdown */}
+                    {/* CERDIA Company dropdown */}
                     <td className="px-4 py-3">
                       <div className="relative">
                         <select
@@ -466,7 +475,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                               : 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
                           } ${saving === inv.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          <option value="">— À assigner —</option>
+                          <option value="">{fr ? '--- A assigner ---' : '--- Assign ---'}</option>
                           {COMPANIES.map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
@@ -487,7 +496,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                          title="Ouvrir dans Gmail"
+                          title={fr ? 'Ouvrir dans Gmail' : 'Open in Gmail'}
                         >
                           <ExternalLink size={13} />
                         </a>
@@ -500,7 +509,7 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
                         onClick={() => setConfirmDelete(inv.id)}
                         disabled={deleting === inv.id}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                        title="Supprimer"
+                        title={fr ? 'Supprimer' : 'Delete'}
                       >
                         {deleting === inv.id
                           ? <RefreshCw size={13} className="animate-spin" />
@@ -516,7 +525,11 @@ export default function GmailFacturesTab({ filterCompanies, title = 'Factures Gm
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-gray-400 text-right">{filtered.length} document{filtered.length > 1 ? 's' : ''} affiché{filtered.length > 1 ? 's' : ''}</p>
+        <p className="text-xs text-gray-400 text-right">
+          {fr
+            ? `${filtered.length} document${filtered.length > 1 ? 's' : ''} affiche${filtered.length > 1 ? 's' : ''}`
+            : `${filtered.length} document${filtered.length > 1 ? 's' : ''} displayed`}
+        </p>
       )}
     </div>
   )
