@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +32,9 @@ interface ProjectProgress {
 }
 
 export default function ProgressReporting() {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
   const [projects, setProjects] = useState<ProjectProgress[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [projectDetails, setProjectDetails] = useState<ProjectProgress | null>(null)
@@ -68,7 +72,7 @@ export default function ProgressReporting() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -92,11 +96,11 @@ export default function ProgressReporting() {
 
     score = Math.max(0, Math.min(100, score))
 
-    let level = 'excellent'
+    let level = fr ? 'excellent' : 'excellent'
     let color = 'bg-green-600'
-    if (score < 80) { level = 'bon'; color = 'bg-blue-600' }
-    if (score < 60) { level = 'attention'; color = 'bg-yellow-600' }
-    if (score < 40) { level = 'critique'; color = 'bg-red-600' }
+    if (score < 80) { level = fr ? 'bon' : 'good'; color = 'bg-blue-600' }
+    if (score < 60) { level = fr ? 'attention' : 'warning'; color = 'bg-yellow-600' }
+    if (score < 40) { level = fr ? 'critique' : 'critical'; color = 'bg-red-600' }
 
     return { score: Math.round(score), level, color }
   }
@@ -107,12 +111,12 @@ export default function ProgressReporting() {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Rapport d'Avancement</h1>
-          <p className="text-muted-foreground mt-2">Vue d'ensemble de la progression des projets</p>
+          <h1 className="text-3xl font-bold">{fr ? "Rapport d'Avancement" : 'Progress Report'}</h1>
+          <p className="text-muted-foreground mt-2">{fr ? 'Vue d\'ensemble de la progression des projets' : 'Overview of project progress'}</p>
         </div>
         <Select value={selectedProject} onValueChange={setSelectedProject}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Sélectionner un projet" />
+            <SelectValue placeholder={fr ? 'Sélectionner un projet' : 'Select a project'} />
           </SelectTrigger>
           <SelectContent>
             {projects.map(p => (
@@ -131,8 +135,8 @@ export default function ProgressReporting() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-2xl">Score de Santé du Projet</CardTitle>
-                  <CardDescription>Indicateur global basé sur l'avancement, budget, risques et jalons</CardDescription>
+                  <CardTitle className="text-2xl">{fr ? 'Score de Santé du Projet' : 'Project Health Score'}</CardTitle>
+                  <CardDescription>{fr ? "Indicateur global basé sur l'avancement, budget, risques et jalons" : 'Global indicator based on progress, budget, risks and milestones'}</CardDescription>
                 </div>
                 <div className="text-center">
                   <div className={`text-6xl font-bold ${health.color.replace('bg-', 'text-')}`}>
@@ -149,7 +153,7 @@ export default function ProgressReporting() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Progression Globale</CardDescription>
+                  <CardDescription>{fr ? 'Progression Globale' : 'Overall Progress'}</CardDescription>
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
@@ -157,7 +161,7 @@ export default function ProgressReporting() {
                 <div className="text-3xl font-bold">{projectDetails.overall_progress}%</div>
                 <Progress value={projectDetails.overall_progress} className="mt-2" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  {projectDetails.completed_phases}/{projectDetails.total_phases} phases complétées
+                  {projectDetails.completed_phases}/{projectDetails.total_phases} {fr ? 'phases complétées' : 'phases completed'}
                 </p>
               </CardContent>
             </Card>
@@ -165,7 +169,7 @@ export default function ProgressReporting() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Utilisation Budget</CardDescription>
+                  <CardDescription>{fr ? 'Utilisation Budget' : 'Budget Usage'}</CardDescription>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
@@ -183,7 +187,7 @@ export default function ProgressReporting() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Jalons Critiques</CardDescription>
+                  <CardDescription>{fr ? 'Jalons Critiques' : 'Critical Milestones'}</CardDescription>
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
@@ -193,11 +197,11 @@ export default function ProgressReporting() {
                 </div>
                 {projectDetails.missed_milestones > 0 && (
                   <Badge variant="destructive" className="mt-2">
-                    {projectDetails.missed_milestones} manqué(s)
+                    {projectDetails.missed_milestones} {fr ? 'manqué(s)' : 'missed'}
                   </Badge>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  {Math.round((projectDetails.completed_milestones / projectDetails.total_milestones) * 100 || 0)}% complétés
+                  {Math.round((projectDetails.completed_milestones / projectDetails.total_milestones) * 100 || 0)}% {fr ? 'complétés' : 'completed'}
                 </p>
               </CardContent>
             </Card>
@@ -205,7 +209,7 @@ export default function ProgressReporting() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription>Risques Actifs</CardDescription>
+                  <CardDescription>{fr ? 'Risques Actifs' : 'Active Risks'}</CardDescription>
                   <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
@@ -215,11 +219,11 @@ export default function ProgressReporting() {
                 </div>
                 {projectDetails.high_risks > 0 && (
                   <Badge variant="destructive" className="mt-2">
-                    {projectDetails.high_risks} élevé(s)
+                    {projectDetails.high_risks} {fr ? 'élevé(s)' : 'high'}
                   </Badge>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Surveillance active requise
+                  {fr ? 'Surveillance active requise' : 'Active monitoring required'}
                 </p>
               </CardContent>
             </Card>
@@ -232,13 +236,14 @@ export default function ProgressReporting() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <CardTitle className="text-lg">Phases en Retard</CardTitle>
+                    <CardTitle className="text-lg">{fr ? 'Phases en Retard' : 'Delayed Phases'}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    <strong>{projectDetails.delayed_phases}</strong> phase(s) en retard sur le calendrier prévu.
-                    Action corrective recommandée.
+                    {fr
+                      ? <><strong>{projectDetails.delayed_phases}</strong> phase(s) en retard sur le calendrier prévu. Action corrective recommandée.</>
+                      : <><strong>{projectDetails.delayed_phases}</strong> phase(s) behind schedule. Corrective action recommended.</>}
                   </p>
                 </CardContent>
               </Card>
@@ -249,15 +254,14 @@ export default function ProgressReporting() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-orange-600" />
-                    <CardTitle className="text-lg">Budget sous Surveillance</CardTitle>
+                    <CardTitle className="text-lg">{fr ? 'Budget sous Surveillance' : 'Budget Under Watch'}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    Utilisation budget: <strong>{projectDetails.budget_utilization}%</strong>.
-                    {projectDetails.budget_utilization > 100
-                      ? ' Dépassement budgétaire détecté.'
-                      : ' Approche de la limite budgétaire.'}
+                    {fr
+                      ? <>Utilisation budget : <strong>{projectDetails.budget_utilization}%</strong>.{projectDetails.budget_utilization > 100 ? ' Dépassement budgétaire détecté.' : ' Approche de la limite budgétaire.'}</>
+                      : <>Budget usage: <strong>{projectDetails.budget_utilization}%</strong>.{projectDetails.budget_utilization > 100 ? ' Budget overrun detected.' : ' Approaching budget limit.'}</>}
                   </p>
                 </CardContent>
               </Card>
@@ -268,13 +272,14 @@ export default function ProgressReporting() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-red-600" />
-                    <CardTitle className="text-lg">Jalons Manqués</CardTitle>
+                    <CardTitle className="text-lg">{fr ? 'Jalons Manqués' : 'Missed Milestones'}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    <strong>{projectDetails.missed_milestones}</strong> jalon(s) critique(s) manqué(s).
-                    Impact potentiel sur le calendrier global.
+                    {fr
+                      ? <><strong>{projectDetails.missed_milestones}</strong> jalon(s) critique(s) manqué(s). Impact potentiel sur le calendrier global.</>
+                      : <><strong>{projectDetails.missed_milestones}</strong> critical milestone(s) missed. Potential impact on overall schedule.</>}
                   </p>
                 </CardContent>
               </Card>
@@ -285,13 +290,14 @@ export default function ProgressReporting() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-orange-600" />
-                    <CardTitle className="text-lg">Risques Élevés</CardTitle>
+                    <CardTitle className="text-lg">{fr ? 'Risques Élevés' : 'High Risks'}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    <strong>{projectDetails.high_risks}</strong> risque(s) élevé(s) identifié(s).
-                    Plans de mitigation requis.
+                    {fr
+                      ? <><strong>{projectDetails.high_risks}</strong> risque(s) élevé(s) identifié(s). Plans de mitigation requis.</>
+                      : <><strong>{projectDetails.high_risks}</strong> high risk(s) identified. Mitigation plans required.</>}
                   </p>
                 </CardContent>
               </Card>
@@ -302,28 +308,28 @@ export default function ProgressReporting() {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Détails des Phases</CardTitle>
+                <CardTitle>{fr ? 'Détails des Phases' : 'Phase Details'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total Phases</span>
+                    <span className="text-sm font-medium">{fr ? 'Total Phases' : 'Total Phases'}</span>
                     <Badge variant="outline">{projectDetails.total_phases}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Complétées</span>
+                    <span className="text-sm font-medium">{fr ? 'Complétées' : 'Completed'}</span>
                     <Badge className="bg-green-600">{projectDetails.completed_phases}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">En Cours</span>
+                    <span className="text-sm font-medium">{fr ? 'En Cours' : 'Active'}</span>
                     <Badge className="bg-blue-600">{projectDetails.active_phases}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">En Retard</span>
+                    <span className="text-sm font-medium">{fr ? 'En Retard' : 'Delayed'}</span>
                     <Badge className="bg-red-600">{projectDetails.delayed_phases}</Badge>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-sm font-medium">Progression Moyenne</span>
+                    <span className="text-sm font-medium">{fr ? 'Progression Moyenne' : 'Average Progress'}</span>
                     <span className="text-lg font-bold">{projectDetails.overall_progress}%</span>
                   </div>
                 </div>
@@ -332,24 +338,24 @@ export default function ProgressReporting() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Entrepreneurs & Contrats</CardTitle>
+                <CardTitle>{fr ? 'Entrepreneurs & Contrats' : 'Contractors & Contracts'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total Affectations</span>
+                    <span className="text-sm font-medium">{fr ? 'Total Affectations' : 'Total Assignments'}</span>
                     <Badge variant="outline">{projectDetails.total_assignments}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Valeur Totale Contrats</span>
+                    <span className="text-sm font-medium">{fr ? 'Valeur Totale Contrats' : 'Total Contract Value'}</span>
                     <span className="text-sm font-bold">{formatCurrency(projectDetails.total_contract_value)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Montant Payé</span>
+                    <span className="text-sm font-medium">{fr ? 'Montant Payé' : 'Amount Paid'}</span>
                     <span className="text-sm font-bold">{formatCurrency(projectDetails.total_paid_to_contractors)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-sm font-medium">Taux de Paiement</span>
+                    <span className="text-sm font-medium">{fr ? 'Taux de Paiement' : 'Payment Rate'}</span>
                     <span className="text-lg font-bold">
                       {Math.round((projectDetails.total_paid_to_contractors / projectDetails.total_contract_value) * 100 || 0)}%
                     </span>
@@ -365,13 +371,14 @@ export default function ProgressReporting() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <CardTitle className="text-lg text-green-900">Projet en Bonne Santé</CardTitle>
+                  <CardTitle className="text-lg text-green-900">{fr ? 'Projet en Bonne Santé' : 'Project in Good Health'}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-green-900">
-                  Le projet progresse selon les attentes. Continuez la surveillance des indicateurs clés et maintenez
-                  la communication avec les parties prenantes.
+                  {fr
+                    ? 'Le projet progresse selon les attentes. Continuez la surveillance des indicateurs clés et maintenez la communication avec les parties prenantes.'
+                    : 'The project is progressing as expected. Continue monitoring key indicators and maintain communication with stakeholders.'}
                 </p>
               </CardContent>
             </Card>
@@ -383,24 +390,24 @@ export default function ProgressReporting() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
-                  <CardTitle className="text-lg text-red-900">Actions Recommandées</CardTitle>
+                  <CardTitle className="text-lg text-red-900">{fr ? 'Actions Recommandées' : 'Recommended Actions'}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-2 text-sm text-red-900">
                   {projectDetails.delayed_phases > 0 && (
-                    <li>Réviser le calendrier et identifier les goulots d'étranglement</li>
+                    <li>{fr ? 'Réviser le calendrier et identifier les goulots d\'étranglement' : 'Review schedule and identify bottlenecks'}</li>
                   )}
                   {projectDetails.budget_utilization > 100 && (
-                    <li>Analyser les dépassements budgétaires et obtenir des fonds supplémentaires</li>
+                    <li>{fr ? 'Analyser les dépassements budgétaires et obtenir des fonds supplémentaires' : 'Analyze budget overruns and secure additional funds'}</li>
                   )}
                   {projectDetails.missed_milestones > 0 && (
-                    <li>Replanifier les jalons manqués et ajuster les dépendances</li>
+                    <li>{fr ? 'Replanifier les jalons manqués et ajuster les dépendances' : 'Reschedule missed milestones and adjust dependencies'}</li>
                   )}
                   {projectDetails.high_risks > 0 && (
-                    <li>Activer les plans de mitigation pour les risques élevés</li>
+                    <li>{fr ? 'Activer les plans de mitigation pour les risques élevés' : 'Activate mitigation plans for high risks'}</li>
                   )}
-                  <li>Organiser une réunion de revue de projet avec toutes les parties prenantes</li>
+                  <li>{fr ? 'Organiser une réunion de revue de projet avec toutes les parties prenantes' : 'Organize a project review meeting with all stakeholders'}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -413,7 +420,7 @@ export default function ProgressReporting() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <Activity className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>Sélectionnez un projet pour voir le rapport d'avancement</p>
+              <p>{fr ? "Sélectionnez un projet pour voir le rapport d'avancement" : 'Select a project to view the progress report'}</p>
             </div>
           </CardContent>
         </Card>
