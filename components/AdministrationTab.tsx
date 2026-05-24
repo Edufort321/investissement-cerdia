@@ -1888,7 +1888,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <button
                           onClick={() => handleDeleteDocument(doc.id, doc.storage_path)}
                           className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Supprimer"
+                          title={fr ? 'Supprimer' : 'Delete'}
                         >
                           <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
@@ -3496,7 +3496,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                             }
                           }}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Supprimer"
+                          title={fr ? 'Supprimer' : 'Delete'}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -3690,14 +3690,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           <button
                             onClick={() => handleEditTransaction(transaction)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Modifier"
+                            title={fr ? 'Modifier' : 'Edit'}
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => handleDeleteTransaction(transaction.id, transaction.description)}
                             className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Supprimer"
+                            title={fr ? 'Supprimer' : 'Delete'}
                           >
                             <Trash2 size={16} />
                           </button>
