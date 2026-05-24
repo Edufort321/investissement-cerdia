@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
 import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
 import OrganisationsTab from '@/components/admin/OrganisationsTab'
+import PortfolioTab from '@/components/admin/PortfolioTab'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -15,7 +16,7 @@ import {
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
   Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail,
-  Building2
+  Building2, Sparkles
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -217,7 +218,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations' | 'artiste'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -461,6 +462,7 @@ export default function CommerceAdminPage() {
               { key: 'rapports', label: 'Rapports', icon: BarChart2 },
               { key: 'factures', label: 'Factures', icon: FileText },
               { key: 'factures_gmail', label: 'Courriel', icon: Mail },
+              { key: 'artiste', label: 'Artiste', icon: Sparkles },
               ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
@@ -486,6 +488,7 @@ export default function CommerceAdminPage() {
         {tab === 'rapports' && <RapportsTab />}
         {tab === 'factures' && <FacturesTab />}
         {tab === 'organisations' && <OrganisationsTab toast={setToast} />}
+        {tab === 'artiste' && <PortfolioTab />}
         {tab === 'factures_gmail' && (
           <GmailFacturesTab
             filterCompanies={['Commerce CERDIA']}
