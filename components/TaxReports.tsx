@@ -910,7 +910,7 @@ export default function TaxReports() {
                 onClick={fetchData}
                 disabled={loading}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                title="Recharger les données"
+                title={language === 'fr' ? 'Recharger les donnees' : 'Reload data'}
               >
                 <Calendar size={14} className={loading ? 'animate-spin' : ''} />
                 {loading ? 'Chargement...' : 'Actualiser'}
@@ -929,7 +929,7 @@ export default function TaxReports() {
                 onClick={generateComptableCSV}
                 disabled={loading}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                title="Export CSV brut pour import comptable"
+                title={language === 'fr' ? 'Export CSV brut pour import comptable' : 'Raw CSV export for accounting import'}
               >
                 <FileText size={14} />
                 CSV

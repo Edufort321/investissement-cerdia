@@ -1167,7 +1167,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <button
                   onClick={handleStartEditNominalValue}
                   className="text-white/80 hover:text-white transition-colors"
-                  title="Modifier la valeur nominale"
+                  title={fr ? 'Modifier la valeur nominale' : 'Edit nominal value'}
                 >
                   <Edit2 size={16} />
                 </button>
@@ -1781,7 +1781,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   onClick={() => exportInvestorPDF(investor)}
                   disabled={exportingInvestorId === investor.id}
                   className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Exporter la fiche en PDF"
+                  title={fr ? 'Exporter la fiche en PDF' : 'Export profile to PDF'}
                 >
                   <FileDown size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden xs:inline">
@@ -1881,7 +1881,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <button
                           onClick={() => handleDownloadDocument(doc.storage_path, doc.name)}
                           className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Télécharger"
+                          title={fr ? 'Telecharger' : 'Download'}
                         >
                           <Download size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
@@ -3814,8 +3814,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         {!compteCourant ? (
           <div className="bg-white p-12 rounded-lg shadow-md text-center">
             <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune donnée</h3>
-            <p className="text-gray-600">Aucune transaction pour {monthNames[selectedMonth - 1]} {selectedYear}</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{fr ? 'Aucune donnee' : 'No data'}</h3>
+            <p className="text-gray-600">{fr ? `Aucune transaction pour ${monthNames[selectedMonth - 1]} ${selectedYear}` : `No transactions for ${monthNames[selectedMonth - 1]} ${selectedYear}`}</p>
           </div>
         ) : (
           <>
@@ -3823,7 +3823,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-green-700">Total Revenus</span>
+                  <span className="text-sm font-medium text-green-700">{fr ? 'Total Revenus' : 'Total Revenue'}</span>
                   <TrendingUp className="text-green-600" size={24} />
                 </div>
                 <p className="text-3xl font-bold text-green-900">
@@ -3836,7 +3836,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-700">Coûts Opération</span>
+                  <span className="text-sm font-medium text-blue-700">{fr ? 'Couts Operation' : 'Operation Costs'}</span>
                   <TrendingDown className="text-blue-600" size={24} />
                 </div>
                 <p className="text-3xl font-bold text-blue-900">
@@ -3846,7 +3846,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-purple-700">Dépenses Projet</span>
+                  <span className="text-sm font-medium text-purple-700">{fr ? 'Depenses Projet' : 'Project Expenses'}</span>
                   <TrendingDown className="text-purple-600" size={24} />
                 </div>
                 <p className="text-3xl font-bold text-purple-900">
@@ -3857,7 +3857,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <div className={`bg-gradient-to-br ${(compteCourant.net_income || 0) >= 0 ? 'from-emerald-50 to-emerald-100 border-emerald-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-6 rounded-lg border`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-sm font-medium ${(compteCourant.net_income || 0) >= 0 ? 'text-emerald-700' : 'text-orange-700'}`}>
-                    Revenu Net
+                    {fr ? 'Revenu Net' : 'Net Revenue'}
                   </span>
                   <DollarSign className={(compteCourant.net_income || 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'} size={24} />
                 </div>
@@ -3873,17 +3873,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  Détails Revenus
+                  {fr ? 'Details Revenus' : 'Revenue Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Revenus locatifs</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Revenus locatifs' : 'Rental income'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.rental_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Autres revenus</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Autres revenus' : 'Other income'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.other_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
@@ -3895,17 +3895,17 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  Détails Coûts Opération
+                  {fr ? 'Details Couts Operation' : 'Operation Cost Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Frais gestion</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Frais gestion' : 'Management fees'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.management_fees || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Services publics</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Services publics' : 'Utilities'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.utilities || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
@@ -3923,7 +3923,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Taxes foncières</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Taxes foncieres' : 'Property taxes'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.property_taxes || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
@@ -3935,23 +3935,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  Détails Dépenses Projet
+                  {fr ? 'Details Depenses Projet' : 'Project Expense Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Rénovations</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Renovations' : 'Renovations'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.renovation_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Ameublement</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Ameublement' : 'Furnishing'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.furnishing_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Autres projets</span>
+                    <span className="text-sm text-gray-600">{fr ? 'Autres projets' : 'Other projects'}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {(compteCourant.other_project_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
@@ -3964,18 +3964,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {byProject.length > 0 && (
               <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-900">Détails par Projet</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{fr ? 'Details par Projet' : 'Details by Project'}</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projet</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localisation</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenus</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Coûts Opér.</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dép. Projet</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenu Net</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Projet' : 'Project'}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Localisation' : 'Location'}</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Revenus' : 'Revenue'}</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Couts Oper.' : 'Op. Costs'}</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Dep. Projet' : 'Proj. Exp.'}</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Revenu Net' : 'Net Revenue'}</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -4036,7 +4036,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-700">CAPEX Investissement</span>
+              <span className="text-sm font-medium text-blue-700">{fr ? 'CAPEX Investissement' : 'Investment CAPEX'}</span>
               <DollarSign className="text-blue-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-blue-900">
@@ -4046,7 +4046,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-700">CAPEX Opération</span>
+              <span className="text-sm font-medium text-purple-700">{fr ? 'CAPEX Operation' : 'Operation CAPEX'}</span>
               <DollarSign className="text-purple-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-purple-900">
@@ -4056,7 +4056,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
           <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-700">Total Réserve CAPEX</span>
+              <span className="text-sm font-medium text-green-700">{fr ? 'Total Reserve CAPEX' : 'Total CAPEX Reserve'}</span>
               <TrendingUp className="text-green-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-green-900">
@@ -4069,19 +4069,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <DollarSign size={20} className="text-blue-600" />
-            Dépenses CAPEX ({capexTransactions.length} transactions)
+            {fr ? `Depenses CAPEX (${capexTransactions.length} transactions)` : `CAPEX Expenses (${capexTransactions.length} transactions)`}
           </h3>
 
           {capexTransactions.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">Aucune dépense CAPEX pour le moment</p>
+              <p className="text-gray-600">{fr ? 'Aucune depense CAPEX pour le moment' : 'No CAPEX expenses yet'}</p>
             </div>
           ) : (
             <>
               <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-700">Total dépensé en CAPEX</span>
+                  <span className="text-sm font-medium text-blue-700">{fr ? 'Total depense en CAPEX' : 'Total spent on CAPEX'}</span>
                   <span className="text-xl font-bold text-blue-900">
                     {totalCapexTransactions.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </span>
@@ -4094,8 +4094,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Categorie' : 'Category'}</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Montant' : 'Amount'}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -4161,7 +4161,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-lg border border-cyan-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-cyan-700">R&D Investissement</span>
+              <span className="text-sm font-medium text-cyan-700">{fr ? 'R&D Investissement' : 'Investment R&D'}</span>
               <TrendingUp className="text-cyan-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-cyan-900">
@@ -4171,7 +4171,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
           <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-indigo-700">R&D Opération</span>
+              <span className="text-sm font-medium text-indigo-700">{fr ? 'R&D Operation' : 'Operation R&D'}</span>
               <TrendingUp className="text-indigo-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-indigo-900">
@@ -4181,7 +4181,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-700">Total Dividendes</span>
+              <span className="text-sm font-medium text-purple-700">{fr ? 'Total Dividendes' : 'Total Dividends'}</span>
               <DollarSign className="text-purple-600" size={20} />
             </div>
             <p className="text-2xl font-bold text-purple-900">
@@ -4194,19 +4194,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <TrendingUp size={20} className="text-cyan-600" />
-            Dépenses R&D ({rndTransactions.length} transactions)
+            {fr ? `Depenses R&D (${rndTransactions.length} transactions)` : `R&D Expenses (${rndTransactions.length} transactions)`}
           </h3>
 
           {rndTransactions.length === 0 ? (
             <div className="text-center py-12">
               <TrendingUp size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">Aucune dépense R&D pour le moment</p>
+              <p className="text-gray-600">{fr ? 'Aucune depense R&D pour le moment' : 'No R&D expenses yet'}</p>
             </div>
           ) : (
             <>
               <div className="mb-4 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-cyan-700">Total dépensé en R&D</span>
+                  <span className="text-sm font-medium text-cyan-700">{fr ? 'Total depense en R&D' : 'Total spent on R&D'}</span>
                   <span className="text-xl font-bold text-cyan-900">
                     {totalRndSpent.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </span>
@@ -4219,8 +4219,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Categorie' : 'Category'}</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Montant' : 'Amount'}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -4257,19 +4257,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <DollarSign size={20} className="text-purple-600" />
-            Dividendes Distribués ({dividendeTransactions.length} transactions)
+            {fr ? `Dividendes Distribues (${dividendeTransactions.length} transactions)` : `Distributed Dividends (${dividendeTransactions.length} transactions)`}
           </h3>
 
           {dividendeTransactions.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">Aucun dividende distribué pour le moment</p>
+              <p className="text-gray-600">{fr ? 'Aucun dividende distribue pour le moment' : 'No dividends distributed yet'}</p>
             </div>
           ) : (
             <>
               <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-purple-700">Total distribué</span>
+                  <span className="text-sm font-medium text-purple-700">{fr ? 'Total distribue' : 'Total distributed'}</span>
                   <span className="text-xl font-bold text-purple-900">
                     {totalDividendsDistributed.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                   </span>
@@ -4279,7 +4279,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               {/* Dividendes par investisseur */}
               {dividendsByInvestor.length > 0 && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <h4 className="text-sm font-semibold text-purple-900 mb-3">Répartition par Investisseur</h4>
+                  <h4 className="text-sm font-semibold text-purple-900 mb-3">{fr ? 'Repartition par Investisseur' : 'Breakdown by Investor'}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {dividendsByInvestor.map(({ investor, totalReceived, transactionCount }) => (
                       <div key={investor.id} className="bg-white p-3 rounded-lg border border-purple-100">
@@ -4287,7 +4287,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           {investor.first_name} {investor.last_name}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {transactionCount} paiement{transactionCount > 1 ? 's' : ''}
+                          {transactionCount} {fr ? `paiement${transactionCount > 1 ? 's' : ''}` : `payment${transactionCount > 1 ? 's' : ''}`}
                         </div>
                         <div className="text-lg font-bold text-purple-600 mt-2">
                           {totalReceived.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
@@ -4304,9 +4304,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Investisseur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Investisseur' : 'Investor'}</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Montant' : 'Amount'}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
