@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Building2, X, ExternalLink } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PropertyFinancialSummaryProps {
   propertyId: string
@@ -58,6 +59,9 @@ export default function PropertyFinancialSummary({
   transactions,
   onOpenPerformanceROI
 }: PropertyFinancialSummaryProps) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
   const [financialData, setFinancialData] = useState<FinancialData>({
     rentalIncome: 0,
     otherIncome: 0,
@@ -172,7 +176,7 @@ export default function PropertyFinancialSummary({
   }
 
   const formatCurrency = (amount: number, curr: string = currency) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: curr,
       minimumFractionDigits: 0
@@ -188,7 +192,7 @@ export default function PropertyFinancialSummary({
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Building2 size={24} className="text-blue-600" />
-            Bilan Financier
+            {fr ? 'Bilan Financier' : 'Financial Summary'}
           </h2>
           <p className="text-sm text-gray-600 mt-1">{propertyName}</p>
         </div>
@@ -197,7 +201,7 @@ export default function PropertyFinancialSummary({
             onClick={onOpenPerformanceROI}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            Analyse ROI détaillée
+            {fr ? 'Analyse ROI détaillée' : 'Detailed ROI analysis'}
             <ExternalLink size={16} />
           </button>
         )}
@@ -205,17 +209,17 @@ export default function PropertyFinancialSummary({
 
       {/* Investissement Initial */}
       <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h3 className="text-sm font-bold text-blue-900 mb-3">💰 INVESTISSEMENT INITIAL</h3>
+        <h3 className="text-sm font-bold text-blue-900 mb-3">💰 {fr ? 'INVESTISSEMENT INITIAL' : 'INITIAL INVESTMENT'}</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-xs text-blue-700">Coût d'achat</div>
+            <div className="text-xs text-blue-700">{fr ? "Coût d'achat" : 'Purchase cost'}</div>
             <div className="text-2xl font-bold text-blue-900">{formatCurrency(totalCost)}</div>
           </div>
           {reservationDate && (
             <div>
-              <div className="text-xs text-blue-700">Date d'acquisition</div>
+              <div className="text-xs text-blue-700">{fr ? "Date d'acquisition" : 'Acquisition date'}</div>
               <div className="text-sm font-medium text-blue-900">
-                {new Date(reservationDate).toLocaleDateString('fr-CA')}
+                {new Date(reservationDate).toLocaleDateString(locale)}
               </div>
             </div>
           )}
@@ -224,23 +228,23 @@ export default function PropertyFinancialSummary({
 
       {/* Revenus */}
       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-        <h3 className="text-sm font-bold text-green-900 mb-3">📈 REVENUS CUMULÉS</h3>
+        <h3 className="text-sm font-bold text-green-900 mb-3">📈 {fr ? 'REVENUS CUMULÉS' : 'CUMULATIVE REVENUES'}</h3>
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-green-700">💰 Revenus locatifs</span>
+            <span className="text-xs text-green-700">💰 {fr ? 'Revenus locatifs' : 'Rental income'}</span>
             <span className="text-sm font-medium text-green-900">
               {formatCurrency(financialData.rentalIncome)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-green-700">💵 Autres revenus</span>
+            <span className="text-xs text-green-700">💵 {fr ? 'Autres revenus' : 'Other income'}</span>
             <span className="text-sm font-medium text-green-900">
               {formatCurrency(financialData.otherIncome)}
             </span>
           </div>
           <div className="border-t border-green-300 pt-2 mt-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-green-900">TOTAL REVENUS</span>
+              <span className="text-sm font-bold text-green-900">{fr ? 'TOTAL REVENUS' : 'TOTAL REVENUE'}</span>
               <span className="text-lg font-bold text-green-900">
                 {formatCurrency(financialData.totalRevenues)}
               </span>
@@ -251,53 +255,53 @@ export default function PropertyFinancialSummary({
 
       {/* Dépenses */}
       <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-        <h3 className="text-sm font-bold text-red-900 mb-3">📉 DÉPENSES CUMULÉES</h3>
+        <h3 className="text-sm font-bold text-red-900 mb-3">📉 {fr ? 'DÉPENSES CUMULÉES' : 'CUMULATIVE EXPENSES'}</h3>
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">🔧 Maintenance</span>
+            <span className="text-xs text-red-700">🔧 {fr ? 'Maintenance' : 'Maintenance'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.maintenanceCosts)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">🏗️ Améliorations (CAPEX)</span>
+            <span className="text-xs text-red-700">🏗️ {fr ? 'Améliorations (CAPEX)' : 'Improvements (CAPEX)'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.capexCosts)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">📋 Frais de gestion</span>
+            <span className="text-xs text-red-700">📋 {fr ? 'Frais de gestion' : 'Management fees'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.managementFees)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">🏛️ Taxes foncières</span>
+            <span className="text-xs text-red-700">🏛️ {fr ? 'Taxes foncières' : 'Property taxes'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.taxes)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">🛡️ Assurances</span>
+            <span className="text-xs text-red-700">🛡️ {fr ? 'Assurances' : 'Insurance'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.insurance)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">📊 Administratif</span>
+            <span className="text-xs text-red-700">📊 {fr ? 'Administratif' : 'Administrative'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.adminCosts)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-red-700">💼 Autres dépenses</span>
+            <span className="text-xs text-red-700">💼 {fr ? 'Autres dépenses' : 'Other expenses'}</span>
             <span className="text-sm font-medium text-red-900">
               {formatCurrency(financialData.otherExpenses)}
             </span>
           </div>
           <div className="border-t border-red-300 pt-2 mt-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-red-900">TOTAL DÉPENSES</span>
+              <span className="text-sm font-bold text-red-900">{fr ? 'TOTAL DÉPENSES' : 'TOTAL EXPENSES'}</span>
               <span className="text-lg font-bold text-red-900">
                 {formatCurrency(financialData.totalExpenses)}
               </span>
@@ -309,12 +313,12 @@ export default function PropertyFinancialSummary({
       {/* Performance */}
       <div className={`${isProfit ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'} rounded-lg p-4 border`}>
         <h3 className={`text-sm font-bold ${isProfit ? 'text-green-900' : 'text-orange-900'} mb-3`}>
-          💵 PERFORMANCE
+          💵 {fr ? 'PERFORMANCE' : 'PERFORMANCE'}
         </h3>
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className={`text-sm font-medium ${isProfit ? 'text-green-700' : 'text-orange-700'}`}>
-              Revenu net
+              {fr ? 'Revenu net' : 'Net income'}
             </span>
             <span className={`text-xl font-bold flex items-center gap-1 ${isProfit ? 'text-green-900' : 'text-orange-900'}`}>
               {isProfit ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
@@ -323,7 +327,7 @@ export default function PropertyFinancialSummary({
           </div>
           <div className="flex justify-between items-center">
             <span className={`text-xs ${isProfit ? 'text-green-700' : 'text-orange-700'}`}>
-              ROI annualisé
+              {fr ? 'ROI annualisé' : 'Annualized ROI'}
             </span>
             <span className={`text-lg font-bold ${isProfit ? 'text-green-900' : 'text-orange-900'}`}>
               {financialData.roiAnnualized.toFixed(2)}%
@@ -331,7 +335,7 @@ export default function PropertyFinancialSummary({
           </div>
           <div className="flex justify-between items-center">
             <span className={`text-xs ${isProfit ? 'text-green-700' : 'text-orange-700'}`}>
-              Cash-flow cumulé
+              {fr ? 'Cash-flow cumulé' : 'Cumulative cash flow'}
             </span>
             <span className={`text-base font-medium ${isProfit ? 'text-green-900' : 'text-orange-900'}`}>
               {formatCurrency(financialData.cashFlow)}
@@ -343,19 +347,19 @@ export default function PropertyFinancialSummary({
       {/* Si vendu */}
       {status === 'vendu' && salePrice && (
         <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-          <h3 className="text-sm font-bold text-purple-900 mb-3">💸 VENTE</h3>
+          <h3 className="text-sm font-bold text-purple-900 mb-3">💸 {fr ? 'VENTE' : 'SALE'}</h3>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-purple-700">Prix de vente</span>
+              <span className="text-xs text-purple-700">{fr ? 'Prix de vente' : 'Sale price'}</span>
               <span className="text-lg font-bold text-purple-900">
                 {formatCurrency(salePrice, saleCurrency || currency)}
               </span>
             </div>
             {saleDate && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-purple-700">Date de vente</span>
+                <span className="text-xs text-purple-700">{fr ? 'Date de vente' : 'Sale date'}</span>
                 <span className="text-sm font-medium text-purple-900">
-                  {new Date(saleDate).toLocaleDateString('fr-CA')}
+                  {new Date(saleDate).toLocaleDateString(locale)}
                 </span>
               </div>
             )}
@@ -363,14 +367,14 @@ export default function PropertyFinancialSummary({
               <>
                 <div className="border-t border-purple-300 pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-purple-900">💎 Gain/Perte net</span>
+                    <span className="text-sm font-bold text-purple-900">💎 {fr ? 'Gain/Perte net' : 'Net gain/loss'}</span>
                     <span className={`text-xl font-bold ${financialData.saleProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(financialData.saleProfit, saleCurrency || currency)}
                     </span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-bold text-purple-900">📈 ROI TOTAL</span>
+                  <span className="text-sm font-bold text-purple-900">📈 {fr ? 'ROI TOTAL' : 'TOTAL ROI'}</span>
                   <span className={`text-2xl font-bold ${financialData.totalROI && financialData.totalROI >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {financialData.totalROI?.toFixed(2)}%
                   </span>
@@ -384,8 +388,9 @@ export default function PropertyFinancialSummary({
       {/* Aide */}
       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
         <p className="text-xs text-gray-600">
-          💡 <strong>Source des données:</strong> Toutes les valeurs sont calculées automatiquement depuis les transactions enregistrées dans <strong>Administration → Transactions</strong>.
-          Les données sont synchronisées en temps réel avec l'analyse ROI détaillée.
+          {fr
+            ? <><strong>Source des données :</strong> Toutes les valeurs sont calculées automatiquement depuis les transactions enregistrées dans <strong>Administration → Transactions</strong>. Les données sont synchronisées en temps réel avec l&apos;analyse ROI détaillée.</>
+            : <><strong>Data source:</strong> All values are automatically calculated from transactions recorded in <strong>Administration → Transactions</strong>. Data is synchronized in real time with the detailed ROI analysis.</>}
         </p>
       </div>
     </div>

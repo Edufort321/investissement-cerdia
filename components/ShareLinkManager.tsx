@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Link2, Copy, Trash2, Eye, EyeOff, Plus, Check, X, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ShareLink {
   id: string
@@ -29,6 +30,9 @@ interface ShareLinkManagerProps {
 
 export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLinkManagerProps) {
   const { currentUser } = useAuth()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
   const [links, setLinks] = useState<ShareLink[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -92,17 +96,17 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
       // Recharger les liens
       await loadLinks()
 
-      alert('✅ Lien de partage créé avec succès!')
+      alert(fr ? 'Lien de partage créé avec succès!' : 'Share link created successfully!')
     } catch (error) {
       console.error('Error creating share link:', error)
-      alert('❌ Erreur lors de la création du lien')
+      alert(fr ? 'Erreur lors de la création du lien' : 'Error creating the link')
     } finally {
       setCreating(false)
     }
   }
 
   const revokeLink = async (linkId: string) => {
-    if (!confirm('Voulez-vous vraiment désactiver ce lien de partage?')) return
+    if (!confirm(fr ? 'Voulez-vous vraiment désactiver ce lien de partage?' : 'Are you sure you want to deactivate this share link?')) return
 
     try {
       const { error } = await supabase
@@ -113,10 +117,10 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
       if (error) throw error
 
       await loadLinks()
-      alert('✅ Lien désactivé avec succès')
+      alert(fr ? 'Lien désactivé avec succès' : 'Link deactivated successfully')
     } catch (error) {
       console.error('Error revoking link:', error)
-      alert('❌ Erreur lors de la désactivation')
+      alert(fr ? 'Erreur lors de la désactivation' : 'Error deactivating the link')
     }
   }
 
@@ -130,18 +134,18 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
       setTimeout(() => setCopiedToken(null), 2000)
     } catch (error) {
       console.error('Error copying to clipboard:', error)
-      alert('Erreur lors de la copie')
+      alert(fr ? 'Erreur lors de la copie' : 'Error copying to clipboard')
     }
   }
 
   const getStatusBadge = (link: ShareLink) => {
     if (!link.is_active) {
-      return <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">Désactivé</span>
+      return <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">{fr ? 'Désactivé' : 'Disabled'}</span>
     }
     if (link.expires_at && new Date(link.expires_at) < new Date()) {
-      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Expiré</span>
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">{fr ? 'Expiré' : 'Expired'}</span>
     }
-    return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Actif</span>
+    return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">{fr ? 'Actif' : 'Active'}</span>
   }
 
   if (loading) {
@@ -159,10 +163,10 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Link2 size={20} />
-            Liens de Partage
+            {fr ? 'Liens de Partage' : 'Share Links'}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            Partagez {scenarioName} via un lien sécurisé en lecture seule
+            {fr ? `Partagez ${scenarioName} via un lien sécurisé en lecture seule` : `Share ${scenarioName} via a secure read-only link`}
           </p>
         </div>
         <button
@@ -170,36 +174,36 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {showCreateForm ? <X size={16} /> : <Plus size={16} />}
-          {showCreateForm ? 'Annuler' : 'Créer un lien'}
+          {showCreateForm ? (fr ? 'Annuler' : 'Cancel') : (fr ? 'Créer un lien' : 'Create link')}
         </button>
       </div>
 
       {/* Create Form */}
       {showCreateForm && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <h4 className="font-semibold text-gray-900 mb-4">Nouveau lien de partage</h4>
+          <h4 className="font-semibold text-gray-900 mb-4">{fr ? 'Nouveau lien de partage' : 'New share link'}</h4>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expiration (jours)
+                {fr ? 'Expiration (jours)' : 'Expiration (days)'}
               </label>
               <input
                 type="number"
                 min="1"
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value ? Number(e.target.value) : '')}
-                placeholder="Laisser vide pour aucune expiration"
+                placeholder={fr ? 'Laisser vide pour aucune expiration' : 'Leave empty for no expiration'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Laisser vide pour un lien permanent
+                {fr ? 'Laisser vide pour un lien permanent' : 'Leave empty for a permanent link'}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Permissions d'accès
+                {fr ? "Permissions d'accès" : 'Access permissions'}
               </label>
               <div className="space-y-2">
                 <label className="flex items-center gap-2">
@@ -209,7 +213,7 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                     onChange={(e) => setViewFinancials(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm text-gray-700">Afficher les informations financières</span>
+                  <span className="text-sm text-gray-700">{fr ? 'Afficher les informations financières' : 'Show financial information'}</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -218,7 +222,7 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                     onChange={(e) => setViewDocuments(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm text-gray-700">Afficher les documents</span>
+                  <span className="text-sm text-gray-700">{fr ? 'Afficher les documents' : 'Show documents'}</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -227,19 +231,19 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                     onChange={(e) => setViewBookings(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm text-gray-700">Afficher le calendrier de bookings</span>
+                  <span className="text-sm text-gray-700">{fr ? 'Afficher le calendrier de bookings' : 'Show bookings calendar'}</span>
                 </label>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (optionnel)
+                {fr ? 'Notes (optionnel)' : 'Notes (optional)'}
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: Lien pour investisseur potentiel, lien pour auditeur, etc."
+                placeholder={fr ? 'Ex: Lien pour investisseur potentiel, lien pour auditeur, etc.' : 'E.g.: Link for potential investor, auditor link, etc.'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 rows={2}
               />
@@ -250,14 +254,14 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                 onClick={() => setShowCreateForm(false)}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                Annuler
+                {fr ? 'Annuler' : 'Cancel'}
               </button>
               <button
                 onClick={createLink}
                 disabled={creating}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50"
               >
-                {creating ? 'Création...' : 'Créer le lien'}
+                {creating ? (fr ? 'Création...' : 'Creating...') : (fr ? 'Créer le lien' : 'Create link')}
               </button>
             </div>
           </div>
@@ -268,9 +272,9 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
       {links.length === 0 ? (
         <div className="bg-gray-50 rounded-lg p-8 text-center">
           <Link2 className="mx-auto text-gray-400 mb-3" size={48} />
-          <p className="text-gray-600">Aucun lien de partage créé</p>
+          <p className="text-gray-600">{fr ? 'Aucun lien de partage créé' : 'No share links created'}</p>
           <p className="text-sm text-gray-500 mt-1">
-            Créez un lien pour partager ce scénario
+            {fr ? 'Créez un lien pour partager ce scénario' : 'Create a link to share this scenario'}
           </p>
         </div>
       ) : (
@@ -282,7 +286,7 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                   <div className="flex items-center gap-2 mb-2">
                     {getStatusBadge(link)}
                     <span className="text-xs text-gray-500">
-                      Créé le {new Date(link.created_at).toLocaleDateString('fr-CA')}
+                      {fr ? 'Créé le' : 'Created'} {new Date(link.created_at).toLocaleDateString(locale)}
                     </span>
                   </div>
                   {link.notes && (
@@ -290,9 +294,9 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                   )}
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Eye size={12} />
-                    <span>{link.access_count} vues</span>
+                    <span>{link.access_count} {fr ? 'vues' : 'views'}</span>
                     {link.last_accessed_at && (
-                      <span>• Dernier accès: {new Date(link.last_accessed_at).toLocaleDateString('fr-CA')}</span>
+                      <span>• {fr ? 'Dernier accès' : 'Last accessed'}: {new Date(link.last_accessed_at).toLocaleDateString(locale)}</span>
                     )}
                   </div>
                 </div>
@@ -300,14 +304,14 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                   <button
                     onClick={() => copyToClipboard(link.token)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Copier le lien"
+                    title={fr ? 'Copier le lien' : 'Copy link'}
                   >
                     {copiedToken === link.token ? <Check size={18} /> : <Copy size={18} />}
                   </button>
                   <button
                     onClick={() => window.open(`/share/${link.token}`, '_blank')}
                     className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Ouvrir dans un nouvel onglet"
+                    title={fr ? 'Ouvrir dans un nouvel onglet' : 'Open in new tab'}
                   >
                     <ExternalLink size={18} />
                   </button>
@@ -315,7 +319,7 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
                     <button
                       onClick={() => revokeLink(link.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Désactiver le lien"
+                      title={fr ? 'Désactiver le lien' : 'Deactivate link'}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -329,16 +333,16 @@ export default function ShareLinkManager({ scenarioId, scenarioName }: ShareLink
 
               {link.expires_at && (
                 <div className="mt-2 text-xs text-gray-600">
-                  Expire le {new Date(link.expires_at).toLocaleDateString('fr-CA')}
+                  {fr ? 'Expire le' : 'Expires'} {new Date(link.expires_at).toLocaleDateString(locale)}
                 </div>
               )}
 
               <div className="mt-3 flex gap-2">
                 {link.permissions.view_financials && (
-                  <span className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded">Financier</span>
+                  <span className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded">{fr ? 'Financier' : 'Financial'}</span>
                 )}
                 {link.permissions.view_documents && (
-                  <span className="px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded">Documents</span>
+                  <span className="px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded">{fr ? 'Documents' : 'Documents'}</span>
                 )}
                 {link.permissions.view_bookings && (
                   <span className="px-2 py-1 text-xs bg-green-50 text-green-700 rounded">Bookings</span>

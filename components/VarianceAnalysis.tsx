@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +39,8 @@ interface VarianceData {
 
 export default function VarianceAnalysis() {
   const { organization } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
   const orgId = organization?.id ?? null
   const [variances, setVariances] = useState<VarianceData[]>([])
   const [scenarios, setScenarios] = useState<any[]>([])
@@ -91,8 +94,10 @@ export default function VarianceAnalysis() {
     setIsLoading(false)
   }
 
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0,
@@ -147,20 +152,20 @@ export default function VarianceAnalysis() {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Analyse de Variance</h1>
-          <p className="text-muted-foreground mt-2">Comparaison détaillée Budget vs Réalisé</p>
+          <h1 className="text-3xl font-bold">{fr ? 'Analyse de Variance' : 'Variance Analysis'}</h1>
+          <p className="text-muted-foreground mt-2">{fr ? 'Comparaison détaillée Budget vs Réalisé' : 'Detailed Budget vs Actual comparison'}</p>
         </div>
       </div>
 
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtres</CardTitle>
+          <CardTitle>{fr ? 'Filtres' : 'Filters'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Projet</label>
+              <label className="text-sm font-medium mb-2 block">{fr ? 'Projet' : 'Project'}</label>
               <Select value={selectedScenario} onValueChange={setSelectedScenario}>
                 <SelectTrigger>
                   <SelectValue />
@@ -173,7 +178,7 @@ export default function VarianceAnalysis() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Année Fiscale</label>
+              <label className="text-sm font-medium mb-2 block">{fr ? 'Année Fiscale' : 'Fiscal Year'}</label>
               <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -186,26 +191,26 @@ export default function VarianceAnalysis() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Catégorie</label>
+              <label className="text-sm font-medium mb-2 block">{fr ? 'Catégorie' : 'Category'}</label>
               <Select value={filterCategory} onValueChange={setFilterCategory}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="revenue">Revenus</SelectItem>
-                  <SelectItem value="expense">Dépenses</SelectItem>
+                  <SelectItem value="all">{fr ? 'Toutes' : 'All'}</SelectItem>
+                  <SelectItem value="revenue">{fr ? 'Revenus' : 'Revenue'}</SelectItem>
+                  <SelectItem value="expense">{fr ? 'Dépenses' : 'Expenses'}</SelectItem>
                   <SelectItem value="capex">CAPEX</SelectItem>
-                  <SelectItem value="financing">Financement</SelectItem>
+                  <SelectItem value="financing">{fr ? 'Financement' : 'Financing'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Recherche</label>
+              <label className="text-sm font-medium mb-2 block">{fr ? 'Recherche' : 'Search'}</label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder={fr ? 'Rechercher...' : 'Search...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8"
@@ -220,7 +225,7 @@ export default function VarianceAnalysis() {
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Lignes</CardDescription>
+            <CardDescription>{fr ? 'Total Lignes' : 'Total Lines'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalLines}</div>
@@ -228,7 +233,7 @@ export default function VarianceAnalysis() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Budgété Total</CardDescription>
+            <CardDescription>{fr ? 'Budgété Total' : 'Total Budgeted'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">{formatCurrency(stats.totalBudgeted)}</div>
@@ -236,17 +241,17 @@ export default function VarianceAnalysis() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Dépensé Total</CardDescription>
+            <CardDescription>{fr ? 'Dépensé Total' : 'Total Spent'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">{formatCurrency(stats.totalSpent)}</div>
             <Progress value={Math.min(avgConsumption, 100)} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{avgConsumption.toFixed(1)}% consommé</p>
+            <p className="text-xs text-muted-foreground mt-1">{avgConsumption.toFixed(1)}% {fr ? 'consommé' : 'consumed'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Variance Totale</CardDescription>
+            <CardDescription>{fr ? 'Variance Totale' : 'Total Variance'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className={`text-xl font-bold ${getVarianceColor(stats.totalVariance)}`}>
@@ -256,16 +261,16 @@ export default function VarianceAnalysis() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Statut</CardDescription>
+            <CardDescription>{fr ? 'Statut' : 'Status'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-red-600">Dépassement</span>
+                <span className="text-red-600">{fr ? 'Dépassement' : 'Over budget'}</span>
                 <strong>{stats.overBudget}</strong>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-orange-600">Alerte</span>
+                <span className="text-orange-600">{fr ? 'Alerte' : 'Alert'}</span>
                 <strong>{stats.nearThreshold}</strong>
               </div>
               <div className="flex justify-between text-sm">
@@ -284,9 +289,9 @@ export default function VarianceAnalysis() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Détail des Variances
+                {fr ? 'Détail des Variances' : 'Variance Detail'}
               </CardTitle>
-              <CardDescription>{filteredVariances.length} ligne(s) affichée(s)</CardDescription>
+              <CardDescription>{filteredVariances.length} {fr ? 'ligne(s) affichée(s)' : 'line(s) displayed'}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -295,16 +300,16 @@ export default function VarianceAnalysis() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Ligne Budgétaire</TableHead>
-                  <TableHead className="text-right">Budgété</TableHead>
-                  <TableHead className="text-right">Dépensé</TableHead>
-                  <TableHead className="text-right">Restant</TableHead>
-                  <TableHead className="text-right">Variance $</TableHead>
-                  <TableHead className="text-right">Variance %</TableHead>
-                  <TableHead className="text-center">Consommation</TableHead>
-                  <TableHead className="text-right">Projection</TableHead>
-                  <TableHead className="text-center">Statut</TableHead>
+                  <TableHead>{fr ? 'Catégorie' : 'Category'}</TableHead>
+                  <TableHead>{fr ? 'Ligne Budgétaire' : 'Budget Line'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Budgété' : 'Budgeted'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Dépensé' : 'Spent'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Restant' : 'Remaining'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Variance $' : 'Variance $'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Variance %' : 'Variance %'}</TableHead>
+                  <TableHead className="text-center">{fr ? 'Consommation' : 'Consumption'}</TableHead>
+                  <TableHead className="text-right">{fr ? 'Projection' : 'Projection'}</TableHead>
+                  <TableHead className="text-center">{fr ? 'Statut' : 'Status'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -312,8 +317,8 @@ export default function VarianceAnalysis() {
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       <AlertCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                      <p>Aucune donnée de variance disponible</p>
-                      <p className="text-sm mt-1">Vérifiez les filtres ou créez un budget</p>
+                      <p>{fr ? 'Aucune donnée de variance disponible' : 'No variance data available'}</p>
+                      <p className="text-sm mt-1">{fr ? 'Vérifiez les filtres ou créez un budget' : 'Check filters or create a budget'}</p>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -368,11 +373,11 @@ export default function VarianceAnalysis() {
                       </TableCell>
                       <TableCell className="text-center">
                         {v.is_over_budget && (
-                          <Badge variant="destructive">Dépassement</Badge>
+                          <Badge variant="destructive">{fr ? 'Dépassement' : 'Over budget'}</Badge>
                         )}
                         {!v.is_over_budget && v.is_near_threshold && (
                           <Badge className="bg-orange-600">
-                            Alerte {v.alert_threshold}%
+                            {fr ? 'Alerte' : 'Alert'} {v.alert_threshold}%
                           </Badge>
                         )}
                         {!v.is_over_budget && !v.is_near_threshold && (
@@ -391,25 +396,25 @@ export default function VarianceAnalysis() {
       {/* Legend */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Légende</CardTitle>
+          <CardTitle className="text-sm">{fr ? 'Légende' : 'Legend'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 md:grid-cols-2 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-              <span>Ligne en dépassement budgétaire</span>
+              <span>{fr ? 'Ligne en dépassement budgétaire' : 'Line over budget'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
-              <span>Ligne proche du seuil d'alerte</span>
+              <span>{fr ? "Ligne proche du seuil d'alerte" : 'Line near alert threshold'}</span>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-red-600" />
-              <span>Variance défavorable (dépenses supérieures au budget)</span>
+              <span>{fr ? 'Variance défavorable (dépenses supérieures au budget)' : 'Unfavorable variance (spending exceeds budget)'}</span>
             </div>
             <div className="flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-green-600" />
-              <span>Variance favorable (économies réalisées)</span>
+              <span>{fr ? 'Variance favorable (économies réalisées)' : 'Favorable variance (savings achieved)'}</span>
             </div>
           </div>
         </CardContent>
