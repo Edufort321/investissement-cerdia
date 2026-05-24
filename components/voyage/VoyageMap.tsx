@@ -241,7 +241,7 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
 
   const handleGetSuggestions = async () => {
     if (!origin || !destination) {
-      alert('Veuillez remplir origine et destination')
+      alert(language === 'fr' ? 'Veuillez remplir origine et destination' : 'Please fill in origin and destination')
       return
     }
 
@@ -266,7 +266,7 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
       setSuggestions(data.suggestions || [])
     } catch (error) {
       console.error('Erreur suggestions:', error)
-      alert('Erreur lors de la récupération des suggestions')
+      alert(language === 'fr' ? 'Erreur lors de la recuperation des suggestions' : 'Error fetching suggestions')
     } finally {
       setLoadingSuggestions(false)
     }
@@ -363,7 +363,7 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
         {showSuggestions && suggestions.length > 0 && (
           <div className="mt-6 space-y-3">
             <h4 className="text-sm font-semibold text-gray-400 uppercase">
-              Suggestions IA
+              {language === 'fr' ? 'Suggestions IA' : 'AI Suggestions'}
             </h4>
             {suggestions.map((suggestion, i) => {
               const Icon = getTransportIcon(suggestion.type)
@@ -453,7 +453,7 @@ export default function VoyageMap({ voyage, onAddTransport, language = 'fr' }: V
                     )}
                     {loc.event.duration && (
                       <p className="text-gray-700 text-xs mt-1">
-                        ⏱️ Durée: {loc.event.duration} min
+                        ⏱️ {language === 'fr' ? 'Duree' : 'Duration'}: {loc.event.duration} min
                       </p>
                     )}
                     {loc.event.notes && (

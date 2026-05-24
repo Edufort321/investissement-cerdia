@@ -267,7 +267,7 @@ export default function VoyageTimeline({
               >
                 <Navigation className="w-4 h-4" />
                 <span className="hidden sm:inline">{t('timeline.optimizeRoute')}</span>
-                <span className="sm:hidden">Optimiser</span>
+                <span className="sm:hidden">{language === 'fr' ? 'Optimiser' : 'Optimize'}</span>
               </button>
             )}
 
@@ -286,7 +286,7 @@ export default function VoyageTimeline({
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('timeline.addEvent')}</span>
-              <span className="sm:hidden">Ajouter</span>
+              <span className="sm:hidden">{language === 'fr' ? 'Ajouter' : 'Add'}</span>
             </button>
           </div>
         </div>
@@ -478,10 +478,10 @@ export default function VoyageTimeline({
                         onEditEvent(event)
                       }}
                       className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center justify-center gap-2"
-                      title="✏️ Modifier cet événement"
+                      title={language === 'fr' ? 'Modifier cet evenement' : 'Edit this event'}
                     >
                       <Edit2 className="w-4 h-4 text-white" />
-                      <span className="text-sm font-medium text-white">Modifier</span>
+                      <span className="text-sm font-medium text-white">{language === 'fr' ? 'Modifier' : 'Edit'}</span>
                     </button>
                   )}
                   {onDeleteEvent && (
@@ -493,10 +493,10 @@ export default function VoyageTimeline({
                         }
                       }}
                       className="flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all shadow-md hover:scale-105 flex items-center justify-center gap-2"
-                      title="🗑️ Supprimer cet événement"
+                      title={language === 'fr' ? 'Supprimer cet evenement' : 'Delete this event'}
                     >
                       <Trash2 className="w-4 h-4 text-white" />
-                      <span className="text-sm font-medium text-white">Supprimer</span>
+                      <span className="text-sm font-medium text-white">{language === 'fr' ? 'Supprimer' : 'Delete'}</span>
                     </button>
                   )}
                 </div>

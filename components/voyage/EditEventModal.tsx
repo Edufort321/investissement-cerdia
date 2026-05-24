@@ -254,13 +254,13 @@ export default function EditEventModal({
   if (!isOpen) return null
 
   const transportModes = [
-    { id: 'plane' as TransportMode, icon: Plane, label: 'Avion' },
+    { id: 'plane' as TransportMode, icon: Plane, label: language === 'fr' ? 'Avion' : 'Plane' },
     { id: 'train' as TransportMode, icon: Train, label: 'Train' },
-    { id: 'car' as TransportMode, icon: Car, label: 'Voiture' },
+    { id: 'car' as TransportMode, icon: Car, label: language === 'fr' ? 'Voiture' : 'Car' },
     { id: 'bus' as TransportMode, icon: Bus, label: 'Bus' },
-    { id: 'bike' as TransportMode, icon: Bike, label: 'Vélo' },
-    { id: 'walk' as TransportMode, icon: PersonStanding, label: 'À pied' },
-    { id: 'boat' as TransportMode, icon: Ship, label: 'Bateau' }
+    { id: 'bike' as TransportMode, icon: Bike, label: language === 'fr' ? 'Velo' : 'Bike' },
+    { id: 'walk' as TransportMode, icon: PersonStanding, label: language === 'fr' ? 'A pied' : 'Walk' },
+    { id: 'boat' as TransportMode, icon: Ship, label: language === 'fr' ? 'Bateau' : 'Boat' }
   ]
 
   return (

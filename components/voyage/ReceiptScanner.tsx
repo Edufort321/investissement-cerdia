@@ -312,7 +312,7 @@ export default function ReceiptScanner({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold">
                 <CheckCircle className="w-5 h-5" />
-                <span>Scan terminé!</span>
+                <span>{language === 'fr' ? 'Scan termine!' : 'Scan complete!'}</span>
               </div>
 
               <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
