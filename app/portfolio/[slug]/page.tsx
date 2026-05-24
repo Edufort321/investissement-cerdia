@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Instagram, Mail, Phone, MapPin, ExternalLink, Link2, ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -47,6 +47,8 @@ export default function PortfolioPublicPage() {
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [loading, setLoading] = useState(true)
   const [lightbox, setLightbox] = useState<number | null>(null)
+  const [carouselIdx, setCarouselIdx] = useState(0)
+  const carouselTimer = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (slug) load(slug as string)
@@ -64,6 +66,31 @@ export default function PortfolioPublicPage() {
 
   const photos = items.filter(i => i.type === 'photo')
   const links = items.filter(i => i.type === 'link' || i.type === 'video')
+
+  // Carousel auto-advance every 5s
+  const carouselPhotos = photos.length > 0 ? photos : (profile?.cover_url ? [{ url: profile.cover_url, id: 'cover', type: 'photo', title: '', description: '', thumbnail_url: '', category: 'portfolio', sort_order: 0 } as PortfolioItem] : [])
+
+  const advanceCarousel = useCallback(() => {
+    setCarouselIdx(i => carouselPhotos.length > 0 ? (i + 1) % carouselPhotos.length : 0)
+  }, [carouselPhotos.length])
+
+  useEffect(() => {
+    if (carouselPhotos.length <= 1) return
+    carouselTimer.current = setInterval(advanceCarousel, 5000)
+    return () => { if (carouselTimer.current) clearInterval(carouselTimer.current) }
+  }, [carouselPhotos.length, advanceCarousel])
+
+  const prevCarousel = () => {
+    if (carouselTimer.current) clearInterval(carouselTimer.current)
+    setCarouselIdx(i => (i - 1 + carouselPhotos.length) % carouselPhotos.length)
+    carouselTimer.current = setInterval(advanceCarousel, 5000)
+  }
+
+  const nextCarousel = () => {
+    if (carouselTimer.current) clearInterval(carouselTimer.current)
+    setCarouselIdx(i => (i + 1) % carouselPhotos.length)
+    carouselTimer.current = setInterval(advanceCarousel, 5000)
+  }
 
   const prevPhoto = () => setLightbox(l => l !== null ? Math.max(0, l - 1) : null)
   const nextPhoto = () => setLightbox(l => l !== null ? Math.min(photos.length - 1, l + 1) : null)
@@ -145,19 +172,53 @@ export default function PortfolioPublicPage() {
         </div>
       )}
 
-      {/* Hero */}
-      <section className="relative min-h-[60vh] flex flex-col items-center justify-end pb-16 overflow-hidden">
-        {/* Background */}
-        {profile.cover_url ? (
-          <img
-            src={profile.cover_url}
-            alt="cover"
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
-          />
+      {/* Hero with Carousel */}
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-end pb-16 overflow-hidden">
+        {/* Carousel background */}
+        {carouselPhotos.length > 0 ? (
+          <>
+            {carouselPhotos.map((photo, idx) => (
+              <img
+                key={photo.id}
+                src={photo.url}
+                alt=""
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000
+                  ${idx === carouselIdx ? 'opacity-50' : 'opacity-0'}`}
+              />
+            ))}
+          </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-purple-950 via-gray-950 to-gray-950" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/50 to-black/20" />
+
+        {/* Carousel controls */}
+        {carouselPhotos.length > 1 && (
+          <>
+            <button
+              onClick={prevCarousel}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={nextCarousel}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+            {/* Dots */}
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {carouselPhotos.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCarouselIdx(idx)}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${idx === carouselIdx ? 'bg-pink-400 w-4' : 'bg-white/30'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Decorative */}
         <div className="absolute top-12 left-1/2 -translate-x-1/2 w-px h-24 bg-gradient-to-b from-transparent via-pink-500/50 to-transparent" />

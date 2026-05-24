@@ -1,5 +1,5 @@
 -- Migration 172: Portfolio Artistique
--- Tables pour le portfolio glamour d'artiste (modèle, actrice, etc.)
+-- Tables pour le portfolio glamour d'artiste (modele, actrice, etc.)
 -- Usage: zone /commerce/admin + page publique /portfolio/[slug]
 
 -- ── 1. Tables ──────────────────────────────────────────────────────────────
@@ -48,30 +48,30 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_items_profile    ON portfolio_items(pro
 ALTER TABLE portfolio_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_items    ENABLE ROW LEVEL SECURITY;
 
--- Lecture publique des profils publiés (page publique /portfolio/[slug])
+-- Lecture publique des profils publies (page publique /portfolio/[slug])
 CREATE POLICY "portfolio_public_read" ON portfolio_profiles
   FOR SELECT TO anon, authenticated
   USING (is_published = true);
 
--- Admin org: tout gérer sur ses propres profils
+-- Admin org + super_admin: gestion complete
 CREATE POLICY "portfolio_org_manage" ON portfolio_profiles
   FOR ALL TO authenticated
-  USING (organization_id = auth.jwt() ->> 'organization_id' OR public.is_cerdia_admin(auth.uid()))
-  WITH CHECK (organization_id = auth.jwt() ->> 'organization_id' OR public.is_cerdia_admin(auth.uid()));
+  USING (
+    organization_id = (auth.jwt() ->> 'organization_id')::uuid
+    OR public.is_cerdia_admin(auth.uid())
+  )
+  WITH CHECK (
+    organization_id = (auth.jwt() ->> 'organization_id')::uuid
+    OR public.is_cerdia_admin(auth.uid())
+  );
 
--- Super admin: tout voir
-CREATE POLICY "portfolio_super_admin" ON portfolio_profiles
-  FOR ALL TO authenticated
-  USING (public.is_cerdia_admin(auth.uid()))
-  WITH CHECK (public.is_cerdia_admin(auth.uid()));
-
--- Fill token: mise à jour via token (pour le lien de remplissage)
+-- Fill token: mise a jour via token (lien de remplissage — filtre reel = fill_token match cote client)
 CREATE POLICY "portfolio_fill_token_update" ON portfolio_profiles
   FOR UPDATE TO anon, authenticated
-  USING (true)  -- le filtre réel est fait par l'API (fill_token match)
+  USING (true)
   WITH CHECK (true);
 
--- portfolio_items: hérite via profile
+-- portfolio_items: lecture publique via profil publie
 CREATE POLICY "portfolio_items_public_read" ON portfolio_items
   FOR SELECT TO anon, authenticated
   USING (EXISTS (
@@ -79,20 +79,27 @@ CREATE POLICY "portfolio_items_public_read" ON portfolio_items
     WHERE pp.id = portfolio_items.profile_id AND pp.is_published = true
   ));
 
+-- portfolio_items: gestion org + super_admin
 CREATE POLICY "portfolio_items_org_manage" ON portfolio_items
   FOR ALL TO authenticated
   USING (EXISTS (
     SELECT 1 FROM portfolio_profiles pp
     WHERE pp.id = portfolio_items.profile_id
-      AND (pp.organization_id = auth.jwt() ->> 'organization_id' OR public.is_cerdia_admin(auth.uid()))
+      AND (
+        pp.organization_id = (auth.jwt() ->> 'organization_id')::uuid
+        OR public.is_cerdia_admin(auth.uid())
+      )
   ))
   WITH CHECK (EXISTS (
     SELECT 1 FROM portfolio_profiles pp
     WHERE pp.id = portfolio_items.profile_id
-      AND (pp.organization_id = auth.jwt() ->> 'organization_id' OR public.is_cerdia_admin(auth.uid()))
+      AND (
+        pp.organization_id = (auth.jwt() ->> 'organization_id')::uuid
+        OR public.is_cerdia_admin(auth.uid())
+      )
   ));
 
--- Fill token items
+-- Fill token items: acces via lien de remplissage
 CREATE POLICY "portfolio_items_fill_token" ON portfolio_items
   FOR ALL TO anon, authenticated
   USING (true)
@@ -115,5 +122,5 @@ CREATE TRIGGER portfolio_profiles_updated_at
 -- ── 5. Confirmation ────────────────────────────────────────────────────────
 
 DO $$ BEGIN
-  RAISE NOTICE 'Migration 172: portfolio_profiles + portfolio_items créés avec RLS.';
+  RAISE NOTICE 'Migration 172: portfolio_profiles + portfolio_items crees avec RLS.';
 END $$;
