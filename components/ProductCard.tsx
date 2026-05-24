@@ -1,4 +1,7 @@
+'use client'
+
 import React from "react";
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Product {
   id: string;
@@ -16,6 +19,9 @@ interface Props {
 }
 
 export default function ProductCard({ product, onDelete }: Props) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+
   const validImages = product.images.filter((url) =>
     url && (url.endsWith(".jpg") || url.endsWith(".png") || url.includes("amazon"))
   );
@@ -37,7 +43,7 @@ export default function ProductCard({ product, onDelete }: Props) {
       </a>
       {product.tiktokLink && (
         <div className="mt-1">
-          <a href={product.tiktokLink} className="text-blue-500 text-xs" target="_blank">Voir sur TikTok</a>
+          <a href={product.tiktokLink} className="text-blue-500 text-xs" target="_blank">{fr ? 'Voir sur TikTok' : 'View on TikTok'}</a>
         </div>
       )}
     </div>

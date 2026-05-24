@@ -8,6 +8,7 @@ import {
   ShoppingCart, ExternalLink, Menu, X, Star,
   Tag, Package, Search, Check, Home, TrendingUp, Settings
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -64,13 +65,18 @@ function Stars({ rating }: { rating: number }) {
   )
 }
 
+const ALL_CAT = '__all__'
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function CommercePage() {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [dbError, setDbError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('Tous')
+  const [selectedCategory, setSelectedCategory] = useState(ALL_CAT)
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -102,11 +108,11 @@ export default function CommercePage() {
   const filtered = products.filter(p => {
     const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.description?.toLowerCase().includes(search.toLowerCase())
-    const matchCat = selectedCategory === 'Tous' || p.category === selectedCategory
+    const matchCat = selectedCategory === ALL_CAT || p.category === selectedCategory
     return matchSearch && matchCat
   })
 
-  const categories = ['Tous', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))] as string[]
+  const categories = [ALL_CAT, ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))] as string[]
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
@@ -133,13 +139,14 @@ export default function CommercePage() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-400 via-gray-200 to-gray-500">CERDIA</span>
               </h1>
               <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                Découvrez notre sélection de produits soigneusement choisis — disponibles sur Amazon.
-                Chaque achat contribue à financer notre portefeuille immobilier international.
+                {fr
+                  ? 'Découvrez notre sélection de produits soigneusement choisis — disponibles sur Amazon. Chaque achat contribue à financer notre portefeuille immobilier international.'
+                  : 'Discover our carefully curated product selection — available on Amazon. Every purchase helps fund our international real estate portfolio.'}
               </p>
               <div className="flex items-center gap-3 text-sm text-gray-400 flex-wrap">
-                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Livraison Amazon Prime</span>
-                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Retours faciles</span>
-                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Produits vérifiés</span>
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> {fr ? 'Livraison Amazon Prime' : 'Amazon Prime Shipping'}</span>
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> {fr ? 'Retours faciles' : 'Easy returns'}</span>
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> {fr ? 'Produits vérifiés' : 'Verified products'}</span>
               </div>
             </div>
 
@@ -156,14 +163,14 @@ export default function CommercePage() {
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                    <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">Navigation</p>
+                    <p className="text-xs text-gray-400 px-2 pb-1 font-medium uppercase tracking-wider">{fr ? 'Navigation' : 'Navigation'}</p>
                   </div>
                   <div className="p-1.5 space-y-0.5">
                     <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
-                      <Home size={15} className="text-gray-500" /> Accueil
+                      <Home size={15} className="text-gray-500" /> {fr ? 'Accueil' : 'Home'}
                     </Link>
                     <Link href="/investir" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setMenuOpen(false)}>
-                      <TrendingUp size={15} className="text-gray-500" /> Investir
+                      <TrendingUp size={15} className="text-gray-500" /> {fr ? 'Investir' : 'Invest'}
                     </Link>
                   </div>
                   <div className="p-2 border-t border-gray-100 dark:border-gray-700">
@@ -172,7 +179,7 @@ export default function CommercePage() {
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                       onClick={() => setMenuOpen(false)}
                     >
-                      <Settings size={15} /> Administration
+                      <Settings size={15} /> {fr ? 'Administration' : 'Administration'}
                     </Link>
                   </div>
                 </div>
@@ -187,9 +194,9 @@ export default function CommercePage() {
       {dbError && (
         <div className="max-w-3xl mx-auto px-6 pt-6">
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-            <p className="font-semibold mb-1">Erreur de chargement des produits :</p>
+            <p className="font-semibold mb-1">{fr ? 'Erreur de chargement des produits :' : 'Product loading error:'}</p>
             <p className="font-mono text-xs">{dbError}</p>
-            <p className="mt-2 text-xs">→ Vérifiez que la migration SQL 129 a été exécutée dans Supabase.</p>
+            <p className="mt-2 text-xs">{fr ? '→ Vérifiez que la migration SQL 129 a été exécutée dans Supabase.' : '→ Verify that SQL migration 129 has been run in Supabase.'}</p>
           </div>
         </div>
       )}
@@ -201,7 +208,7 @@ export default function CommercePage() {
             <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
             <input
               className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-400 outline-none shadow-sm"
-              placeholder="Rechercher un produit..."
+              placeholder={fr ? 'Rechercher un produit...' : 'Search a product...'}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -214,14 +221,18 @@ export default function CommercePage() {
                     ? 'bg-[#5e5e5e] text-white shadow-sm'
                     : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 hover:text-gray-800'
                 }`}>
-                {cat}
+                {cat === ALL_CAT ? (fr ? 'Tous' : 'All') : cat}
               </button>
             ))}
           </div>
         </div>
 
         <p className="text-sm text-gray-500 mb-6">
-          {loading ? 'Chargement...' : `${filtered.length} produit${filtered.length !== 1 ? 's' : ''}`}
+          {loading
+            ? (fr ? 'Chargement...' : 'Loading...')
+            : fr
+              ? `${filtered.length} produit${filtered.length !== 1 ? 's' : ''}`
+              : `${filtered.length} product${filtered.length !== 1 ? 's' : ''}`}
         </p>
 
         {/* ── Grille de produits ────────────────────────────────────────────── */}
@@ -242,7 +253,9 @@ export default function CommercePage() {
           <div className="py-24 text-center">
             <Package size={48} className="mx-auto mb-4 text-gray-300" />
             <p className="text-lg font-medium text-gray-500">
-              {products.length === 0 ? 'Aucun produit pour le moment' : 'Aucun résultat'}
+              {products.length === 0
+                ? (fr ? 'Aucun produit pour le moment' : 'No products yet')
+                : (fr ? 'Aucun résultat' : 'No results')}
             </p>
           </div>
         ) : (
@@ -260,9 +273,9 @@ export default function CommercePage() {
             <span>Commerce CERDIA — Amazon Affiliate</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Accueil</Link>
-            <Link href="/privacy" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Confidentialité</Link>
-            <Link href="/connexion" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Connexion</Link>
+            <Link href="/" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">{fr ? 'Accueil' : 'Home'}</Link>
+            <Link href="/privacy" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">{fr ? 'Confidentialité' : 'Privacy'}</Link>
+            <Link href="/connexion" className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">{fr ? 'Connexion' : 'Sign in'}</Link>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <span>© 2025 CERDIA</span>
           </div>
@@ -274,6 +287,10 @@ export default function CommercePage() {
 
 // ─── Composant ProductCard ─────────────────────────────────────────────────────
 function ProductCard({ product }: { product: Product }) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const allImages = (product.image_urls?.length
     ? product.image_urls
     : (product.image_url ? [product.image_url] : [])
@@ -310,7 +327,7 @@ function ProductCard({ product }: { product: Product }) {
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-2">
               <Package size={40} className="text-gray-300 dark:text-gray-500" />
-              <span className="text-xs text-gray-400">Aucune image</span>
+              <span className="text-xs text-gray-400">{fr ? 'Aucune image' : 'No image'}</span>
             </div>
           )}
         </div>
@@ -358,13 +375,13 @@ function ProductCard({ product }: { product: Product }) {
           <div className="flex items-center gap-1.5 mb-3">
             <Stars rating={product.rating} />
             {product.review_count > 0 && (
-              <span className="text-xs text-gray-400">({product.review_count.toLocaleString('fr-CA')})</span>
+              <span className="text-xs text-gray-400">({product.review_count.toLocaleString(locale)})</span>
             )}
           </div>
         )}
         <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-semibold rounded-xl transition-all duration-200 group-hover:shadow-md">
           <ShoppingCart size={15} />
-          Voir sur Amazon
+          {fr ? 'Voir sur Amazon' : 'View on Amazon'}
           <ExternalLink size={12} className="opacity-70" />
         </div>
       </div>
