@@ -60,11 +60,12 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     contact_name: '',
     contact_email: '',
     billing_address: '',
+    next_renewal_date: '',
   })
   const [savingEdit, setSavingEdit] = useState(false)
 
+  // is_billable controls ARR only — alerts/status apply to any org with a renewal date
   const getPaymentStatus = (org: Org): PaymentStatus => {
-    if (!org.is_billable) return 'ok'
     const days = daysUntilRenewal(org.next_renewal_date)
     if (days === null) return 'ok'
     if (days > 60) return 'ok'
@@ -79,6 +80,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       contact_name: org.contact_name ?? '',
       contact_email: org.contact_email ?? '',
       billing_address: org.billing_address ?? '',
+      next_renewal_date: org.next_renewal_date ? org.next_renewal_date.split('T')[0] : '',
     })
     setEditOrg(org)
   }
@@ -93,6 +95,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         contact_name: editForm.contact_name.trim() || null,
         contact_email: editForm.contact_email.trim() || null,
         billing_address: editForm.billing_address.trim() || null,
+        next_renewal_date: editForm.next_renewal_date || null,
       })
       .eq('id', editOrg.id)
     setSavingEdit(false)
@@ -683,7 +686,6 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     </td>
                     <td className="px-4 py-3 text-xs hidden lg:table-cell">
                       {(() => {
-                        if (!org.is_billable) return <span className="text-gray-400">Non facturable</span>
                         if (!org.next_renewal_date) return <span className="text-gray-400">Non défini</span>
                         const days = daysUntilRenewal(org.next_renewal_date)
                         const ps = getPaymentStatus(org)
@@ -859,6 +861,28 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                       className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Renouvellement</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de prochain paiement</label>
+                  <input
+                    type="date"
+                    value={editForm.next_renewal_date}
+                    onChange={e => setEditForm(f => ({ ...f, next_renewal_date: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  {editForm.next_renewal_date && (() => {
+                    const days = daysUntilRenewal(editForm.next_renewal_date)
+                    if (days === null) return null
+                    const abs = Math.abs(days)
+                    if (days > 60) return <p className="text-xs text-emerald-600 mt-1">Dans {days} jours</p>
+                    if (days >= 0) return <p className="text-xs text-amber-600 mt-1">Dans {days} jours — envoyer la facture</p>
+                    if (days >= -30) return <p className="text-xs text-orange-600 mt-1">{abs} jours de retard — période de grâce</p>
+                    return <p className="text-xs text-red-600 font-semibold mt-1">{abs} jours de retard — suspendre le tenant</p>
+                  })()}
                 </div>
               </div>
 
