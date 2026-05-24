@@ -7,7 +7,7 @@ import CircleCropModal from '@/components/ui/CircleCropModal'
 import {
   Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload,
   Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown,
-  Phone, Mail, MapPin, User, Sparkles, FileDown
+  Phone, Mail, MapPin, User, Sparkles, FileDown, Loader2
 } from 'lucide-react'
 
 interface Profile {
@@ -54,6 +54,7 @@ export default function PortfolioTab() {
   const [copiedToken, setCopiedToken] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -232,172 +233,244 @@ export default function PortfolioTab() {
   const photoItems = items.filter(i => i.type === 'photo')
   const linkItems = items.filter(i => i.type === 'link')
 
-  const exportPDF = (profile: Profile) => {
+  const exportPDF = async (profile: Profile) => {
+    setPdfLoading(true)
     try {
+      // ── Helpers ───────────────────────────────────────────────────────────
+      const fetchImg = async (url: string): Promise<{ data: string; fmt: 'JPEG' | 'PNG' } | null> => {
+        try {
+          const r = await fetch(url)
+          if (!r.ok) return null
+          const blob = await r.blob()
+          return new Promise(res => {
+            const fr = new FileReader()
+            fr.onload = () => {
+              const d = fr.result as string
+              res({ data: d, fmt: (blob.type.includes('png') ? 'PNG' : 'JPEG') as 'JPEG' | 'PNG' })
+            }
+            fr.onerror = () => res(null)
+            fr.readAsDataURL(blob)
+          })
+        } catch { return null }
+      }
+
+      const makeCircle = (url: string): Promise<string | null> =>
+        new Promise(res => {
+          const img = new window.Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const S = 280
+            const c = document.createElement('canvas')
+            c.width = c.height = S
+            const ctx = c.getContext('2d')!
+            ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); ctx.clip()
+            const sc = Math.max(S / img.naturalWidth, S / img.naturalHeight)
+            const w = img.naturalWidth * sc, h = img.naturalHeight * sc
+            ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h)
+            res(c.toDataURL('image/jpeg', 0.9))
+          }
+          img.onerror = () => res(null)
+          img.src = url
+        })
+
+      // ── Fetch images concurrently ─────────────────────────────────────────
+      const [headshotCircle, ...photoImgResults] = await Promise.all([
+        profile.headshot_url ? makeCircle(profile.headshot_url) : Promise.resolve(null),
+        ...photoItems.slice(0, 6).map(p => fetchImg(p.url))
+      ])
+      const photoImgs = photoImgResults as ({ data: string; fmt: 'JPEG' | 'PNG' } | null)[]
+
       const pubUrl = publicUrl(profile)
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
       const W = 215.9, H = 279.4
+      const LX = 15, LC = 120   // left col x + width
+      const RX = 142, RC = 58   // right col x + width
 
-      // ── Background sombre ──
-      doc.setFillColor(12, 10, 22)
+      // ── PAGE BACKGROUND ──────────────────────────────────────────────────
+      doc.setFillColor(10, 8, 20)
       doc.rect(0, 0, W, H, 'F')
 
-      // Gradient top accent band
-      doc.setFillColor(80, 0, 100)
-      doc.rect(0, 0, W, 8, 'F')
-      doc.setFillColor(150, 20, 80)
-      doc.rect(0, 0, W, 3, 'F')
+      // Right column subtle tint
+      doc.setFillColor(16, 12, 30)
+      doc.rect(RX - 3, 0, W - RX + 3, H, 'F')
 
-      let y = 22
+      // ── TOP ACCENT BAND ──────────────────────────────────────────────────
+      doc.setFillColor(100, 10, 130)
+      doc.rect(0, 0, W, 55, 'F')
+      doc.setFillColor(10, 8, 20)
+      doc.rect(0, 48, W, 7, 'F')
+      // Pink shimmer line
+      doc.setDrawColor(219, 39, 119)
+      doc.setLineWidth(0.8)
+      doc.line(LX, 48, W - LX, 48)
 
-      // ── NOM ──
+      // ── HEADSHOT ─────────────────────────────────────────────────────────
+      const HS = 34   // headshot size mm
+      if (headshotCircle) {
+        doc.addImage(headshotCircle, 'JPEG', LX, 7, HS, HS)
+      } else {
+        doc.setFillColor(60, 20, 80)
+        doc.circle(LX + HS / 2, 7 + HS / 2, HS / 2, 'F')
+      }
+
+      // ── NAME & TAGLINE (top right of headshot) ───────────────────────────
+      const TX = LX + HS + 6
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(30)
+      doc.setFontSize(24)
       doc.setTextColor(255, 255, 255)
-      doc.text(profile.name, W / 2, y, { align: 'center' })
-      y += 9
+      doc.text(profile.name, TX, 18)
 
-      // ── Tagline ──
       if (profile.tagline) {
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(11)
-        doc.setTextColor(244, 114, 182)
-        doc.text(profile.tagline.toUpperCase(), W / 2, y, { align: 'center' })
-        y += 6
-      }
-
-      // ── Localisation ──
-      if (profile.location) {
-        doc.setFontSize(8)
-        doc.setTextColor(140, 120, 160)
-        doc.text(profile.location, W / 2, y, { align: 'center' })
-        y += 5
-      }
-
-      // Separateur
-      doc.setDrawColor(100, 20, 140)
-      doc.setLineWidth(0.3)
-      doc.line(50, y + 2, W - 50, y + 2)
-      y += 8
-
-      // ── Bio ──
-      if (profile.bio) {
-        doc.setFont('helvetica', 'italic')
         doc.setFontSize(10)
-        doc.setTextColor(200, 195, 215)
-        const lines = doc.splitTextToSize(profile.bio, 165)
-        doc.text(lines, W / 2, y, { align: 'center' })
-        y += lines.length * 5 + 8
-      }
-
-      // ── Contact ──
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(7)
-      doc.setTextColor(219, 39, 119)
-      doc.text('CONTACT', 20, y)
-      y += 5
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
-      doc.setTextColor(190, 185, 205)
-
-      if (profile.contact_email) {
-        doc.text(`Email: ${profile.contact_email}`, 20, y)
-        doc.link(20, y - 4, 100, 5, { url: `mailto:${profile.contact_email}` })
-        y += 5
-      }
-      if (profile.phone) {
-        doc.text(`Tel: ${profile.phone}`, 20, y)
-        y += 5
-      }
-      if (profile.instagram_url) {
         doc.setTextColor(244, 114, 182)
-        doc.text('Instagram  ->  ' + profile.instagram_url, 20, y)
-        doc.link(20, y - 4, 175, 5, { url: profile.instagram_url })
-        doc.setTextColor(190, 185, 205)
-        y += 5
+        doc.text(profile.tagline.toUpperCase(), TX, 25)
       }
-      if (profile.tiktok_url) {
-        doc.setTextColor(168, 85, 247)
-        doc.text('TikTok  ->  ' + profile.tiktok_url, 20, y)
-        doc.link(20, y - 4, 175, 5, { url: profile.tiktok_url })
-        doc.setTextColor(190, 185, 205)
-        y += 5
-      }
-      if (profile.uda_number) {
-        doc.setTextColor(190, 185, 205)
-        doc.text(`UDA: ${profile.uda_number}`, 20, y)
-        y += 5
-      }
-      y += 6
 
-      // ── Liens projets ──
-      if (linkItems.length > 0) {
+      // Location + UDA on same line
+      const meta: string[] = []
+      if (profile.location) meta.push(profile.location)
+      if (profile.uda_number) meta.push(`UDA ${profile.uda_number}`)
+      if (meta.length > 0) {
+        doc.setFontSize(8)
+        doc.setTextColor(180, 160, 200)
+        doc.text(meta.join('   |   '), TX, 31)
+      }
+
+      // ── LEFT COLUMN BODY ─────────────────────────────────────────────────
+      let y = 56
+
+      // BIO
+      if (profile.bio) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
         doc.setTextColor(219, 39, 119)
-        doc.text('LIENS & PROJETS', 20, y)
+        doc.text('A PROPOS', LX, y)
+        y += 5
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(210, 205, 225)
+        const bioLines = doc.splitTextToSize(profile.bio, LC)
+        doc.text(bioLines, LX, y)
+        y += bioLines.length * 4.8 + 6
+      }
+
+      // CONTACT
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(219, 39, 119)
+      doc.text('CONTACT', LX, y)
+      y += 5
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8.5)
+
+      const contacts: { label: string; val: string; url?: string; color?: [number,number,number] }[] = []
+      if (profile.contact_email) contacts.push({ label: 'Email', val: profile.contact_email, url: `mailto:${profile.contact_email}` })
+      if (profile.phone) contacts.push({ label: 'Tel', val: profile.phone })
+      if (profile.instagram_url) contacts.push({ label: 'Instagram', val: profile.instagram_url, url: profile.instagram_url, color: [244, 114, 182] })
+      if (profile.tiktok_url) contacts.push({ label: 'TikTok', val: profile.tiktok_url, url: profile.tiktok_url, color: [168, 85, 247] })
+
+      for (const c of contacts) {
+        doc.setTextColor(140, 130, 160)
+        doc.text(`${c.label}:`, LX, y)
+        doc.setTextColor(...(c.color ?? [210, 205, 225] as [number,number,number]))
+        const val = c.val.length > 45 ? c.val.slice(0, 42) + '...' : c.val
+        doc.text(val, LX + 20, y)
+        if (c.url) doc.link(LX, y - 3.5, LC, 5, { url: c.url })
+        y += 5.5
+      }
+
+      // LIENS
+      if (linkItems.length > 0) {
+        y += 3
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7)
+        doc.setTextColor(219, 39, 119)
+        doc.text('LIENS & PROJETS', LX, y)
         y += 5
 
-        for (const link of linkItems.slice(0, 8)) {
-          doc.setFillColor(30, 18, 50)
-          doc.roundedRect(20, y - 3.5, W - 40, 8, 1.5, 1.5, 'F')
+        for (const link of linkItems.slice(0, 5)) {
+          doc.setFillColor(25, 18, 42)
+          doc.roundedRect(LX, y - 3, LC, 7, 1, 1, 'F')
           doc.setFont('helvetica', 'normal')
-          doc.setFontSize(8)
+          doc.setFontSize(7.5)
           doc.setTextColor(210, 205, 225)
+          const title = link.title || link.url
+          doc.text(title.length > 38 ? title.slice(0, 35) + '...' : title, LX + 3, y + 1)
+          doc.setTextColor(140, 100, 200)
           if (link.title) {
-            doc.text(link.title, 26, y + 1)
-            doc.setTextColor(140, 100, 200)
-            const urlStr = link.url.length > 55 ? link.url.slice(0, 52) + '...' : link.url
-            doc.text(urlStr, 26 + 55, y + 1)
-          } else {
-            doc.setTextColor(140, 100, 200)
-            const urlStr = link.url.length > 80 ? link.url.slice(0, 77) + '...' : link.url
-            doc.text(urlStr, 26, y + 1)
+            const u = link.url.length > 30 ? link.url.slice(0, 27) + '...' : link.url
+            doc.text(u, LX + 3, y + 4.5)
           }
-          doc.link(20, y - 3.5, W - 40, 8, { url: link.url })
-          y += 10
+          doc.link(LX, y - 3, LC, 7, { url: link.url })
+          y += link.title ? 9 : 8
         }
-        y += 4
       }
 
-      // ── Portfolio en ligne — grand bouton cliquable ──
-      doc.setFillColor(60, 10, 90)
-      doc.roundedRect(20, y, W - 40, 16, 3, 3, 'F')
+      // PORTFOLIO URL BOX (bottom of left col)
+      const boxY = Math.max(y + 4, 220)
+      doc.setFillColor(55, 10, 85)
+      doc.roundedRect(LX, boxY, LC, 18, 3, 3, 'F')
       doc.setDrawColor(219, 39, 119)
       doc.setLineWidth(0.4)
-      doc.roundedRect(20, y, W - 40, 16, 3, 3, 'S')
-
+      doc.roundedRect(LX, boxY, LC, 18, 3, 3, 'S')
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(8)
+      doc.setFontSize(7.5)
       doc.setTextColor(219, 39, 119)
-      doc.text('VOIR LE PORTFOLIO EN LIGNE', W / 2, y + 5.5, { align: 'center' })
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(168, 85, 247)
-      doc.text(pubUrl, W / 2, y + 11, { align: 'center' })
-      doc.link(20, y, W - 40, 16, { url: pubUrl })
-      y += 22
-
-      // ── Mention photos ──
-      if (photoItems.length > 0) {
-        doc.setFont('helvetica', 'italic')
-        doc.setFontSize(8)
-        doc.setTextColor(120, 100, 140)
-        doc.text(`${photoItems.length} photo${photoItems.length > 1 ? 's' : ''} disponible${photoItems.length > 1 ? 's' : ''} sur le portfolio en ligne.`, W / 2, y, { align: 'center' })
-        y += 6
-      }
-
-      // ── Footer ──
-      doc.setDrawColor(80, 20, 120)
-      doc.setLineWidth(0.4)
-      doc.line(20, H - 14, W - 20, H - 14)
+      doc.text('PORTFOLIO EN LIGNE', LX + LC / 2, boxY + 6, { align: 'center' })
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
-      doc.setTextColor(90, 75, 110)
-      doc.text(`${profile.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 9, { align: 'center' })
-      doc.text(pubUrl, W / 2, H - 5, { align: 'center' })
-      doc.link(40, H - 12, W - 80, 8, { url: pubUrl })
+      doc.setTextColor(168, 85, 247)
+      const pubShort = pubUrl.length > 42 ? pubUrl.slice(0, 39) + '...' : pubUrl
+      doc.text(pubShort, LX + LC / 2, boxY + 12, { align: 'center' })
+      doc.link(LX, boxY, LC, 18, { url: pubUrl })
+
+      // ── RIGHT COLUMN — PHOTOS ─────────────────────────────────────────────
+      let ry = 56
+      const PH_W = RC, PH_H = Math.round(PH_W * 0.67)   // 3:2 aspect
+
+      for (let i = 0; i < Math.min(photoImgs.length, 4); i++) {
+        const img = photoImgs[i]
+        if (img && ry + PH_H < H - 20) {
+          doc.addImage(img.data, img.fmt, RX, ry, PH_W, PH_H, undefined, 'MEDIUM')
+          // Category label
+          if (photoItems[i]?.category && photoItems[i].category !== 'portfolio') {
+            doc.setFillColor(20, 10, 35)
+            doc.rect(RX, ry + PH_H - 6, PH_W, 6, 'F')
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(6)
+            doc.setTextColor(200, 180, 230)
+            doc.text(photoItems[i].category.toUpperCase(), RX + 2, ry + PH_H - 1.5)
+          }
+          ry += PH_H + 3
+        }
+      }
+
+      // Photo count note if more
+      if (photoItems.length > 4) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7)
+        doc.setTextColor(120, 100, 140)
+        doc.text(`+ ${photoItems.length - 4} autres photos en ligne`, RX, ry + 3)
+      } else if (photoItems.length === 0) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7)
+        doc.setTextColor(80, 70, 100)
+        doc.text('Photos disponibles en ligne', RX + RC / 2, 100, { align: 'center' })
+      }
+
+      // ── FOOTER ───────────────────────────────────────────────────────────
+      doc.setFillColor(20, 15, 35)
+      doc.rect(0, H - 12, W, 12, 'F')
+      doc.setDrawColor(100, 20, 140)
+      doc.setLineWidth(0.3)
+      doc.line(0, H - 12, W, H - 12)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(130, 110, 160)
+      doc.text(`${profile.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 5, { align: 'center' })
+      doc.link(30, H - 12, W - 60, 12, { url: pubUrl })
 
       doc.save(`portfolio-${profile.slug}.pdf`)
       showToast('PDF exporte!')
@@ -632,9 +705,10 @@ export default function PortfolioTab() {
                       </button>
                       <button
                         onClick={() => exportPDF(selectedProfile)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-purple-900/30 hover:bg-purple-800/40 text-purple-400 border border-purple-800/30 transition-colors"
+                        disabled={pdfLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-purple-900/30 hover:bg-purple-800/40 text-purple-400 border border-purple-800/30 transition-colors disabled:opacity-50"
                       >
-                        <FileDown size={13} /> PDF
+                        {pdfLoading ? <><Loader2 size={13} className="animate-spin" /> Generation...</> : <><FileDown size={13} /> PDF</>}
                       </button>
                       <button
                         onClick={() => deleteProfile(selectedProfile.id)}
