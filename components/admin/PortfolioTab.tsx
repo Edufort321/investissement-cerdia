@@ -251,22 +251,21 @@ export default function PortfolioTab() {
     setPdfLoading(true)
     try {
       // ── Helpers ───────────────────────────────────────────────────────────
-      const fetchImg = async (url: string): Promise<{ data: string; fmt: 'JPEG' | 'PNG' } | null> => {
-        try {
-          const r = await fetch(url)
-          if (!r.ok) return null
-          const blob = await r.blob()
-          return new Promise(res => {
-            const fr = new FileReader()
-            fr.onload = () => {
-              const d = fr.result as string
-              res({ data: d, fmt: (blob.type.includes('png') ? 'PNG' : 'JPEG') as 'JPEG' | 'PNG' })
-            }
-            fr.onerror = () => res(null)
-            fr.readAsDataURL(blob)
-          })
-        } catch { return null }
-      }
+      // Use canvas so the browser applies EXIF rotation before we export
+      const fetchImg = (url: string): Promise<{ data: string; fmt: 'JPEG' | 'PNG' } | null> =>
+        new Promise(res => {
+          const img = new window.Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const c = document.createElement('canvas')
+            c.width  = img.naturalWidth
+            c.height = img.naturalHeight
+            c.getContext('2d')!.drawImage(img, 0, 0)
+            res({ data: c.toDataURL('image/jpeg', 0.92), fmt: 'JPEG' })
+          }
+          img.onerror = () => res(null)
+          img.src = url
+        })
 
       const makeCircle = (url: string): Promise<string | null> =>
         new Promise(res => {

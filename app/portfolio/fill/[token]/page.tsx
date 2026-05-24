@@ -571,7 +571,7 @@ export default function PortfolioFillPage() {
 
                 {/* Cover */}
                 <label className="flex-[2] cursor-pointer group">
-                  <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-purple-500 transition-colors" style={{ aspectRatio: '2/1' }}>
+                  <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-purple-500 transition-colors" style={{ aspectRatio: '8/3' }}>
                     {profile.cover_url
                       ? <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
                       : <div className="w-full h-full flex flex-col items-center justify-center gap-1">

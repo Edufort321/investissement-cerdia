@@ -13,7 +13,7 @@ interface Props {
 const SHAPES = {
   circle: { CW: 280, CH: 280, OW: 440,  OH: 440  },
   square: { CW: 280, CH: 280, OW: 800,  OH: 800  },
-  banner: { CW: 360, CH: 135, OW: 1200, OH: 450  },
+  banner: { CW: 280, CH: 105, OW: 1200, OH: 450  },
 }
 
 const TITLES: Record<string, string> = {
