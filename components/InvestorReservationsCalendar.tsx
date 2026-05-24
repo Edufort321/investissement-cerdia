@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Filter, Settings, X, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Scenario {
   id: string
@@ -72,6 +73,9 @@ interface AddReservationForm {
 
 export default function InvestorReservationsCalendar() {
   const { organization } = useOrganization()
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [investors, setInvestors] = useState<Investor[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -250,7 +254,7 @@ export default function InvestorReservationsCalendar() {
       if (existing.type === 'owner') {
         handleDeleteReservation(existing.data.id!)
       } else {
-        alert('Les réservations commerciales ne peuvent pas être modifiées depuis ce calendrier')
+        alert(fr ? 'Les réservations commerciales ne peuvent pas être modifiées depuis ce calendrier' : 'Commercial bookings cannot be modified from this calendar')
       }
     } else {
       // Ouvrir modal pour créer nouvelle réservation investisseur
@@ -276,7 +280,7 @@ export default function InvestorReservationsCalendar() {
 
       if (quotaError) {
         console.error('Error checking quota:', quotaError)
-        alert('Erreur lors de la vérification des quotas')
+        alert(fr ? 'Erreur lors de la vérification des quotas' : 'Error checking quotas')
         return
       }
 
@@ -285,7 +289,9 @@ export default function InvestorReservationsCalendar() {
         const check = quotaCheck[0]
 
         if (!check.can_reserve) {
-          alert(`❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants (cette unité): ${check.days_available_unit}\nJours restants (total): ${check.days_available_total}`)
+          alert(fr
+            ? `❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants (cette unité): ${check.days_available_unit}\nJours restants (total): ${check.days_available_total}`
+            : `❌ Reservation denied:\n\n${check.reason}\n\nDays requested: ${check.days_requested}\nDays remaining (this unit): ${check.days_available_unit}\nDays remaining (total): ${check.days_available_total}`)
           return
         }
       }
@@ -312,15 +318,15 @@ export default function InvestorReservationsCalendar() {
       setSelectedInvestor('')
       setSelectedCell(null)
 
-      alert('✅ Réservation confirmée!')
+      alert(fr ? '✅ Réservation confirmée!' : '✅ Reservation confirmed!')
     } catch (error) {
       console.error('Error creating reservation:', error)
-      alert('Erreur lors de la réservation')
+      alert(fr ? 'Erreur lors de la réservation' : 'Error creating reservation')
     }
   }
 
   const handleDeleteReservation = async (reservationId: string) => {
-    if (!confirm('Annuler cette réservation ?')) return
+    if (!confirm(fr ? 'Annuler cette réservation ?' : 'Cancel this reservation?')) return
 
     try {
       const { error } = await supabase
@@ -341,7 +347,7 @@ export default function InvestorReservationsCalendar() {
     if (!addForm.scenarioId || !addForm.investorId || !addForm.startDate || !addForm.endDate) return
 
     if (addForm.endDate < addForm.startDate) {
-      alert('La date de fin doit être après la date de début')
+      alert(fr ? 'La date de fin doit être après la date de début' : 'End date must be after start date')
       return
     }
 
@@ -360,7 +366,9 @@ export default function InvestorReservationsCalendar() {
         // Ne pas bloquer si la vérification échoue (investisseur peut ne pas être dans investor_properties)
       } else if (quotaCheck && quotaCheck.length > 0 && !quotaCheck[0].can_reserve) {
         const check = quotaCheck[0]
-        alert(`❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants: ${check.days_available_unit ?? check.days_available_total}`)
+        alert(fr
+        ? `❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants: ${check.days_available_unit ?? check.days_available_total}`
+        : `❌ Reservation denied:\n\n${check.reason}\n\nDays requested: ${check.days_requested}\nDays remaining: ${check.days_available_unit ?? check.days_available_total}`)
         setIsSaving(false)
         return
       }
@@ -391,7 +399,7 @@ export default function InvestorReservationsCalendar() {
       setAddForm({ scenarioId: '', investorId: '', startDate: today, endDate: today, notes: '' })
     } catch (error) {
       console.error('Error creating reservation:', error)
-      alert('Erreur lors de la création de la réservation')
+      alert(fr ? 'Erreur lors de la création de la réservation' : 'Error creating reservation')
     } finally {
       setIsSaving(false)
     }
@@ -446,18 +454,17 @@ export default function InvestorReservationsCalendar() {
 
       if (error) throw error
 
-      alert('Configuration API sauvegardée!')
+      alert(fr ? 'Configuration API sauvegardée!' : 'API configuration saved!')
       setShowApiConfig(false)
     } catch (error) {
       console.error('Error saving API config:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert(fr ? 'Erreur lors de la sauvegarde' : 'Error saving configuration')
     }
   }
 
-  const monthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ]
+  const monthNames = fr
+    ? ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
   const daysInMonth = getDaysInMonth()
   const firstDay = getFirstDayOfMonth()
@@ -496,7 +503,7 @@ export default function InvestorReservationsCalendar() {
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder="Filtrer par nom ou unité..."
+                placeholder={fr ? 'Filtrer par nom ou unité...' : 'Filter by name or unit...'}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
@@ -509,9 +516,9 @@ export default function InvestorReservationsCalendar() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
           >
-            <option value="all">Tous les statuts</option>
-            <option value="livré">Livrés</option>
-            <option value="purchased">Achetés</option>
+            <option value="all">{fr ? 'Tous les statuts' : 'All statuses'}</option>
+            <option value="livré">{fr ? 'Livrés' : 'Delivered'}</option>
+            <option value="purchased">{fr ? 'Achetés' : 'Purchased'}</option>
           </select>
 
           <button
@@ -522,8 +529,8 @@ export default function InvestorReservationsCalendar() {
             className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <span className="text-lg leading-none">+</span>
-            <span className="hidden sm:inline">Ajouter une réservation</span>
-            <span className="sm:hidden">Réserver</span>
+            <span className="hidden sm:inline">{fr ? 'Ajouter une réservation' : 'Add a reservation'}</span>
+            <span className="sm:hidden">{fr ? 'Réserver' : 'Reserve'}</span>
           </button>
 
           <button
@@ -540,7 +547,7 @@ export default function InvestorReservationsCalendar() {
             className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <Calendar size={16} />
-            <span className="hidden sm:inline">{showQuotaInfo ? 'Masquer quotas' : 'Voir quotas'}</span>
+            <span className="hidden sm:inline">{showQuotaInfo ? (fr ? 'Masquer quotas' : 'Hide quotas') : (fr ? 'Voir quotas' : 'View quotas')}</span>
             <span className="sm:hidden">Quotas</span>
           </button>
         </div>
@@ -549,16 +556,16 @@ export default function InvestorReservationsCalendar() {
       {/* Panel des quotas investisseurs */}
       {showQuotaInfo && investorQuotas.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Quotas d'occupation par investisseur ({currentYear})</h3>
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">{fr ? `Quotas d'occupation par investisseur (${currentYear})` : `Investor occupation quotas (${currentYear})`}</h3>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600">
-                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Investisseur</th>
-                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Autorisés</th>
-                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Utilisés</th>
-                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Restants</th>
-                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">% util.</th>
+                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">{fr ? 'Investisseur' : 'Investor'}</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">{fr ? 'Autorisés' : 'Allowed'}</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">{fr ? 'Utilisés' : 'Used'}</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">{fr ? 'Restants' : 'Remaining'}</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">% {fr ? 'util.' : 'used'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -574,10 +581,10 @@ export default function InvestorReservationsCalendar() {
                   return (
                     <tr key={quota.investor_id} className="border-b dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="p-2 sm:p-3 font-medium text-gray-900 dark:text-gray-100 text-xs sm:text-sm">{quota.investor_name}</td>
-                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{Math.round(quota.total_days_entitled)} j</td>
-                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{quota.total_days_used} j</td>
+                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{Math.round(quota.total_days_entitled)} {fr ? 'j' : 'd'}</td>
+                      <td className="p-2 sm:p-3 text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{quota.total_days_used} {fr ? 'j' : 'd'}</td>
                       <td className={`p-2 sm:p-3 text-center font-semibold text-xs sm:text-sm ${statusColor}`}>
-                        {Math.round(quota.total_days_remaining)} j
+                        {Math.round(quota.total_days_remaining)} {fr ? 'j' : 'd'}
                       </td>
                       <td className="p-2 sm:p-3 text-center">
                         <div className="flex items-center justify-center gap-1 sm:gap-2">
@@ -604,8 +611,9 @@ export default function InvestorReservationsCalendar() {
           </div>
           <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
-              <strong>Note:</strong> Les jours autorisés sont calculés selon le % de parts dans chaque projet.
-              Le quota maximum par unité doit être respecté.
+              <strong>Note:</strong> {fr
+                ? 'Les jours autorisés sont calculés selon le % de parts dans chaque projet. Le quota maximum par unité doit être respecté.'
+                : 'Allowed days are calculated based on the % of shares in each project. The maximum quota per unit must be respected.'}
             </p>
           </div>
         </div>
@@ -625,7 +633,7 @@ export default function InvestorReservationsCalendar() {
             }}
             className="px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 rounded-lg text-xs sm:text-sm font-medium"
           >
-            <span className="hidden sm:inline">← Mois précédent</span>
+            <span className="hidden sm:inline">{fr ? '← Mois précédent' : '← Previous month'}</span>
             <span className="sm:hidden">←</span>
           </button>
           <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 text-center">
@@ -642,7 +650,7 @@ export default function InvestorReservationsCalendar() {
             }}
             className="px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 rounded-lg text-xs sm:text-sm font-medium"
           >
-            <span className="hidden sm:inline">Mois suivant →</span>
+            <span className="hidden sm:inline">{fr ? 'Mois suivant →' : 'Next month →'}</span>
             <span className="sm:hidden">→</span>
           </button>
         </div>
@@ -655,9 +663,9 @@ export default function InvestorReservationsCalendar() {
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
                 <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 text-left font-semibold text-gray-700 dark:text-gray-200 border-r-2 border-gray-300 dark:border-gray-600 min-w-[120px] sm:min-w-[200px]">
-                  <span className="text-xs sm:text-sm">Projet</span>
+                  <span className="text-xs sm:text-sm">{fr ? 'Projet' : 'Project'}</span>
                 </th>
-                {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((day, i) => (
+                {(fr ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map((day, i) => (
                   <th key={i} className="p-1 sm:p-2 text-center text-[10px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300" colSpan={Math.ceil(daysInMonth / 7)}>
                     {day}
                   </th>
@@ -679,7 +687,7 @@ export default function InvestorReservationsCalendar() {
               {filteredScenarios.length === 0 ? (
                 <tr>
                   <td colSpan={daysInMonth + 1} className="p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-                    Aucun projet trouvé
+                    {fr ? 'Aucun projet trouvé' : 'No projects found'}
                   </td>
                 </tr>
               ) : (
@@ -688,7 +696,7 @@ export default function InvestorReservationsCalendar() {
                     <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 p-2 sm:p-3 border-r-2 border-gray-200 dark:border-gray-600 font-medium text-gray-900 dark:text-gray-100">
                       <div>
                         <div className="font-semibold text-xs sm:text-sm truncate">{scenario.name}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Unité {scenario.unit_number}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">{fr ? 'Unité' : 'Unit'} {scenario.unit_number}</div>
                       </div>
                     </td>
                     {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -698,19 +706,19 @@ export default function InvestorReservationsCalendar() {
                       const isWeekend = date.getDay() === 0 || date.getDay() === 6
 
                       let bgColor = isWeekend ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800'
-                      let title = 'Cliquer pour réserver'
+                      let title = fr ? 'Cliquer pour réserver' : 'Click to reserve'
                       let displayText = ''
 
                       if (reservation) {
                         if (reservation.type === 'owner') {
                           // Réservation investisseur - couleur par investisseur
                           bgColor = getInvestorColor(reservation.data.investor_id)
-                          title = `Réservé par ${reservation.data.investor_name} (usage personnel)`
+                          title = fr ? `Réservé par ${reservation.data.investor_name} (usage personnel)` : `Reserved by ${reservation.data.investor_name} (personal use)`
                           displayText = reservation.data.investor_name?.split(' ')[0] || ''
                         } else {
                           // Booking commercial - vert uniforme
                           bgColor = 'bg-green-100 border-green-300 dark:bg-green-900/40 dark:border-green-700'
-                          title = `Réservé (commercial): ${reservation.data.guest_name}`
+                          title = fr ? `Réservé (commercial): ${reservation.data.guest_name}` : `Reserved (commercial): ${reservation.data.guest_name}`
                           displayText = 'COM'
                         }
                       }
@@ -742,7 +750,7 @@ export default function InvestorReservationsCalendar() {
 
       {/* Légende */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-sm sm:text-base">Légende des investisseurs</h4>
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-sm sm:text-base">{fr ? 'Légende des investisseurs' : 'Investor legend'}</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           {investors.map((investor, index) => (
             <div key={investor.id} className="flex items-center gap-2">
@@ -758,7 +766,7 @@ export default function InvestorReservationsCalendar() {
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Réserver</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{fr ? 'Réserver' : 'Reserve'}</h3>
               <button
                 onClick={() => {
                   setShowReservationModal(false)
@@ -773,16 +781,16 @@ export default function InvestorReservationsCalendar() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Date: <strong className="dark:text-gray-200">{selectedCell.date.toLocaleDateString('fr-CA')}</strong>
+                  {fr ? 'Date:' : 'Date:'} <strong className="dark:text-gray-200">{selectedCell.date.toLocaleDateString(locale)}</strong>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Projet: <strong className="dark:text-gray-200">{scenarios.find(s => s.id === selectedCell.scenarioId)?.name}</strong>
+                  {fr ? 'Projet:' : 'Project:'} <strong className="dark:text-gray-200">{scenarios.find(s => s.id === selectedCell.scenarioId)?.name}</strong>
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Sélectionner l'investisseur *
+                  {fr ? "Sélectionner l'investisseur *" : 'Select investor *'}
                 </label>
                 <select
                   value={selectedInvestor}
@@ -790,7 +798,7 @@ export default function InvestorReservationsCalendar() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   required
                 >
-                  <option value="">-- Choisir un investisseur --</option>
+                  <option value="">{fr ? '-- Choisir un investisseur --' : '-- Choose an investor --'}</option>
                   {investors.map(investor => (
                     <option key={investor.id} value={investor.id}>
                       {investor.name}
@@ -807,7 +815,7 @@ export default function InvestorReservationsCalendar() {
                   }}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Annuler
+                  {fr ? 'Annuler' : 'Cancel'}
                 </button>
                 <button
                   onClick={handleQuickReserve}
@@ -815,7 +823,7 @@ export default function InvestorReservationsCalendar() {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center justify-center gap-2"
                 >
                   <Check size={16} />
-                  Confirmer
+                  {fr ? 'Confirmer' : 'Confirm'}
                 </button>
               </div>
             </div>
@@ -829,7 +837,7 @@ export default function InvestorReservationsCalendar() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
-                Ajouter une réservation
+                {fr ? 'Ajouter une réservation' : 'Add a reservation'}
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -843,7 +851,7 @@ export default function InvestorReservationsCalendar() {
               {/* Projet */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Projet *
+                  {fr ? 'Projet *' : 'Project *'}
                 </label>
                 <select
                   value={addForm.scenarioId}
@@ -851,11 +859,11 @@ export default function InvestorReservationsCalendar() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   required
                 >
-                  <option value="">-- Choisir un projet --</option>
+                  <option value="">{fr ? '-- Choisir un projet --' : '-- Choose a project --'}</option>
                   {scenarios.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.name}{s.unit_number ? ` — Unité ${s.unit_number}` : ''}
-                      {s.owner_occupation_days ? ` (${s.owner_occupation_days} j/an)` : ''}
+                      {s.name}{s.unit_number ? ` — ${fr ? 'Unité' : 'Unit'} ${s.unit_number}` : ''}
+                      {s.owner_occupation_days ? ` (${s.owner_occupation_days} ${fr ? 'j/an' : 'd/yr'})` : ''}
                     </option>
                   ))}
                 </select>
@@ -864,7 +872,7 @@ export default function InvestorReservationsCalendar() {
               {/* Investisseur */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Investisseur *
+                  {fr ? 'Investisseur *' : 'Investor *'}
                 </label>
                 <select
                   value={addForm.investorId}
@@ -872,7 +880,7 @@ export default function InvestorReservationsCalendar() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                   required
                 >
-                  <option value="">-- Choisir un investisseur --</option>
+                  <option value="">{fr ? '-- Choisir un investisseur --' : '-- Choose an investor --'}</option>
                   {investors.map(i => (
                     <option key={i.id} value={i.id}>{i.name}</option>
                   ))}
@@ -883,7 +891,7 @@ export default function InvestorReservationsCalendar() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date de début *
+                    {fr ? 'Date de début *' : 'Start date *'}
                   </label>
                   <input
                     type="date"
@@ -902,7 +910,7 @@ export default function InvestorReservationsCalendar() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date de fin *
+                    {fr ? 'Date de fin *' : 'End date *'}
                   </label>
                   <input
                     type="date"
@@ -922,7 +930,9 @@ export default function InvestorReservationsCalendar() {
                     const d1 = new Date(addForm.startDate)
                     const d2 = new Date(addForm.endDate)
                     const days = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
-                    return `${days} jour${days > 1 ? 's' : ''} réservé${days > 1 ? 's' : ''}`
+                    return fr
+                      ? `${days} jour${days > 1 ? 's' : ''} réservé${days > 1 ? 's' : ''}`
+                      : `${days} day${days > 1 ? 's' : ''} reserved`
                   })()}
                 </div>
               )}
@@ -930,14 +940,14 @@ export default function InvestorReservationsCalendar() {
               {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Notes (optionnel)
+                  {fr ? 'Notes (optionnel)' : 'Notes (optional)'}
                 </label>
                 <input
                   type="text"
                   value={addForm.notes}
                   onChange={(e) => setAddForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
-                  placeholder="Ex: Vacances en famille"
+                  placeholder={fr ? 'Ex: Vacances en famille' : 'Ex: Family vacation'}
                 />
               </div>
 
@@ -947,7 +957,7 @@ export default function InvestorReservationsCalendar() {
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                   disabled={isSaving}
                 >
-                  Annuler
+                  {fr ? 'Annuler' : 'Cancel'}
                 </button>
                 <button
                   onClick={handleAddReservation}
@@ -955,7 +965,7 @@ export default function InvestorReservationsCalendar() {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center justify-center gap-2"
                 >
                   <Check size={16} />
-                  {isSaving ? 'Enregistrement...' : 'Confirmer la réservation'}
+                  {isSaving ? (fr ? 'Enregistrement...' : 'Saving...') : (fr ? 'Confirmer la réservation' : 'Confirm reservation')}
                 </button>
               </div>
             </div>
@@ -968,7 +978,7 @@ export default function InvestorReservationsCalendar() {
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Configuration API Gestion Locative</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{fr ? 'Configuration API Gestion Locative' : 'Rental Management API Configuration'}</h3>
               <button
                 onClick={() => setShowApiConfig(false)}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 flex-shrink-0"
@@ -980,17 +990,17 @@ export default function InvestorReservationsCalendar() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Projet *
+                  {fr ? 'Projet *' : 'Project *'}
                 </label>
                 <select
                   value={selectedScenarioForApi || ''}
                   onChange={(e) => setSelectedScenarioForApi(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                 >
-                  <option value="">-- Sélectionner un projet --</option>
+                  <option value="">{fr ? '-- Sélectionner un projet --' : '-- Select a project --'}</option>
                   {scenarios.map(scenario => (
                     <option key={scenario.id} value={scenario.id}>
-                      {scenario.name} - Unité {scenario.unit_number}
+                      {scenario.name} - {fr ? 'Unité' : 'Unit'} {scenario.unit_number}
                     </option>
                   ))}
                 </select>
@@ -998,19 +1008,19 @@ export default function InvestorReservationsCalendar() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Fournisseur
+                  {fr ? 'Fournisseur' : 'Provider'}
                 </label>
                 <select
                   value={apiConfig.provider}
                   onChange={(e) => setApiConfig({...apiConfig, provider: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                 >
-                  <option value="">-- Choisir --</option>
+                  <option value="">{fr ? '-- Choisir --' : '-- Choose --'}</option>
                   <option value="Guesty">Guesty</option>
                   <option value="Hostaway">Hostaway</option>
                   <option value="Lodgify">Lodgify</option>
                   <option value="BookingSync">BookingSync</option>
-                  <option value="Autre">Autre</option>
+                  <option value="Autre">{fr ? 'Autre' : 'Other'}</option>
                 </select>
               </div>
 
@@ -1036,7 +1046,7 @@ export default function InvestorReservationsCalendar() {
                   value={apiConfig.api_key}
                   onChange={(e) => setApiConfig({...apiConfig, api_key: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
-                  placeholder="Votre clé API"
+                  placeholder={fr ? 'Votre clé API' : 'Your API key'}
                 />
               </div>
 
@@ -1049,7 +1059,7 @@ export default function InvestorReservationsCalendar() {
                   value={apiConfig.api_secret}
                   onChange={(e) => setApiConfig({...apiConfig, api_secret: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
-                  placeholder="Votre secret API"
+                  placeholder={fr ? 'Votre secret API' : 'Your API secret'}
                 />
               </div>
 
@@ -1062,7 +1072,7 @@ export default function InvestorReservationsCalendar() {
                   value={apiConfig.property_id}
                   onChange={(e) => setApiConfig({...apiConfig, property_id: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
-                  placeholder="ID de la propriété dans le système"
+                  placeholder={fr ? 'ID de la propriété dans le système' : 'Property ID in the system'}
                 />
               </div>
 
@@ -1075,7 +1085,7 @@ export default function InvestorReservationsCalendar() {
                   className="rounded dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="auto-sync" className="text-sm text-gray-700 dark:text-gray-300">
-                  Activer la synchronisation automatique
+                  {fr ? 'Activer la synchronisation automatique' : 'Enable automatic synchronization'}
                 </label>
               </div>
 
@@ -1084,14 +1094,14 @@ export default function InvestorReservationsCalendar() {
                   onClick={() => setShowApiConfig(false)}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Annuler
+                  {fr ? 'Annuler' : 'Cancel'}
                 </button>
                 <button
                   onClick={handleSaveApiConfig}
                   disabled={!selectedScenarioForApi}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600"
                 >
-                  Sauvegarder
+                  {fr ? 'Sauvegarder' : 'Save'}
                 </button>
               </div>
             </div>
