@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { supabase } from '@/lib/supabase'
 import { ClipboardList, Plus, Trash2, Check, X, Edit2, Save, FileText, CheckSquare, Square } from 'lucide-react'
 
@@ -34,7 +35,9 @@ interface Note {
 
 export default function NotesManager() {
   const { currentUser } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const [activeView, setActiveView] = useState<'todo' | 'notes'>('todo')
 
   // Todo Lists State
@@ -53,11 +56,11 @@ export default function NotesManager() {
 
   // Load data
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && orgId) {
       loadTodoLists()
       loadNotes()
     }
-  }, [currentUser])
+  }, [currentUser, orgId])
 
   // Todo Lists Functions
   const loadTodoLists = async () => {
@@ -66,6 +69,7 @@ export default function NotesManager() {
         .from('todo_lists')
         .select('*')
         .eq('user_id', currentUser?.id)
+        .eq('organization_id', orgId)
         .order('created_at', { ascending: false })
 
       if (listsError) throw listsError
@@ -99,7 +103,7 @@ export default function NotesManager() {
     try {
       const { data, error } = await supabase
         .from('todo_lists')
-        .insert([{ user_id: currentUser?.id, name: newListName }])
+        .insert([{ user_id: currentUser?.id, name: newListName, organization_id: orgId }])
         .select()
         .single()
 
@@ -140,7 +144,8 @@ export default function NotesManager() {
           user_id: currentUser?.id,
           list_id: listId,
           title: newTaskTitle,
-          completed: false
+          completed: false,
+          organization_id: orgId
         }])
         .select()
         .single()
@@ -199,6 +204,7 @@ export default function NotesManager() {
         .from('notes')
         .select('*')
         .eq('user_id', currentUser?.id)
+        .eq('organization_id', orgId)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
@@ -237,7 +243,8 @@ export default function NotesManager() {
           .insert([{
             user_id: currentUser?.id,
             title: noteTitle,
-            content: noteContent
+            content: noteContent,
+            organization_id: orgId
           }])
           .select()
           .single()
@@ -538,7 +545,7 @@ export default function NotesManager() {
                     <h3 className="font-medium text-gray-900 truncate">{note.title}</h3>
                     <p className="text-sm text-gray-500 truncate">{note.content}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {new Date(note.updated_at).toLocaleDateString('fr-FR')}
+                      {new Date(note.updated_at).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                     </p>
                   </div>
                 ))}

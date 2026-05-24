@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,8 @@ interface BudgetAlert {
 export default function BudgetAlerts() {
   const { t, language } = useLanguage()
   const fr = language === 'fr'
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
 
   const [alerts, setAlerts] = useState<BudgetAlert[]>([])
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
@@ -41,7 +44,7 @@ export default function BudgetAlerts() {
 
   useEffect(() => {
     loadAlerts()
-  }, [filterSeverity, filterType])
+  }, [filterSeverity, filterType, orgId])
 
   useEffect(() => {
     if (autoRefresh) {
@@ -53,10 +56,17 @@ export default function BudgetAlerts() {
   }, [autoRefresh])
 
   const loadAlerts = async () => {
+    if (!orgId) return
     setIsLoading(true)
+
+    const { data: scenData } = await supabase.from('scenarios').select('id').eq('organization_id', orgId)
+    const scenIds = (scenData || []).map((s: any) => s.id)
+    if (scenIds.length === 0) { setAlerts([]); setIsLoading(false); return }
+
     const { data, error } = await supabase
       .from('active_budget_alerts')
       .select('*')
+      .in('scenario_id', scenIds)
 
     if (error) {
       console.error('Error loading alerts:', error)
@@ -100,6 +110,7 @@ export default function BudgetAlerts() {
         acknowledged_at: new Date().toISOString()
       })
       .eq('is_acknowledged', false)
+      .eq('organization_id', orgId)
 
     if (severity) {
       query = query.eq('severity', severity)

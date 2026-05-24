@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,14 +44,17 @@ export default function ContractorManagement() {
   const { language } = useLanguage()
   const fr = language === 'fr'
   const locale = fr ? 'fr-CA' : 'en-CA'
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
 
   useEffect(() => {
     loadContractors()
-  }, [filterStatus])
+  }, [filterStatus, orgId])
 
   const loadContractors = async () => {
+    if (!orgId) return
     setIsLoading(true)
-    let query = supabase.from('contractors').select('*').order('company_name')
+    let query = supabase.from('contractors').select('*').eq('organization_id', orgId).order('company_name')
     if (filterStatus !== 'all') query = query.eq('status', filterStatus)
     const { data } = await query
     setContractors(data || [])
@@ -79,7 +83,7 @@ export default function ContractorManagement() {
       return
     }
     setIsLoading(true)
-    const data = { ...formData, status: 'active', rating: parseFloat(formData.rating) }
+    const data = { ...formData, status: 'active', rating: parseFloat(formData.rating), organization_id: orgId }
     const { error } = editingContractor
       ? await supabase.from('contractors').update(data).eq('id', editingContractor.id)
       : await supabase.from('contractors').insert(data)

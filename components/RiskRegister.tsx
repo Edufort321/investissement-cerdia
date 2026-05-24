@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +34,8 @@ export default function RiskRegister() {
   const { language } = useLanguage()
   const fr = language === 'fr'
   const locale = fr ? 'fr-CA' : 'en-CA'
+  const { organization } = useOrganization()
+  const orgId = organization?.id ?? null
   const [scenarios, setScenarios] = useState<any[]>([])
   const [selectedScenario, setSelectedScenario] = useState('')
   const [risks, setRisks] = useState<Risk[]>([])
@@ -58,15 +61,16 @@ export default function RiskRegister() {
   ]
 
   useEffect(() => {
-    loadScenarios()
-  }, [])
+    if (orgId) loadScenarios()
+  }, [orgId])
 
   useEffect(() => {
     if (selectedScenario) loadRisks()
   }, [selectedScenario, filter])
 
   const loadScenarios = async () => {
-    const { data } = await supabase.from('scenarios').select('id, name').eq('status', 'purchased').order('name')
+    const { data } = await supabase.from('scenarios').select('id, name')
+      .eq('organization_id', orgId).eq('status', 'purchased').order('name')
     setScenarios(data || [])
     if (data && data.length > 0 && !selectedScenario) setSelectedScenario(data[0].id)
   }
@@ -104,7 +108,7 @@ export default function RiskRegister() {
       return
     }
     setIsLoading(true)
-    const data = { scenario_id: selectedScenario, status: 'identified', ...formData }
+    const data = { scenario_id: selectedScenario, status: 'identified', organization_id: orgId, ...formData }
     const { error } = editingRisk
       ? await supabase.from('project_risks').update(data).eq('id', editingRisk.id)
       : await supabase.from('project_risks').insert(data)
