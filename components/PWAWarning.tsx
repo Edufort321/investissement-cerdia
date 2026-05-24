@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { AlertTriangle, X } from '@/lib/icons'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function PWAWarning() {
   const [showWarning, setShowWarning] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
+  const { language } = useLanguage()
+  const fr = language === 'fr'
 
   useEffect(() => {
     // Vérifier si déjà dismissed dans localStorage
@@ -45,10 +48,12 @@ export default function PWAWarning() {
           <div className="flex items-center gap-3 flex-1">
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
             <div className="text-sm">
-              <span className="font-semibold">Installation PWA non disponible sur Firefox Desktop.</span>
+              <span className="font-semibold">
+                {fr ? 'Installation PWA non disponible sur Firefox Desktop.' : 'PWA installation not available on Firefox Desktop.'}
+              </span>
               {' '}
-              Pour installer l'application, veuillez utiliser{' '}
-              <span className="font-semibold">Chrome, Edge ou Brave</span>.
+              {fr ? "Pour installer l'application, veuillez utiliser" : 'To install the application, please use'}{' '}
+              <span className="font-semibold">Chrome, Edge {fr ? 'ou' : 'or'} Brave</span>.
               {' '}
               <a
                 href="https://www.google.com/chrome/"
@@ -56,7 +61,7 @@ export default function PWAWarning() {
                 rel="noopener noreferrer"
                 className="underline hover:text-orange-100 transition-colors"
               >
-                Télécharger Chrome
+                {fr ? 'Télécharger Chrome' : 'Download Chrome'}
               </a>
             </div>
           </div>
@@ -65,7 +70,7 @@ export default function PWAWarning() {
           <button
             onClick={handleDismiss}
             className="flex-shrink-0 p-1 hover:bg-orange-600 rounded transition-colors"
-            aria-label="Fermer l'avertissement"
+            aria-label={fr ? "Fermer l'avertissement" : 'Close warning'}
           >
             <X className="w-5 h-5" />
           </button>
