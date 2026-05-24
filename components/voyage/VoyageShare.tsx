@@ -121,7 +121,7 @@ export default function VoyageShare({
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span className="text-green-500 font-semibold">
-                    Actif en direct
+                    {language === 'fr' ? 'Actif en direct' : 'Live active'}
                   </span>
                 </div>
               )}
@@ -146,7 +146,7 @@ export default function VoyageShare({
         <div className="flex items-center gap-3 mb-4">
           <LinkIcon className="w-5 h-5 text-gray-400" />
           <h3 className="text-lg font-semibold text-gray-100">
-            Lien de partage
+            {language === 'fr' ? 'Lien de partage' : 'Share link'}
           </h3>
         </div>
 
@@ -284,8 +284,11 @@ export default function VoyageShare({
       {/* Privacy Notice */}
       <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4">
         <p className="text-sm text-blue-300">
-          <strong>Note de confidentialité:</strong> Seules les personnes ayant le lien pourront voir votre voyage.
-          Le mode "Me Suivre" permet de partager votre position en temps réel uniquement lorsqu'il est activé.
+          {language === 'fr' ? (
+            <><strong>Note de confidentialite:</strong> Seules les personnes ayant le lien pourront voir votre voyage. Le mode &quot;Me Suivre&quot; permet de partager votre position en temps reel uniquement lorsqu&apos;il est active.</>
+          ) : (
+            <><strong>Privacy note:</strong> Only people with the link will be able to see your trip. &quot;Follow Me&quot; mode shares your real-time location only while it is enabled.</>
+          )}
         </p>
       </div>
     </div>

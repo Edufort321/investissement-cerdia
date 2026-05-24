@@ -203,7 +203,7 @@ export default function VoyageBudget({ voyage, language = 'fr', onBudgetChange }
             isOverBudget ? 'text-red-400' : 'text-yellow-400'
           }`}>
             {isOverBudget
-              ? `Vous avez dépassé votre budget de ${Math.abs(remaining).toFixed(0)} ${voyage.devise}`
+              ? (language === 'fr' ? `Vous avez depasse votre budget de ${Math.abs(remaining).toFixed(0)} ${voyage.devise}` : `You have exceeded your budget by ${Math.abs(remaining).toFixed(0)} ${voyage.devise}`)
               : t('budget.alert')
             }
           </p>

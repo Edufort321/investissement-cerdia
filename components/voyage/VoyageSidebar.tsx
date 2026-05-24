@@ -153,7 +153,7 @@ export default function VoyageSidebar({
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-700 dark:text-gray-300">Dépensé:</span>
+                <span className="text-gray-700 dark:text-gray-300">{language === 'fr' ? 'Depense:' : 'Spent:'}</span>
                 <span className={`font-semibold ${totalSpent > budget ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   {totalSpent.toFixed(2)} {devise}
                 </span>

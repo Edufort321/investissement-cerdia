@@ -42,7 +42,7 @@ export default function VoyageExpenses({
         devise: receiptData.currency,
         date: receiptData.date || new Date().toISOString().split('T')[0],
         categorie: receiptData.category,
-        description: receiptData.merchant || 'Dépense scannée',
+        description: receiptData.merchant || (language === 'fr' ? 'Depense scannee' : 'Scanned expense'),
         photos: [] // Possibilité d'ajouter la photo du reçu plus tard
       }
       onAddFromReceipt(expense)
