@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Card,
   CardContent,
@@ -90,6 +91,10 @@ interface BankAccount {
 }
 
 export default function BankReconciliation() {
+
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([])
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
@@ -224,13 +229,13 @@ export default function BankReconciliation() {
       const amountDiff = Math.abs(Math.abs(bankTx.amount) - Math.abs(tx.amount))
       if (amountDiff === 0) {
         score += 50
-        reasons.push('Montant exact')
+        reasons.push(fr ? 'Montant exact' : 'Exact amount')
       } else if (amountDiff < 1) {
         score += 40
-        reasons.push('Montant très proche')
+        reasons.push(fr ? 'Montant très proche' : 'Amount very close')
       } else if (amountDiff < 10) {
         score += 20
-        reasons.push('Montant similaire')
+        reasons.push(fr ? 'Montant similaire' : 'Similar amount')
       }
 
       // Date proximity
@@ -240,13 +245,13 @@ export default function BankReconciliation() {
 
       if (dateDiff === 0) {
         score += 30
-        reasons.push('Même date')
+        reasons.push(fr ? 'Même date' : 'Same date')
       } else if (dateDiff <= 2) {
         score += 20
-        reasons.push(`${dateDiff} jour(s) d'écart`)
+        reasons.push(fr ? `${dateDiff} jour(s) d'écart` : `${dateDiff} day(s) apart`)
       } else if (dateDiff <= 7) {
         score += 10
-        reasons.push(`${dateDiff} jours d'écart`)
+        reasons.push(fr ? `${dateDiff} jours d'écart` : `${dateDiff} days apart`)
       }
 
       // Description similarity
@@ -261,20 +266,20 @@ export default function BankReconciliation() {
 
         if (matchingWords.length > 0) {
           score += matchingWords.length * 5
-          reasons.push(`${matchingWords.length} mot(s) en commun`)
+          reasons.push(fr ? `${matchingWords.length} mot(s) en commun` : `${matchingWords.length} word(s) in common`)
         }
       }
 
       // Reference number match
       if (bankTx.reference_number && tx.description?.includes(bankTx.reference_number)) {
         score += 40
-        reasons.push('Numéro de référence trouvé')
+        reasons.push(fr ? 'Numéro de référence trouvé' : 'Reference number found')
       }
 
       // Category match
       if (bankTx.category && tx.type && bankTx.category.toLowerCase() === tx.type.toLowerCase()) {
         score += 10
-        reasons.push('Catégorie correspondante')
+        reasons.push(fr ? 'Catégorie correspondante' : 'Matching category')
       }
 
       // Only include matches with a minimum score
@@ -314,7 +319,7 @@ export default function BankReconciliation() {
 
     if (error) {
       console.error('Error reconciling transaction:', error)
-      alert('Erreur lors du rapprochement')
+      alert(fr ? 'Erreur lors du rapprochement' : 'Error reconciling transaction')
       setIsLoading(false)
       return
     }
@@ -341,7 +346,7 @@ export default function BankReconciliation() {
 
     if (error) {
       console.error('Error marking as reconciled:', error)
-      alert('Erreur lors de la mise à jour')
+      alert(fr ? 'Erreur lors de la mise à jour' : 'Error updating transaction')
       setIsLoading(false)
       return
     }
@@ -364,7 +369,7 @@ export default function BankReconciliation() {
 
     if (error) {
       console.error('Error unreconciling:', error)
-      alert('Erreur lors de l\'annulation')
+      alert(fr ? "Erreur lors de l'annulation" : 'Error un-reconciling transaction')
       setIsLoading(false)
       return
     }
@@ -386,14 +391,14 @@ export default function BankReconciliation() {
   })
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'CAD',
     }).format(amount)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-CA', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -404,9 +409,9 @@ export default function BankReconciliation() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Rapprochement Bancaire</h1>
+        <h1 className="text-3xl font-bold">{fr ? 'Rapprochement Bancaire' : 'Bank Reconciliation'}</h1>
         <p className="text-muted-foreground mt-2">
-          Réconciliez vos transactions bancaires avec vos écritures comptables
+          {fr ? 'Réconciliez vos transactions bancaires avec vos écritures comptables' : 'Reconcile your bank transactions with your accounting entries'}
         </p>
       </div>
 
@@ -414,14 +419,14 @@ export default function BankReconciliation() {
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Transactions</CardDescription>
+            <CardDescription>{fr ? 'Total Transactions' : 'Total Transactions'}</CardDescription>
             <CardTitle className="text-2xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Réconciliées</CardDescription>
+            <CardDescription>{fr ? 'Réconciliées' : 'Reconciled'}</CardDescription>
             <CardTitle className="text-2xl text-green-600">
               {stats.reconciled}
             </CardTitle>
@@ -430,7 +435,7 @@ export default function BankReconciliation() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Non réconciliées</CardDescription>
+            <CardDescription>{fr ? 'Non réconciliées' : 'Unreconciled'}</CardDescription>
             <CardTitle className="text-2xl text-orange-600">
               {stats.unreconciled}
             </CardTitle>
@@ -439,7 +444,7 @@ export default function BankReconciliation() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Montant Total</CardDescription>
+            <CardDescription>{fr ? 'Montant Total' : 'Total Amount'}</CardDescription>
             <CardTitle className="text-xl">
               {formatCurrency(stats.totalAmount)}
             </CardTitle>
@@ -448,7 +453,7 @@ export default function BankReconciliation() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Montant Non Réconc.</CardDescription>
+            <CardDescription>{fr ? 'Montant Non Réconc.' : 'Unreconciled Amount'}</CardDescription>
             <CardTitle className="text-xl text-orange-600">
               {formatCurrency(stats.unreconciledAmount)}
             </CardTitle>
@@ -462,13 +467,13 @@ export default function BankReconciliation() {
           <div className="flex flex-col md:flex-row gap-4 justify-between">
             <div className="flex gap-4 flex-1">
               <div className="flex-1 max-w-xs">
-                <Label>Compte Bancaire</Label>
+                <Label>{fr ? 'Compte Bancaire' : 'Bank Account'}</Label>
                 <Select value={selectedAccount} onValueChange={setSelectedAccount}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous les comptes</SelectItem>
+                    <SelectItem value="all">{fr ? 'Tous les comptes' : 'All accounts'}</SelectItem>
                     {bankAccounts.map(account => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.name} ({account.bank_name})
@@ -479,11 +484,11 @@ export default function BankReconciliation() {
               </div>
 
               <div className="flex-1 max-w-xs">
-                <Label>Recherche</Label>
+                <Label>{fr ? 'Recherche' : 'Search'}</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Description, référence, montant..."
+                    placeholder={fr ? 'Description, référence, montant...' : 'Description, reference, amount...'}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9"
@@ -497,7 +502,7 @@ export default function BankReconciliation() {
                   onClick={() => setShowReconciled(!showReconciled)}
                 >
                   <Filter className="h-4 w-4 mr-2" />
-                  {showReconciled ? 'Toutes' : 'Non réconciliées'}
+                  {showReconciled ? (fr ? 'Toutes' : 'All') : (fr ? 'Non réconciliées' : 'Unreconciled')}
                 </Button>
               </div>
             </div>
@@ -505,7 +510,7 @@ export default function BankReconciliation() {
             <div className="flex gap-2 items-end">
               <Button variant="outline" onClick={loadBankTransactions}>
                 <Download className="h-4 w-4 mr-2" />
-                Actualiser
+                {fr ? 'Actualiser' : 'Refresh'}
               </Button>
             </div>
           </div>
@@ -516,7 +521,9 @@ export default function BankReconciliation() {
             <Alert className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Vous avez {stats.unreconciled} transaction(s) non réconciliée(s) pour un montant de {formatCurrency(stats.unreconciledAmount)}
+                {fr
+                  ? `Vous avez ${stats.unreconciled} transaction(s) non réconciliée(s) pour un montant de ${formatCurrency(stats.unreconciledAmount)}`
+                  : `You have ${stats.unreconciled} unreconciled transaction(s) totalling ${formatCurrency(stats.unreconciledAmount)}`}
               </AlertDescription>
             </Alert>
           )}
@@ -524,21 +531,21 @@ export default function BankReconciliation() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Compte</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Référence</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-                <TableHead className="text-right">Solde Après</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>{fr ? 'Date' : 'Date'}</TableHead>
+                <TableHead>{fr ? 'Compte' : 'Account'}</TableHead>
+                <TableHead>{fr ? 'Description' : 'Description'}</TableHead>
+                <TableHead>{fr ? 'Référence' : 'Reference'}</TableHead>
+                <TableHead className="text-right">{fr ? 'Montant' : 'Amount'}</TableHead>
+                <TableHead className="text-right">{fr ? 'Solde Après' : 'Balance After'}</TableHead>
+                <TableHead>{fr ? 'Statut' : 'Status'}</TableHead>
+                <TableHead>{fr ? 'Actions' : 'Actions'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    Aucune transaction trouvée
+                    {fr ? 'Aucune transaction trouvée' : 'No transactions found'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -568,12 +575,12 @@ export default function BankReconciliation() {
                       {tx.is_reconciled ? (
                         <Badge variant="default" className="bg-green-600">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Réconciliée
+                          {fr ? 'Réconciliée' : 'Reconciled'}
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
                           <XCircle className="h-3 w-3 mr-1" />
-                          En attente
+                          {fr ? 'En attente' : 'Pending'}
                         </Badge>
                       )}
                     </TableCell>
@@ -588,7 +595,7 @@ export default function BankReconciliation() {
                               disabled={isLoading}
                             >
                               <Link2 className="h-3 w-3 mr-1" />
-                              Associer
+                              {fr ? 'Associer' : 'Match'}
                             </Button>
                             <Button
                               size="sm"
@@ -597,7 +604,7 @@ export default function BankReconciliation() {
                               disabled={isLoading}
                             >
                               <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Valider
+                              {fr ? 'Valider' : 'Validate'}
                             </Button>
                           </>
                         ) : (
@@ -608,7 +615,7 @@ export default function BankReconciliation() {
                             disabled={isLoading}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
-                            Annuler
+                            {fr ? 'Annuler' : 'Undo'}
                           </Button>
                         )}
                       </div>
@@ -625,19 +632,19 @@ export default function BankReconciliation() {
       <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Trouver une correspondance</DialogTitle>
+            <DialogTitle>{fr ? 'Trouver une correspondance' : 'Find a match'}</DialogTitle>
             <DialogDescription>
               {selectedBankTx && (
                 <div className="mt-2 p-3 bg-muted rounded-lg">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="font-medium">Date:</span> {formatDate(selectedBankTx.transaction_date)}
+                      <span className="font-medium">{fr ? 'Date:' : 'Date:'}</span> {formatDate(selectedBankTx.transaction_date)}
                     </div>
                     <div>
-                      <span className="font-medium">Montant:</span> {formatCurrency(selectedBankTx.amount)}
+                      <span className="font-medium">{fr ? 'Montant:' : 'Amount:'}</span> {formatCurrency(selectedBankTx.amount)}
                     </div>
                     <div className="col-span-2">
-                      <span className="font-medium">Description:</span> {selectedBankTx.description}
+                      <span className="font-medium">{fr ? 'Description:' : 'Description:'}</span> {selectedBankTx.description}
                     </div>
                   </div>
                 </div>
@@ -649,12 +656,12 @@ export default function BankReconciliation() {
             {potentialMatches.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <AlertTriangle className="h-12 w-12 mx-auto mb-2 text-orange-500" />
-                <p>Aucune correspondance automatique trouvée</p>
-                <p className="text-sm mt-1">Vous pouvez marquer cette transaction comme réconciliée manuellement</p>
+                <p>{fr ? 'Aucune correspondance automatique trouvée' : 'No automatic match found'}</p>
+                <p className="text-sm mt-1">{fr ? 'Vous pouvez marquer cette transaction comme réconciliée manuellement' : 'You can manually mark this transaction as reconciled'}</p>
               </div>
             ) : (
               <>
-                <p className="text-sm font-medium">{potentialMatches.length} correspondance(s) potentielle(s) trouvée(s):</p>
+                <p className="text-sm font-medium">{fr ? `${potentialMatches.length} correspondance(s) potentielle(s) trouvée(s):` : `${potentialMatches.length} potential match(es) found:`}</p>
                 {potentialMatches.map((match, index) => (
                   <Card key={match.transaction.id} className="hover:border-primary cursor-pointer">
                     <CardContent className="pt-4">
@@ -671,15 +678,15 @@ export default function BankReconciliation() {
 
                           <div className="grid grid-cols-3 gap-2 text-sm mb-2">
                             <div>
-                              <span className="text-muted-foreground">Date:</span>{' '}
+                              <span className="text-muted-foreground">{fr ? 'Date:' : 'Date:'}</span>{' '}
                               {formatDate(match.transaction.date)}
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Type:</span>{' '}
+                              <span className="text-muted-foreground">{fr ? 'Type:' : 'Type:'}</span>{' '}
                               {match.transaction.type}
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Montant:</span>{' '}
+                              <span className="text-muted-foreground">{fr ? 'Montant:' : 'Amount:'}</span>{' '}
                               <span className={match.transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
                                 {formatCurrency(match.transaction.amount)}
                               </span>
@@ -688,7 +695,7 @@ export default function BankReconciliation() {
 
                           {match.transaction.description && (
                             <div className="text-sm mb-2">
-                              <span className="text-muted-foreground">Description:</span>{' '}
+                              <span className="text-muted-foreground">{fr ? 'Description:' : 'Description:'}</span>{' '}
                               {match.transaction.description}
                             </div>
                           )}
@@ -708,7 +715,7 @@ export default function BankReconciliation() {
                           className="ml-4"
                         >
                           <Link2 className="h-4 w-4 mr-2" />
-                          Associer
+                          {fr ? 'Associer' : 'Match'}
                         </Button>
                       </div>
                     </CardContent>
@@ -720,7 +727,7 @@ export default function BankReconciliation() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsMatchDialogOpen(false)}>
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </Button>
             {selectedBankTx && (
               <Button
@@ -731,7 +738,7 @@ export default function BankReconciliation() {
                 }}
                 disabled={isLoading}
               >
-                Marquer comme réconciliée sans association
+                {fr ? 'Marquer comme réconciliée sans association' : 'Mark as reconciled without match'}
               </Button>
             )}
           </DialogFooter>
