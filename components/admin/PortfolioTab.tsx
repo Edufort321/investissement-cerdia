@@ -26,6 +26,11 @@ interface Profile {
   location: string
   is_published: boolean
   uda_number: string
+  gender: string
+  age_class: string
+  theme: string
+  theme_primary: string
+  theme_accent: string
   created_at: string
 }
 
@@ -58,11 +63,13 @@ export default function PortfolioTab() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropSrc, setCropSrc]           = useState<string | null>(null)
+  const [coverCropSrc, setCoverCropSrc] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '', tagline: '', bio: '', contact_email: '', phone: '',
-    instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: ''
+    instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '',
+    gender: '', age_class: '', theme: 'rose', theme_primary: '', theme_accent: '',
   })
   const [itemForm, setItemForm] = useState({
     type: 'photo' as 'photo' | 'link' | 'video',
@@ -103,7 +110,7 @@ export default function PortfolioTab() {
     name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   const openNewProfile = () => {
-    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '' })
+    setForm({ name: '', tagline: '', bio: '', contact_email: '', phone: '', instagram_url: '', tiktok_url: '', location: '', slug: '', uda_number: '', gender: '', age_class: '', theme: 'rose', theme_primary: '', theme_accent: '' })
     setSelectedProfile(null)
     setEditingProfile(true)
   }
@@ -113,7 +120,9 @@ export default function PortfolioTab() {
       name: p.name, tagline: p.tagline || '', bio: p.bio || '',
       contact_email: p.contact_email || '', phone: p.phone || '',
       instagram_url: p.instagram_url || '', tiktok_url: p.tiktok_url || '',
-      location: p.location || '', slug: p.slug, uda_number: p.uda_number || ''
+      location: p.location || '', slug: p.slug, uda_number: p.uda_number || '',
+      gender: p.gender || '', age_class: p.age_class || '',
+      theme: p.theme || 'rose', theme_primary: p.theme_primary || '', theme_accent: p.theme_accent || '',
     })
     setEditingProfile(true)
   }
@@ -174,17 +183,22 @@ export default function PortfolioTab() {
     await loadProfiles()
   }
 
-  const openHeadshotCrop = (file: File) => {
-    const url = URL.createObjectURL(file)
-    setCropSrc(url)
-  }
+  const openHeadshotCrop = (file: File) => setCropSrc(URL.createObjectURL(file))
 
   const confirmHeadshotCrop = async (blob: Blob) => {
     if (cropSrc) URL.revokeObjectURL(cropSrc)
     setCropSrc(null)
     if (!selectedProfile) return
-    const file = new File([blob], `headshot-${Date.now()}.jpg`, { type: 'image/jpeg' })
-    await uploadPhoto(file, 'headshot_url')
+    await uploadPhoto(new File([blob], `headshot-${Date.now()}.jpg`, { type: 'image/jpeg' }), 'headshot_url')
+  }
+
+  const openCoverCrop = (file: File) => setCoverCropSrc(URL.createObjectURL(file))
+
+  const confirmCoverCrop = async (blob: Blob) => {
+    if (coverCropSrc) URL.revokeObjectURL(coverCropSrc)
+    setCoverCropSrc(null)
+    if (!selectedProfile) return
+    await uploadPhoto(new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' }), 'cover_url')
   }
 
   const uploadItemPhoto = async (file: File) => {
@@ -482,13 +496,15 @@ export default function PortfolioTab() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
-      {/* Crop modal */}
       {cropSrc && (
-        <CircleCropModal
-          src={cropSrc}
+        <CircleCropModal src={cropSrc} shape="circle"
           onConfirm={confirmHeadshotCrop}
-          onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
-        />
+          onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null) }} />
+      )}
+      {coverCropSrc && (
+        <CircleCropModal src={coverCropSrc} shape="banner"
+          onConfirm={confirmCoverCrop}
+          onCancel={() => { URL.revokeObjectURL(coverCropSrc); setCoverCropSrc(null) }} />
       )}
 
       {/* Toast */}
@@ -606,6 +622,65 @@ export default function PortfolioTab() {
                       />
                     </div>
                   ))}
+                  {/* Genre + Classe d'age */}
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Genre</label>
+                    <select value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                      <option value="">--</option>
+                      <option value="femme">Femme</option>
+                      <option value="homme">Homme</option>
+                      <option value="non-binaire">Non-binaire</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Classe d&apos;age</label>
+                    <select value={form.age_class} onChange={e => setForm(f => ({ ...f, age_class: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                      <option value="">--</option>
+                      <option value="enfant">Enfant (4-12 ans)</option>
+                      <option value="ado">Adolescent (13-17 ans)</option>
+                      <option value="adulte">Adulte (18-59 ans)</option>
+                      <option value="senior">Senior (60+)</option>
+                    </select>
+                  </div>
+                  {/* Theme */}
+                  <div className="col-span-2">
+                    <label className="text-xs text-gray-400 mb-1.5 block">Couleur du portfolio</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { k: 'rose', label: 'Rose', c: '#ec4899' }, { k: 'or', label: 'Or', c: '#d4af37' },
+                        { k: 'argent', label: 'Argent', c: '#94a3b8' }, { k: 'bleu', label: 'Bleu', c: '#3b82f6' },
+                        { k: 'nature', label: 'Nature', c: '#22c55e' }, { k: 'custom', label: 'Perso', c: form.theme_primary || '#ffffff' },
+                      ].map(({ k, label, c }) => (
+                        <button key={k} type="button" onClick={() => setForm(f => ({ ...f, theme: k }))}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-all ${form.theme === k ? 'text-white border-white/20 bg-white/10' : 'text-gray-400 border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: c }} />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {form.theme === 'custom' && (
+                      <div className="flex gap-3 mt-2">
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <input type="color" value={form.theme_primary || '#ec4899'}
+                            onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
+                            className="w-8 h-8 rounded border border-gray-700 bg-gray-800 p-0.5 cursor-pointer" />
+                          <input type="text" value={form.theme_primary} placeholder="Couleur principale"
+                            onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
+                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono placeholder-gray-600 focus:outline-none" />
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <input type="color" value={form.theme_accent || '#a855f7'}
+                            onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
+                            className="w-8 h-8 rounded border border-gray-700 bg-gray-800 p-0.5 cursor-pointer" />
+                          <input type="text" value={form.theme_accent} placeholder="Couleur accent"
+                            onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
+                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono placeholder-gray-600 focus:outline-none" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-400 mb-1 block">Bio</label>
                     <textarea
@@ -656,7 +731,7 @@ export default function PortfolioTab() {
                     <span className="absolute bottom-2 right-3 text-xs text-white/50 opacity-0 group-hover:opacity-100">Changer couverture</span>
                   </div>
                   <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
-                    onChange={e => e.target.files?.[0] && uploadPhoto(e.target.files[0], 'cover_url')} />
+                    onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
 
                   <div className="p-5 -mt-10 flex items-end gap-4">
                     <div
