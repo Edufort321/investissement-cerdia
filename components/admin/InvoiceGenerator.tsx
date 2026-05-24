@@ -794,16 +794,16 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: "Nom de l'entreprise", field: 'name' as const },
-                { label: 'Adresse', field: 'address' as const },
-                { label: 'Ville', field: 'city' as const },
-                { label: 'Province', field: 'province' as const },
-                { label: 'Code postal', field: 'postal_code' as const },
-                { label: 'Téléphone', field: 'phone' as const },
-                { label: 'Courriel', field: 'email' as const },
-                { label: 'Site web', field: 'website' as const },
-                { label: 'No TPS (fédéral)', field: 'tps_number' as const },
-                { label: 'No TVQ (provincial)', field: 'tvq_number' as const },
+                { label: fr ? "Nom de l'entreprise" : 'Company name', field: 'name' as const },
+                { label: fr ? 'Adresse' : 'Address', field: 'address' as const },
+                { label: fr ? 'Ville' : 'City', field: 'city' as const },
+                { label: fr ? 'Province' : 'Province', field: 'province' as const },
+                { label: fr ? 'Code postal' : 'Postal code', field: 'postal_code' as const },
+                { label: fr ? 'Telephone' : 'Phone', field: 'phone' as const },
+                { label: fr ? 'Courriel' : 'Email', field: 'email' as const },
+                { label: fr ? 'Site web' : 'Website', field: 'website' as const },
+                { label: fr ? 'No TPS (federal)' : 'TPS No. (federal)', field: 'tps_number' as const },
+                { label: fr ? 'No TVQ (provincial)' : 'TVQ No. (provincial)', field: 'tvq_number' as const },
               ].map(({ label, field }) => (
                 <div key={field}>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
@@ -885,14 +885,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Nom *', field: 'name', required: true },
-                { label: 'Entreprise', field: 'company' },
-                { label: 'Courriel', field: 'email' },
-                { label: 'Téléphone', field: 'phone' },
-                { label: 'Adresse', field: 'address' },
-                { label: 'Ville', field: 'city' },
-                { label: 'Province', field: 'province' },
-                { label: 'Code postal', field: 'postal_code' },
+                { label: fr ? 'Nom *' : 'Name *', field: 'name', required: true },
+                { label: fr ? 'Entreprise' : 'Company', field: 'company' },
+                { label: fr ? 'Courriel' : 'Email', field: 'email' },
+                { label: fr ? 'Telephone' : 'Phone', field: 'phone' },
+                { label: fr ? 'Adresse' : 'Address', field: 'address' },
+                { label: fr ? 'Ville' : 'City', field: 'city' },
+                { label: fr ? 'Province' : 'Province', field: 'province' },
+                { label: fr ? 'Code postal' : 'Postal code', field: 'postal_code' },
               ].map(({ label, field }) => (
                 <div key={field}>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
@@ -1272,14 +1272,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{fr ? 'Nouveau client' : 'New client'}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { label: 'Nom *', field: 'name' },
-                    { label: 'Entreprise', field: 'company' },
-                    { label: 'Courriel', field: 'email' },
-                    { label: 'Téléphone', field: 'phone' },
-                    { label: 'Adresse', field: 'address' },
-                    { label: 'Ville', field: 'city' },
-                    { label: 'Province', field: 'province' },
-                    { label: 'Code postal', field: 'postal_code' },
+                    { label: fr ? 'Nom *' : 'Name *', field: 'name' },
+                    { label: fr ? 'Entreprise' : 'Company', field: 'company' },
+                    { label: fr ? 'Courriel' : 'Email', field: 'email' },
+                    { label: fr ? 'Telephone' : 'Phone', field: 'phone' },
+                    { label: fr ? 'Adresse' : 'Address', field: 'address' },
+                    { label: fr ? 'Ville' : 'City', field: 'city' },
+                    { label: fr ? 'Province' : 'Province', field: 'province' },
+                    { label: fr ? 'Code postal' : 'Postal code', field: 'postal_code' },
                   ].map(({ label, field }) => (
                     <div key={field}>
                       <label className="block text-xs text-gray-500 mb-1">{label}</label>
@@ -1331,15 +1331,15 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date d'émission</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{fr ? "Date d'emission" : 'Issue date'}</label>
                 <input type="date" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date d'échéance</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{fr ? "Date d'echeance" : 'Due date'}</label>
                 <input type="date" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" value={dueDate} onChange={e => setDueDate(e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Termes de paiement</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{fr ? 'Termes de paiement' : 'Payment terms'}</label>
                 <select className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)}>
                   <option>Sur réception</option>
                   <option>15 jours</option>
@@ -1361,10 +1361,10 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 <thead>
                   <tr className="text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
                     <th className="text-left pb-2">Description</th>
-                    <th className="text-center pb-2 w-20">Qté</th>
-                    <th className="text-right pb-2 w-32">Prix unitaire</th>
+                    <th className="text-center pb-2 w-20">{fr ? 'Qte' : 'Qty'}</th>
+                    <th className="text-right pb-2 w-32">{fr ? 'Prix unitaire' : 'Unit price'}</th>
                     <th className="text-center pb-2 w-20">Taxable</th>
-                    <th className="text-right pb-2 w-32">Sous-total</th>
+                    <th className="text-right pb-2 w-32">{fr ? 'Sous-total' : 'Subtotal'}</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
@@ -1433,30 +1433,30 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTPS} onChange={e => setApplyTPS(e.target.checked)} />
                   <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">TPS (GST fédérale)</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{fr ? 'TPS (GST federale)' : 'TPS/GST (federal 5%)'}</span>
                     <span className="ml-2 text-xs text-gray-500">5,00%</span>
                   </div>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTVQ} onChange={e => setApplyTVQ(e.target.checked)} />
                   <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">TVQ (QST provinciale QC)</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{fr ? 'TVQ (QST provinciale QC)' : 'TVQ/QST (Quebec 9.975%)'}</span>
                     <span className="ml-2 text-xs text-gray-500">9,975%</span>
                   </div>
                 </label>
                 {applyTPS && applyTVQ && (
-                  <p className="text-xs text-gray-400 ml-7">Total combiné: 14,975%</p>
+                  <p className="text-xs text-gray-400 ml-7">{fr ? 'Total combine: 14,975%' : 'Combined total: 14.975%'}</p>
                 )}
               </div>
               <div className="flex-1 flex justify-end">
                 <div className="w-60 space-y-2">
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Sous-total</span>
+                    <span>{fr ? 'Sous-total' : 'Subtotal'}</span>
                     <span className="font-medium">{fmt(totalSubtotal)}</span>
                   </div>
                   {taxableSubtotal !== totalSubtotal && (
                     <div className="flex justify-between text-xs text-gray-400">
-                      <span>dont taxable</span>
+                      <span>{fr ? 'dont taxable' : 'of which taxable'}</span>
                       <span>{fmt(taxableSubtotal)}</span>
                     </div>
                   )}
