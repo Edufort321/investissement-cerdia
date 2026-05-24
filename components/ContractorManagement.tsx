@@ -241,7 +241,7 @@ export default function ContractorManagement() {
                 <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               </div>
               <div>
-                <Label>Téléphone</Label>
+                <Label>{fr ? 'Telephone' : 'Phone'}</Label>
                 <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
               </div>
               <div>

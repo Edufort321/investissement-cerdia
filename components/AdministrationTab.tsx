@@ -378,10 +378,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         console.log('✅ [handleInvestorSubmit] Investisseur modifié avec succès')
         setEditingInvestorId(null)
         resetInvestorForm()
-        alert('✅ Investisseur modifié avec succès!')
+        alert(fr ? '✅ Investisseur modifie avec succes!' : '✅ Investor updated successfully!')
       } else {
         console.error('❌ [handleInvestorSubmit] Échec de la modification:', result.error)
-        alert(`❌ Erreur lors de la modification:\n\n${result.error}\n\nConsultez la console (F12) pour plus de détails.`)
+        alert(fr ? `❌ Erreur lors de la modification:\n\n${result.error}\n\nConsultez la console (F12) pour plus de details.` : `❌ Error updating investor:\n\n${result.error}\n\nCheck the console (F12) for details.`)
       }
     } else {
       // Mode ajout : garder le password pour créer le compte Auth
@@ -423,10 +423,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         console.log('✅ [handleInvestorSubmit] Investisseur créé avec succès')
         setShowAddInvestorForm(false)
         resetInvestorForm()
-        alert(`✅ Investisseur créé avec succès!\n\nEmail: ${dataToSubmit.email}\n\nL'investisseur peut maintenant se connecter avec son email et mot de passe.`)
+        alert(fr ? `✅ Investisseur cree avec succes!\n\nEmail: ${dataToSubmit.email}\n\nL'investisseur peut maintenant se connecter avec son email et mot de passe.` : `✅ Investor created successfully!\n\nEmail: ${dataToSubmit.email}\n\nThe investor can now log in with their email and password.`)
       } else {
         console.error('❌ [handleInvestorSubmit] Échec de la création:', result.error)
-        alert(`❌ Erreur lors de la création de l'investisseur:\n\n${result.error}\n\n⚠️ IMPORTANT: Consultez la console du navigateur (appuyez sur F12) pour voir les logs détaillés et identifier le problème.`)
+        alert(fr ? `❌ Erreur lors de la creation de l'investisseur:\n\n${result.error}\n\n⚠️ IMPORTANT: Consultez la console du navigateur (F12) pour les logs detailles.` : `❌ Error creating investor:\n\n${result.error}\n\n⚠️ IMPORTANT: Check the browser console (F12) for detailed logs.`)
       }
     }
   }
@@ -463,10 +463,10 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   const handleDeleteInvestor = async (id: string, name: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer l'investisseur "${name}" ?`)) {
+    if (confirm(fr ? `Etes-vous sur de vouloir supprimer l'investisseur "${name}" ?` : `Are you sure you want to delete the investor "${name}"?`)) {
       const result = await deleteInvestor(id)
       if (!result.success) {
-        alert('Erreur lors de la suppression: ' + result.error)
+        alert(fr ? 'Erreur lors de la suppression: ' + result.error : 'Delete error: ' + result.error)
       }
     }
   }
@@ -893,18 +893,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const getTypeBadge = (type: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
-      investissement: { bg: 'bg-green-100', text: 'text-green-800', label: 'Investissement' },
-      paiement: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Paiement' },
-      dividende: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Dividende' },
-      depense: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dépense' },
-      loyer: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Loyer' },
-      loyer_locatif: { bg: 'bg-teal-100', text: 'text-teal-800', label: 'Revenu locatif' },
-      revenu: { bg: 'bg-cyan-100', text: 'text-cyan-800', label: 'Revenu' },
-      transfert: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Transfert' },
+      investissement: { bg: 'bg-green-100', text: 'text-green-800', label: fr ? 'Investissement' : 'Investment' },
+      paiement: { bg: 'bg-blue-100', text: 'text-blue-800', label: fr ? 'Paiement' : 'Payment' },
+      dividende: { bg: 'bg-purple-100', text: 'text-purple-800', label: fr ? 'Dividende' : 'Dividend' },
+      depense: { bg: 'bg-red-100', text: 'text-red-800', label: fr ? 'Depense' : 'Expense' },
+      loyer: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: fr ? 'Loyer' : 'Rent' },
+      loyer_locatif: { bg: 'bg-teal-100', text: 'text-teal-800', label: fr ? 'Revenu locatif' : 'Rental income' },
+      revenu: { bg: 'bg-cyan-100', text: 'text-cyan-800', label: fr ? 'Revenu' : 'Revenue' },
+      transfert: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: fr ? 'Transfert' : 'Transfer' },
       capex: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'CAPEX' },
       maintenance: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Maintenance' },
       admin: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Admin' },
-      remboursement_investisseur: { bg: 'bg-pink-100', text: 'text-pink-800', label: 'Remboursement' }
+      remboursement_investisseur: { bg: 'bg-pink-100', text: 'text-pink-800', label: fr ? 'Remboursement' : 'Reimbursement' }
     }
     const badge = badges[type] || { bg: 'bg-gray-100', text: 'text-gray-700', label: type }
     return (
@@ -1747,7 +1747,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     onClick={() => setExpandedOccupationStats(expandedOccupationStats === investor.id ? null : investor.id)}
                     className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
                   >
-                    <span>Taux d'occupation personnel</span>
+                    <span>{fr ? "Taux d'occupation personnel" : 'Personal occupancy rate'}</span>
                     {expandedOccupationStats === investor.id ? (
                       <ChevronUp size={16} />
                     ) : (

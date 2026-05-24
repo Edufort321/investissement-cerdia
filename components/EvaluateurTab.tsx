@@ -55,7 +55,8 @@ interface ScenarioSummary {
 }
 
 export default function EvaluateurTab() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
 
   const [projectData, setProjectData] = useState<ProjectData>({
     purchasePrice: 0,
@@ -235,55 +236,57 @@ export default function EvaluateurTab() {
     totalReturn: number,
     recommendation: 'recommended' | 'consider' | 'not_recommended'
   ): string => {
-    const scenarioName = type === 'conservative' ? 'Conservateur' : type === 'moderate' ? 'Modéré' : 'Élevé'
+    const scenarioName = fr
+      ? (type === 'conservative' ? 'Conservateur' : type === 'moderate' ? 'Modere' : 'Eleve')
+      : (type === 'conservative' ? 'Conservative' : type === 'moderate' ? 'Moderate' : 'Optimistic')
 
-    let viability = 'moyen'
-    if (avgReturn > 8 && breakEven <= 5) viability = 'bon'
-    if (avgReturn < 3 || breakEven > 8) viability = 'risqué'
+    let viability = fr ? 'moyen' : 'moderate'
+    if (avgReturn > 8 && breakEven <= 5) viability = fr ? 'bon' : 'good'
+    if (avgReturn < 3 || breakEven > 8) viability = fr ? 'risque' : 'risky'
 
-    let recText = 'à considérer avec prudence'
-    if (recommendation === 'recommended') recText = 'recommandé'
-    if (recommendation === 'not_recommended') recText = 'déconseillé'
+    let recText = fr ? 'a considerer avec prudence' : 'to consider with caution'
+    if (recommendation === 'recommended') recText = fr ? 'recommande' : 'recommended'
+    if (recommendation === 'not_recommended') recText = fr ? 'deconseille' : 'not recommended'
 
     let cashflowText = breakEven <= projectData.projectDuration
-      ? `Le cashflow devient positif dès l'année ${breakEven}.`
-      : "Le cashflow reste négatif sur toute la période."
+      ? (fr ? `Le cashflow devient positif des l'annee ${breakEven}.` : `Cashflow becomes positive from year ${breakEven}.`)
+      : (fr ? 'Le cashflow reste negatif sur toute la periode.' : 'Cashflow remains negative throughout the period.')
 
-    let strengths = []
-    let concerns = []
+    let strengths: string[] = []
+    let concerns: string[] = []
 
     if (avgReturn > 8) {
-      strengths.push("Rendement annuel moyen attractif")
+      strengths.push(fr ? 'Rendement annuel moyen attractif' : 'Attractive average annual return')
     } else if (avgReturn < 3) {
-      concerns.push("Rendement annuel moyen faible")
+      concerns.push(fr ? 'Rendement annuel moyen faible' : 'Low average annual return')
     }
 
     if (breakEven <= 5) {
-      strengths.push("Point mort atteint rapidement")
+      strengths.push(fr ? 'Point mort atteint rapidement' : 'Break-even reached quickly')
     } else if (breakEven > 7) {
-      concerns.push("Point mort très éloigné")
+      concerns.push(fr ? 'Point mort tres eloigne' : 'Break-even very distant')
     }
 
     if (totalReturn > 50) {
-      strengths.push("Excellent retour sur investissement total")
+      strengths.push(fr ? 'Excellent retour sur investissement total' : 'Excellent total return on investment')
     }
 
     const strengthsText = strengths.length > 0
-      ? `**Points forts:** ${strengths.join(', ')}.`
+      ? (fr ? `**Points forts:** ${strengths.join(', ')}.` : `**Strengths:** ${strengths.join(', ')}.`)
       : ""
 
     const concernsText = concerns.length > 0
-      ? `**Points de vigilance:** ${concerns.join(', ')}.`
+      ? (fr ? `**Points de vigilance:** ${concerns.join(', ')}.` : `**Watch points:** ${concerns.join(', ')}.`)
       : ""
 
-    let profile = "équilibré"
-    if (type === 'conservative') profile = "conservateur"
-    if (type === 'optimistic') profile = "agressif"
+    let profile = fr ? 'equilibre' : 'balanced'
+    if (type === 'conservative') profile = fr ? 'conservateur' : 'conservative'
+    if (type === 'optimistic') profile = fr ? 'agressif' : 'aggressive'
 
-    return `
-**Scénario ${scenarioName}**
+    return fr ? `
+**Scenario ${scenarioName}**
 
-**Viabilité:** ${viability.charAt(0).toUpperCase() + viability.slice(1)}
+**Viabilite:** ${viability.charAt(0).toUpperCase() + viability.slice(1)}
 
 **Recommandation:** Projet ${recText}
 
@@ -293,11 +296,29 @@ ${concernsText}
 
 **Cashflow:** ${cashflowText}
 
-**Horizon de rentabilité:** ${breakEven} ans
+**Horizon de rentabilite:** ${breakEven} ans
 
 **Retour sur investissement total:** ${totalReturn.toFixed(1)}% sur ${projectData.projectDuration} ans
 
-**Profil d'investisseur recommandé:** ${profile.charAt(0).toUpperCase() + profile.slice(1)}
+**Profil d'investisseur recommande:** ${profile.charAt(0).toUpperCase() + profile.slice(1)}
+    `.trim() : `
+**Scenario: ${scenarioName}**
+
+**Viability:** ${viability.charAt(0).toUpperCase() + viability.slice(1)}
+
+**Recommendation:** Project ${recText}
+
+${strengthsText}
+
+${concernsText}
+
+**Cashflow:** ${cashflowText}
+
+**Break-even horizon:** ${breakEven} years
+
+**Total return on investment:** ${totalReturn.toFixed(1)}% over ${projectData.projectDuration} years
+
+**Recommended investor profile:** ${profile.charAt(0).toUpperCase() + profile.slice(1)}
     `.trim()
   }
 
@@ -308,21 +329,21 @@ ${concernsText}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Évaluateur de Projets Immobiliers</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Analysez la rentabilité avec 3 scénarios automatiques</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{fr ? 'Evaluateur de Projets Immobiliers' : 'Real Estate Investment Evaluator'}</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">{fr ? 'Analysez la rentabilite avec 3 scenarios automatiques' : 'Analyze profitability with 3 automatic scenarios'}</p>
         </div>
         <Calculator className="text-[#5e5e5e]" size={32} />
       </div>
 
       {/* Formulaire de saisie */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Données du projet</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">{fr ? 'Donnees du projet' : 'Project data'}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Prix et frais */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Prix d'achat ({projectData.currency === 'USD' ? '$' : 'CAD $'})
+              {fr ? "Prix d'achat" : 'Purchase price'} ({projectData.currency === 'USD' ? '$' : 'CAD $'})
             </label>
             <div className="flex gap-2">
               <input
@@ -344,7 +365,7 @@ ${concernsText}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Frais initiaux ($)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais initiaux ($)' : 'Initial fees ($)'}</label>
             <input
               type="number"
               value={projectData.initialFees || ''}
@@ -355,7 +376,7 @@ ${concernsText}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Loyer mensuel estimé ($)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Loyer mensuel estime ($)' : 'Estimated monthly rent ($)'}</label>
             <input
               type="number"
               value={projectData.monthlyRent || ''}
@@ -367,7 +388,7 @@ ${concernsText}
 
           {/* Paramètres marché */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Prise de valeur annuelle (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Prise de valeur annuelle (%)' : 'Annual appreciation (%)'}</label>
             <input
               type="number"
               value={projectData.annualAppreciation || ''}
@@ -379,7 +400,7 @@ ${concernsText}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Taux d'occupation (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "Taux d'occupation (%)" : 'Occupancy rate (%)'}</label>
             <input
               type="number"
               value={projectData.occupancyRate || ''}
@@ -391,7 +412,7 @@ ${concernsText}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Frais de gestion (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais de gestion (%)' : 'Management fees (%)'}</label>
             <input
               type="number"
               value={projectData.annualManagementFees || ''}
@@ -403,7 +424,7 @@ ${concernsText}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Durée du projet (années)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Duree du projet (annees)' : 'Project duration (years)'}</label>
             <input
               type="number"
               value={projectData.projectDuration || ''}
@@ -415,14 +436,14 @@ ${concernsText}
 
           {/* Type de paiement */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type de paiement</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Type de paiement' : 'Payment type'}</label>
             <select
               value={projectData.paymentType}
               onChange={(e) => setProjectData({...projectData, paymentType: e.target.value as 'cash' | 'financed'})}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
             >
-              <option value="cash">Comptant</option>
-              <option value="financed">Financement</option>
+              <option value="cash">{fr ? 'Comptant' : 'Cash'}</option>
+              <option value="financed">{fr ? 'Financement' : 'Financed'}</option>
             </select>
           </div>
 
@@ -430,7 +451,7 @@ ${concernsText}
           {projectData.paymentType === 'financed' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mise de fonds (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Mise de fonds (%)' : 'Down payment (%)'}</label>
                 <input
                   type="number"
                   value={projectData.downPayment || ''}
@@ -442,7 +463,7 @@ ${concernsText}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Taux d'intérêt (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "Taux d'interet (%)" : 'Interest rate (%)'}</label>
                 <input
                   type="number"
                   value={projectData.interestRate || ''}
@@ -454,7 +475,7 @@ ${concernsText}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Durée du prêt (années)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Duree du pret (annees)' : 'Loan duration (years)'}</label>
                 <input
                   type="number"
                   value={projectData.loanDuration || ''}
@@ -475,7 +496,7 @@ ${concernsText}
             className="w-full sm:w-auto px-6 py-3 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Calculator size={20} />
-            {analyzing ? 'Analyse en cours...' : 'Analyser le projet'}
+            {analyzing ? (fr ? 'Analyse en cours...' : 'Analyzing...') : (fr ? 'Analyser le projet' : 'Analyze project')}
           </button>
         </div>
       </div>
@@ -494,7 +515,7 @@ ${concernsText}
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📉 Conservateur
+                📉 {fr ? 'Conservateur' : 'Conservative'}
               </button>
               <button
                 onClick={() => setActiveScenario('moderate')}
@@ -504,7 +525,7 @@ ${concernsText}
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📊 Modéré
+                📊 {fr ? 'Modere' : 'Moderate'}
               </button>
               <button
                 onClick={() => setActiveScenario('optimistic')}
@@ -514,7 +535,7 @@ ${concernsText}
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📈 Élevé
+                📈 {fr ? 'Eleve' : 'Optimistic'}
               </button>
             </div>
           </div>
@@ -526,7 +547,7 @@ ${concernsText}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                     <TrendingUp size={16} />
-                    Rendement annuel moyen
+                    {fr ? 'Rendement annuel moyen' : 'Average annual return'}
                   </div>
                   <div className={`text-2xl font-bold ${
                     activeScenarioData.summary.avgAnnualReturn > 8 ? 'text-green-600' :
@@ -539,7 +560,7 @@ ${concernsText}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                     <DollarSign size={16} />
-                    Retour total
+                    {fr ? 'Retour total' : 'Total return'}
                   </div>
                   <div className="text-2xl font-bold text-gray-900">
                     {activeScenarioData.summary.totalReturn.toFixed(1)}%
@@ -549,7 +570,7 @@ ${concernsText}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                     <Home size={16} />
-                    Valeur finale
+                    {fr ? 'Valeur finale' : 'Final value'}
                   </div>
                   <div className="text-2xl font-bold text-gray-900">
                     {activeScenarioData.summary.finalPropertyValue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
@@ -559,17 +580,17 @@ ${concernsText}
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
                     <FileText size={16} />
-                    Point mort
+                    {fr ? 'Point mort' : 'Break-even'}
                   </div>
                   <div className="text-2xl font-bold text-gray-900">
-                    Année {activeScenarioData.summary.breakEvenYear}
+                    {fr ? 'Annee' : 'Year'} {activeScenarioData.summary.breakEvenYear}
                   </div>
                 </div>
               </div>
 
               {/* Évaluation écrite */}
               <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Évaluation du projet</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">{fr ? 'Evaluation du projet' : 'Project evaluation'}</h3>
                 <div className="prose prose-sm max-w-none">
                   {activeScenarioData.evaluation.split('\n').map((line, i) => (
                     <p key={i} className="text-gray-700 whitespace-pre-wrap">{line}</p>
@@ -579,16 +600,16 @@ ${concernsText}
 
               {/* Tableau des données annuelles */}
               <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Projection sur {projectData.projectDuration} ans</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">{fr ? `Projection sur ${projectData.projectDuration} ans` : `${projectData.projectDuration}-year projection`}</h3>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left p-2 font-medium text-gray-700">Année</th>
-                      <th className="text-right p-2 font-medium text-gray-700">Valeur bien</th>
-                      <th className="text-right p-2 font-medium text-gray-700">Revenus locatifs</th>
-                      <th className="text-right p-2 font-medium text-gray-700">Frais gestion</th>
-                      <th className="text-right p-2 font-medium text-gray-700">Revenu net</th>
-                      <th className="text-right p-2 font-medium text-gray-700">Cashflow cumulé</th>
+                      <th className="text-left p-2 font-medium text-gray-700">{fr ? 'Annee' : 'Year'}</th>
+                      <th className="text-right p-2 font-medium text-gray-700">{fr ? 'Valeur bien' : 'Property value'}</th>
+                      <th className="text-right p-2 font-medium text-gray-700">{fr ? 'Revenus locatifs' : 'Rental income'}</th>
+                      <th className="text-right p-2 font-medium text-gray-700">{fr ? 'Frais gestion' : 'Mgmt fees'}</th>
+                      <th className="text-right p-2 font-medium text-gray-700">{fr ? 'Revenu net' : 'Net income'}</th>
+                      <th className="text-right p-2 font-medium text-gray-700">{fr ? 'Cashflow cumule' : 'Cumul. cashflow'}</th>
                       <th className="text-right p-2 font-medium text-gray-700">ROI (%)</th>
                     </tr>
                   </thead>
