@@ -10,6 +10,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface APIUsageStat {
   api: string
@@ -33,9 +34,13 @@ interface UsageStats {
 }
 
 export default function UsageStatsPanel() {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const [stats, setStats] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profitMargin, setProfitMargin] = useState(50) // 50% par défaut
+  const [profitMargin, setProfitMargin] = useState(50)
 
   const fetchStats = async () => {
     setLoading(true)
@@ -53,7 +58,7 @@ export default function UsageStatsPanel() {
   }
 
   const resetStats = async () => {
-    if (!confirm('Réinitialiser toutes les statistiques ?')) return
+    if (!confirm(fr ? 'Réinitialiser toutes les statistiques ?' : 'Reset all statistics?')) return
 
     try {
       const response = await fetch('/api/admin/usage-stats', {
@@ -79,7 +84,7 @@ export default function UsageStatsPanel() {
     return (
       <div className="flex items-center justify-center p-12">
         <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
-        <span className="ml-3 text-gray-600">Chargement...</span>
+        <span className="ml-3 text-gray-600">{fr ? 'Chargement...' : 'Loading...'}</span>
       </div>
     )
   }
@@ -87,7 +92,7 @@ export default function UsageStatsPanel() {
   if (!stats) {
     return (
       <div className="text-center p-12 text-gray-600">
-        Erreur de chargement des statistiques
+        {fr ? 'Erreur de chargement des statistiques' : 'Error loading statistics'}
       </div>
     )
   }
@@ -97,7 +102,7 @@ export default function UsageStatsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          💰 Statistiques d&apos;utilisation API
+          💰 {fr ? "Statistiques d'utilisation API" : 'API Usage Statistics'}
         </h1>
         <div className="flex gap-3">
           <button
@@ -105,7 +110,7 @@ export default function UsageStatsPanel() {
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Actualiser
+            {fr ? 'Actualiser' : 'Refresh'}
           </button>
           <button
             onClick={resetStats}
@@ -119,7 +124,7 @@ export default function UsageStatsPanel() {
       {/* Profit Margin Selector */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Marge de profit : {profitMargin}%
+          {fr ? 'Marge de profit :' : 'Profit margin:'} {profitMargin}%
         </label>
         <input
           type="range"
@@ -146,7 +151,7 @@ export default function UsageStatsPanel() {
               <DollarSign className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Coût total API</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{fr ? 'Coût total API' : 'Total API cost'}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.totalCostFormatted}
               </p>
@@ -161,7 +166,7 @@ export default function UsageStatsPanel() {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Prix de vente</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{fr ? 'Prix de vente' : 'Selling price'}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.sellingPriceFormatted}
               </p>
@@ -176,7 +181,7 @@ export default function UsageStatsPanel() {
               <Zap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Profit ({profitMargin}%)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{fr ? 'Profit' : 'Profit'} ({profitMargin}%)</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.profitFormatted}
               </p>
@@ -189,13 +194,13 @@ export default function UsageStatsPanel() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5" />
-          Détail par API
+          {fr ? 'Détail par API' : 'Detail by API'}
         </h3>
 
         {stats.usage.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Aucune utilisation API enregistrée</p>
+            <p>{fr ? 'Aucune utilisation API enregistrée' : 'No API usage recorded'}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -219,9 +224,9 @@ export default function UsageStatsPanel() {
                       {api.api}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {api.calls} appel{api.calls > 1 ? 's' : ''}
-                      {api.inputTokens && ` • ${api.inputTokens.toLocaleString()} tokens in`}
-                      {api.outputTokens && ` • ${api.outputTokens.toLocaleString()} tokens out`}
+                      {api.calls} {fr ? `appel${api.calls > 1 ? 's' : ''}` : `call${api.calls > 1 ? 's' : ''}`}
+                      {api.inputTokens && ` • ${api.inputTokens.toLocaleString(locale)} tokens in`}
+                      {api.outputTokens && ` • ${api.outputTokens.toLocaleString(locale)} tokens out`}
                     </p>
                   </div>
                 </div>
@@ -230,7 +235,7 @@ export default function UsageStatsPanel() {
                     {api.costFormatted}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {api.cost === 0 ? 'Gratuit' : 'Payant'}
+                    {api.cost === 0 ? (fr ? 'Gratuit' : 'Free') : (fr ? 'Payant' : 'Paid')}
                   </p>
                 </div>
               </div>
@@ -242,18 +247,18 @@ export default function UsageStatsPanel() {
       {/* Pricing Formula */}
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl shadow-md p-6 border-2 border-indigo-200 dark:border-indigo-800">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          📊 Formule de calcul
+          📊 {fr ? 'Formule de calcul' : 'Calculation formula'}
         </h3>
         <div className="space-y-2 text-gray-700 dark:text-gray-300">
           <p>
-            <strong>Coût total:</strong> {stats.totalCostFormatted}
+            <strong>{fr ? 'Coût total :' : 'Total cost:'}</strong> {stats.totalCostFormatted}
           </p>
           <p>
-            <strong>Marge de profit:</strong> {profitMargin}% → +{stats.profitFormatted}
+            <strong>{fr ? 'Marge de profit :' : 'Profit margin:'}</strong> {profitMargin}% &rarr; +{stats.profitFormatted}
           </p>
           <div className="border-t-2 border-indigo-300 dark:border-indigo-700 pt-2 mt-2">
             <p className="text-xl font-bold">
-              Prix de vente final: {stats.sellingPriceFormatted}
+              {fr ? 'Prix de vente final :' : 'Final selling price:'} {stats.sellingPriceFormatted}
             </p>
           </div>
         </div>
@@ -261,7 +266,7 @@ export default function UsageStatsPanel() {
 
       {/* Timestamp */}
       <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-        Dernière mise à jour : {new Date(stats.timestamp).toLocaleString('fr-FR')}
+        {fr ? 'Dernière mise à jour :' : 'Last updated:'} {new Date(stats.timestamp).toLocaleString(locale)}
       </p>
     </div>
   )

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Upload, File, Download, Trash2, Paperclip, AlertCircle, X } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Attachment {
   id: string
@@ -21,6 +22,10 @@ interface TransactionAttachmentsManagerProps {
 }
 
 export default function TransactionAttachmentsManager({ transactionId }: TransactionAttachmentsManagerProps) {
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
+
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -61,21 +66,18 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
     setError(null)
 
     try {
-      // Upload tous les fichiers sélectionnés
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         await uploadFile(file)
       }
 
-      // Recharger la liste
       await loadAttachments()
 
-      // Reset input
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     } catch (err: any) {
-      console.error('Erreur lors de l\'upload:', err)
+      console.error("Erreur lors de l'upload:", err)
       setError(err.message)
     } finally {
       setUploading(false)
@@ -83,12 +85,10 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
   }
 
   const uploadFile = async (file: File) => {
-    // Générer le chemin de stockage
     const timestamp = Date.now()
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const storagePath = `${transactionId}/${timestamp}-${cleanFileName}`
 
-    // Upload vers Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('transaction-documents')
       .upload(storagePath, file, {
@@ -97,10 +97,9 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
       })
 
     if (uploadError) {
-      throw new Error(`Erreur d'upload: ${uploadError.message}`)
+      throw new Error(`${fr ? "Erreur d'upload:" : 'Upload error:'} ${uploadError.message}`)
     }
 
-    // Créer l'entrée en base de données
     const { error: dbError } = await supabase
       .from('transaction_attachments')
       .insert([{
@@ -112,12 +111,11 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
       }])
 
     if (dbError) {
-      // Si erreur DB, supprimer le fichier uploadé
       await supabase.storage
         .from('transaction-documents')
         .remove([storagePath])
 
-      throw new Error(`Erreur lors de l'enregistrement: ${dbError.message}`)
+      throw new Error(`${fr ? "Erreur lors de l'enregistrement:" : 'Save error:'} ${dbError.message}`)
     }
   }
 
@@ -129,7 +127,6 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
 
       if (downloadError) throw downloadError
 
-      // Créer un lien de téléchargement
       const url = URL.createObjectURL(data)
       const a = document.createElement('a')
       a.href = url
@@ -140,17 +137,18 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
       URL.revokeObjectURL(url)
     } catch (err: any) {
       console.error('Erreur lors du téléchargement:', err)
-      alert('Erreur lors du téléchargement: ' + err.message)
+      alert((fr ? 'Erreur lors du téléchargement : ' : 'Download error: ') + err.message)
     }
   }
 
   const handleDelete = async (attachment: Attachment) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${attachment.file_name}" ?`)) {
+    if (!confirm(fr
+      ? `Êtes-vous sûr de vouloir supprimer "${attachment.file_name}" ?`
+      : `Are you sure you want to delete "${attachment.file_name}"?`)) {
       return
     }
 
     try {
-      // Supprimer de la base de données
       const { error: dbError } = await supabase
         .from('transaction_attachments')
         .delete()
@@ -158,21 +156,18 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
 
       if (dbError) throw dbError
 
-      // Supprimer du storage
       const { error: storageError } = await supabase.storage
         .from('transaction-documents')
         .remove([attachment.storage_path])
 
       if (storageError) {
         console.warn('Erreur lors de la suppression du fichier:', storageError)
-        // Ne pas throw, l'entrée DB est déjà supprimée
       }
 
-      // Recharger la liste
       await loadAttachments()
     } catch (err: any) {
       console.error('Erreur lors de la suppression:', err)
-      alert('Erreur lors de la suppression: ' + err.message)
+      alert((fr ? 'Erreur lors de la suppression : ' : 'Delete error: ') + err.message)
     }
   }
 
@@ -209,7 +204,7 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
         <div className="flex items-center gap-2">
           <Paperclip size={20} className="text-gray-600 dark:text-gray-400" />
           <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-            Pièces jointes ({attachments.length})
+            {fr ? 'Pièces jointes' : 'Attachments'} ({attachments.length})
           </h3>
         </div>
 
@@ -220,7 +215,7 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
           <Upload size={16} />
-          {uploading ? 'Upload en cours...' : 'Ajouter'}
+          {uploading ? (fr ? 'Upload en cours...' : 'Uploading...') : (fr ? 'Ajouter' : 'Add')}
         </button>
 
         <input
@@ -239,7 +234,7 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
           <div className="flex gap-3">
             <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
             <div className="text-sm text-red-800 dark:text-red-300">
-              <p className="font-medium">Erreur</p>
+              <p className="font-medium">{fr ? 'Erreur' : 'Error'}</p>
               <p>{error}</p>
             </div>
           </div>
@@ -250,8 +245,12 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
       {attachments.length === 0 ? (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           <File size={48} className="mx-auto mb-3 opacity-30" />
-          <p>Aucune pièce jointe</p>
-          <p className="text-sm mt-1">Cliquez sur "Ajouter" pour uploader des documents</p>
+          <p>{fr ? 'Aucune pièce jointe' : 'No attachments'}</p>
+          <p className="text-sm mt-1">
+            {fr
+              ? 'Cliquez sur "Ajouter" pour uploader des documents'
+              : 'Click "Add" to upload documents'}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -270,9 +269,9 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
                   </p>
                   <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                     <span>{formatFileSize(attachment.file_size)}</span>
-                    <span>•</span>
+                    <span>&bull;</span>
                     <span>
-                      {new Date(attachment.uploaded_at).toLocaleDateString('fr-CA', {
+                      {new Date(attachment.uploaded_at).toLocaleDateString(locale, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
@@ -289,7 +288,7 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
                   type="button"
                   onClick={() => handleDownload(attachment)}
                   className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
-                  title="Télécharger"
+                  title={fr ? 'Télécharger' : 'Download'}
                 >
                   <Download size={18} />
                 </button>
@@ -297,7 +296,7 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
                   type="button"
                   onClick={() => handleDelete(attachment)}
                   className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-                  title="Supprimer"
+                  title={fr ? 'Supprimer' : 'Delete'}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -307,9 +306,12 @@ export default function TransactionAttachmentsManager({ transactionId }: Transac
         </div>
       )}
 
-      {/* Info sur les types de fichiers acceptés */}
+      {/* Info types de fichiers */}
       <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-700">
-        <p>💡 Vous pouvez uploader plusieurs fichiers à la fois (PDF, images, Excel, Word, etc.)</p>
+        <p>💡 {fr
+          ? 'Vous pouvez uploader plusieurs fichiers à la fois (PDF, images, Excel, Word, etc.)'
+          : 'You can upload multiple files at once (PDF, images, Excel, Word, etc.)'}
+        </p>
       </div>
     </div>
   )
