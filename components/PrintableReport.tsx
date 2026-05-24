@@ -220,7 +220,7 @@ export default function PrintableReport({
             {dividends.map((dividend) => (
               <div key={dividend.id} className="mb-6">
                 <h3 className="text-lg font-semibold mb-3">
-                  Année {dividend.year} {dividend.quarter && `- Q${dividend.quarter}`}
+                  {fr ? 'Annee' : 'Year'} {dividend.year} {dividend.quarter && `- Q${dividend.quarter}`}
                 </h3>
                 <div className="bg-gray-50 p-4 rounded-lg mb-3">
                   <div className="grid grid-cols-2 gap-4">

@@ -1259,10 +1259,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
     const scenarioName = getFullName(selectedScenario.name, selectedScenario.unit_number)
 
     // Avertissement spécial si le scénario a été converti en projet
-    let confirmMessage = `Êtes-vous sûr de vouloir supprimer le scénario "${scenarioName}" ?\n\nCette action est irréversible.`
+    let confirmMessage = language === 'fr'
+      ? `Etes-vous sur de vouloir supprimer le scenario "${scenarioName}" ?\n\nCette action est irreversible.`
+      : `Are you sure you want to delete the scenario "${scenarioName}"?\n\nThis action cannot be undone.`
 
     if (selectedScenario.status === 'purchased' && selectedScenario.converted_property_id) {
-      confirmMessage = `⚠️ ATTENTION: Ce scénario a été converti en projet!\n\nSupprimer ce scénario "${scenarioName}" ne supprimera PAS le projet associé.\nVous devrez supprimer le projet manuellement dans l'onglet Projets si nécessaire.\n\nVoulez-vous continuer?`
+      confirmMessage = language === 'fr'
+        ? `⚠️ ATTENTION: Ce scenario a ete converti en projet!\n\nSupprimer ce scenario "${scenarioName}" ne supprimera PAS le projet associe.\nVous devrez supprimer le projet manuellement dans l'onglet Projets si necessaire.\n\nVoulez-vous continuer?`
+        : `⚠️ WARNING: This scenario has been converted to a project!\n\nDeleting scenario "${scenarioName}" will NOT delete the associated project.\nYou will need to delete the project manually in the Projects tab if needed.\n\nDo you want to continue?`
     }
 
     if (!confirm(confirmMessage)) {
@@ -1281,7 +1285,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
       if (error) throw error
 
-      alert(`Scénario "${scenarioName}" supprimé avec succès`)
+      alert(language === 'fr' ? `Scenario "${scenarioName}" supprime avec succes` : `Scenario "${scenarioName}" deleted successfully`)
       setActiveView('list')
       await loadScenarios()
     } catch (error) {

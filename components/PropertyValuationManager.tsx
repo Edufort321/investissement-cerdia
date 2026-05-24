@@ -198,14 +198,22 @@ export default function PropertyValuationManager() {
   }
 
   const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      reservation: 'Réservation',
+    const labels: Record<string, string> = language === 'fr' ? {
+      reservation: 'Reservation',
       en_construction: 'En construction',
       actif: 'Actif',
-      complete: 'Complété',
+      complete: 'Complete',
       acquired: 'Acquis',
       en_location: 'En location',
       vendu: 'Vendu'
+    } : {
+      reservation: 'Reservation',
+      en_construction: 'Under construction',
+      actif: 'Active',
+      complete: 'Completed',
+      acquired: 'Acquired',
+      en_location: 'For rent',
+      vendu: 'Sold'
     }
     return labels[status] || status
   }

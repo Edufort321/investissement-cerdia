@@ -530,7 +530,7 @@ export default function NAVDashboard() {
         : null
 
       if (!currentNavData) {
-        throw new Error('Aucune donnée NAV retournée par calculate_realistic_nav_v2')
+        throw new Error(fr ? 'Aucune donnee NAV retournee par calculate_realistic_nav_v2' : 'No NAV data returned by calculate_realistic_nav_v2')
       }
 
       // Charger l'historique des snapshots (pour le graphique)
@@ -628,7 +628,7 @@ export default function NAVDashboard() {
     } catch (err: any) {
       console.error('Error creating snapshot:', err)
       setError(err.message)
-      alert('Erreur lors de la création du snapshot: ' + err.message)
+      alert((fr ? 'Erreur lors de la creation du snapshot: ' : 'Error creating snapshot: ') + err.message)
     } finally {
       setSnapshotLoading(false)
     }
@@ -718,10 +718,10 @@ export default function NAVDashboard() {
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <h3 className="text-red-800 font-semibold mb-2">❌ {t('nav.configError')}</h3>
         <p className="text-red-700 mb-4">
-          Le système NAV ne peut pas calculer la valeur actuelle. Cela signifie que les migrations NAV ne sont pas exécutées sur Supabase.
+          {fr ? 'Le systeme NAV ne peut pas calculer la valeur actuelle. Cela signifie que les migrations NAV ne sont pas executees sur Supabase.' : 'The NAV system cannot calculate the current value. This means the NAV migrations have not been run on Supabase.'}
         </p>
         <div className="bg-white rounded p-4 mb-4">
-          <p className="text-sm text-gray-700 mb-2"><strong>📋 Migrations requises:</strong></p>
+          <p className="text-sm text-gray-700 mb-2"><strong>📋 {fr ? 'Migrations requises:' : 'Required migrations:'}</strong></p>
           <ol className="text-sm text-gray-700 list-decimal list-inside space-y-1">
             <li>Migration 85: <code className="bg-gray-100 px-2 py-1 rounded">85-fix-nav-use-correct-schema.sql</code></li>
             <li>Migration 97: <code className="bg-gray-100 px-2 py-1 rounded">97-add-nav-history-tracking.sql</code></li>
@@ -781,13 +781,14 @@ export default function NAVDashboard() {
       {/* Avertissement migration manquante */}
       {summary && summary.current_nav_per_share == null && (
         <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-          <h4 className="text-amber-900 font-semibold mb-1">⚠️ Migration NAV incomplète</h4>
+          <h4 className="text-amber-900 font-semibold mb-1">⚠️ {fr ? 'Migration NAV incomplete' : 'Incomplete NAV migration'}</h4>
           <p className="text-sm text-amber-800 mb-2">
-            La vue <code className="bg-amber-100 px-1 rounded">current_property_values</code> est manquante sur Supabase.
-            Appliquez la migration <strong>107-nav-multidevise-construction.sql</strong> dans Supabase SQL Editor pour restaurer le NAV complet.
+            {fr
+              ? <>La vue <code className="bg-amber-100 px-1 rounded">current_property_values</code> est manquante sur Supabase. Appliquez la migration <strong>107-nav-multidevise-construction.sql</strong> dans Supabase SQL Editor pour restaurer le NAV complet.</>
+              : <>The view <code className="bg-amber-100 px-1 rounded">current_property_values</code> is missing on Supabase. Apply migration <strong>107-nav-multidevise-construction.sql</strong> in Supabase SQL Editor to restore full NAV.</>}
           </p>
           <p className="text-xs text-amber-700">
-            Les données de transactions sont intactes. Seul le calcul de valeur des propriétés est affecté.
+            {fr ? 'Les donnees de transactions sont intactes. Seul le calcul de valeur des proprietes est affecte.' : 'Transaction data is intact. Only the property value calculation is affected.'}
           </p>
         </div>
       )}
@@ -915,7 +916,7 @@ export default function NAVDashboard() {
             <div className="bg-green-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">{t('nav.currentValueROI')}</div>
               <div className="text-xl font-bold text-green-600">{formatCurrency(detailedNavData.properties_current_value)}</div>
-              <div className="text-xs text-gray-500 mt-1">expected_roi → scénario → 8% défaut</div>
+              <div className="text-xs text-gray-500 mt-1">{fr ? 'expected_roi → scenario → 8% defaut' : 'expected_roi → scenario → 8% default'}</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">{t('nav.appreciationGain')}</div>

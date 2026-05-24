@@ -198,27 +198,48 @@ export default function PropertyPerformanceAnalysis({
   }
 
   const exportToCSV = () => {
-    const headers = [
-      'Année',
-      'Revenus Locatifs Réels',
-      'Autres Revenus Réels',
-      'Total Revenus Réels',
+    const headers = fr ? [
+      'Annee',
+      'Revenus Locatifs Reels',
+      'Autres Revenus Reels',
+      'Total Revenus Reels',
       'Maintenance',
       'Frais Gestion',
       'Taxes',
       'Assurance',
-      'Autres Dépenses',
-      'Total Dépenses Réelles',
-      'Revenu Net Réel',
-      'Cashflow Cumulatif Réel',
-      'ROI Réel (%)',
-      'Revenus Projetés',
-      'Dépenses Projetées',
-      'Revenu Net Projeté',
-      'ROI Projeté (%)',
+      'Autres Depenses',
+      'Total Depenses Reelles',
+      'Revenu Net Reel',
+      'Cashflow Cumulatif Reel',
+      'ROI Reel (%)',
+      'Revenus Projetes',
+      'Depenses Projetees',
+      'Revenu Net Projete',
+      'ROI Projete (%)',
       'Variance Revenus (%)',
-      'Variance Dépenses (%)',
+      'Variance Depenses (%)',
       'Variance ROI (%)'
+    ] : [
+      'Year',
+      'Actual Rental Income',
+      'Other Actual Income',
+      'Total Actual Income',
+      'Maintenance',
+      'Mgmt Fees',
+      'Taxes',
+      'Insurance',
+      'Other Expenses',
+      'Total Actual Expenses',
+      'Actual Net Income',
+      'Cumulative Cashflow',
+      'Actual ROI (%)',
+      'Projected Income',
+      'Projected Expenses',
+      'Projected Net Income',
+      'Projected ROI (%)',
+      'Income Variance (%)',
+      'Expense Variance (%)',
+      'ROI Variance (%)'
     ]
 
     const rows = yearlyData.map(d => [
