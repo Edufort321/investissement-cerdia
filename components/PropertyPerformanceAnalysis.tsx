@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, Calendar, AlertCircle, FileText, Download } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PropertyPerformanceProps {
   propertyId: string
@@ -50,6 +51,9 @@ export default function PropertyPerformanceAnalysis({
   const [yearlyData, setYearlyData] = useState<YearlyPerformance[]>([])
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
   const calculatePerformance = useCallback(() => {
     setLoading(true)
@@ -173,7 +177,7 @@ export default function PropertyPerformanceAnalysis({
   }, [calculatePerformance])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency || 'USD',
       minimumFractionDigits: 0,
@@ -256,7 +260,7 @@ export default function PropertyPerformanceAnalysis({
     return (
       <div className="p-6 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="text-sm text-gray-600 mt-2">Calcul de la performance...</p>
+        <p className="text-sm text-gray-600 mt-2">{fr ? 'Calcul de la performance...' : 'Calculating performance...'}</p>
       </div>
     )
   }
@@ -265,9 +269,11 @@ export default function PropertyPerformanceAnalysis({
     return (
       <div className="p-6 text-center">
         <AlertCircle size={48} className="mx-auto text-gray-400 mb-3" />
-        <p className="text-gray-600">Aucune transaction enregistrée pour ce projet</p>
+        <p className="text-gray-600">{fr ? 'Aucune transaction enregistrée pour ce projet' : 'No transactions recorded for this project'}</p>
         <p className="text-sm text-gray-500 mt-1">
-          Ajoutez des transactions (revenus locatifs, dépenses) pour voir l'analyse de performance
+          {fr
+            ? "Ajoutez des transactions (revenus locatifs, dépenses) pour voir l'analyse de performance"
+            : 'Add transactions (rental income, expenses) to see the performance analysis'}
         </p>
       </div>
     )
@@ -280,62 +286,62 @@ export default function PropertyPerformanceAnalysis({
 
   return (
     <div className="space-y-6">
-      {/* Header avec KPIs */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">📊 Performance Réelle vs Projections</h3>
-          <p className="text-sm text-gray-600">Analyse comptable basée sur transactions réelles</p>
+          <h3 className="text-lg font-bold text-gray-900">
+            {fr ? '📊 Performance Réelle vs Projections' : '📊 Actual Performance vs Projections'}
+          </h3>
+          <p className="text-sm text-gray-600">
+            {fr ? 'Analyse comptable basée sur transactions réelles' : 'Accounting analysis based on actual transactions'}
+          </p>
         </div>
         <button
           onClick={exportToCSV}
           className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Download size={16} />
-          Exporter CSV (Audit)
+          {fr ? 'Exporter CSV (Audit)' : 'Export CSV (Audit)'}
         </button>
       </div>
 
-      {/* KPIs Globaux */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="text-xs text-blue-700 font-medium mb-1">Revenus totaux</div>
+          <div className="text-xs text-blue-700 font-medium mb-1">{fr ? 'Revenus totaux' : 'Total revenue'}</div>
           <div className="text-xl font-bold text-blue-900">{formatCurrency(totalIncome)}</div>
-          <div className="text-xs text-blue-600 mt-1">{yearlyData.length} année(s)</div>
+          <div className="text-xs text-blue-600 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
         </div>
 
         <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-          <div className="text-xs text-red-700 font-medium mb-1">Dépenses totales</div>
+          <div className="text-xs text-red-700 font-medium mb-1">{fr ? 'Dépenses totales' : 'Total expenses'}</div>
           <div className="text-xl font-bold text-red-900">{formatCurrency(totalExpenses)}</div>
-          <div className="text-xs text-red-600 mt-1">{yearlyData.length} année(s)</div>
+          <div className="text-xs text-red-600 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
         </div>
 
         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <div className="text-xs text-green-700 font-medium mb-1">Revenu net total</div>
+          <div className="text-xs text-green-700 font-medium mb-1">{fr ? 'Revenu net total' : 'Total net income'}</div>
           <div className="text-xl font-bold text-green-900">{formatCurrency(totalNetIncome)}</div>
-          <div className="text-xs text-green-600 mt-1">Cumulatif</div>
+          <div className="text-xs text-green-600 mt-1">{fr ? 'Cumulatif' : 'Cumulative'}</div>
         </div>
 
         <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-          <div className="text-xs text-purple-700 font-medium mb-1">ROI moyen</div>
+          <div className="text-xs text-purple-700 font-medium mb-1">{fr ? 'ROI moyen' : 'Average ROI'}</div>
           <div className="text-xl font-bold text-purple-900">{avgROI.toFixed(1)}%</div>
-          <div className="text-xs text-purple-600 mt-1">Annuel</div>
+          <div className="text-xs text-purple-600 mt-1">{fr ? 'Annuel' : 'Annual'}</div>
         </div>
       </div>
 
-      {/* Graphique d'évolution */}
       {yearlyData.length > 1 && (
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h4 className="text-sm font-bold text-gray-900 mb-4">📈 Évolution Réel vs Projeté</h4>
+          <h4 className="text-sm font-bold text-gray-900 mb-4">
+            {fr ? '📈 Évolution Réel vs Projeté' : '📈 Actual vs Projected Evolution'}
+          </h4>
 
-          {/* SVG Graph */}
           <div className="relative h-64 bg-white rounded-lg border border-gray-300 p-4">
             <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="none">
-              {/* Grid lines */}
               <line x1="0" y1="12.5" x2="100" y2="12.5" stroke="#e5e7eb" strokeWidth="0.2" />
               <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" strokeWidth="0.2" />
               <line x1="0" y1="37.5" x2="100" y2="37.5" stroke="#e5e7eb" strokeWidth="0.2" />
 
-              {/* Actual line (green) */}
               <polyline
                 fill="none"
                 stroke="#10b981"
@@ -348,7 +354,6 @@ export default function PropertyPerformanceAnalysis({
                 }).join(' ')}
               />
 
-              {/* Projected line (blue, dashed) */}
               {yearlyData.some(d => d.total_income_projected) && (
                 <polyline
                   fill="none"
@@ -365,35 +370,33 @@ export default function PropertyPerformanceAnalysis({
               )}
             </svg>
 
-            {/* Legend */}
             <div className="absolute top-2 right-2 bg-white/90 p-2 rounded border border-gray-200 text-xs space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-0.5 bg-green-500"></div>
-                <span>Réel</span>
+                <span>{fr ? 'Réel' : 'Actual'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-0.5 bg-blue-500 border-t-2 border-dashed"></div>
-                <span>Projeté</span>
+                <span>{fr ? 'Projeté' : 'Projected'}</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tableau détaillé par année */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-700">Année</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Revenus Réels</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Dépenses Réelles</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Net Réel</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">ROI Réel</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">ROI Projeté</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-700">{fr ? 'Année' : 'Year'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Revenus Réels' : 'Actual Revenue'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Dépenses Réelles' : 'Actual Expenses'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Net Réel' : 'Actual Net'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'ROI Réel' : 'Actual ROI'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'ROI Projeté' : 'Projected ROI'}</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-700">Variance</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-700">Actions</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-700">{fr ? 'Actions' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -416,7 +419,7 @@ export default function PropertyPerformanceAnalysis({
                         onClick={() => setSelectedYear(selectedYear === year.year ? null : year.year)}
                         className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                       >
-                        {selectedYear === year.year ? 'Masquer' : 'Détails'}
+                        {selectedYear === year.year ? (fr ? 'Masquer' : 'Hide') : (fr ? 'Détails' : 'Details')}
                       </button>
                     </td>
                   </tr>
@@ -424,16 +427,17 @@ export default function PropertyPerformanceAnalysis({
                     <tr>
                       <td colSpan={8} className="px-4 py-4 bg-gray-50">
                         <div className="grid grid-cols-2 gap-4">
-                          {/* Revenus détaillés */}
                           <div>
-                            <h5 className="text-xs font-bold text-gray-700 mb-2">💰 Détail des revenus</h5>
+                            <h5 className="text-xs font-bold text-gray-700 mb-2">
+                              {fr ? '💰 Détail des revenus' : '💰 Revenue breakdown'}
+                            </h5>
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Revenus locatifs</span>
+                                <span className="text-gray-600">{fr ? 'Revenus locatifs' : 'Rental income'}</span>
                                 <span className="font-medium">{formatCurrency(year.rental_income_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Autres revenus</span>
+                                <span className="text-gray-600">{fr ? 'Autres revenus' : 'Other income'}</span>
                                 <span className="font-medium">{formatCurrency(year.other_income_actual)}</span>
                               </div>
                               <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
@@ -443,28 +447,29 @@ export default function PropertyPerformanceAnalysis({
                             </div>
                           </div>
 
-                          {/* Dépenses détaillées */}
                           <div>
-                            <h5 className="text-xs font-bold text-gray-700 mb-2">💸 Détail des dépenses</h5>
+                            <h5 className="text-xs font-bold text-gray-700 mb-2">
+                              {fr ? '💸 Détail des dépenses' : '💸 Expense breakdown'}
+                            </h5>
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Maintenance</span>
+                                <span className="text-gray-600">{fr ? 'Maintenance' : 'Maintenance'}</span>
                                 <span className="font-medium">{formatCurrency(year.maintenance_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Frais de gestion</span>
+                                <span className="text-gray-600">{fr ? 'Frais de gestion' : 'Management fees'}</span>
                                 <span className="font-medium">{formatCurrency(year.management_fees_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Taxes</span>
+                                <span className="text-gray-600">{fr ? 'Taxes' : 'Taxes'}</span>
                                 <span className="font-medium">{formatCurrency(year.taxes_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Assurance</span>
+                                <span className="text-gray-600">{fr ? 'Assurance' : 'Insurance'}</span>
                                 <span className="font-medium">{formatCurrency(year.insurance_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">Autres</span>
+                                <span className="text-gray-600">{fr ? 'Autres' : 'Other'}</span>
                                 <span className="font-medium">{formatCurrency(year.other_expenses_actual)}</span>
                               </div>
                               <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
@@ -484,15 +489,16 @@ export default function PropertyPerformanceAnalysis({
         </div>
       </div>
 
-      {/* Notes audit */}
       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 flex gap-3">
         <FileText size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
         <div className="text-xs text-amber-800">
-          <div className="font-bold mb-1">📋 Note pour audit et due diligence</div>
+          <div className="font-bold mb-1">
+            {fr ? '📋 Note pour audit et due diligence' : '📋 Note for audit and due diligence'}
+          </div>
           <div>
-            Tous les montants affichés sont calculés depuis les transactions réelles enregistrées dans le système.
-            Chaque chiffre est traçable et vérifiable. Exportez le fichier CSV pour analyse comptable complète.
-            Les variances indiquent l'écart entre les projections du scénario d'origine et la performance réelle.
+            {fr
+              ? "Tous les montants affichés sont calculés depuis les transactions réelles enregistrées dans le système. Chaque chiffre est traçable et vérifiable. Exportez le fichier CSV pour analyse comptable complète. Les variances indiquent l'écart entre les projections du scénario d'origine et la performance réelle."
+              : "All amounts shown are calculated from actual transactions recorded in the system. Each figure is traceable and verifiable. Export the CSV file for complete accounting analysis. Variances indicate the deviation between the original scenario projections and actual performance."}
           </div>
         </div>
       </div>

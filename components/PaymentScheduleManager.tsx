@@ -1,12 +1,3 @@
-/**
- * Gestionnaire de Paiements Programmés
- * Permet de gérer les payment_schedules d'une propriété
- * - Éditer paiements individuels
- * - Décaler dates en masse (gestion retards)
- * - Ajouter/supprimer paiements
- * - Voir statut et progression
- */
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -24,6 +15,7 @@ import {
   TrendingUp,
   ChevronRight
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PaymentSchedule {
   id: string
@@ -65,11 +57,12 @@ export default function PaymentScheduleManager({
   const [showAddForm, setShowAddForm] = useState(false)
   const [shiftDaysValue, setShiftDaysValue] = useState<number>(30)
   const [showShiftForm, setShowShiftForm] = useState(false)
+  const { language } = useLanguage()
+  const fr = language === 'fr'
+  const locale = fr ? 'fr-CA' : 'en-CA'
 
-  // État formulaire édition
   const [editForm, setEditForm] = useState<Partial<PaymentSchedule>>({})
 
-  // État formulaire ajout
   const [addForm, setAddForm] = useState({
     term_label: '',
     amount: 0,
@@ -132,12 +125,16 @@ export default function PaymentScheduleManager({
       await loadPayments()
     } catch (err) {
       console.error('Error updating payment:', err)
-      alert('Erreur lors de la mise à jour: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      alert((fr ? 'Erreur lors de la mise à jour: ' : 'Error updating payment: ') + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
   async function handleDeletePayment(paymentId: string, termLabel: string) {
-    if (!confirm(`Supprimer le paiement "${termLabel}"?\n\nCette action est irréversible.`)) {
+    if (!confirm(
+      fr
+        ? `Supprimer le paiement "${termLabel}"?\n\nCette action est irréversible.`
+        : `Delete payment "${termLabel}"?\n\nThis action cannot be undone.`
+    )) {
       return
     }
 
@@ -148,7 +145,9 @@ export default function PaymentScheduleManager({
 
       if (deleteError) {
         if (deleteError.message.includes('transactions linked')) {
-          alert('Impossible de supprimer ce paiement car des transactions y sont liées.\n\nSupprimez ou déliez les transactions d\'abord.')
+          alert(fr
+            ? 'Impossible de supprimer ce paiement car des transactions y sont liées.\n\nSupprimez ou déliez les transactions d\'abord.'
+            : 'Cannot delete this payment because transactions are linked to it.\n\nRemove or unlink the transactions first.')
         } else {
           throw deleteError
         }
@@ -158,13 +157,12 @@ export default function PaymentScheduleManager({
       await loadPayments()
     } catch (err) {
       console.error('Error deleting payment:', err)
-      alert('Erreur lors de la suppression: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      alert((fr ? 'Erreur lors de la suppression: ' : 'Error deleting payment: ') + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
   async function handleAddPayment() {
     try {
-      // Trouver le prochain numéro de terme
       const maxTermNumber = Math.max(...payments.map(p => p.term_number), 0)
 
       const { error: insertError } = await supabase
@@ -187,14 +185,15 @@ export default function PaymentScheduleManager({
       await loadPayments()
     } catch (err) {
       console.error('Error adding payment:', err)
-      alert('Erreur lors de l\'ajout: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      alert((fr ? "Erreur lors de l'ajout: " : 'Error adding payment: ') + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
   async function handleShiftDates(futureOnly: boolean) {
     if (!confirm(
-      `Décaler les paiements ${futureOnly ? 'futurs' : 'tous'} de ${shiftDaysValue} jours?\n\n` +
-      `Cette action modifiera ${futureOnly ? 'les paiements futurs seulement' : 'TOUS les paiements'}.`
+      fr
+        ? `Décaler les paiements ${futureOnly ? 'futurs' : 'tous'} de ${shiftDaysValue} jours?\n\nCette action modifiera ${futureOnly ? 'les paiements futurs seulement' : 'TOUS les paiements'}.`
+        : `Shift ${futureOnly ? 'future' : 'all'} payments by ${shiftDaysValue} days?\n\nThis will modify ${futureOnly ? 'future payments only' : 'ALL payments'}.`
     )) {
       return
     }
@@ -208,12 +207,14 @@ export default function PaymentScheduleManager({
 
       if (shiftError) throw shiftError
 
-      alert(`${data} paiement(s) décalé(s) de ${shiftDaysValue} jours`)
+      alert(fr
+        ? `${data} paiement(s) décalé(s) de ${shiftDaysValue} jours`
+        : `${data} payment(s) shifted by ${shiftDaysValue} days`)
       setShowShiftForm(false)
       await loadPayments()
     } catch (err) {
       console.error('Error shifting dates:', err)
-      alert('Erreur lors du décalage: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      alert((fr ? 'Erreur lors du décalage: ' : 'Error shifting dates: ') + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
@@ -226,13 +227,9 @@ export default function PaymentScheduleManager({
       cancelled: 'bg-gray-200 text-gray-600 border-gray-400'
     }
 
-    const labels = {
-      paid: '✅ Payé',
-      partial: '⚠️ Partiel',
-      pending: '⏳ En attente',
-      overdue: '🔴 En retard',
-      cancelled: '❌ Annulé'
-    }
+    const labels = fr
+      ? { paid: '✅ Payé', partial: '⚠️ Partiel', pending: '⏳ En attente', overdue: '🔴 En retard', cancelled: '❌ Annulé' }
+      : { paid: '✅ Paid', partial: '⚠️ Partial', pending: '⏳ Pending', overdue: '🔴 Overdue', cancelled: '❌ Cancelled' }
 
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${styles[status as keyof typeof styles]}`}>
@@ -258,7 +255,7 @@ export default function PaymentScheduleManager({
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-800 text-sm flex items-center gap-2">
           <AlertCircle size={16} />
-          Erreur: {error}
+          {fr ? 'Erreur:' : 'Error:'} {error}
         </p>
       </div>
     )
@@ -269,12 +266,11 @@ export default function PaymentScheduleManager({
 
   return (
     <div className="space-y-4">
-      {/* Header avec actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Calendar size={20} className="text-blue-600" />
-            Paiements Programmés
+            {fr ? 'Paiements Programmés' : 'Scheduled Payments'}
           </h3>
           <p className="text-sm text-gray-600">{propertyName}</p>
         </div>
@@ -284,29 +280,32 @@ export default function PaymentScheduleManager({
             className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm flex items-center gap-1.5"
           >
             <Clock size={16} />
-            Décaler dates
+            {fr ? 'Décaler dates' : 'Shift dates'}
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm flex items-center gap-1.5"
           >
             {showAddForm ? <X size={16} /> : <Plus size={16} />}
-            {showAddForm ? 'Annuler' : 'Ajouter'}
+            {showAddForm ? (fr ? 'Annuler' : 'Cancel') : (fr ? 'Ajouter' : 'Add')}
           </button>
         </div>
       </div>
 
-      {/* Formulaire décalage dates */}
       {showShiftForm && (
         <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-900 mb-3">Décaler les dates de paiement</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">
+            {fr ? 'Décaler les dates de paiement' : 'Shift payment dates'}
+          </h4>
           <p className="text-sm text-gray-700 mb-3">
-            Utile si le projet prend du retard. Décale toutes les dates d'échéance.
+            {fr
+              ? "Utile si le projet prend du retard. Décale toutes les dates d'échéance."
+              : 'Useful if the project is delayed. Shifts all due dates.'}
           </p>
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre de jours à ajouter
+                {fr ? 'Nombre de jours à ajouter' : 'Number of days to add'}
               </label>
               <input
                 type="number"
@@ -316,29 +315,30 @@ export default function PaymentScheduleManager({
                 placeholder="30"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Exemple: +30 pour décaler de 30 jours, -7 pour avancer de 7 jours
+                {fr
+                  ? 'Exemple: +30 pour décaler de 30 jours, -7 pour avancer de 7 jours'
+                  : 'Example: +30 to shift by 30 days, -7 to advance by 7 days'}
               </p>
             </div>
             <button
               onClick={() => handleShiftDates(true)}
               className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors whitespace-nowrap"
             >
-              Futurs uniquement
+              {fr ? 'Futurs uniquement' : 'Future only'}
             </button>
             <button
               onClick={() => handleShiftDates(false)}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors whitespace-nowrap"
             >
-              Tous
+              {fr ? 'Tous' : 'All'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Formulaire ajout */}
       {showAddForm && (
         <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-900 mb-3">Nouveau paiement</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">{fr ? 'Nouveau paiement' : 'New payment'}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Label *</label>
@@ -347,12 +347,12 @@ export default function PaymentScheduleManager({
                 value={addForm.term_label}
                 onChange={(e) => setAddForm({ ...addForm, term_label: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Paiement °5"
+                placeholder={fr ? 'Paiement °5' : 'Payment #5'}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Montant * ({propertyCurrency})</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Montant' : 'Amount'} * ({propertyCurrency})</label>
               <input
                 type="number"
                 step="0.01"
@@ -364,7 +364,7 @@ export default function PaymentScheduleManager({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date d'échéance *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? "Date d'échéance" : 'Due date'} *</label>
               <input
                 type="date"
                 value={addForm.due_date}
@@ -380,7 +380,7 @@ export default function PaymentScheduleManager({
                 value={addForm.notes}
                 onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Notes optionnelles"
+                placeholder={fr ? 'Notes optionnelles' : 'Optional notes'}
               />
             </div>
           </div>
@@ -390,7 +390,7 @@ export default function PaymentScheduleManager({
               disabled={!addForm.term_label || !addForm.amount || !addForm.due_date}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              Ajouter
+              {fr ? 'Ajouter' : 'Add'}
             </button>
             <button
               onClick={() => {
@@ -399,22 +399,21 @@ export default function PaymentScheduleManager({
               }}
               className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
             >
-              Annuler
+              {fr ? 'Annuler' : 'Cancel'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Liste des paiements */}
       {payments.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
           <Calendar size={48} className="mx-auto text-gray-400 mb-3" />
-          <p className="text-gray-600">Aucun paiement programmé pour cette propriété</p>
+          <p className="text-gray-600">{fr ? 'Aucun paiement programmé pour cette propriété' : 'No scheduled payments for this property'}</p>
           <button
             onClick={() => setShowAddForm(true)}
             className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
           >
-            Ajouter le premier paiement
+            {fr ? 'Ajouter le premier paiement' : 'Add the first payment'}
           </button>
         </div>
       ) : (
@@ -436,7 +435,6 @@ export default function PaymentScheduleManager({
                 }`}
               >
                 {isEditing ? (
-                  /* Mode édition */
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
@@ -449,7 +447,7 @@ export default function PaymentScheduleManager({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Montant</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{fr ? 'Montant' : 'Amount'}</label>
                         <input
                           type="number"
                           step="0.01"
@@ -459,7 +457,7 @@ export default function PaymentScheduleManager({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Date d'échéance</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{fr ? "Date d'échéance" : 'Due date'}</label>
                         <input
                           type="date"
                           value={editForm.due_date || ''}
@@ -484,7 +482,7 @@ export default function PaymentScheduleManager({
                         className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm flex items-center gap-1"
                       >
                         <Save size={14} />
-                        Sauvegarder
+                        {fr ? 'Sauvegarder' : 'Save'}
                       </button>
                       <button
                         onClick={() => {
@@ -493,26 +491,25 @@ export default function PaymentScheduleManager({
                         }}
                         className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-sm"
                       >
-                        Annuler
+                        {fr ? 'Annuler' : 'Cancel'}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  /* Mode affichage */
                   <div>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-semibold text-gray-900">
-                            {payment.term_label || `Paiement °${payment.term_number}`}
+                            {payment.term_label || (fr ? `Paiement °${payment.term_number}` : `Payment #${payment.term_number}`)}
                           </h4>
                           {getStatusBadge(payment.status)}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
                           <div className="bg-white/50 p-2 rounded border border-gray-200 min-w-0">
-                            <span className="text-xs text-gray-500 block mb-0.5">Montant</span>
+                            <span className="text-xs text-gray-500 block mb-0.5">{fr ? 'Montant' : 'Amount'}</span>
                             <p className="font-semibold text-sm text-gray-900 break-words">
-                              {payment.amount.toLocaleString('fr-CA', {
+                              {payment.amount.toLocaleString(locale, {
                                 style: 'currency',
                                 currency: payment.currency,
                                 minimumFractionDigits: 0,
@@ -521,9 +518,9 @@ export default function PaymentScheduleManager({
                             </p>
                           </div>
                           <div className="bg-white/50 p-2 rounded border border-gray-200 min-w-0">
-                            <span className="text-xs text-gray-500 block mb-0.5">Échéance</span>
+                            <span className="text-xs text-gray-500 block mb-0.5">{fr ? 'Échéance' : 'Due date'}</span>
                             <p className="font-semibold text-sm text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">
-                              {new Date(payment.due_date).toLocaleDateString('fr-CA', {
+                              {new Date(payment.due_date).toLocaleDateString(locale, {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric'
@@ -533,9 +530,9 @@ export default function PaymentScheduleManager({
                           {payment.status !== 'pending' && (
                             <>
                               <div className="bg-green-50/50 p-2 rounded border border-green-200 min-w-0">
-                                <span className="text-xs text-gray-500 block mb-0.5">Payé</span>
+                                <span className="text-xs text-gray-500 block mb-0.5">{fr ? 'Payé' : 'Paid'}</span>
                                 <p className="font-semibold text-sm text-green-700 break-words">
-                                  {payment.total_amount_paid.toLocaleString('fr-CA', {
+                                  {payment.total_amount_paid.toLocaleString(locale, {
                                     style: 'currency',
                                     currency: payment.currency,
                                     minimumFractionDigits: 0,
@@ -544,7 +541,7 @@ export default function PaymentScheduleManager({
                                 </p>
                                 {payment.currency === 'USD' && payment.total_amount_paid_cad > 0 && payment.avg_exchange_rate && (
                                   <p className="text-[10px] text-gray-600 mt-0.5">
-                                    ({payment.total_amount_paid_cad.toLocaleString('fr-CA', {
+                                    ({payment.total_amount_paid_cad.toLocaleString(locale, {
                                       minimumFractionDigits: 0,
                                       maximumFractionDigits: 0
                                     })} $ CAD @ {payment.avg_exchange_rate.toFixed(3)})
@@ -552,9 +549,9 @@ export default function PaymentScheduleManager({
                                 )}
                               </div>
                               <div className="bg-orange-50/50 p-2 rounded border border-orange-200 min-w-0">
-                                <span className="text-xs text-gray-500 block mb-0.5">Restant</span>
+                                <span className="text-xs text-gray-500 block mb-0.5">{fr ? 'Restant' : 'Remaining'}</span>
                                 <p className="font-semibold text-sm text-orange-700 break-words">
-                                  {payment.remaining_amount.toLocaleString('fr-CA', {
+                                  {payment.remaining_amount.toLocaleString(locale, {
                                     style: 'currency',
                                     currency: payment.currency,
                                     minimumFractionDigits: 0,
@@ -566,11 +563,10 @@ export default function PaymentScheduleManager({
                           )}
                         </div>
 
-                        {/* Barre de progression pour paiements partiels */}
                         {payment.status === 'partial' && payment.payment_progress_percent > 0 && (
                           <div className="mt-3">
                             <div className="flex justify-between text-xs text-gray-600 mb-1">
-                              <span>Progression</span>
+                              <span>{fr ? 'Progression' : 'Progress'}</span>
                               <span>{payment.payment_progress_percent.toFixed(1)}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -590,24 +586,23 @@ export default function PaymentScheduleManager({
 
                         {payment.transaction_count > 0 && (
                           <p className="text-xs text-blue-600 mt-2">
-                            💳 {payment.transaction_count} transaction(s) liée(s)
+                            💳 {payment.transaction_count} {fr ? 'transaction(s) liée(s)' : 'linked transaction(s)'}
                           </p>
                         )}
                       </div>
 
-                      {/* Boutons actions */}
                       <div className="flex gap-1 ml-2">
                         <button
                           onClick={() => handleEditPayment(payment)}
                           className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                          title="Modifier"
+                          title={fr ? 'Modifier' : 'Edit'}
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeletePayment(payment.id, payment.term_label || `Paiement °${payment.term_number}`)}
+                          onClick={() => handleDeletePayment(payment.id, payment.term_label || (fr ? `Paiement °${payment.term_number}` : `Payment #${payment.term_number}`))}
                           className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors"
-                          title="Supprimer"
+                          title={fr ? 'Supprimer' : 'Delete'}
                           disabled={payment.transaction_count > 0}
                         >
                           <Trash2 size={16} />
@@ -622,40 +617,39 @@ export default function PaymentScheduleManager({
         </div>
       )}
 
-      {/* Résumé */}
       {payments.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-900 mb-2">Résumé</h4>
+          <h4 className="font-semibold text-gray-900 mb-2">{fr ? 'Résumé' : 'Summary'}</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div>
               <span className="text-gray-600">Total:</span>
               <p className="font-bold text-gray-900">
-                {payments.reduce((sum, p) => sum + p.amount, 0).toLocaleString('fr-CA', {
+                {payments.reduce((sum, p) => sum + p.amount, 0).toLocaleString(locale, {
                   style: 'currency',
                   currency: propertyCurrency
                 })}
               </p>
             </div>
             <div>
-              <span className="text-gray-600">Payé:</span>
+              <span className="text-gray-600">{fr ? 'Payé:' : 'Paid:'}</span>
               <p className="font-bold text-green-600">
-                {paidPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString('fr-CA', {
+                {paidPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString(locale, {
                   style: 'currency',
                   currency: propertyCurrency
                 })}
               </p>
             </div>
             <div>
-              <span className="text-gray-600">En attente:</span>
+              <span className="text-gray-600">{fr ? 'En attente:' : 'Pending:'}</span>
               <p className="font-bold text-orange-600">
-                {pendingPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString('fr-CA', {
+                {pendingPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString(locale, {
                   style: 'currency',
                   currency: propertyCurrency
                 })}
               </p>
             </div>
             <div>
-              <span className="text-gray-600">Paiements:</span>
+              <span className="text-gray-600">{fr ? 'Paiements:' : 'Payments:'}</span>
               <p className="font-bold text-gray-900">
                 {paidPayments.length} / {payments.length}
               </p>

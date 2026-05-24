@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, X, ExternalLink, Camera, HardHat, FileText, Globe } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PropertyLink {
   id: string
@@ -18,11 +19,11 @@ interface PropertyLinksManagerProps {
   isAdmin: boolean
 }
 
-const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ElementType; iconColor: string; headerBg: string; headerText: string }> = {
-  construction: { label: 'Construction', icon: HardHat,  iconColor: 'text-orange-500', headerBg: 'bg-orange-50', headerText: 'text-orange-700' },
-  photos:       { label: 'Photos',       icon: Camera,   iconColor: 'text-purple-500', headerBg: 'bg-purple-50', headerText: 'text-purple-700' },
-  documents:    { label: 'Documents',    icon: FileText,  iconColor: 'text-blue-500',   headerBg: 'bg-blue-50',   headerText: 'text-blue-700'   },
-  general:      { label: 'Général',      icon: Globe,     iconColor: 'text-gray-500',   headerBg: 'bg-gray-50',   headerText: 'text-gray-700'   },
+const CATEGORY_CONFIG: Record<string, { label: string; enLabel: string; icon: React.ElementType; iconColor: string; headerBg: string; headerText: string }> = {
+  construction: { label: 'Construction', enLabel: 'Construction', icon: HardHat,  iconColor: 'text-orange-500', headerBg: 'bg-orange-50', headerText: 'text-orange-700' },
+  photos:       { label: 'Photos',       enLabel: 'Photos',       icon: Camera,   iconColor: 'text-purple-500', headerBg: 'bg-purple-50', headerText: 'text-purple-700' },
+  documents:    { label: 'Documents',    enLabel: 'Documents',    icon: FileText,  iconColor: 'text-blue-500',   headerBg: 'bg-blue-50',   headerText: 'text-blue-700'   },
+  general:      { label: 'Général',      enLabel: 'General',      icon: Globe,     iconColor: 'text-gray-500',   headerBg: 'bg-gray-50',   headerText: 'text-gray-700'   },
 }
 
 const CATEGORY_ORDER = ['construction', 'photos', 'documents', 'general']
@@ -34,6 +35,8 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
   const [url, setUrl] = useState('')
   const [category, setCategory] = useState<PropertyLink['category']>('general')
   const [saving, setSaving] = useState(false)
+  const { language } = useLanguage()
+  const fr = language === 'fr'
 
   useEffect(() => {
     loadLinks()
@@ -68,14 +71,14 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
       setShowForm(false)
       await loadLinks()
     } catch (err: any) {
-      alert('Erreur: ' + err.message)
+      alert((fr ? 'Erreur: ' : 'Error: ') + err.message)
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer ce lien ?')) return
+    if (!confirm(fr ? 'Supprimer ce lien ?' : 'Delete this link?')) return
     await supabase.from('property_links').delete().eq('id', id)
     await loadLinks()
   }
@@ -101,7 +104,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
               <div key={cat} className={`rounded-lg overflow-hidden border border-gray-100`}>
                 <div className={`flex items-center gap-2 px-3 py-2 ${cfg.headerBg}`}>
                   <Icon size={13} className={cfg.iconColor} />
-                  <span className={`text-xs font-semibold ${cfg.headerText}`}>{cfg.label}</span>
+                  <span className={`text-xs font-semibold ${cfg.headerText}`}>{fr ? cfg.label : cfg.enLabel}</span>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {grouped[cat].map(link => (
@@ -119,7 +122,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
                         <button
                           onClick={() => handleDelete(link.id)}
                           className="ml-3 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                          title="Supprimer"
+                          title={fr ? 'Supprimer' : 'Delete'}
                         >
                           <X size={14} />
                         </button>
@@ -133,7 +136,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
         </div>
       ) : (
         <div className="text-center py-6 text-gray-400 text-sm">
-          Aucun lien ajouté pour ce projet.
+          {fr ? 'Aucun lien ajouté pour ce projet.' : 'No links added for this project.'}
         </div>
       )}
 
@@ -146,17 +149,17 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
               className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:text-gray-700 transition-colors"
             >
               <Plus size={15} />
-              Ajouter un lien
+              {fr ? 'Ajouter un lien' : 'Add a link'}
             </button>
           ) : (
             <form onSubmit={handleAdd} className="space-y-3 bg-gray-50 rounded-lg p-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Titre' : 'Title'}</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ex: Suivi de chantier semaine 12"
+                  placeholder={fr ? 'Ex: Suivi de chantier semaine 12' : 'Ex: Site progress week 12'}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                   required
                   autoFocus
@@ -174,7 +177,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Catégorie</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Catégorie' : 'Category'}</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as PropertyLink['category'])}
@@ -183,7 +186,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
                   <option value="construction">🟠 Construction</option>
                   <option value="photos">🟣 Photos</option>
                   <option value="documents">🔵 Documents</option>
-                  <option value="general">⚪ Général</option>
+                  <option value="general">{fr ? '⚪ Général' : '⚪ General'}</option>
                 </select>
               </div>
               <div className="flex gap-2 pt-1">
@@ -192,14 +195,14 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
                   disabled={saving}
                   className="flex-1 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? 'Ajout...' : 'Ajouter'}
+                  {saving ? (fr ? 'Ajout...' : 'Adding...') : (fr ? 'Ajouter' : 'Add')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); setTitle(''); setUrl('') }}
                   className="flex-1 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                  Annuler
+                  {fr ? 'Annuler' : 'Cancel'}
                 </button>
               </div>
             </form>
