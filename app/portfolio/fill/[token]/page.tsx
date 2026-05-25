@@ -801,9 +801,15 @@ export default function PortfolioFillPage() {
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((p, idx) => (
-              <img key={p.id} src={p.url} alt=""
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000
-                  ${idx === carouselIdx ? 'opacity-80' : 'opacity-0'}`} />
+              <div key={p.id} className={`absolute inset-0 transition-opacity duration-1000 ${idx === carouselIdx ? 'opacity-80' : 'opacity-0'}`}>
+                <div className="absolute inset-0 scale-110" style={{
+                  backgroundImage: `url(${p.url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(24px) brightness(0.3) saturate(1.2)',
+                }} />
+                <img src={p.url} alt="" className="absolute inset-0 w-full h-full object-contain" />
+              </div>
             ))}
             <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-black/30" />
             {carouselPhotos.length > 1 && (
