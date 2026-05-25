@@ -6,7 +6,7 @@ import jsPDF from 'jspdf'
 import CircleCropModal from '@/components/ui/CircleCropModal'
 import {
   Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload,
-  Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown,
+  Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown, ChevronUp,
   Phone, Mail, MapPin, User, Sparkles, FileDown, Loader2
 } from 'lucide-react'
 
@@ -75,6 +75,8 @@ export default function PortfolioTab() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [bioModalOpen, setBioModalOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const toggle = (key: string) => setCollapsed(s => ({ ...s, [key]: !s[key] }))
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -1147,11 +1149,15 @@ export default function PortfolioTab() {
                 </div>
 
                 {/* Facturation */}
-                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                  <button onClick={() => toggle('billing')} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors">
                     <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Facturation</p>
-                    <span className="text-xs text-gray-600">150$ setup · 50$/an</span>
-                  </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-600">150$ setup · 50$/an</span>
+                      {collapsed['billing'] ? <ChevronDown size={14} className="text-gray-600" /> : <ChevronUp size={14} className="text-gray-600" />}
+                    </div>
+                  </button>
+                  {!collapsed['billing'] && <div className="px-4 pb-4 space-y-3">
                   {/* Org checkbox */}
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox"
@@ -1187,21 +1193,22 @@ export default function PortfolioTab() {
                         className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-pink-500" />
                     </div>
                   )}
+                  </div>}{/* end collapsible billing */}
                 </div>
 
                 {/* Bio resume */}
                 {selectedProfile.bio && (
-                  <div className="bg-gray-900 rounded-xl border border-gray-700 px-5 py-4">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                    <button onClick={() => toggle('bio')} className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-800/50 transition-colors">
                       <p className="text-xs text-gray-500 uppercase tracking-widest">Bio</p>
-                      <button
-                        onClick={() => setBioModalOpen(true)}
-                        className="flex items-center gap-1 text-xs text-pink-400 hover:text-pink-300 transition-colors"
-                      >
-                        <ChevronDown size={13} /> Voir tout
-                      </button>
-                    </div>
-                    <p className="text-sm text-gray-300 leading-relaxed line-clamp-3">{selectedProfile.bio}</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={e => { e.stopPropagation(); setBioModalOpen(true) }} className="text-xs text-pink-400 hover:text-pink-300 transition-colors">Voir tout</button>
+                        {collapsed['bio'] ? <ChevronDown size={14} className="text-gray-600" /> : <ChevronUp size={14} className="text-gray-600" />}
+                      </div>
+                    </button>
+                    {!collapsed['bio'] && (
+                      <p className="text-sm text-gray-300 leading-relaxed line-clamp-3 px-5 pb-4">{selectedProfile.bio}</p>
+                    )}
                   </div>
                 )}
 
@@ -1213,12 +1220,14 @@ export default function PortfolioTab() {
                 )}
 
                 {/* Photos grid */}
-                <div className="bg-gray-900 rounded-xl border border-gray-700 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold flex items-center gap-2">
+                <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <button onClick={() => toggle('photos')} className="flex items-center gap-2 flex-1 hover:text-white transition-colors text-left">
                       <Image size={16} className="text-pink-400" />
-                      Photos & Liens <span className="text-gray-500 font-normal text-sm">({items.length})</span>
-                    </h3>
+                      <span className="font-semibold">Photos & Liens</span>
+                      <span className="text-gray-500 font-normal text-sm">({items.length})</span>
+                      {collapsed['photos'] ? <ChevronDown size={14} className="text-gray-600 ml-1" /> : <ChevronUp size={14} className="text-gray-600 ml-1" />}
+                    </button>
                     <button
                       onClick={() => setAddingItem(!addingItem)}
                       className="flex items-center gap-1.5 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 border border-pink-600/30 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -1226,6 +1235,7 @@ export default function PortfolioTab() {
                       <Plus size={13} /> Ajouter
                     </button>
                   </div>
+                  {!collapsed['photos'] && <div className="px-5 pb-5">
 
                   {/* Add item form */}
                   {addingItem && (
@@ -1356,6 +1366,7 @@ export default function PortfolioTab() {
                       ))}
                     </div>
                   )}
+                  </div>}{/* end collapsible photos */}
                 </div>
               </>
             )}
