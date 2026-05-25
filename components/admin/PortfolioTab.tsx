@@ -99,18 +99,22 @@ export default function PortfolioTab() {
 
   const loadProfiles = async (keepSelectedId?: string) => {
     setIsLoading(true)
-    const { data } = await supabase.from('portfolio_profiles').select('*').order('created_at', { ascending: false })
-    setProfiles(data || [])
-    if (data) {
-      const targetId = keepSelectedId ?? selectedProfile?.id
-      if (targetId) {
-        const refreshed = data.find(p => p.id === targetId)
-        if (refreshed) setSelectedProfile(refreshed)
-      } else if (data.length > 0) {
-        setSelectedProfile(data[0])
+    try {
+      const { data, error } = await supabase.from('portfolio_profiles').select('*').order('created_at', { ascending: false })
+      if (error) { showToast('Erreur chargement: ' + error.message, false); return }
+      setProfiles(data || [])
+      if (data) {
+        const targetId = keepSelectedId ?? selectedProfile?.id
+        if (targetId) {
+          const refreshed = data.find(p => p.id === targetId)
+          if (refreshed) setSelectedProfile(refreshed)
+        } else if (data.length > 0) {
+          setSelectedProfile(data[0])
+        }
       }
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const loadItems = async (profileId: string) => {
