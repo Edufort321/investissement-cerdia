@@ -176,6 +176,7 @@ export default function PortfolioFillPage() {
   const carouselTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const saveTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const profileRef    = useRef<typeof profile>(null)
+  const formRef       = useRef<Partial<Profile>>({})
   const loadedRef     = useRef(false)
   const [autoSaving, setAutoSaving] = useState(false)
 
@@ -183,6 +184,7 @@ export default function PortfolioFillPage() {
 
   useEffect(() => { if (token) load(token as string) }, [token])
   useEffect(() => { profileRef.current = profile }, [profile])
+  useEffect(() => { formRef.current = form }, [form])
 
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e) }
@@ -196,6 +198,23 @@ export default function PortfolioFillPage() {
     }
   }, [])
 
+  // Flush immediat quand la page passe en arriere-plan (mobile: changement d'app, fermeture)
+  useEffect(() => {
+    const flush = () => {
+      if (!loadedRef.current) return
+      const p = profileRef.current
+      if (!p?.fill_token) return
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null }
+      // Utilise sendBeacon pour garantir la livraison meme si la page se ferme
+      // Fallback: appel Supabase normal (fonctionne si la page reste ouverte)
+      const payload = buildPayload(formRef.current)
+      supabase.from('portfolio_profiles').update(payload).eq('fill_token', p.fill_token)
+        .then(({ error }) => { if (error) console.error('[flush]', error.message) })
+    }
+    document.addEventListener('visibilitychange', flush)
+    return () => document.removeEventListener('visibilitychange', flush)
+  }, [])
+
   // Auto-save 2s apres chaque changement de formulaire (mobile-first)
   useEffect(() => {
     if (!loadedRef.current) return
@@ -203,13 +222,17 @@ export default function PortfolioFillPage() {
     saveTimer.current = setTimeout(async () => {
       const p = profileRef.current
       if (!p?.fill_token) return
-      const payload = buildPayload(form)
+      const payload = buildPayload(formRef.current)
       setAutoSaving(true)
       try {
         const { error } = await supabase
           .from('portfolio_profiles').update(payload).eq('fill_token', p.fill_token)
-        if (error) console.error('[auto-save]', error.message)
-        else setProfile(pr => pr ? { ...pr, ...payload } : pr)
+        if (error) {
+          console.error('[auto-save]', error.message)
+          showToast('Sauvegarde echouee: ' + error.message, false)
+        } else {
+          setProfile(pr => pr ? { ...pr, ...payload } : pr)
+        }
       } finally { setAutoSaving(false) }
     }, 2000)
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
