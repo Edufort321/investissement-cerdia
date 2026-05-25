@@ -201,6 +201,22 @@ export default function PortfolioFillPage() {
     setLoading(false)
   }
 
+  const togglePublish = async () => {
+    if (!profile) return
+    const next = !profile.is_published
+    const { error } = await supabase.from('portfolio_profiles')
+      .update({ is_published: next })
+      .eq('fill_token', profile.fill_token ?? '')
+    if (!error) {
+      setProfile(p => p ? { ...p, is_published: next } : p)
+      showToast(next
+        ? (lang === 'fr' ? 'Portfolio publie! Visible par les agences.' : 'Portfolio published! Visible to agencies.')
+        : (lang === 'fr' ? 'Portfolio cache.' : 'Portfolio hidden.'),
+        next
+      )
+    }
+  }
+
   const shareProfile = async () => {
     const url = window.location.origin + `/portfolio/${profile?.slug}`
     if (navigator.share) {
@@ -1257,6 +1273,27 @@ export default function PortfolioFillPage() {
                 {pdfExporting
                   ? <><Loader2 size={15} className="animate-spin" /> PDF...</>
                   : <><FileDown size={15} /> {lang === 'fr' ? 'Telecharger PDF' : 'Download PDF'}</>
+                }
+              </button>
+            </div>
+
+            {/* Publier / cacher */}
+            <div className="border-t border-gray-800 pt-3">
+              <p className="text-xs text-gray-500 mb-2">
+                {lang === 'fr' ? 'Visibilite' : 'Visibility'} — {profile.is_published
+                  ? <span className="text-emerald-400">{lang === 'fr' ? 'Portfolio public (visible aux agences)' : 'Public (visible to agencies)'}</span>
+                  : <span className="text-gray-500">{lang === 'fr' ? 'Portfolio prive (non visible)' : 'Private (not visible)'}</span>
+                }
+              </p>
+              <button onClick={togglePublish}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                  profile.is_published
+                    ? 'bg-red-900/30 hover:bg-red-800/40 border-red-700/50 text-red-300'
+                    : 'bg-emerald-900/30 hover:bg-emerald-800/40 border-emerald-700/50 text-emerald-300'
+                }`}>
+                {profile.is_published
+                  ? <><Eye size={15} className="line-through opacity-60" /> {lang === 'fr' ? 'Cacher le portfolio' : 'Hide portfolio'}</>
+                  : <><Eye size={15} /> {lang === 'fr' ? 'Publier le portfolio' : 'Publish portfolio'}</>
                 }
               </button>
             </div>
