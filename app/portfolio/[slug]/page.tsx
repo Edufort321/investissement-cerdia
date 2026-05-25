@@ -78,9 +78,10 @@ export default function PortfolioPublicPage() {
     setLoading(false)
   }
 
-  const photos = items.filter(i => i.type === 'photo')
-  const videos = items.filter(i => i.type === 'video')
-  const links  = items.filter(i => i.type === 'link')
+  const photos    = items.filter(i => i.type === 'photo')
+  const videos    = items.filter(i => i.type === 'video')
+  const links     = items.filter(i => i.type === 'link')
+  const services  = items.filter(i => i.type === 'service')
 
   const carouselPhotos = photos.length > 0
     ? photos
@@ -368,7 +369,8 @@ export default function PortfolioPublicPage() {
       )}
 
       {/* ══ FICHE PHYSIQUE ══ */}
-      {(profile.height_cm || profile.weight_kg || profile.eye_color || profile.hair_color || profile.clothing_size || profile.languages?.length > 0) && (
+      {(profile.height_cm || profile.weight_kg || profile.eye_color || profile.hair_color ||
+        profile.clothing_size || profile.skin_tone || profile.shoe_size || profile.languages?.length > 0) && (
         <section className="max-w-2xl mx-auto px-6 pb-12">
           <SectionDivider label="Fiche physique" theme={th} />
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -396,10 +398,22 @@ export default function PortfolioPublicPage() {
                 <p className="text-white font-semibold text-sm capitalize">{profile.hair_color}{profile.hair_length ? ' / ' + profile.hair_length : ''}</p>
               </div>
             )}
+            {profile.skin_tone && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Teint</p>
+                <p className="text-white font-semibold text-sm capitalize">{profile.skin_tone}</p>
+              </div>
+            )}
             {profile.clothing_size && (
               <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
                 <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Vetements</p>
                 <p className="text-white font-semibold text-sm">{profile.clothing_size}</p>
+              </div>
+            )}
+            {profile.shoe_size && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Pointure</p>
+                <p className="text-white font-semibold text-sm">{profile.shoe_size}</p>
               </div>
             )}
             {profile.languages?.length > 0 && (
@@ -486,6 +500,27 @@ export default function PortfolioPublicPage() {
         </section>
       )}
 
+      {/* ══ SERVICES ══ */}
+      {services.length > 0 && (
+        <section className="px-4 py-10 max-w-2xl mx-auto">
+          <SectionDivider label="Services & Tarifs" theme={th} />
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {services.map(s => (
+              <div key={s.id} className="px-5 py-4 rounded-2xl flex items-center justify-between gap-3"
+                style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-white font-medium text-sm">{s.title}</p>
+                {s.category && (
+                  <span className="text-xs font-semibold flex-shrink-0 px-2.5 py-1 rounded-full"
+                    style={{ background: th.ring, color: th.primary }}>
+                    {s.category}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ══ FOOTER ══ */}
       <footer className="py-16 px-6 text-center mt-8" style={{ borderTop: `1px solid ${th.border}30` }}>
         <div className="text-2xl mb-3 select-none" style={{ color: th.primary + '40' }}>✦</div>
@@ -510,6 +545,12 @@ export default function PortfolioPublicPage() {
               onMouseEnter={e => (e.currentTarget.style.color = th.primary)}
               onMouseLeave={e => (e.currentTarget.style.color = '')}>
               <Instagram size={15} /> Instagram
+            </a>
+          )}
+          {profile.tiktok_url && (
+            <a href={profile.tiktok_url} target="_blank" rel="noopener"
+              className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm active:opacity-70">
+              <ExternalLink size={15} /> TikTok
             </a>
           )}
         </div>

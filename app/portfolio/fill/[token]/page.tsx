@@ -659,7 +659,7 @@ export default function PortfolioFillPage() {
     const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
     const { error } = await supabase.from('portfolio_items').insert([{
       profile_id: profile.id, type: 'service', title: name.trim(),
-      url: '', sort_order: maxOrder + 1, category: rate.trim()
+      url: null, sort_order: maxOrder + 1, category: rate.trim()
     }])
     if (error) { showToast(t.err_prefix + error.message, false); return }
     showToast(lang === 'fr' ? 'Service ajoute!' : 'Service added!')

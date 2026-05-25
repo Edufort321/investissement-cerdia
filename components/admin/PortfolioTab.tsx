@@ -51,7 +51,7 @@ interface Profile {
 interface PortfolioItem {
   id: string
   profile_id: string
-  type: 'photo' | 'link' | 'video'
+  type: 'photo' | 'link' | 'video' | 'service'
   title: string
   description: string
   url: string
@@ -333,8 +333,9 @@ export default function PortfolioTab() {
   const publicUrl = (profile: Profile) => `${window.location.origin}/portfolio/${profile.slug}`
   const fillUrl = (profile: Profile) => `${window.location.origin}/portfolio/fill/${profile.fill_token}`
 
-  const photoItems = items.filter(i => i.type === 'photo')
-  const linkItems = items.filter(i => i.type === 'link')
+  const photoItems   = items.filter(i => i.type === 'photo')
+  const linkItems    = items.filter(i => i.type === 'link')
+  const serviceItems = items.filter(i => i.type === 'service')
 
   const exportPDF = async (profile: Profile) => {
     setPdfLoading(true)
@@ -1448,15 +1449,33 @@ export default function PortfolioTab() {
                     </div>
                   )}
 
+                  {/* Services */}
+                  {serviceItems.length > 0 && (
+                    <div className="mb-4 space-y-1.5">
+                      <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Services ({serviceItems.length})</p>
+                      {serviceItems.map(s => (
+                        <div key={s.id} className="flex items-center gap-3 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm truncate">{s.title}</p>
+                            {s.category && <p className="text-pink-400 text-xs">{s.category}</p>}
+                          </div>
+                          <button onClick={() => deleteItem(s.id)} className="p-1 text-gray-600 hover:text-red-400 transition-colors flex-shrink-0">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Gallery grid */}
-                  {items.length === 0 ? (
+                  {items.filter(i => i.type !== 'service').length === 0 ? (
                     <div className="text-center py-10 text-gray-600">
                       <Image size={36} className="mx-auto mb-2 opacity-30" />
                       <p className="text-sm">Aucune photo ou lien</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {items.map(item => (
+                      {items.filter(i => i.type !== 'service').map(item => (
                         <div key={item.id} className="relative group rounded-xl overflow-hidden bg-gray-800 border border-gray-700 aspect-square">
                           {item.type === 'photo' && item.url ? (
                             <img src={item.url} alt={item.title || ''} className="w-full h-full object-cover" />
