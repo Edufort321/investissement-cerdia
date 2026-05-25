@@ -293,7 +293,7 @@ export default function PortfolioPublicPage() {
                      boxShadow: `0 8px 40px ${th.soft}`,
                    }}>
                 <img src={profile.headshot_url} alt={profile.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                   style={{ imageRendering: 'auto' }} />
               </div>
             </div>

@@ -841,7 +841,7 @@ export default function PortfolioFillPage() {
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full ring-2 ring-white/30 ring-offset-2 ring-offset-transparent overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer shadow-xl"
                onClick={() => document.getElementById('headshot-input')?.click()}>
             {profile.headshot_url
-              ? <img src={profile.headshot_url} alt={profile.name} className="w-full h-full object-cover" />
+              ? <img src={profile.headshot_url} alt={profile.name} className="w-full h-full object-cover object-top" />
               : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-600/20">
                   <Camera size={20} className="text-pink-400/50" />
                 </div>
@@ -965,7 +965,7 @@ export default function PortfolioFillPage() {
                   <label className="flex-1 cursor-pointer group">
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-pink-500 transition-colors">
                       {profile.headshot_url
-                        ? <img src={profile.headshot_url} alt="" className="w-full h-full object-cover" />
+                        ? <img src={profile.headshot_url} alt="" className="w-full h-full object-cover object-top" />
                         : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                             <User size={28} className="text-gray-600" />
                             <span className="text-xs text-gray-600">{t.profile_photo}</span>
@@ -1416,11 +1416,11 @@ export default function PortfolioFillPage() {
             ) : (
               <>
                 {photos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="columns-3 gap-2">
                     {photos.map((p, idx) => (
-                      <div key={p.id} className="relative group aspect-square rounded-xl overflow-hidden bg-gray-800 cursor-pointer"
+                      <div key={p.id} className="relative group break-inside-avoid mb-2 rounded-xl overflow-hidden bg-gray-800 cursor-pointer"
                            onClick={() => setLightboxIdx(idx)}>
-                        <img src={p.url} alt={p.title ?? ''} className="w-full h-full object-cover"
+                        <img src={p.url} alt={p.title ?? ''} className="w-full block"
                           style={{ imageRendering: 'auto' }} />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 group-active:opacity-100 flex items-center justify-center gap-2 transition-all">
                           <div className="p-2 bg-white/10 rounded-lg">

@@ -884,7 +884,7 @@ export default function PortfolioTab() {
                 )}
                 <div className="flex items-start gap-3">
                   {p.headshot_url
-                    ? <img src={p.headshot_url} alt={p.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-pink-500/30" />
+                    ? <img src={p.headshot_url} alt={p.name} className="w-12 h-12 rounded-full object-cover object-top ring-2 ring-pink-500/30" />
                     : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center border border-pink-500/20">
                         <User size={20} className="text-pink-400" />
                       </div>
@@ -1166,7 +1166,7 @@ export default function PortfolioTab() {
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {selectedProfile.headshot_url
-                        ? <img src={selectedProfile.headshot_url} alt={selectedProfile.name} className="w-full h-full object-cover" />
+                        ? <img src={selectedProfile.headshot_url} alt={selectedProfile.name} className="w-full h-full object-cover object-top" />
                         : <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
                             <User size={28} />
                           </div>
@@ -1396,7 +1396,7 @@ export default function PortfolioTab() {
                             </span>
                           </button>
                           {itemForm.url && itemForm.type === 'photo' && (
-                            <img src={itemForm.url} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />
+                            <img src={itemForm.url} alt="preview" className="mt-2 w-full max-h-48 rounded-lg object-contain bg-gray-900" />
                           )}
                           {itemForm.url && itemForm.type === 'video' && (
                             <video src={itemForm.url} controls className="mt-2 w-full rounded-lg max-h-32" />
@@ -1478,7 +1478,7 @@ export default function PortfolioTab() {
                       {items.filter(i => i.type !== 'service').map(item => (
                         <div key={item.id} className="relative group rounded-xl overflow-hidden bg-gray-800 border border-gray-700 aspect-square">
                           {item.type === 'photo' && item.url ? (
-                            <img src={item.url} alt={item.title || ''} className="w-full h-full object-cover" />
+                            <img src={item.url} alt={item.title || ''} className="w-full h-full object-cover object-top" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-3">
                               <Link2 size={24} className="text-purple-400 mb-2" />
