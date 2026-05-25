@@ -208,15 +208,27 @@ export default function PortfolioPublicPage() {
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((photo, idx) => (
-              <img key={photo.id} src={photo.url} alt="" draggable={false}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 select-none
-                  ${idx === carouselIdx ? 'opacity-100' : 'opacity-0'}`}
-                style={{ imageRendering: 'auto' }}
-              />
+              <div key={photo.id}
+                className={`absolute inset-0 transition-opacity duration-1000 ${idx === carouselIdx ? 'opacity-100' : 'opacity-0'}`}>
+                {/* Fond flou — remplit tout le viewport sans couper la photo principale */}
+                <div className="absolute inset-0 scale-110"
+                  style={{
+                    backgroundImage: `url(${photo.url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'blur(28px) brightness(0.35) saturate(1.3)',
+                  }}
+                />
+                {/* Photo principale — contenue, jamais coupee */}
+                <img src={photo.url} alt="" draggable={false}
+                  className="absolute inset-0 w-full h-full object-contain select-none"
+                  style={{ imageRendering: 'auto' }}
+                />
+              </div>
             ))}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.40)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.30)_100%)]" />
             <div className="absolute bottom-0 left-0 right-0 h-44 bg-gradient-to-t from-[#030303] to-transparent" />
-            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
           </>
         ) : (
           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${th.gradFrom}, #030303)` }} />
@@ -436,12 +448,12 @@ export default function PortfolioPublicPage() {
           <div className="mt-8 columns-2 sm:columns-3 md:columns-4 gap-2 md:gap-3 space-y-2 md:space-y-3">
             {photos.map((photo, idx) => (
               <div key={photo.id}
-                className="break-inside-avoid relative group cursor-pointer rounded-xl overflow-hidden bg-gray-900"
+                className="break-inside-avoid relative group cursor-pointer rounded-xl overflow-hidden bg-gray-900/60"
                 onClick={() => setLightbox(idx)}>
                 <img src={photo.url} alt={photo.title || ''}
-                  className="w-full object-cover transition-transform duration-500 group-hover:scale-105 group-active:scale-[1.02]"
+                  className="w-full block transition-transform duration-500 group-hover:scale-[1.03] group-active:scale-[1.01]"
                   style={{ imageRendering: 'auto' }} />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 group-active:bg-black/30 transition-all flex items-end p-3 opacity-0 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 group-active:bg-black/25 transition-all flex items-end p-3 opacity-0 group-hover:opacity-100">
                   {photo.title && <p className="text-white text-xs font-medium drop-shadow-lg">{photo.title}</p>}
                 </div>
               </div>
