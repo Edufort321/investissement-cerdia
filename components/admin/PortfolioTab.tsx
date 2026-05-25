@@ -71,6 +71,7 @@ export default function PortfolioTab() {
   const [addingItem, setAddingItem] = useState(false)
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
   const [copiedToken, setCopiedToken] = useState(false)
+  const [fillLang, setFillLang] = useState<'fr' | 'en'>('fr')
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
@@ -1239,18 +1240,26 @@ export default function PortfolioTab() {
                       </div>
                     </div>
                     <div className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-                      <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
-                        <Edit2 size={11} /> Lien de remplissage (client)
-                      </p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Edit2 size={11} /> Lien de remplissage (client)
+                        </p>
+                        <div className="flex gap-1">
+                          <button onClick={() => setFillLang('fr')}
+                            className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${fillLang === 'fr' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}>FR</button>
+                          <button onClick={() => setFillLang('en')}
+                            className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${fillLang === 'en' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}>EN</button>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
-                        <code className="text-xs text-purple-400 truncate flex-1">/portfolio/fill/[token]</code>
+                        <code className="text-xs text-purple-400 truncate flex-1">/portfolio/fill/[token]?lang={fillLang}</code>
                         <button
-                          onClick={() => copyToClipboard(fillUrl(selectedProfile), 'token')}
+                          onClick={() => copyToClipboard(`${fillUrl(selectedProfile)}?lang=${fillLang}`, 'token')}
                           className="flex-shrink-0 p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                         >
                           {copiedToken ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                         </button>
-                        <a href={fillUrl(selectedProfile)} target="_blank" className="flex-shrink-0 p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">
+                        <a href={`${fillUrl(selectedProfile)}?lang=${fillLang}`} target="_blank" className="flex-shrink-0 p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">
                           <ExternalLink size={13} />
                         </a>
                       </div>

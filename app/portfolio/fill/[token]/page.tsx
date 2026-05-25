@@ -154,6 +154,9 @@ export default function PortfolioFillPage() {
   const [copied, setCopied] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<any>(null)
   const [appInstalled, setAppInstalled] = useState(false)
+  const [pwaDismissed, setPwaDismissed] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('pwa-dismissed-fill') === '1'
+  )
   const [saveError, setSaveError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -164,13 +167,22 @@ export default function PortfolioFillPage() {
   const [photoCropId, setPhotoCropId]     = useState<string | null>(null)
   const [lightboxIdx, setLightboxIdx]     = useState<number | null>(null)
   const [activeSection, setActiveSection] = useState<Section>('profil')
-  const [lang, setLang]                   = useState<Lang>('fr')
+  const [lang, setLang]                   = useState<Lang>(() => {
+    if (typeof window === 'undefined') return 'fr'
+    const p = new URLSearchParams(window.location.search).get('lang')
+    return p === 'en' ? 'en' : 'fr'
+  })
   const [carouselIdx, setCarouselIdx]     = useState(0)
   const carouselTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const profileRef    = useRef<typeof profile>(null)
+  const loadedRef     = useRef(false)
+  const [autoSaving, setAutoSaving] = useState(false)
 
   const t = T[lang]
 
   useEffect(() => { if (token) load(token as string) }, [token])
+  useEffect(() => { profileRef.current = profile }, [profile])
 
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e) }
@@ -183,6 +195,25 @@ export default function PortfolioFillPage() {
       window.removeEventListener('appinstalled', installed)
     }
   }, [])
+
+  // Auto-save 2s apres chaque changement de formulaire (mobile-first)
+  useEffect(() => {
+    if (!loadedRef.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      const p = profileRef.current
+      if (!p?.fill_token) return
+      const payload = buildPayload(form)
+      setAutoSaving(true)
+      try {
+        const { error } = await supabase
+          .from('portfolio_profiles').update(payload).eq('fill_token', p.fill_token)
+        if (error) console.error('[auto-save]', error.message)
+        else setProfile(pr => pr ? { ...pr, ...payload } : pr)
+      } finally { setAutoSaving(false) }
+    }, 2000)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [form])
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -212,7 +243,25 @@ export default function PortfolioFillPage() {
       .eq('profile_id', data.id).order('sort_order').order('created_at')
     setItems(its ?? [])
     setLoading(false)
+    setTimeout(() => { loadedRef.current = true }, 400)
   }
+
+  const buildPayload = (f: Partial<Profile>) => ({
+    name: f.name ?? '', tagline: f.tagline ?? '', bio: f.bio ?? '',
+    contact_email: f.contact_email ?? '', phone: f.phone ?? '',
+    instagram_url: f.instagram_url ?? '', tiktok_url: f.tiktok_url ?? '',
+    location: f.location ?? '', uda_number: (f as any).uda_number ?? '',
+    gender: (f as any).gender ?? '', age_class: (f as any).age_class ?? '',
+    theme: (f as any).theme ?? 'rose',
+    theme_primary: (f as any).theme_primary ?? '',
+    theme_accent: (f as any).theme_accent ?? '',
+    height_cm: (f as any).height_cm || null,
+    weight_kg: (f as any).weight_kg || null,
+    eye_color: (f as any).eye_color ?? '', hair_color: (f as any).hair_color ?? '',
+    hair_length: (f as any).hair_length ?? '', skin_tone: (f as any).skin_tone ?? '',
+    shoe_size: (f as any).shoe_size ?? '', clothing_size: (f as any).clothing_size ?? '',
+    languages: (f as any).languages ?? [], special_skills: (f as any).special_skills ?? '',
+  })
 
   const togglePublish = async () => {
     if (!profile) return
@@ -436,38 +485,15 @@ export default function PortfolioFillPage() {
     if (!profile || saving) return
     setSaving(true); setSaveError(null)
     try {
-      const payload = {
-        name: form.name ?? '', tagline: form.tagline ?? '', bio: form.bio ?? '',
-        contact_email: form.contact_email ?? '', phone: form.phone ?? '',
-        instagram_url: form.instagram_url ?? '', tiktok_url: form.tiktok_url ?? '',
-        location: form.location ?? '', uda_number: form.uda_number ?? '',
-        gender: (form as any).gender ?? '', age_class: (form as any).age_class ?? '',
-        theme: (form as any).theme ?? 'rose',
-        theme_primary: (form as any).theme_primary ?? '',
-        theme_accent: (form as any).theme_accent ?? '',
-        height_cm: (form as any).height_cm || null,
-        weight_kg: (form as any).weight_kg || null,
-        eye_color: (form as any).eye_color ?? '', hair_color: (form as any).hair_color ?? '',
-        hair_length: (form as any).hair_length ?? '', skin_tone: (form as any).skin_tone ?? '',
-        shoe_size: (form as any).shoe_size ?? '', clothing_size: (form as any).clothing_size ?? '',
-        languages: (form as any).languages ?? [], special_skills: (form as any).special_skills ?? '',
-      }
+      const payload = buildPayload(form)
       const fillTok = profile.fill_token
       if (!fillTok) { showToast('Token manquant — recharge la page', false); return }
-
-      const { data: updated, error } = await supabase
-        .from('portfolio_profiles')
-        .update(payload)
-        .eq('fill_token', fillTok)
-        .select('id')
-
+      const { error } = await supabase
+        .from('portfolio_profiles').update(payload).eq('fill_token', fillTok)
       if (error) {
-        console.error('[saveProfile] Supabase error:', error)
+        console.error('[save]', error)
         setSaveError(error.message)
         showToast(t.err_prefix + error.message, false)
-      } else if (!updated || updated.length === 0) {
-        console.error('[saveProfile] 0 rows updated — token:', fillTok)
-        showToast('Erreur: aucune ligne mise a jour. Recharge la page.', false)
       } else {
         setProfile(p => p ? { ...p, ...payload } : p)
         setSaved(true); showToast(t.profile_saved)
@@ -711,6 +737,12 @@ export default function PortfolioFillPage() {
             className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-colors">
             {lang === 'fr' ? 'EN' : 'FR'}
           </button>
+          {autoSaving && !uploadProgress && (
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <Loader2 size={10} className="animate-spin" />
+              <span className="hidden sm:inline">{lang === 'fr' ? 'Sauvegarde...' : 'Saving...'}</span>
+            </span>
+          )}
           {uploadProgress && (
             <span className="text-xs text-purple-400 flex items-center gap-1">
               <Loader2 size={11} className="animate-spin" /> {uploadProgress}
@@ -726,7 +758,7 @@ export default function PortfolioFillPage() {
       </div>
 
       {/* ── HERO PREVIEW CAROUSEL ── */}
-      <div className="relative h-60 md:h-72 bg-gray-900 overflow-hidden">
+      <div className="relative h-52 sm:h-64 md:h-72 bg-gray-900 overflow-hidden">
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((p, idx) => (
@@ -792,6 +824,52 @@ export default function PortfolioFillPage() {
         </div>
       </div>
 
+      {/* ── PWA INSTALL BANNER ── */}
+      {!appInstalled && !pwaDismissed && (
+        <div className="bg-gradient-to-r from-purple-950/90 to-pink-950/90 border-b border-pink-900/30 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Sparkles size={16} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-sm">
+                {lang === 'fr' ? 'Installe l\'app sur ton telephone' : 'Install the app on your phone'}
+              </p>
+              {installPrompt ? (
+                <button
+                  onClick={async () => {
+                    installPrompt.prompt()
+                    const { outcome } = await installPrompt.userChoice
+                    if (outcome === 'accepted') setAppInstalled(true)
+                    setInstallPrompt(null)
+                  }}
+                  className="mt-1.5 flex items-center gap-1.5 bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+                  {lang === 'fr' ? 'Installer l\'app' : 'Install app'}
+                </button>
+              ) : typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+                <p className="text-pink-200/80 text-xs mt-1">
+                  {lang === 'fr'
+                    ? 'Appuie sur Partager ⬆ dans Safari → "Sur l\'ecran d\'accueil"'
+                    : 'Tap Share ⬆ in Safari → "Add to Home Screen"'}
+                </p>
+              ) : (
+                <p className="text-pink-200/80 text-xs mt-1">
+                  {lang === 'fr'
+                    ? 'Ouvre ce lien dans Chrome et installe l\'app depuis le menu ⋮'
+                    : 'Open in Chrome and install the app from the ⋮ menu'}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => { setPwaDismissed(true); localStorage.setItem('pwa-dismissed-fill', '1') }}
+              className="text-gray-500 hover:text-gray-300 flex-shrink-0 p-1">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── SECTION TABS ── */}
       <div className="bg-gray-900/80 border-b border-gray-800 px-2 sticky top-[57px] z-20">
         <div className="flex">
@@ -813,11 +891,11 @@ export default function PortfolioFillPage() {
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="max-w-2xl mx-auto px-4 py-5 md:py-7">
+      <div className="max-w-3xl mx-auto px-4 py-5">
 
         {/* ── PROFIL ── */}
         {activeSection === 'profil' && (
-          <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-[1fr_290px] md:gap-5 md:items-start">
+          <div className="space-y-5 md:grid md:grid-cols-2 md:gap-5 md:space-y-0 md:items-start">
 
             {/* Photo section */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
@@ -939,13 +1017,13 @@ export default function PortfolioFillPage() {
             </div>
 
             {/* Genre / Classe d'age / Theme */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4 md:col-start-2 md:row-start-1">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
               <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
                 <Palette size={11} /> {lang === 'fr' ? 'Identite & Apparence' : 'Identity & Appearance'}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">
                     {lang === 'fr' ? 'Genre' : 'Gender'}
                   </label>
@@ -961,7 +1039,7 @@ export default function PortfolioFillPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">
                     {lang === 'fr' ? "Classe d'age" : 'Age class'}
                   </label>
@@ -1000,32 +1078,32 @@ export default function PortfolioFillPage() {
                 {/* Custom color pickers */}
                 {(form as any).theme === 'custom' && (
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-xs text-gray-500 mb-1 block">
                         {lang === 'fr' ? 'Couleur principale' : 'Primary color'}
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <input type="color" value={(form as any).theme_primary || '#ec4899'}
                           onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
-                          className="w-10 h-10 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
+                          className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
                         <input type="text" value={(form as any).theme_primary || ''}
                           onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
                           placeholder="#ec4899"
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                          className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
                       </div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-xs text-gray-500 mb-1 block">
                         {lang === 'fr' ? 'Couleur accent' : 'Accent color'}
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <input type="color" value={(form as any).theme_accent || '#a855f7'}
                           onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
-                          className="w-10 h-10 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
+                          className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
                         <input type="text" value={(form as any).theme_accent || ''}
                           onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
                           placeholder="#a855f7"
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                          className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
                       </div>
                     </div>
                   </div>
@@ -1034,20 +1112,20 @@ export default function PortfolioFillPage() {
             </div>
 
             {/* Caracteristiques physiques */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4 md:col-start-2 md:row-start-2">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
               <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
                 {lang === 'fr' ? 'Caracteristiques physiques' : 'Physical attributes'}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille (cm)' : 'Height (cm)'}</label>
                   <input type="number" min={50} max={250} value={(form as any).height_cm ?? ''}
                     onChange={e => setForm(f => ({ ...f, height_cm: e.target.value ? Number(e.target.value) : null }))}
                     placeholder={lang === 'fr' ? 'Ex: 170' : 'e.g. 170'}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Poids (kg)' : 'Weight (kg)'}</label>
                   <input type="number" min={20} max={300} step={0.1} value={(form as any).weight_kg ?? ''}
                     onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
@@ -1057,7 +1135,7 @@ export default function PortfolioFillPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des yeux' : 'Eye color'}</label>
                   <select value={(form as any).eye_color ?? ''}
                     onChange={e => setForm(f => ({ ...f, eye_color: e.target.value }))}
@@ -1068,7 +1146,7 @@ export default function PortfolioFillPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des cheveux' : 'Hair color'}</label>
                   <select value={(form as any).hair_color ?? ''}
                     onChange={e => setForm(f => ({ ...f, hair_color: e.target.value }))}
@@ -1082,7 +1160,7 @@ export default function PortfolioFillPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Longueur cheveux' : 'Hair length'}</label>
                   <select value={(form as any).hair_length ?? ''}
                     onChange={e => setForm(f => ({ ...f, hair_length: e.target.value }))}
@@ -1093,7 +1171,7 @@ export default function PortfolioFillPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Teint' : 'Skin tone'}</label>
                   <select value={(form as any).skin_tone ?? ''}
                     onChange={e => setForm(f => ({ ...f, skin_tone: e.target.value }))}
@@ -1104,7 +1182,7 @@ export default function PortfolioFillPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Pointure' : 'Shoe size'}</label>
                   <input value={(form as any).shoe_size ?? ''}
                     onChange={e => setForm(f => ({ ...f, shoe_size: e.target.value }))}
@@ -1114,14 +1192,14 @@ export default function PortfolioFillPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille vetement' : 'Clothing size'}</label>
                   <input value={(form as any).clothing_size ?? ''}
                     onChange={e => setForm(f => ({ ...f, clothing_size: e.target.value }))}
                     placeholder={lang === 'fr' ? 'Ex: S, M, 36...' : 'e.g. S, M, 36...'}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Langues parlees' : 'Languages spoken'}</label>
                   <input value={((form as any).languages ?? []).join(', ')}
                     onChange={e => setForm(f => ({ ...f, languages: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }))}
@@ -1132,10 +1210,13 @@ export default function PortfolioFillPage() {
 
               <div>
                 <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Competences speciales' : 'Special skills'}</label>
-                <input value={(form as any).special_skills ?? ''}
+                <textarea
+                  value={(form as any).special_skills ?? ''}
                   onChange={e => setForm(f => ({ ...f, special_skills: e.target.value }))}
+                  onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
                   placeholder={lang === 'fr' ? 'Ex: danse, equitation, plongee, conduite...' : 'e.g. dancing, horseback riding, diving, driving...'}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  style={{ minHeight: '72px', overflow: 'hidden' }}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors resize-none" />
               </div>
             </div>
 
@@ -1148,7 +1229,9 @@ export default function PortfolioFillPage() {
               <textarea
                 value={form.bio ?? ''}
                 onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-                rows={5} placeholder={t.bio_ph}
+                onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
+                placeholder={t.bio_ph}
+                style={{ minHeight: '120px', overflow: 'hidden' }}
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none leading-relaxed"
               />
               <div>
@@ -1395,21 +1478,29 @@ export default function PortfolioFillPage() {
       {/* ── FIXED SAVE BAR ── */}
       {activeSection !== 'boutique' && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3">
-          <div className="max-w-lg mx-auto flex items-center gap-3">
-            {profile.slug && (
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            {autoSaving && (
+              <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
+                <Loader2 size={11} className="animate-spin" />
+                <span className="hidden sm:inline">{lang === 'fr' ? 'Auto-save...' : 'Auto-saving...'}</span>
+              </span>
+            )}
+            {profile.slug && !autoSaving && (
               <button onClick={() => setShareOpen(true)}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-2.5 rounded-xl transition-colors flex-shrink-0">
                 <Share2 size={13} /> {lang === 'fr' ? 'Partager' : 'Share'}
               </button>
             )}
-            <button onClick={saveProfile} disabled={saving}
+            <button onClick={saveProfile} disabled={saving || autoSaving}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
                 bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white disabled:opacity-60 disabled:cursor-not-allowed">
               {saving
                 ? <><Loader2 size={16} className="animate-spin" /> {t.saving}</>
-                : saved
-                  ? <><Check size={16} /> {t.saved}</>
-                  : <><Save size={16} /> {t.save}</>
+                : autoSaving
+                  ? <><Loader2 size={16} className="animate-spin text-pink-200" /> {lang === 'fr' ? 'Sauvegarde auto...' : 'Auto-saving...'}</>
+                  : saved
+                    ? <><Check size={16} /> {t.saved}</>
+                    : <><Save size={16} /> {t.save}</>
               }
             </button>
           </div>
