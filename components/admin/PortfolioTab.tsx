@@ -70,6 +70,7 @@ export default function PortfolioTab() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [bioModalOpen, setBioModalOpen] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -232,17 +233,23 @@ export default function PortfolioTab() {
     await uploadPhoto(new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' }), 'cover_url')
   }
 
-  const uploadItemPhoto = async (file: File) => {
+  const uploadItemFile = async (file: File) => {
     if (!selectedProfile) return
-    setUploadProgress('Upload photo...')
+    const isVideo = file.type.startsWith('video/')
+    setUploadProgress(isVideo ? 'Upload video...' : 'Upload photo...')
     const ext = file.name.split('.').pop()
     const path = `portfolio/${selectedProfile.id}/items/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (upErr) { showToast('Erreur: ' + upErr.message, false); setUploadProgress(null); return }
     const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
-    setItemForm(f => ({ ...f, url: publicUrl, thumbnail_url: publicUrl }))
+    setItemForm(f => ({
+      ...f,
+      type: isVideo ? 'video' : 'photo',
+      url: publicUrl,
+      thumbnail_url: isVideo ? '' : publicUrl,
+    }))
     setUploadProgress(null)
-    showToast('Photo chargee!')
+    showToast(isVideo ? 'Video chargee!' : 'Photo chargee!')
   }
 
   const saveItem = async () => {
@@ -283,7 +290,7 @@ export default function PortfolioTab() {
     try {
       // ── Helpers ───────────────────────────────────────────────────────────
       // Use canvas so the browser applies EXIF rotation before we export
-      const fetchImg = (url: string): Promise<{ data: string; fmt: 'JPEG' | 'PNG' } | null> =>
+      const fetchImg = (url: string): Promise<{ data: string; fmt: 'JPEG' | 'PNG'; w: number; h: number } | null> =>
         new Promise(res => {
           const img = new window.Image()
           img.crossOrigin = 'anonymous'
@@ -292,7 +299,7 @@ export default function PortfolioTab() {
             c.width  = img.naturalWidth
             c.height = img.naturalHeight
             c.getContext('2d')!.drawImage(img, 0, 0)
-            res({ data: c.toDataURL('image/jpeg', 0.92), fmt: 'JPEG' })
+            res({ data: c.toDataURL('image/jpeg', 0.92), fmt: 'JPEG', w: img.naturalWidth, h: img.naturalHeight })
           }
           img.onerror = () => res(null)
           img.src = url
@@ -317,12 +324,16 @@ export default function PortfolioTab() {
           img.src = url
         })
 
+      // Fetch frais du profil pour avoir les caracteristiques physiques a jour
+      const { data: freshData } = await supabase.from('portfolio_profiles').select('*').eq('id', profile.id).single()
+      const p = (freshData as Profile) || profile
+
       // ── Fetch images concurrently ─────────────────────────────────────────
       const [headshotCircle, ...photoImgResults] = await Promise.all([
         profile.headshot_url ? makeCircle(profile.headshot_url) : Promise.resolve(null),
         ...photoItems.slice(0, 6).map(p => fetchImg(p.url))
       ])
-      const photoImgs = photoImgResults as ({ data: string; fmt: 'JPEG' | 'PNG' } | null)[]
+      const photoImgs = photoImgResults as ({ data: string; fmt: 'JPEG' | 'PNG'; w: number; h: number } | null)[]
 
       const pubUrl = publicUrl(profile)
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
@@ -343,13 +354,12 @@ export default function PortfolioTab() {
       doc.rect(0, 0, W, 55, 'F')
       doc.setFillColor(10, 8, 20)
       doc.rect(0, 48, W, 7, 'F')
-      // Pink shimmer line
       doc.setDrawColor(219, 39, 119)
       doc.setLineWidth(0.8)
       doc.line(LX, 48, W - LX, 48)
 
       // ── HEADSHOT ─────────────────────────────────────────────────────────
-      const HS = 34   // headshot size mm
+      const HS = 34
       if (headshotCircle) {
         doc.addImage(headshotCircle, 'JPEG', LX, 7, HS, HS)
       } else {
@@ -357,59 +367,61 @@ export default function PortfolioTab() {
         doc.circle(LX + HS / 2, 7 + HS / 2, HS / 2, 'F')
       }
 
-      // ── NAME & TAGLINE (top right of headshot) ───────────────────────────
+      // ── NOM & TAGLINE ────────────────────────────────────────────────────
       const TX = LX + HS + 6
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(24)
       doc.setTextColor(255, 255, 255)
-      doc.text(profile.name, TX, 18)
+      doc.text(p.name, TX, 18)
 
-      if (profile.tagline) {
+      if (p.tagline) {
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(10)
         doc.setTextColor(244, 114, 182)
-        doc.text(profile.tagline.toUpperCase(), TX, 25)
+        doc.text(p.tagline.toUpperCase(), TX, 25)
       }
 
-      // Location + UDA on same line
       const meta: string[] = []
-      if (profile.location) meta.push(profile.location)
-      if (profile.uda_number) meta.push(`UDA ${profile.uda_number}`)
+      if (p.location) meta.push(p.location)
+      if (p.uda_number) meta.push(`UDA ${p.uda_number}`)
       if (meta.length > 0) {
         doc.setFontSize(8)
         doc.setTextColor(180, 160, 200)
         doc.text(meta.join('   |   '), TX, 31)
       }
 
-      // ── LEFT COLUMN BODY ─────────────────────────────────────────────────
+      // ── COLONNE GAUCHE ───────────────────────────────────────────────────
       let y = 56
 
-      // BIO
-      if (profile.bio) {
+      // BIO (max 10 lignes pour ne pas ecraser la fiche physique)
+      if (p.bio) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
         doc.setTextColor(219, 39, 119)
         doc.text('A PROPOS', LX, y)
         y += 5
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
+        doc.setFontSize(8.5)
         doc.setTextColor(210, 205, 225)
-        const bioLines = doc.splitTextToSize(profile.bio, LC)
+        const allBioLines = doc.splitTextToSize(p.bio, LC)
+        const MAX_BIO = 10
+        const bioLines = allBioLines.slice(0, MAX_BIO)
+        if (allBioLines.length > MAX_BIO) bioLines[MAX_BIO - 1] = bioLines[MAX_BIO - 1].replace(/\.{0,3}$/, '...')
         doc.text(bioLines, LX, y)
-        y += bioLines.length * 4.8 + 6
+        y += bioLines.length * 4.6 + 5
       }
 
       // FICHE PHYSIQUE
       const physRows: { label: string; val: string }[] = []
-      if (profile.height_cm) physRows.push({ label: 'Taille', val: `${profile.height_cm} cm` })
-      if (profile.weight_kg) physRows.push({ label: 'Poids',  val: `${profile.weight_kg} kg` })
-      if (profile.eye_color)    physRows.push({ label: 'Yeux',    val: profile.eye_color })
-      if (profile.hair_color)   physRows.push({ label: 'Cheveux', val: profile.hair_color + (profile.hair_length ? ' / ' + profile.hair_length : '') })
-      if (profile.skin_tone)    physRows.push({ label: 'Teint',   val: profile.skin_tone })
-      if (profile.clothing_size) physRows.push({ label: 'Vetement', val: profile.clothing_size })
-      if (profile.shoe_size)    physRows.push({ label: 'Pointure', val: profile.shoe_size })
-      if (profile.languages?.length) physRows.push({ label: 'Langues', val: profile.languages.join(', ') })
-      if (profile.special_skills) physRows.push({ label: 'Competences', val: profile.special_skills })
+      if (p.height_cm) physRows.push({ label: 'Taille', val: `${p.height_cm} cm` })
+      if (p.weight_kg) physRows.push({ label: 'Poids',  val: `${p.weight_kg} kg` })
+      if (p.eye_color)     physRows.push({ label: 'Yeux',     val: p.eye_color })
+      if (p.hair_color)    physRows.push({ label: 'Cheveux',  val: p.hair_color + (p.hair_length ? ' / ' + p.hair_length : '') })
+      if (p.skin_tone)     physRows.push({ label: 'Teint',    val: p.skin_tone })
+      if (p.clothing_size) physRows.push({ label: 'Vetement', val: p.clothing_size })
+      if (p.shoe_size)     physRows.push({ label: 'Pointure', val: p.shoe_size })
+      if (p.languages?.length) physRows.push({ label: 'Langues', val: p.languages.join(', ') })
+      if (p.special_skills)    physRows.push({ label: 'Competences', val: p.special_skills })
 
       if (physRows.length > 0) {
         doc.setFont('helvetica', 'bold')
@@ -418,13 +430,12 @@ export default function PortfolioTab() {
         doc.text('FICHE PHYSIQUE', LX, y)
         y += 4
 
-        // 2-column mini table
         const COL = LC / 2 - 1
         for (let i = 0; i < physRows.length; i += 2) {
           const left  = physRows[i]
           const right = physRows[i + 1]
           doc.setFillColor(22, 16, 38)
-          doc.roundedRect(LX,         y - 2.5, COL, 6, 0.8, 0.8, 'F')
+          doc.roundedRect(LX, y - 2.5, COL, 6, 0.8, 0.8, 'F')
           doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(160, 140, 190)
           doc.text(left.label.toUpperCase(), LX + 2, y + 0.5)
           doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(230, 225, 245)
@@ -450,15 +461,14 @@ export default function PortfolioTab() {
       doc.setTextColor(219, 39, 119)
       doc.text('CONTACT', LX, y)
       y += 5
-
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8.5)
 
       const contacts: { label: string; val: string; url?: string; color?: [number,number,number] }[] = []
-      if (profile.contact_email) contacts.push({ label: 'Email', val: profile.contact_email, url: `mailto:${profile.contact_email}` })
-      if (profile.phone) contacts.push({ label: 'Tel', val: profile.phone })
-      if (profile.instagram_url) contacts.push({ label: 'Instagram', val: profile.instagram_url, url: profile.instagram_url, color: [244, 114, 182] })
-      if (profile.tiktok_url) contacts.push({ label: 'TikTok', val: profile.tiktok_url, url: profile.tiktok_url, color: [168, 85, 247] })
+      if (p.contact_email) contacts.push({ label: 'Email', val: p.contact_email, url: `mailto:${p.contact_email}` })
+      if (p.phone)         contacts.push({ label: 'Tel',   val: p.phone })
+      if (p.instagram_url) contacts.push({ label: 'Instagram', val: p.instagram_url, url: p.instagram_url, color: [244, 114, 182] })
+      if (p.tiktok_url)    contacts.push({ label: 'TikTok', val: p.tiktok_url, url: p.tiktok_url, color: [168, 85, 247] })
 
       for (const c of contacts) {
         doc.setTextColor(140, 130, 160)
@@ -480,6 +490,7 @@ export default function PortfolioTab() {
         y += 5
 
         for (const link of linkItems.slice(0, 5)) {
+          if (y > H - 40) break
           doc.setFillColor(25, 18, 42)
           doc.roundedRect(LX, y - 3, LC, 7, 1, 1, 'F')
           doc.setFont('helvetica', 'normal')
@@ -497,7 +508,7 @@ export default function PortfolioTab() {
         }
       }
 
-      // PORTFOLIO URL BOX (bottom of left col)
+      // PORTFOLIO URL BOX
       const boxY = Math.max(y + 4, 220)
       doc.setFillColor(55, 10, 85)
       doc.roundedRect(LX, boxY, LC, 18, 3, 3, 'F')
@@ -515,33 +526,35 @@ export default function PortfolioTab() {
       doc.text(pubShort, LX + LC / 2, boxY + 12, { align: 'center' })
       doc.link(LX, boxY, LC, 18, { url: pubUrl })
 
-      // ── RIGHT COLUMN — PHOTOS ─────────────────────────────────────────────
+      // ── COLONNE DROITE — PHOTOS avec ratio reel ───────────────────────────
       let ry = 56
-      const PH_W = RC, PH_H = Math.round(PH_W * 0.67)   // 3:2 aspect
+      const PH_W = RC
+      const MAX_PH_H = Math.round(PH_W * 1.35)  // portrait max 4:3 inverse
 
-      for (let i = 0; i < Math.min(photoImgs.length, 4); i++) {
+      for (let i = 0; i < Math.min(photoImgs.length, 5); i++) {
         const img = photoImgs[i]
-        if (img && ry + PH_H < H - 20) {
-          doc.addImage(img.data, img.fmt, RX, ry, PH_W, PH_H, undefined, 'MEDIUM')
-          // Category label
-          if (photoItems[i]?.category && photoItems[i].category !== 'portfolio') {
-            doc.setFillColor(20, 10, 35)
-            doc.rect(RX, ry + PH_H - 6, PH_W, 6, 'F')
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(6)
-            doc.setTextColor(200, 180, 230)
-            doc.text(photoItems[i].category.toUpperCase(), RX + 2, ry + PH_H - 1.5)
-          }
-          ry += PH_H + 3
+        if (!img) continue
+        // ratio reel de l'image, plafonne pour eviter les photos trop hautes
+        const ratio = img.h / img.w
+        const PH_H = Math.min(Math.round(PH_W * ratio), MAX_PH_H)
+        if (ry + PH_H > H - 20) break
+        doc.addImage(img.data, img.fmt, RX, ry, PH_W, PH_H, undefined, 'MEDIUM')
+        if (photoItems[i]?.category && photoItems[i].category !== 'portfolio') {
+          doc.setFillColor(20, 10, 35)
+          doc.rect(RX, ry + PH_H - 6, PH_W, 6, 'F')
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(6)
+          doc.setTextColor(200, 180, 230)
+          doc.text(photoItems[i].category.toUpperCase(), RX + 2, ry + PH_H - 1.5)
         }
+        ry += PH_H + 3
       }
 
-      // Photo count note if more
-      if (photoItems.length > 4) {
+      if (photoItems.length > 5) {
         doc.setFont('helvetica', 'italic')
         doc.setFontSize(7)
         doc.setTextColor(120, 100, 140)
-        doc.text(`+ ${photoItems.length - 4} autres photos en ligne`, RX, ry + 3)
+        doc.text(`+ ${photoItems.length - 5} autres photos en ligne`, RX, ry + 3)
       } else if (photoItems.length === 0) {
         doc.setFont('helvetica', 'italic')
         doc.setFontSize(7)
@@ -558,10 +571,10 @@ export default function PortfolioTab() {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(130, 110, 160)
-      doc.text(`${profile.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 5, { align: 'center' })
+      doc.text(`${p.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 5, { align: 'center' })
       doc.link(30, H - 12, W - 60, 12, { url: pubUrl })
 
-      doc.save(`portfolio-${profile.slug}.pdf`)
+      doc.save(`portfolio-${p.slug}.pdf`)
       showToast('PDF exporte!')
     } catch (err) {
       console.error('PDF error:', err)
@@ -580,6 +593,21 @@ export default function PortfolioTab() {
         <CircleCropModal src={coverCropSrc} shape="banner"
           onConfirm={confirmCoverCrop}
           onCancel={() => { URL.revokeObjectURL(coverCropSrc); setCoverCropSrc(null) }} />
+      )}
+
+      {/* Modal bio complete */}
+      {bioModalOpen && selectedProfile?.bio && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setBioModalOpen(false)}>
+          <div className="bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Bio — {selectedProfile.name}</h3>
+              <button onClick={() => setBioModalOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{selectedProfile.bio}</p>
+          </div>
+        </div>
       )}
 
       {/* Toast */}
@@ -1001,6 +1029,22 @@ export default function PortfolioTab() {
                   </div>
                 </div>
 
+                {/* Bio resume */}
+                {selectedProfile.bio && (
+                  <div className="bg-gray-900 rounded-xl border border-gray-700 px-5 py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-gray-500 uppercase tracking-widest">Bio</p>
+                      <button
+                        onClick={() => setBioModalOpen(true)}
+                        className="flex items-center gap-1 text-xs text-pink-400 hover:text-pink-300 transition-colors"
+                      >
+                        <ChevronDown size={13} /> Voir tout
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-300 leading-relaxed line-clamp-3">{selectedProfile.bio}</p>
+                  </div>
+                )}
+
                 {uploadProgress && (
                   <div className="bg-purple-900/30 border border-purple-700/30 rounded-lg px-4 py-2 text-sm text-purple-300 flex items-center gap-2">
                     <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
@@ -1041,30 +1085,36 @@ export default function PortfolioTab() {
                         ))}
                       </div>
 
-                      {itemForm.type === 'photo' && (
+                      {(itemForm.type === 'photo' || itemForm.type === 'video') && (
                         <div>
                           <button
                             onClick={() => {
                               const inp = document.createElement('input')
-                              inp.type = 'file'; inp.accept = 'image/*'
+                              inp.type = 'file'
+                              inp.accept = itemForm.type === 'video' ? 'video/*' : 'image/*'
                               inp.onchange = (e) => {
                                 const f = (e.target as HTMLInputElement).files?.[0]
-                                if (f) uploadItemPhoto(f)
+                                if (f) uploadItemFile(f)
                               }
                               inp.click()
                             }}
                             className="w-full border-2 border-dashed border-gray-600 hover:border-pink-500 rounded-xl py-8 flex flex-col items-center gap-2 text-gray-500 hover:text-pink-400 transition-colors"
                           >
                             <Upload size={24} />
-                            <span className="text-sm">Cliquer pour uploader une photo</span>
+                            <span className="text-sm">
+                              {itemForm.type === 'video' ? 'Choisir une video depuis la galerie' : 'Choisir une photo depuis la galerie'}
+                            </span>
                           </button>
-                          {itemForm.url && (
+                          {itemForm.url && itemForm.type === 'photo' && (
                             <img src={itemForm.url} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />
+                          )}
+                          {itemForm.url && itemForm.type === 'video' && (
+                            <video src={itemForm.url} controls className="mt-2 w-full rounded-lg max-h-32" />
                           )}
                         </div>
                       )}
 
-                      {itemForm.type !== 'photo' && (
+                      {itemForm.type === 'link' && (
                         <div>
                           <label className="text-xs text-gray-400 mb-1 block">URL *</label>
                           <input
