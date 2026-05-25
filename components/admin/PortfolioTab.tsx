@@ -7,7 +7,7 @@ import CircleCropModal from '@/components/ui/CircleCropModal'
 import {
   Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload,
   Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown, ChevronUp,
-  Phone, Mail, MapPin, User, Sparkles, FileDown, Loader2
+  Phone, Mail, MapPin, User, Sparkles, FileDown, Loader2, RefreshCw
 } from 'lucide-react'
 
 interface Profile {
@@ -780,12 +780,22 @@ export default function PortfolioTab() {
                 <p className="text-sm text-gray-400">Gestion des portfolios publics</p>
               </div>
             </div>
-            <button
-              onClick={openNewProfile}
-              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            >
-              <Plus size={16} /> Nouveau portfolio
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => loadProfiles(selectedProfile?.id)}
+                disabled={isLoading}
+                title="Actualiser"
+                className="p-2 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors disabled:opacity-40"
+              >
+                <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+              <button
+                onClick={openNewProfile}
+                className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              >
+                <Plus size={16} /> Nouveau portfolio
+              </button>
+            </div>
           </div>
 
           {/* Stats + Prix */}

@@ -452,11 +452,22 @@ export default function PortfolioFillPage() {
         shoe_size: (form as any).shoe_size ?? '', clothing_size: (form as any).clothing_size ?? '',
         languages: (form as any).languages ?? [], special_skills: (form as any).special_skills ?? '',
       }
-      const { error } = await supabase.from('portfolio_profiles').update(payload)
-        .eq('fill_token', profile.fill_token ?? '')
+      const fillTok = profile.fill_token
+      if (!fillTok) { showToast('Token manquant — recharge la page', false); return }
+
+      const { data: updated, error } = await supabase
+        .from('portfolio_profiles')
+        .update(payload)
+        .eq('fill_token', fillTok)
+        .select('id')
+
       if (error) {
+        console.error('[saveProfile] Supabase error:', error)
         setSaveError(error.message)
         showToast(t.err_prefix + error.message, false)
+      } else if (!updated || updated.length === 0) {
+        console.error('[saveProfile] 0 rows updated — token:', fillTok)
+        showToast('Erreur: aucune ligne mise a jour. Recharge la page.', false)
       } else {
         setProfile(p => p ? { ...p, ...payload } : p)
         setSaved(true); showToast(t.profile_saved)
