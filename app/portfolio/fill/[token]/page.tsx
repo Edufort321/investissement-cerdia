@@ -780,8 +780,11 @@ export default function PortfolioFillPage() {
         </div>
       </div>
 
-      {/* ── HERO PREVIEW CAROUSEL ── */}
-      <div className="relative h-52 sm:h-64 md:h-72 bg-gray-900 overflow-hidden">
+      {/* SPLIT LAYOUT: hero gauche (desktop) / formulaire droite */}
+      <div className="lg:flex lg:h-[calc(100vh-57px)]">
+
+      {/* ── HERO / PANNEAU GAUCHE ── */}
+      <div className="relative h-52 sm:h-64 lg:h-full bg-gray-900 overflow-hidden lg:w-[42%] lg:flex-shrink-0">
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((p, idx) => (
@@ -845,7 +848,10 @@ export default function PortfolioFillPage() {
           <input id="headshot-input" type="file" accept="image/*" className="hidden"
             onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
         </div>
-      </div>
+      </div>{/* end hero */}
+
+      {/* ── PANNEAU DROIT (formulaire) ── */}
+      <div className="lg:flex-1 lg:flex lg:flex-col lg:min-h-0 lg:overflow-hidden">
 
       {/* ── PWA INSTALL BANNER ── */}
       {!appInstalled && !pwaDismissed && (
@@ -894,7 +900,7 @@ export default function PortfolioFillPage() {
       )}
 
       {/* ── SECTION TABS ── */}
-      <div className="bg-gray-900/80 border-b border-gray-800 px-2 sticky top-[57px] z-20">
+      <div className="bg-gray-900/80 border-b border-gray-800 px-2 sticky top-[57px] lg:top-0 z-20">
         <div className="flex">
           {([
             { key: 'profil',   label: t.profile,   icon: User },
@@ -913,8 +919,9 @@ export default function PortfolioFillPage() {
         </div>
       </div>
 
-      {/* ── CONTENT ── */}
-      <div className="max-w-3xl mx-auto px-4 py-5">
+      {/* ── CONTENT (scrollable sur desktop) ── */}
+      <div className="lg:flex-1 lg:overflow-y-auto pb-28 lg:pb-0">
+      <div className="max-w-3xl mx-auto px-4 py-5 lg:max-w-2xl lg:py-6">
 
         {/* ── PROFIL ── */}
         {activeSection === 'profil' && (
@@ -1406,6 +1413,7 @@ export default function PortfolioFillPage() {
           </div>
         )}
       </div>
+      </div>{/* end lg:overflow-y-auto */}
 
       {/* ── MODAL PARTAGE ── */}
       {shareOpen && profile.slug && (
@@ -1498,10 +1506,10 @@ export default function PortfolioFillPage() {
         </div>
       )}
 
-      {/* ── FIXED SAVE BAR ── */}
+      {/* ── SAVE BAR: fixed mobile, static desktop (dans la colonne droite) ── */}
       {activeSection !== 'boutique' && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3">
-          <div className="max-w-3xl mx-auto flex items-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 lg:static lg:bottom-auto lg:left-auto lg:right-auto z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3">
+          <div className="max-w-3xl mx-auto lg:max-w-none flex items-center gap-3">
             {autoSaving && (
               <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
                 <Loader2 size={11} className="animate-spin" />
@@ -1529,6 +1537,9 @@ export default function PortfolioFillPage() {
           </div>
         </div>
       )}
+
+      </div>{/* end right panel */}
+      </div>{/* end split wrapper */}
 
     </main>
   )
