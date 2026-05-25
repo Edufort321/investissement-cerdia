@@ -263,6 +263,25 @@ export default function PortfolioFillPage() {
 
       const photoItems = items.filter(i => i.type === 'photo')
       const linkItems  = items.filter(i => i.type === 'link')
+
+      // ── Theme colors ────────────────────────────────────────────────────
+      const hexToRgb = (hex: string): [number, number, number] => {
+        const h = hex.replace('#', '')
+        return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+      }
+      const TDEF: Record<string,{primary:string;accent:string}> = {
+        rose:   {primary:'#db2777',accent:'#a855f7'},
+        violet: {primary:'#8b5cf6',accent:'#db2777'},
+        ocean:  {primary:'#06b6d4',accent:'#3b82f6'},
+        forest: {primary:'#10b981',accent:'#059669'},
+        sunset: {primary:'#f59e0b',accent:'#ef4444'},
+        slate:  {primary:'#94a3b8',accent:'#64748b'},
+      }
+      const td = TDEF[(form as any).theme] || TDEF.rose
+      const primaryRgb = hexToRgb((form as any).theme==='custom'&&(form as any).theme_primary?(form as any).theme_primary:td.primary)
+      const accentRgb  = hexToRgb((form as any).theme==='custom'&&(form as any).theme_accent?(form as any).theme_accent:td.accent)
+      const accentDarkRgb:[number,number,number]=[Math.round(accentRgb[0]*0.35),Math.round(accentRgb[1]*0.12),Math.round(accentRgb[2]*0.5)]
+
       const [hsCircle, ...photoResults] = await Promise.all([
         profile.headshot_url ? makeCircle(profile.headshot_url) : Promise.resolve(null),
         ...photoItems.slice(0,5).map(i => fetchImg(i.url))
@@ -273,30 +292,35 @@ export default function PortfolioFillPage() {
       const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'letter'})
       const W=215.9,H=279.4,LX=15,LC=120,RX=142,RC=58
       doc.setFillColor(10,8,20); doc.rect(0,0,W,H,'F')
-      doc.setFillColor(16,12,30); doc.rect(RX-3,0,W-RX+3,H,'F')
-      doc.setFillColor(100,10,130); doc.rect(0,0,W,55,'F')
+      doc.setFillColor(14,11,26); doc.rect(RX-3,0,W-RX+3,H,'F')
+      doc.setFillColor(...accentDarkRgb); doc.rect(0,0,W,55,'F')
       doc.setFillColor(10,8,20); doc.rect(0,48,W,7,'F')
-      doc.setDrawColor(219,39,119); doc.setLineWidth(0.8); doc.line(LX,48,W-LX,48)
+      doc.setDrawColor(...primaryRgb); doc.setLineWidth(0.8); doc.line(LX,48,W-LX,48)
+      doc.setDrawColor(200,200,210); doc.setLineWidth(0.25); doc.line(LX,49.5,W-LX,49.5)
 
       const HS=34
       if (hsCircle) { doc.addImage(hsCircle,'JPEG',LX,7,HS,HS) }
-      else { doc.setFillColor(60,20,80); doc.circle(LX+HS/2,7+HS/2,HS/2,'F') }
+      else { doc.setFillColor(...accentDarkRgb); doc.circle(LX+HS/2,7+HS/2,HS/2,'F') }
 
       const TX=LX+HS+6
       doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(255,255,255)
       doc.text(profile.name,TX,18)
-      if (profile.tagline) { doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(244,114,182); doc.text(profile.tagline.toUpperCase(),TX,25) }
+      if (profile.tagline) { doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...primaryRgb); doc.text(profile.tagline.toUpperCase(),TX,25) }
       const meta:string[]=[]
       if (profile.location) meta.push(profile.location)
       if (profile.uda_number) meta.push(`UDA ${profile.uda_number}`)
       if (meta.length>0) { doc.setFontSize(8); doc.setTextColor(180,160,200); doc.text(meta.join('   |   '),TX,31) }
+      // CERDIA label
+      doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(200,200,210)
+      doc.text('CERDIA PORTFOLIO',W-LX,10,{align:'right'})
+      doc.setDrawColor(200,200,210); doc.setLineWidth(0.2); doc.line(W-LX-38,11.5,W-LX,11.5)
 
       let y=56
       let bioOverflow:string[]=[]
       if (profile.bio) {
-        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('A PROPOS',LX,y); y+=5
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...primaryRgb); doc.text('A PROPOS',LX,y); y+=5
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(210,205,225)
-        const allBio:string[]=doc.splitTextToSize(profile.bio,W-30)
+        const allBio:string[]=doc.splitTextToSize(profile.bio,LC)
         const bio1=allBio.slice(0,18); bioOverflow=allBio.slice(18)
         doc.text(bio1,LX,y); y+=bio1.length*4.4+5
       }
@@ -313,7 +337,7 @@ export default function PortfolioFillPage() {
       if ((form as any).special_skills) physRows.push({label:'Competences',val:(form as any).special_skills})
 
       if (physRows.length>0) {
-        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('FICHE PHYSIQUE',LX,y); y+=4
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...primaryRgb); doc.text('FICHE PHYSIQUE',LX,y); y+=4
         const COL=LC/2-1
         for (let i=0;i<physRows.length;i+=2) {
           const l=physRows[i],r=physRows[i+1]
@@ -333,14 +357,14 @@ export default function PortfolioFillPage() {
       }
 
       if (profile.contact_email||profile.phone) {
-        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('CONTACT',LX,y); y+=5
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...primaryRgb); doc.text('CONTACT',LX,y); y+=5
         doc.setFont('helvetica','normal'); doc.setFontSize(8.5)
         if (profile.contact_email) { doc.setTextColor(140,130,160); doc.text('Email:',LX,y); doc.setTextColor(210,205,225); doc.text(profile.contact_email,LX+20,y); y+=5.5 }
         if (profile.phone) { doc.setTextColor(140,130,160); doc.text('Tel:',LX,y); doc.setTextColor(210,205,225); doc.text(profile.phone,LX+20,y); y+=5.5 }
       }
 
       if (linkItems.length>0) {
-        y+=3; doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('LIENS & PROJETS',LX,y); y+=5
+        y+=3; doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...primaryRgb); doc.text('LIENS & PROJETS',LX,y); y+=5
         for (const lk of linkItems.slice(0,5)) {
           if (y>H-40) break
           doc.setFillColor(25,18,42); doc.roundedRect(LX,y-3,LC,7,1,1,'F')
@@ -352,12 +376,14 @@ export default function PortfolioFillPage() {
       }
 
       const boxY=Math.max(y+4,220)
-      doc.setFillColor(55,10,85); doc.roundedRect(LX,boxY,LC,18,3,3,'F')
-      doc.setDrawColor(219,39,119); doc.setLineWidth(0.4); doc.roundedRect(LX,boxY,LC,18,3,3,'S')
-      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(219,39,119); doc.text('PORTFOLIO EN LIGNE',LX+LC/2,boxY+6,{align:'center'})
-      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(168,85,247)
-      doc.text(pubUrl.length>42?pubUrl.slice(0,39)+'...':pubUrl,LX+LC/2,boxY+12,{align:'center'})
-      doc.link(LX,boxY,LC,18,{url:pubUrl})
+      doc.setFillColor(Math.round(accentDarkRgb[0]*1.2),Math.round(accentDarkRgb[1]*1.2),Math.round(accentDarkRgb[2]*1.2))
+      doc.roundedRect(LX,boxY,LC,20,3,3,'F')
+      doc.setDrawColor(...primaryRgb); doc.setLineWidth(0.4); doc.roundedRect(LX,boxY,LC,20,3,3,'S')
+      doc.setDrawColor(210,210,220); doc.setLineWidth(0.3); doc.line(LX+3,boxY+0.5,LX+LC-3,boxY+0.5)
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...primaryRgb); doc.text('PORTFOLIO EN LIGNE',LX+LC/2,boxY+7,{align:'center'})
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...accentRgb)
+      doc.text(pubUrl.length>42?pubUrl.slice(0,39)+'...':pubUrl,LX+LC/2,boxY+13,{align:'center'})
+      doc.link(LX,boxY,LC,20,{url:pubUrl})
 
       let ry=56; const PH_W=RC; const MAX_PH_H=Math.round(PH_W*1.35)
       for (let i=0;i<Math.min(photoImgs.length,5);i++) {
@@ -374,11 +400,12 @@ export default function PortfolioFillPage() {
       if (bioOverflow.length>0) {
         doc.addPage()
         doc.setFillColor(10,8,20); doc.rect(0,0,W,H,'F')
-        doc.setFillColor(100,10,130); doc.rect(0,0,W,14,'F')
+        doc.setFillColor(...accentDarkRgb); doc.rect(0,0,W,14,'F')
+        doc.setDrawColor(...primaryRgb); doc.setLineWidth(0.5); doc.line(0,14,W,14)
         doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255)
         doc.text(profile.name+'  —  Suite',LX,9)
         let y2=22
-        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('A PROPOS (suite)',LX,y2); y2+=5
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...primaryRgb); doc.text('A PROPOS (suite)',LX,y2); y2+=5
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(210,205,225)
         doc.text(bioOverflow,LX,y2)
         doc.setFillColor(20,15,35); doc.rect(0,H-12,W,12,'F')
@@ -674,7 +701,7 @@ export default function PortfolioFillPage() {
       </div>
 
       {/* ── HERO PREVIEW CAROUSEL ── */}
-      <div className="relative h-52 bg-gray-900 overflow-hidden">
+      <div className="relative h-60 md:h-72 bg-gray-900 overflow-hidden">
         {carouselPhotos.length > 0 ? (
           <>
             {carouselPhotos.map((p, idx) => (
@@ -709,25 +736,30 @@ export default function PortfolioFillPage() {
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 flex items-end gap-3 z-10">
-          <div className="w-14 h-14 rounded-full ring-2 ring-pink-400/50 ring-offset-2 ring-offset-transparent overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer"
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full ring-2 ring-white/30 ring-offset-2 ring-offset-transparent overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer shadow-xl"
                onClick={() => document.getElementById('headshot-input')?.click()}>
             {profile.headshot_url
               ? <img src={profile.headshot_url} alt={profile.name} className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-600/20">
-                  <Camera size={18} className="text-pink-400/50" />
+                  <Camera size={20} className="text-pink-400/50" />
                 </div>
             }
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-bold text-base leading-tight drop-shadow-lg truncate"
+            <p className="text-white font-bold text-lg md:text-xl leading-tight drop-shadow-lg truncate"
                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}>
               {profile.name}
             </p>
             {profile.tagline && (
-              <p className="text-pink-300 text-xs tracking-wide truncate"
+              <p className="text-pink-200 text-sm tracking-wide truncate"
                  style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                 {profile.tagline}
               </p>
+            )}
+            {profile.is_published && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> {lang === 'fr' ? 'Public' : 'Public'}
+              </span>
             )}
           </div>
           <input id="headshot-input" type="file" accept="image/*" className="hidden"
@@ -756,11 +788,11 @@ export default function PortfolioFillPage() {
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="max-w-lg mx-auto px-4 py-5">
+      <div className="max-w-2xl mx-auto px-4 py-5 md:py-7">
 
         {/* ── PROFIL ── */}
         {activeSection === 'profil' && (
-          <div className="space-y-5">
+          <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-[1fr_290px] md:gap-5 md:items-start">
 
             {/* Photo section */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
@@ -882,7 +914,7 @@ export default function PortfolioFillPage() {
             </div>
 
             {/* Genre / Classe d'age / Theme */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4 md:col-start-2 md:row-start-1">
               <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
                 <Palette size={11} /> {lang === 'fr' ? 'Identite & Apparence' : 'Identity & Appearance'}
               </p>
@@ -977,7 +1009,7 @@ export default function PortfolioFillPage() {
             </div>
 
             {/* Caracteristiques physiques */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4 md:col-start-2 md:row-start-2">
               <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
                 {lang === 'fr' ? 'Caracteristiques physiques' : 'Physical attributes'}
               </p>
@@ -1086,11 +1118,11 @@ export default function PortfolioFillPage() {
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t.bio_label}</p>
-                <span className="text-xs text-gray-600">{(form.bio ?? '').length}/500</span>
+                <span className="text-xs text-gray-600">{(form.bio ?? '').length} {lang === 'fr' ? 'car.' : 'chars'}</span>
               </div>
               <textarea
                 value={form.bio ?? ''}
-                onChange={e => setForm(f => ({ ...f, bio: e.target.value.slice(0, 500) }))}
+                onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 rows={5} placeholder={t.bio_ph}
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none leading-relaxed"
               />

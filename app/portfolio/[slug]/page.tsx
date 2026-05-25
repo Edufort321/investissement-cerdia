@@ -26,6 +26,16 @@ interface Profile {
   theme: string
   theme_primary: string
   theme_accent: string
+  height_cm: number | null
+  weight_kg: number | null
+  eye_color: string
+  hair_color: string
+  hair_length: string
+  skin_tone: string
+  shoe_size: string
+  clothing_size: string
+  languages: string[]
+  special_skills: string
 }
 
 interface PortfolioItem {
@@ -232,6 +242,23 @@ export default function PortfolioPublicPage() {
           </>
         )}
 
+        {/* Name overlay at hero bottom */}
+        <div className="absolute bottom-16 left-0 right-0 z-20 text-center px-6 pointer-events-none">
+          <p className="text-[9px] tracking-[0.6em] uppercase mb-2 font-light select-none" style={{ color: th.primary + '90' }}>
+            ✦ Portfolio Artistique
+          </p>
+          <h2 className="text-4xl md:text-6xl font-bold text-white leading-none drop-shadow-2xl select-none"
+              style={{ fontFamily: 'Georgia, "Times New Roman", serif', letterSpacing: '-0.02em', textShadow: '0 2px 24px rgba(0,0,0,0.7)' }}>
+            {profile.name}
+          </h2>
+          {profile.tagline && (
+            <p className="text-sm md:text-base tracking-[0.25em] uppercase mt-2 font-light select-none"
+               style={{ color: th.text + 'bb', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>
+              {profile.tagline}
+            </p>
+          )}
+        </div>
+
         {/* Scroll indicator */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 animate-bounce opacity-30 pointer-events-none">
           <div className="w-5 h-8 rounded-full border border-white/30 flex items-start justify-center pt-1.5">
@@ -340,6 +367,54 @@ export default function PortfolioPublicPage() {
         </section>
       )}
 
+      {/* ══ FICHE PHYSIQUE ══ */}
+      {(profile.height_cm || profile.weight_kg || profile.eye_color || profile.hair_color || profile.clothing_size || profile.languages?.length > 0) && (
+        <section className="max-w-2xl mx-auto px-6 pb-12">
+          <SectionDivider label="Fiche physique" theme={th} />
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {profile.height_cm && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Taille</p>
+                <p className="text-white font-semibold text-sm">{profile.height_cm} cm</p>
+              </div>
+            )}
+            {profile.weight_kg && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Poids</p>
+                <p className="text-white font-semibold text-sm">{profile.weight_kg} kg</p>
+              </div>
+            )}
+            {profile.eye_color && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Yeux</p>
+                <p className="text-white font-semibold text-sm capitalize">{profile.eye_color}</p>
+              </div>
+            )}
+            {profile.hair_color && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Cheveux</p>
+                <p className="text-white font-semibold text-sm capitalize">{profile.hair_color}{profile.hair_length ? ' / ' + profile.hair_length : ''}</p>
+              </div>
+            )}
+            {profile.clothing_size && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Vetements</p>
+                <p className="text-white font-semibold text-sm">{profile.clothing_size}</p>
+              </div>
+            )}
+            {profile.languages?.length > 0 && (
+              <div className="rounded-xl px-4 py-3 text-center" style={{ background: th.soft, border: `1px solid ${th.border}` }}>
+                <p className="text-[9px] tracking-widest uppercase mb-1" style={{ color: th.text + '70' }}>Langues</p>
+                <p className="text-white font-semibold text-sm">{(profile.languages || []).join(', ')}</p>
+              </div>
+            )}
+          </div>
+          {profile.special_skills && (
+            <p className="text-center text-xs mt-3 italic" style={{ color: th.text + '80' }}>{profile.special_skills}</p>
+          )}
+        </section>
+      )}
+
       {/* ══ GALLERY ══ */}
       {photos.length > 0 && (
         <section className="px-3 md:px-6 py-12 max-w-6xl mx-auto">
@@ -441,6 +516,10 @@ export default function PortfolioPublicPage() {
         <p className="text-gray-800 text-xs mt-10 select-none">
           {profile.name} &copy; {new Date().getFullYear()}
         </p>
+        <div className="mt-6 flex items-center justify-center gap-1.5">
+          <span className="text-gray-800 text-[9px] tracking-[0.35em] uppercase select-none">Portfolio par</span>
+          <span className="text-gray-700 text-[9px] tracking-[0.35em] uppercase font-semibold select-none">CERDIA</span>
+        </div>
       </footer>
     </main>
   )

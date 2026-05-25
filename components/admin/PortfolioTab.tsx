@@ -328,6 +328,25 @@ export default function PortfolioTab() {
       const { data: freshData } = await supabase.from('portfolio_profiles').select('*').eq('id', profile.id).single()
       const p = (freshData as Profile) || profile
 
+      // ── Theme colors ─────────────────────────────────────────────────────
+      const hexToRgb = (hex: string): [number, number, number] => {
+        const h = hex.replace('#', '')
+        return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+      }
+      const TDEF: Record<string, {primary:string;accent:string}> = {
+        rose:   { primary:'#db2777', accent:'#a855f7' },
+        violet: { primary:'#8b5cf6', accent:'#db2777' },
+        ocean:  { primary:'#06b6d4', accent:'#3b82f6' },
+        forest: { primary:'#10b981', accent:'#059669' },
+        sunset: { primary:'#f59e0b', accent:'#ef4444' },
+        slate:  { primary:'#94a3b8', accent:'#64748b' },
+      }
+      const td = TDEF[p.theme] || TDEF.rose
+      const primaryRgb = hexToRgb(p.theme === 'custom' && p.theme_primary ? p.theme_primary : td.primary)
+      const accentRgb  = hexToRgb(p.theme === 'custom' && p.theme_accent  ? p.theme_accent  : td.accent)
+      // dark version of accent for backgrounds (divide by ~3)
+      const accentDarkRgb: [number,number,number] = [Math.round(accentRgb[0]*0.35), Math.round(accentRgb[1]*0.12), Math.round(accentRgb[2]*0.5)]
+
       // ── Fetch images concurrently ─────────────────────────────────────────
       const [headshotCircle, ...photoImgResults] = await Promise.all([
         profile.headshot_url ? makeCircle(profile.headshot_url) : Promise.resolve(null),
@@ -346,17 +365,21 @@ export default function PortfolioTab() {
       doc.rect(0, 0, W, H, 'F')
 
       // Right column subtle tint
-      doc.setFillColor(16, 12, 30)
+      doc.setFillColor(14, 11, 26)
       doc.rect(RX - 3, 0, W - RX + 3, H, 'F')
 
       // ── TOP ACCENT BAND ──────────────────────────────────────────────────
-      doc.setFillColor(100, 10, 130)
+      doc.setFillColor(...accentDarkRgb)
       doc.rect(0, 0, W, 55, 'F')
       doc.setFillColor(10, 8, 20)
       doc.rect(0, 48, W, 7, 'F')
-      doc.setDrawColor(219, 39, 119)
+      doc.setDrawColor(...primaryRgb)
       doc.setLineWidth(0.8)
       doc.line(LX, 48, W - LX, 48)
+      // silver decorative line
+      doc.setDrawColor(200, 200, 210)
+      doc.setLineWidth(0.25)
+      doc.line(LX, 49.5, W - LX, 49.5)
 
       // ── HEADSHOT ─────────────────────────────────────────────────────────
       const HS = 34
@@ -377,7 +400,7 @@ export default function PortfolioTab() {
       if (p.tagline) {
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(10)
-        doc.setTextColor(244, 114, 182)
+        doc.setTextColor(...primaryRgb)
         doc.text(p.tagline.toUpperCase(), TX, 25)
       }
 
@@ -390,6 +413,15 @@ export default function PortfolioTab() {
         doc.text(meta.join('   |   '), TX, 31)
       }
 
+      // CERDIA Portfolio label (top-right corner)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(6)
+      doc.setTextColor(200, 200, 210)
+      doc.text('CERDIA PORTFOLIO', W - LX, 10, { align: 'right' })
+      doc.setDrawColor(200, 200, 210)
+      doc.setLineWidth(0.2)
+      doc.line(W - LX - 38, 11.5, W - LX, 11.5)
+
       // ── COLONNE GAUCHE ───────────────────────────────────────────────────
       let y = 56
 
@@ -398,13 +430,13 @@ export default function PortfolioTab() {
       if (p.bio) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
-        doc.setTextColor(219, 39, 119)
+        doc.setTextColor(...primaryRgb)
         doc.text('A PROPOS', LX, y)
         y += 5
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(8)
         doc.setTextColor(210, 205, 225)
-        const allBioLines: string[] = doc.splitTextToSize(p.bio, W - 30)
+        const allBioLines: string[] = doc.splitTextToSize(p.bio, LC)
         const MAX_BIO_P1 = 18
         const bioP1 = allBioLines.slice(0, MAX_BIO_P1)
         bioOverflow = allBioLines.slice(MAX_BIO_P1)
@@ -427,7 +459,7 @@ export default function PortfolioTab() {
       if (physRows.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
-        doc.setTextColor(219, 39, 119)
+        doc.setTextColor(...primaryRgb)
         doc.text('FICHE PHYSIQUE', LX, y)
         y += 4
 
@@ -459,7 +491,7 @@ export default function PortfolioTab() {
       // CONTACT
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(7)
-      doc.setTextColor(219, 39, 119)
+      doc.setTextColor(...primaryRgb)
       doc.text('CONTACT', LX, y)
       y += 5
       doc.setFont('helvetica', 'normal')
@@ -468,8 +500,8 @@ export default function PortfolioTab() {
       const contacts: { label: string; val: string; url?: string; color?: [number,number,number] }[] = []
       if (p.contact_email) contacts.push({ label: 'Email', val: p.contact_email, url: `mailto:${p.contact_email}` })
       if (p.phone)         contacts.push({ label: 'Tel',   val: p.phone })
-      if (p.instagram_url) contacts.push({ label: 'Instagram', val: p.instagram_url, url: p.instagram_url, color: [244, 114, 182] })
-      if (p.tiktok_url)    contacts.push({ label: 'TikTok', val: p.tiktok_url, url: p.tiktok_url, color: [168, 85, 247] })
+      if (p.instagram_url) contacts.push({ label: 'Instagram', val: p.instagram_url, url: p.instagram_url, color: primaryRgb })
+      if (p.tiktok_url)    contacts.push({ label: 'TikTok', val: p.tiktok_url, url: p.tiktok_url, color: accentRgb })
 
       for (const c of contacts) {
         doc.setTextColor(140, 130, 160)
@@ -486,7 +518,7 @@ export default function PortfolioTab() {
         y += 3
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
-        doc.setTextColor(219, 39, 119)
+        doc.setTextColor(...primaryRgb)
         doc.text('LIENS & PROJETS', LX, y)
         y += 5
 
@@ -511,21 +543,25 @@ export default function PortfolioTab() {
 
       // PORTFOLIO URL BOX
       const boxY = Math.max(y + 4, 220)
-      doc.setFillColor(55, 10, 85)
-      doc.roundedRect(LX, boxY, LC, 18, 3, 3, 'F')
-      doc.setDrawColor(219, 39, 119)
+      doc.setFillColor(Math.round(accentDarkRgb[0]*1.2), Math.round(accentDarkRgb[1]*1.2), Math.round(accentDarkRgb[2]*1.2))
+      doc.roundedRect(LX, boxY, LC, 20, 3, 3, 'F')
+      doc.setDrawColor(...primaryRgb)
       doc.setLineWidth(0.4)
-      doc.roundedRect(LX, boxY, LC, 18, 3, 3, 'S')
+      doc.roundedRect(LX, boxY, LC, 20, 3, 3, 'S')
+      // silver top edge
+      doc.setDrawColor(210, 210, 220)
+      doc.setLineWidth(0.3)
+      doc.line(LX + 3, boxY + 0.5, LX + LC - 3, boxY + 0.5)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(7.5)
-      doc.setTextColor(219, 39, 119)
-      doc.text('PORTFOLIO EN LIGNE', LX + LC / 2, boxY + 6, { align: 'center' })
+      doc.setTextColor(...primaryRgb)
+      doc.text('PORTFOLIO EN LIGNE', LX + LC / 2, boxY + 7, { align: 'center' })
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
-      doc.setTextColor(168, 85, 247)
+      doc.setTextColor(...accentRgb)
       const pubShort = pubUrl.length > 42 ? pubUrl.slice(0, 39) + '...' : pubUrl
-      doc.text(pubShort, LX + LC / 2, boxY + 12, { align: 'center' })
-      doc.link(LX, boxY, LC, 18, { url: pubUrl })
+      doc.text(pubShort, LX + LC / 2, boxY + 13, { align: 'center' })
+      doc.link(LX, boxY, LC, 20, { url: pubUrl })
 
       // ── COLONNE DROITE — PHOTOS avec ratio reel ───────────────────────────
       let ry = 56
@@ -582,8 +618,11 @@ export default function PortfolioTab() {
         doc.rect(0, 0, W, H, 'F')
 
         // bandeau haut minimal
-        doc.setFillColor(100, 10, 130)
+        doc.setFillColor(...accentDarkRgb)
         doc.rect(0, 0, W, 14, 'F')
+        doc.setDrawColor(...primaryRgb)
+        doc.setLineWidth(0.5)
+        doc.line(0, 14, W, 14)
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
         doc.setTextColor(255, 255, 255)
@@ -594,7 +633,7 @@ export default function PortfolioTab() {
         if (bioOverflow.length > 0) {
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(7)
-          doc.setTextColor(219, 39, 119)
+          doc.setTextColor(...primaryRgb)
           doc.text('A PROPOS (suite)', LX, y2)
           y2 += 5
           doc.setFont('helvetica', 'normal')
@@ -609,7 +648,7 @@ export default function PortfolioTab() {
         if (extraPhotos.length > 0) {
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(7)
-          doc.setTextColor(219, 39, 119)
+          doc.setTextColor(...primaryRgb)
           doc.text('PHOTOS SUPPLEMENTAIRES', LX, y2)
           y2 += 5
           const GW = (W - 30 - 5) / 2
