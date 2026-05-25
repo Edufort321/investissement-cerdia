@@ -424,7 +424,7 @@ export default function CommerceAdminPage() {
 
   // ── Dashboard ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
+    <div className="min-h-screen bg-gray-50 pt-20">
 
       {/* Toast */}
       {toast && (
@@ -434,21 +434,21 @@ export default function CommerceAdminPage() {
       )}
 
       {/* Header admin */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 fixed top-[68px] left-0 right-0 z-30 shadow-sm">
+      <div className="bg-white border-b border-gray-200 fixed top-[68px] left-0 right-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
               <Image src="/logo-cerdia3.png" alt="CERDIA" width={50} height={25} className="h-7 w-auto" />
               <div>
-                <span className="font-bold text-gray-900 dark:text-white text-sm">Commerce Admin</span>
-                <span className="ml-2 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs rounded-full font-medium">Actif</span>
+                <span className="font-bold text-gray-900 text-sm">Commerce Admin</span>
+                <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">Actif</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/commerce" className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors hidden sm:block">
+              <Link href="/commerce" className="text-xs text-gray-500 hover:text-gray-700 transition-colors hidden sm:block">
                 ← Boutique
               </Link>
-              <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-full transition-colors border border-red-200 dark:border-red-800">
+              <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-200">
                 <LogOut size={13} /> Déconnexion
               </button>
             </div>
@@ -470,8 +470,8 @@ export default function CommerceAdminPage() {
                 onClick={() => setTab(key)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   tab === key
-                    ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <Icon size={15} /> {label}

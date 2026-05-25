@@ -78,7 +78,7 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
 
   if (state === 'checking' || state === 'redirecting') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
         <div className="text-center">
           <RefreshCw size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
           <p className="text-sm text-gray-500">
@@ -91,7 +91,7 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
 
   if (state === 'denied') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20 px-4">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center border border-red-200 dark:border-red-800">
           <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock size={20} className="text-red-600 dark:text-red-400" />
