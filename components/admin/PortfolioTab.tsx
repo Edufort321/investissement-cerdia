@@ -393,7 +393,8 @@ export default function PortfolioTab() {
       // ── COLONNE GAUCHE ───────────────────────────────────────────────────
       let y = 56
 
-      // BIO (max 10 lignes pour ne pas ecraser la fiche physique)
+      // BIO (max 18 lignes p.1 ; suite sur p.2 si plus long)
+      let bioOverflow: string[] = []
       if (p.bio) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
@@ -401,14 +402,14 @@ export default function PortfolioTab() {
         doc.text('A PROPOS', LX, y)
         y += 5
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(8.5)
+        doc.setFontSize(8)
         doc.setTextColor(210, 205, 225)
-        const allBioLines = doc.splitTextToSize(p.bio, LC)
-        const MAX_BIO = 10
-        const bioLines = allBioLines.slice(0, MAX_BIO)
-        if (allBioLines.length > MAX_BIO) bioLines[MAX_BIO - 1] = bioLines[MAX_BIO - 1].replace(/\.{0,3}$/, '...')
-        doc.text(bioLines, LX, y)
-        y += bioLines.length * 4.6 + 5
+        const allBioLines: string[] = doc.splitTextToSize(p.bio, W - 30)
+        const MAX_BIO_P1 = 18
+        const bioP1 = allBioLines.slice(0, MAX_BIO_P1)
+        bioOverflow = allBioLines.slice(MAX_BIO_P1)
+        doc.text(bioP1, LX, y)
+        y += bioP1.length * 4.4 + 5
       }
 
       // FICHE PHYSIQUE
@@ -439,7 +440,7 @@ export default function PortfolioTab() {
           doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(160, 140, 190)
           doc.text(left.label.toUpperCase(), LX + 2, y + 0.5)
           doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(230, 225, 245)
-          const lv = left.val.length > 16 ? left.val.slice(0, 14) + '..' : left.val
+          const lv = left.val.length > 24 ? left.val.slice(0, 22) + '..' : left.val
           doc.text(lv, LX + 2, y + 3.5)
           if (right) {
             doc.setFillColor(22, 16, 38)
@@ -447,7 +448,7 @@ export default function PortfolioTab() {
             doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(160, 140, 190)
             doc.text(right.label.toUpperCase(), LX + COL + 4, y + 0.5)
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(230, 225, 245)
-            const rv = right.val.length > 16 ? right.val.slice(0, 14) + '..' : right.val
+            const rv = right.val.length > 24 ? right.val.slice(0, 22) + '..' : right.val
             doc.text(rv, LX + COL + 4, y + 3.5)
           }
           y += 7
@@ -573,6 +574,65 @@ export default function PortfolioTab() {
       doc.setTextColor(130, 110, 160)
       doc.text(`${p.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`, W / 2, H - 5, { align: 'center' })
       doc.link(30, H - 12, W - 60, 12, { url: pubUrl })
+
+      // ── PAGE 2 (bio longue + photos supplementaires) ─────────────────────
+      if (bioOverflow.length > 0 || photoImgs.length > 5) {
+        doc.addPage()
+        doc.setFillColor(10, 8, 20)
+        doc.rect(0, 0, W, H, 'F')
+
+        // bandeau haut minimal
+        doc.setFillColor(100, 10, 130)
+        doc.rect(0, 0, W, 14, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(255, 255, 255)
+        doc.text(p.name + '  —  Suite', LX, 9)
+
+        let y2 = 22
+
+        if (bioOverflow.length > 0) {
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(7)
+          doc.setTextColor(219, 39, 119)
+          doc.text('A PROPOS (suite)', LX, y2)
+          y2 += 5
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(210, 205, 225)
+          doc.text(bioOverflow, LX, y2)
+          y2 += bioOverflow.length * 4.4 + 8
+        }
+
+        // photos supplementaires en grille 2 colonnes
+        const extraPhotos = photoImgs.slice(5)
+        if (extraPhotos.length > 0) {
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(7)
+          doc.setTextColor(219, 39, 119)
+          doc.text('PHOTOS SUPPLEMENTAIRES', LX, y2)
+          y2 += 5
+          const GW = (W - 30 - 5) / 2
+          let gx = LX, gy = y2
+          for (const img of extraPhotos) {
+            if (!img) continue
+            const ratio = img.h / img.w
+            const GH = Math.min(Math.round(GW * ratio), Math.round(GW * 1.35))
+            if (gy + GH > H - 15) break
+            doc.addImage(img.data, img.fmt, gx, gy, GW, GH, undefined, 'MEDIUM')
+            gx = gx === LX ? LX + GW + 5 : LX
+            if (gx === LX) gy += GH + 4
+          }
+        }
+
+        // footer p.2
+        doc.setFillColor(20, 15, 35)
+        doc.rect(0, H - 12, W, 12, 'F')
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(130, 110, 160)
+        doc.text(`${p.name}  |  Portfolio Artistique  |  Page 2`, W / 2, H - 5, { align: 'center' })
+      }
 
       doc.save(`portfolio-${p.slug}.pdf`)
       showToast('PDF exporte!')

@@ -5,10 +5,12 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CircleCropModal from '@/components/ui/CircleCropModal'
 import { getTheme, THEME_LABELS, GENDER_LABELS, AGE_CLASS_LABELS, defaultThemeForGender } from '@/lib/portfolioTheme'
+import jsPDF from 'jspdf'
 import {
   Save, Upload, Plus, Trash2, Check, ExternalLink, Sparkles,
   Camera, Link2, User, ChevronLeft, ChevronRight, Eye,
-  Instagram, ShoppingBag, Lock, Lightbulb, AlertCircle, Loader2, X, Crop, Palette, Play
+  Instagram, ShoppingBag, Lock, Lightbulb, AlertCircle, Loader2, X, Crop, Palette, Play,
+  Share2, FileDown, Copy, Globe
 } from 'lucide-react'
 
 interface Profile {
@@ -148,6 +150,9 @@ export default function PortfolioFillPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [pdfExporting, setPdfExporting] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -194,6 +199,180 @@ export default function PortfolioFillPage() {
       .eq('profile_id', data.id).order('sort_order').order('created_at')
     setItems(its ?? [])
     setLoading(false)
+  }
+
+  const shareProfile = async () => {
+    const url = window.location.origin + `/portfolio/${profile?.slug}`
+    if (navigator.share) {
+      try { await navigator.share({ title: profile?.name, url }) } catch {}
+    } else {
+      setShareOpen(true)
+    }
+  }
+
+  const copyUrl = async () => {
+    const url = window.location.origin + `/portfolio/${profile?.slug}`
+    await navigator.clipboard.writeText(url)
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
+  }
+
+  const exportPDF = async () => {
+    if (!profile) return
+    setPdfExporting(true)
+    try {
+      const makeCircle = (url: string): Promise<string | null> =>
+        new Promise(res => {
+          const img = new window.Image(); img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const S = 280, c = document.createElement('canvas')
+            c.width = c.height = S
+            const ctx = c.getContext('2d')!
+            ctx.beginPath(); ctx.arc(S/2,S/2,S/2,0,Math.PI*2); ctx.clip()
+            const sc = Math.max(S/img.naturalWidth, S/img.naturalHeight)
+            const w = img.naturalWidth*sc, h = img.naturalHeight*sc
+            ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h)
+            res(c.toDataURL('image/jpeg',0.9))
+          }; img.onerror = () => res(null); img.src = url
+        })
+      const fetchImg = (url: string): Promise<{data:string;fmt:'JPEG'|'PNG';w:number;h:number}|null> =>
+        new Promise(res => {
+          const img = new window.Image(); img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const c = document.createElement('canvas')
+            c.width = img.naturalWidth; c.height = img.naturalHeight
+            c.getContext('2d')!.drawImage(img,0,0)
+            res({data:c.toDataURL('image/jpeg',0.92),fmt:'JPEG',w:img.naturalWidth,h:img.naturalHeight})
+          }; img.onerror = () => res(null); img.src = url
+        })
+
+      const photoItems = items.filter(i => i.type === 'photo')
+      const linkItems  = items.filter(i => i.type === 'link')
+      const [hsCircle, ...photoResults] = await Promise.all([
+        profile.headshot_url ? makeCircle(profile.headshot_url) : Promise.resolve(null),
+        ...photoItems.slice(0,5).map(i => fetchImg(i.url))
+      ])
+      const photoImgs = photoResults as ({data:string;fmt:'JPEG'|'PNG';w:number;h:number}|null)[]
+
+      const pubUrl = window.location.origin + `/portfolio/${profile.slug}`
+      const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'letter'})
+      const W=215.9,H=279.4,LX=15,LC=120,RX=142,RC=58
+      doc.setFillColor(10,8,20); doc.rect(0,0,W,H,'F')
+      doc.setFillColor(16,12,30); doc.rect(RX-3,0,W-RX+3,H,'F')
+      doc.setFillColor(100,10,130); doc.rect(0,0,W,55,'F')
+      doc.setFillColor(10,8,20); doc.rect(0,48,W,7,'F')
+      doc.setDrawColor(219,39,119); doc.setLineWidth(0.8); doc.line(LX,48,W-LX,48)
+
+      const HS=34
+      if (hsCircle) { doc.addImage(hsCircle,'JPEG',LX,7,HS,HS) }
+      else { doc.setFillColor(60,20,80); doc.circle(LX+HS/2,7+HS/2,HS/2,'F') }
+
+      const TX=LX+HS+6
+      doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(255,255,255)
+      doc.text(profile.name,TX,18)
+      if (profile.tagline) { doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(244,114,182); doc.text(profile.tagline.toUpperCase(),TX,25) }
+      const meta:string[]=[]
+      if (profile.location) meta.push(profile.location)
+      if (profile.uda_number) meta.push(`UDA ${profile.uda_number}`)
+      if (meta.length>0) { doc.setFontSize(8); doc.setTextColor(180,160,200); doc.text(meta.join('   |   '),TX,31) }
+
+      let y=56
+      let bioOverflow:string[]=[]
+      if (profile.bio) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('A PROPOS',LX,y); y+=5
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(210,205,225)
+        const allBio:string[]=doc.splitTextToSize(profile.bio,W-30)
+        const bio1=allBio.slice(0,18); bioOverflow=allBio.slice(18)
+        doc.text(bio1,LX,y); y+=bio1.length*4.4+5
+      }
+
+      const physRows:{label:string;val:string}[]=[]
+      if ((form as any).height_cm) physRows.push({label:'Taille',val:`${(form as any).height_cm} cm`})
+      if ((form as any).weight_kg) physRows.push({label:'Poids',val:`${(form as any).weight_kg} kg`})
+      if ((form as any).eye_color) physRows.push({label:'Yeux',val:(form as any).eye_color})
+      if ((form as any).hair_color) physRows.push({label:'Cheveux',val:(form as any).hair_color+((form as any).hair_length?' / '+(form as any).hair_length:'')})
+      if ((form as any).skin_tone) physRows.push({label:'Teint',val:(form as any).skin_tone})
+      if ((form as any).clothing_size) physRows.push({label:'Vetement',val:(form as any).clothing_size})
+      if ((form as any).shoe_size) physRows.push({label:'Pointure',val:(form as any).shoe_size})
+      if ((form as any).languages?.length) physRows.push({label:'Langues',val:((form as any).languages as string[]).join(', ')})
+      if ((form as any).special_skills) physRows.push({label:'Competences',val:(form as any).special_skills})
+
+      if (physRows.length>0) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('FICHE PHYSIQUE',LX,y); y+=4
+        const COL=LC/2-1
+        for (let i=0;i<physRows.length;i+=2) {
+          const l=physRows[i],r=physRows[i+1]
+          doc.setFillColor(22,16,38); doc.roundedRect(LX,y-2.5,COL,6,0.8,0.8,'F')
+          doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(160,140,190); doc.text(l.label.toUpperCase(),LX+2,y+0.5)
+          doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(230,225,245)
+          doc.text(l.val.length>24?l.val.slice(0,22)+'..':l.val,LX+2,y+3.5)
+          if (r) {
+            doc.setFillColor(22,16,38); doc.roundedRect(LX+COL+2,y-2.5,COL,6,0.8,0.8,'F')
+            doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(160,140,190); doc.text(r.label.toUpperCase(),LX+COL+4,y+0.5)
+            doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(230,225,245)
+            doc.text(r.val.length>24?r.val.slice(0,22)+'..':r.val,LX+COL+4,y+3.5)
+          }
+          y+=7
+        }
+        y+=4
+      }
+
+      if (profile.contact_email||profile.phone) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('CONTACT',LX,y); y+=5
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5)
+        if (profile.contact_email) { doc.setTextColor(140,130,160); doc.text('Email:',LX,y); doc.setTextColor(210,205,225); doc.text(profile.contact_email,LX+20,y); y+=5.5 }
+        if (profile.phone) { doc.setTextColor(140,130,160); doc.text('Tel:',LX,y); doc.setTextColor(210,205,225); doc.text(profile.phone,LX+20,y); y+=5.5 }
+      }
+
+      if (linkItems.length>0) {
+        y+=3; doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('LIENS & PROJETS',LX,y); y+=5
+        for (const lk of linkItems.slice(0,5)) {
+          if (y>H-40) break
+          doc.setFillColor(25,18,42); doc.roundedRect(LX,y-3,LC,7,1,1,'F')
+          doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(210,205,225)
+          const ti=lk.title||lk.url; doc.text(ti.length>38?ti.slice(0,35)+'...':ti,LX+3,y+1)
+          if (lk.title) { doc.setTextColor(140,100,200); doc.text(lk.url.length>30?lk.url.slice(0,27)+'...':lk.url,LX+3,y+4.5) }
+          doc.link(LX,y-3,LC,7,{url:lk.url}); y+=lk.title?9:8
+        }
+      }
+
+      const boxY=Math.max(y+4,220)
+      doc.setFillColor(55,10,85); doc.roundedRect(LX,boxY,LC,18,3,3,'F')
+      doc.setDrawColor(219,39,119); doc.setLineWidth(0.4); doc.roundedRect(LX,boxY,LC,18,3,3,'S')
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(219,39,119); doc.text('PORTFOLIO EN LIGNE',LX+LC/2,boxY+6,{align:'center'})
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(168,85,247)
+      doc.text(pubUrl.length>42?pubUrl.slice(0,39)+'...':pubUrl,LX+LC/2,boxY+12,{align:'center'})
+      doc.link(LX,boxY,LC,18,{url:pubUrl})
+
+      let ry=56; const PH_W=RC; const MAX_PH_H=Math.round(PH_W*1.35)
+      for (let i=0;i<Math.min(photoImgs.length,5);i++) {
+        const img=photoImgs[i]; if (!img) continue
+        const PH_H=Math.min(Math.round(PH_W*(img.h/img.w)),MAX_PH_H)
+        if (ry+PH_H>H-20) break
+        doc.addImage(img.data,img.fmt,RX,ry,PH_W,PH_H,undefined,'MEDIUM'); ry+=PH_H+3
+      }
+
+      doc.setFillColor(20,15,35); doc.rect(0,H-12,W,12,'F')
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(130,110,160)
+      doc.text(`${profile.name}  |  Portfolio Artistique  |  ${new Date().getFullYear()}`,W/2,H-5,{align:'center'})
+
+      if (bioOverflow.length>0) {
+        doc.addPage()
+        doc.setFillColor(10,8,20); doc.rect(0,0,W,H,'F')
+        doc.setFillColor(100,10,130); doc.rect(0,0,W,14,'F')
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255)
+        doc.text(profile.name+'  —  Suite',LX,9)
+        let y2=22
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(219,39,119); doc.text('A PROPOS (suite)',LX,y2); y2+=5
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(210,205,225)
+        doc.text(bioOverflow,LX,y2)
+        doc.setFillColor(20,15,35); doc.rect(0,H-12,W,12,'F')
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(130,110,160)
+        doc.text(`${profile.name}  |  Portfolio Artistique  |  Page 2`,W/2,H-5,{align:'center'})
+      }
+
+      doc.save(`portfolio-${profile.slug}.pdf`)
+    } catch(e) { console.error(e) }
+    finally { setPdfExporting(false) }
   }
 
   const saveProfile = async () => {
@@ -1049,15 +1228,59 @@ export default function PortfolioFillPage() {
         )}
       </div>
 
+      {/* ── MODAL PARTAGE ── */}
+      {shareOpen && profile.slug && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4" onClick={() => setShareOpen(false)}>
+          <div className="bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-white font-semibold text-sm">{lang === 'fr' ? 'Partager mon portfolio' : 'Share my portfolio'}</h3>
+              <button onClick={() => setShareOpen(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
+            </div>
+
+            {/* Apercu URL */}
+            <div className="bg-gray-800 rounded-xl px-3 py-2 flex items-center gap-2">
+              <Globe size={13} className="text-gray-500 flex-shrink-0" />
+              <span className="text-xs text-gray-400 truncate flex-1">{typeof window !== 'undefined' ? window.location.origin : ''}/portfolio/{profile.slug}</span>
+              <button onClick={copyUrl} className="flex-shrink-0 p-1 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
+                {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} className="text-gray-300" />}
+              </button>
+            </div>
+
+            {/* Boutons actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <a href={publicUrl} target="_blank"
+                className="flex items-center justify-center gap-2 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl text-sm transition-colors">
+                <ExternalLink size={15} /> {lang === 'fr' ? 'Voir profil' : 'View profile'}
+              </a>
+              <button onClick={exportPDF} disabled={pdfExporting}
+                className="flex items-center justify-center gap-2 py-3 bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 text-purple-300 rounded-xl text-sm transition-colors disabled:opacity-50">
+                {pdfExporting
+                  ? <><Loader2 size={15} className="animate-spin" /> PDF...</>
+                  : <><FileDown size={15} /> {lang === 'fr' ? 'Telecharger PDF' : 'Download PDF'}</>
+                }
+              </button>
+            </div>
+
+            {typeof navigator !== 'undefined' && 'share' in navigator && (
+              <button
+                onClick={async () => { await shareProfile(); setShareOpen(false) }}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity">
+                <Share2 size={15} /> {lang === 'fr' ? 'Partager via...' : 'Share via...'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── FIXED SAVE BAR ── */}
       {activeSection !== 'boutique' && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center gap-3">
             {profile.slug && (
-              <a href={publicUrl} target="_blank"
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white border border-gray-800 hover:border-gray-600 px-3 py-2.5 rounded-xl transition-colors flex-shrink-0">
-                <ExternalLink size={13} /> {t.preview}
-              </a>
+              <button onClick={() => setShareOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-2.5 rounded-xl transition-colors flex-shrink-0">
+                <Share2 size={13} /> {lang === 'fr' ? 'Partager' : 'Share'}
+              </button>
             )}
             <button onClick={saveProfile} disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
