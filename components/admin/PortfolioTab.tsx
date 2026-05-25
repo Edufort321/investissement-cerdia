@@ -77,6 +77,17 @@ export default function PortfolioTab() {
   const [bioModalOpen, setBioModalOpen] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const toggle = (key: string) => setCollapsed(s => ({ ...s, [key]: !s[key] }))
+  const isOpen = (key: string) => collapsed[key] !== true
+  const [detailOpen, setDetailOpen] = useState(true)
+
+  // ── Tarifs portfolio ──────────────────────────────────────────────────────
+  const CERDIA_UUID = 'c0000000-0000-0000-0000-000000000001'
+  const [setupPrice, setSetupPrice]   = useState(150)
+  const [annualPrice, setAnnualPrice] = useState(50)
+  const [editingPrice, setEditingPrice]   = useState(false)
+  const [setupInput, setSetupInput]   = useState('150')
+  const [annualInput, setAnnualInput] = useState('50')
+  const [savingPrice, setSavingPrice] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -98,6 +109,31 @@ export default function PortfolioTab() {
 
   useEffect(() => { loadProfiles() }, [])
   useEffect(() => { if (selectedProfile) loadItems(selectedProfile.id) }, [selectedProfile])
+  useEffect(() => { loadPricing() }, [])
+
+  const loadPricing = async () => {
+    const { data } = await supabase.from('organizations').select('settings').eq('id', CERDIA_UUID).maybeSingle()
+    const s = data?.settings?.portfolio_pricing
+    const setup = Number(s?.setup_cad) || 150
+    const annual = Number(s?.annual_cad) || 50
+    setSetupPrice(setup); setAnnualPrice(annual)
+    setSetupInput(String(setup)); setAnnualInput(String(annual))
+  }
+
+  const savePricing = async () => {
+    const setup = parseFloat(setupInput.replace(',', '.'))
+    const annual = parseFloat(annualInput.replace(',', '.'))
+    if (isNaN(setup) || isNaN(annual)) { showToast('Montant invalide', false); return }
+    setSavingPrice(true)
+    const { data: cur } = await supabase.from('organizations').select('settings').eq('id', CERDIA_UUID).maybeSingle()
+    const merged = { ...(cur?.settings || {}), portfolio_pricing: { setup_cad: setup, annual_cad: annual } }
+    const { error } = await supabase.from('organizations').update({ settings: merged }).eq('id', CERDIA_UUID)
+    setSavingPrice(false)
+    if (error) { showToast('Erreur: ' + error.message, false); return }
+    setSetupPrice(setup); setAnnualPrice(annual)
+    setEditingPrice(false)
+    showToast('Tarifs mis a jour')
+  }
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -733,22 +769,70 @@ export default function PortfolioTab() {
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-              <Sparkles size={20} />
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Portfolio Artistique</h1>
+                <p className="text-sm text-gray-400">Gestion des portfolios publics</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Portfolio Artistique</h1>
-              <p className="text-sm text-gray-400">Gestion des portfolios publics</p>
+            <button
+              onClick={openNewProfile}
+              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            >
+              <Plus size={16} /> Nouveau portfolio
+            </button>
+          </div>
+
+          {/* Stats + Prix */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Clients total</p>
+              <p className="text-xl font-bold text-white">{profiles.length}</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Payés</p>
+              <p className="text-xl font-bold text-emerald-400">{profiles.filter(p => p.is_paid).length}</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">ARR (renouvellements)</p>
+              <p className="text-xl font-bold text-yellow-400">{profiles.filter(p => p.is_paid).length * annualPrice} $</p>
+            </div>
+            {/* Tarifs modifiables */}
+            <div className="bg-gray-900 border border-pink-800/30 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">Tarifs</p>
+                {!editingPrice
+                  ? <button onClick={() => setEditingPrice(true)} className="text-xs text-pink-400 hover:text-pink-300 transition-colors">Modifier</button>
+                  : <button onClick={() => setEditingPrice(false)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Annuler</button>
+                }
+              </div>
+              {!editingPrice ? (
+                <p className="text-sm font-bold text-white">{setupPrice}$&nbsp;<span className="text-gray-500 font-normal text-xs">setup</span>&nbsp;+&nbsp;{annualPrice}$<span className="text-gray-500 font-normal text-xs">/an</span></p>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <input value={setupInput} onChange={e => setSetupInput(e.target.value.replace(/[^\d.,]/g,''))}
+                      className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-pink-500" placeholder="150" />
+                    <span className="text-xs text-gray-500">$ setup</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input value={annualInput} onChange={e => setAnnualInput(e.target.value.replace(/[^\d.,]/g,''))}
+                      className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-pink-500" placeholder="50" />
+                    <span className="text-xs text-gray-500">$/an</span>
+                    <button onClick={savePricing} disabled={savingPrice}
+                      className="text-xs bg-pink-600 hover:bg-pink-500 text-white px-2 py-1 rounded transition-colors disabled:opacity-50">
+                      {savingPrice ? '...' : 'OK'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          <button
-            onClick={openNewProfile}
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          >
-            <Plus size={16} /> Nouveau portfolio
-          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -764,12 +848,28 @@ export default function PortfolioTab() {
             {profiles.map(p => (
               <div
                 key={p.id}
-                onClick={() => { setSelectedProfile(p); setEditingProfile(false) }}
+                onClick={() => {
+                  if (selectedProfile?.id === p.id) {
+                    setDetailOpen(d => !d)
+                  } else {
+                    setSelectedProfile(p)
+                    setDetailOpen(true)
+                    setEditingProfile(false)
+                  }
+                }}
                 className={`relative rounded-xl p-4 cursor-pointer transition-all border
                   ${selectedProfile?.id === p.id
                     ? 'bg-gray-800 border-pink-500/50'
                     : 'bg-gray-900 border-gray-800 hover:border-gray-600'}`}
               >
+                {selectedProfile?.id === p.id && (
+                  <div className="absolute top-2 right-2">
+                    {detailOpen
+                      ? <ChevronUp size={14} className="text-pink-400" />
+                      : <ChevronDown size={14} className="text-pink-400" />
+                    }
+                  </div>
+                )}
                 <div className="flex items-start gap-3">
                   {p.headshot_url
                     ? <img src={p.headshot_url} alt={p.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-pink-500/30" />
@@ -1027,7 +1127,7 @@ export default function PortfolioTab() {
             )}
 
             {/* Profile detail */}
-            {selectedProfile && !editingProfile && (
+            {selectedProfile && !editingProfile && detailOpen && (
               <>
                 {/* Profile header card */}
                 <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
@@ -1150,14 +1250,14 @@ export default function PortfolioTab() {
 
                 {/* Facturation */}
                 <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-                  <button onClick={() => toggle('billing')} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors">
+                  <div onClick={() => toggle('billing')} className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 cursor-pointer transition-colors select-none">
                     <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Facturation</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-600">150$ setup · 50$/an</span>
-                      {collapsed['billing'] ? <ChevronDown size={14} className="text-gray-600" /> : <ChevronUp size={14} className="text-gray-600" />}
+                      <span className="text-xs text-gray-600">{setupPrice}$ setup · {annualPrice}$/an</span>
+                      {isOpen('billing') ? <ChevronUp size={14} className="text-gray-600" /> : <ChevronDown size={14} className="text-gray-600" />}
                     </div>
-                  </button>
-                  {!collapsed['billing'] && <div className="px-4 pb-4 space-y-3">
+                  </div>
+                  {isOpen('billing') && <div className="px-4 pb-4 space-y-3">
                   {/* Org checkbox */}
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox"
@@ -1199,14 +1299,14 @@ export default function PortfolioTab() {
                 {/* Bio resume */}
                 {selectedProfile.bio && (
                   <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-                    <button onClick={() => toggle('bio')} className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-800/50 transition-colors">
-                      <p className="text-xs text-gray-500 uppercase tracking-widest">Bio</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={e => { e.stopPropagation(); setBioModalOpen(true) }} className="text-xs text-pink-400 hover:text-pink-300 transition-colors">Voir tout</button>
-                        {collapsed['bio'] ? <ChevronDown size={14} className="text-gray-600" /> : <ChevronUp size={14} className="text-gray-600" />}
+                    <div className="flex items-center justify-between px-5 py-3 hover:bg-gray-800/50 transition-colors">
+                      <div onClick={() => toggle('bio')} className="flex items-center gap-2 flex-1 cursor-pointer select-none">
+                        <p className="text-xs text-gray-500 uppercase tracking-widest flex-1">Bio</p>
+                        {isOpen('bio') ? <ChevronUp size={14} className="text-gray-600" /> : <ChevronDown size={14} className="text-gray-600" />}
                       </div>
-                    </button>
-                    {!collapsed['bio'] && (
+                      <button onClick={() => setBioModalOpen(true)} className="text-xs text-pink-400 hover:text-pink-300 transition-colors ml-3">Voir tout</button>
+                    </div>
+                    {isOpen('bio') && (
                       <p className="text-sm text-gray-300 leading-relaxed line-clamp-3 px-5 pb-4">{selectedProfile.bio}</p>
                     )}
                   </div>
@@ -1222,12 +1322,12 @@ export default function PortfolioTab() {
                 {/* Photos grid */}
                 <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-3">
-                    <button onClick={() => toggle('photos')} className="flex items-center gap-2 flex-1 hover:text-white transition-colors text-left">
+                    <div onClick={() => toggle('photos')} className="flex items-center gap-2 flex-1 cursor-pointer select-none hover:text-white transition-colors">
                       <Image size={16} className="text-pink-400" />
                       <span className="font-semibold">Photos & Liens</span>
                       <span className="text-gray-500 font-normal text-sm">({items.length})</span>
-                      {collapsed['photos'] ? <ChevronDown size={14} className="text-gray-600 ml-1" /> : <ChevronUp size={14} className="text-gray-600 ml-1" />}
-                    </button>
+                      {isOpen('photos') ? <ChevronUp size={14} className="text-gray-600 ml-1" /> : <ChevronDown size={14} className="text-gray-600 ml-1" />}
+                    </div>
                     <button
                       onClick={() => setAddingItem(!addingItem)}
                       className="flex items-center gap-1.5 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 border border-pink-600/30 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -1235,7 +1335,7 @@ export default function PortfolioTab() {
                       <Plus size={13} /> Ajouter
                     </button>
                   </div>
-                  {!collapsed['photos'] && <div className="px-5 pb-5">
+                  {isOpen('photos') && <div className="px-5 pb-5">
 
                   {/* Add item form */}
                   {addingItem && (

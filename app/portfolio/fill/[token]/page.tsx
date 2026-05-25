@@ -1357,6 +1357,19 @@ export default function PortfolioFillPage() {
                 {lang === 'fr' ? 'Installer l\'app Portfolio' : 'Install Portfolio app'}
               </button>
             )}
+            {!appInstalled && !installPrompt && typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+              <div className="w-full p-3 bg-blue-950/50 border border-blue-800/50 rounded-xl text-xs text-blue-200 space-y-1">
+                <p className="font-semibold text-blue-100">
+                  {lang === 'fr' ? 'Ajouter a l\'ecran d\'accueil (iOS)' : 'Add to Home Screen (iOS)'}
+                </p>
+                <p>1. {lang === 'fr' ? 'Appuyez sur' : 'Tap'} <span className="font-bold">{lang === 'fr' ? 'Partager' : 'Share'}</span> <span className="inline-block rotate-90 font-bold">⬆</span> {lang === 'fr' ? 'en bas de Safari' : 'at the bottom of Safari'}</p>
+                <p>2. {lang === 'fr' ? 'Selectionnez' : 'Select'} <span className="font-bold">{lang === 'fr' ? '"Sur l\'ecran d\'accueil"' : '"Add to Home Screen"'}</span></p>
+                <p>3. {lang === 'fr' ? 'Appuyez sur' : 'Tap'} <span className="font-bold">{lang === 'fr' ? '"Ajouter"' : '"Add"'}</span></p>
+                <p className="text-blue-400 text-xs pt-1">
+                  {lang === 'fr' ? 'Fonctionne uniquement dans Safari (pas Chrome iOS).' : 'Works in Safari only (not Chrome iOS).'}
+                </p>
+              </div>
+            )}
             {typeof navigator !== 'undefined' && 'share' in navigator && (
               <button
                 onClick={async () => { await shareProfile(); setShareOpen(false) }}
