@@ -528,9 +528,10 @@ export default function PortfolioFillPage() {
     } finally { setSaving(false) }
   }
 
-  const photos = items.filter(i => i.type === 'photo')
-  const videos = items.filter(i => i.type === 'video')
-  const links  = items.filter(i => i.type === 'link')
+  const photos   = items.filter(i => i.type === 'photo')
+  const videos   = items.filter(i => i.type === 'video')
+  const links    = items.filter(i => i.type === 'link')
+  const services = items.filter(i => i.type === 'service')
   const carouselPhotos = photos.length > 0
     ? photos
     : profile?.cover_url
@@ -650,6 +651,18 @@ export default function PortfolioFillPage() {
     }])
     if (error) { showToast(t.err_prefix + error.message, false); return }
     showToast(t.link_added)
+    await load(token as string)
+  }
+
+  const addService = async (name: string, rate: string) => {
+    if (!profile || !name.trim()) return
+    const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
+    const { error } = await supabase.from('portfolio_items').insert([{
+      profile_id: profile.id, type: 'service', title: name.trim(),
+      url: '', sort_order: maxOrder + 1, category: rate.trim()
+    }])
+    if (error) { showToast(t.err_prefix + error.message, false); return }
+    showToast(lang === 'fr' ? 'Service ajoute!' : 'Service added!')
     await load(token as string)
   }
 
@@ -908,7 +921,16 @@ export default function PortfolioFillPage() {
             { key: 'liens',    label: `${t.links}${links.length > 0 ? ` (${links.length})` : ''}`, icon: Link2 },
             { key: 'boutique', label: t.shop,       icon: ShoppingBag },
           ] as { key: Section; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => setActiveSection(key)}
+            <button key={key} onClick={() => {
+              setActiveSection(key)
+              if (key === 'boutique' && installPrompt && !appInstalled) {
+                installPrompt.prompt()
+                installPrompt.userChoice.then(({ outcome }: { outcome: string }) => {
+                  if (outcome === 'accepted') setAppInstalled(true)
+                  setInstallPrompt(null)
+                })
+              }
+            }}
               className={`flex items-center gap-1.5 px-3 py-3 text-xs font-medium border-b-2 transition-colors flex-1 justify-center
                 ${activeSection === key ? 'border-pink-500 text-pink-400' : 'border-transparent text-gray-400 hover:text-gray-200'}`}>
               <Icon size={13} />
@@ -1432,37 +1454,122 @@ export default function PortfolioFillPage() {
         {/* ── BOUTIQUE ── */}
         {activeSection === 'boutique' && (
           <div className="space-y-4">
-            <div className="bg-gradient-to-br from-purple-950 to-gray-900 rounded-2xl border border-purple-800/30 p-5 text-center">
-              <div className="w-14 h-14 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mx-auto mb-3">
-                <ShoppingBag size={24} className="text-purple-400" />
-              </div>
-              <h2 className="text-white font-bold text-lg mb-1" style={{ fontFamily: 'Georgia, serif' }}>{t.shop_title}</h2>
-              <p className="text-purple-300/70 text-sm mb-4">{t.shop_desc}</p>
-              <span className="inline-flex items-center gap-1.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-medium">
-                <Lock size={11} /> {t.coming_soon}
-              </span>
-            </div>
-            {[
-              { icon: '📦', fr: 'Produits & Merch', en: 'Products & Merch', dfr: 'Vends tes prints, posters, collaborations de marques directement depuis ton portfolio.', den: 'Sell your prints, posters, brand collaborations directly from your portfolio.' },
-              { icon: '📅', fr: 'Reservations & Shootings', en: 'Bookings & Shootings', dfr: 'Les agences et photographes peuvent reserver ton temps directement en ligne.', den: 'Agencies and photographers can book your time directly online.' },
-              { icon: '💌', fr: 'Demandes de collaboration', en: 'Collaboration requests', dfr: 'Formulaire personnalise pour que les marques te contactent avec leurs offres.', den: 'Custom form so brands can reach you with their offers.' },
-              { icon: '📊', fr: 'Statistiques & Visites', en: 'Stats & Visits', dfr: "Vois combien d'agences ont consulte ton portfolio et quelles photos sont les plus vues.", den: 'See how many agencies viewed your portfolio and which photos get the most attention.' },
-              { icon: '🌟', fr: 'Portfolio Pro', en: 'Pro Portfolio', dfr: 'Domaine personnalise, portfolio sans publicite, badge verifie pour les agences.', den: 'Custom domain, ad-free portfolio, verified badge for agencies.' },
-            ].map(item => (
-              <div key={item.fr} className="bg-gray-900/60 border border-gray-800 rounded-xl p-4 flex items-start gap-3 opacity-60">
-                <span className="text-2xl flex-shrink-0">{item.icon}</span>
-                <div>
-                  <p className="text-white font-medium text-sm">{lang === 'fr' ? item.fr : item.en}</p>
-                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{lang === 'fr' ? item.dfr : item.den}</p>
+
+            {/* Mon portfolio public */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
+              <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
+                <Globe size={11} /> {lang === 'fr' ? 'Mon portfolio public' : 'My public portfolio'}
+              </p>
+
+              <button onClick={togglePublish}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                  profile.is_published
+                    ? 'bg-emerald-900/20 border-emerald-700/40'
+                    : 'bg-gray-800 border-gray-700'
+                }`}>
+                <span className={`flex items-center gap-2 text-sm font-medium ${profile.is_published ? 'text-emerald-300' : 'text-gray-400'}`}>
+                  <Eye size={15} />
+                  {profile.is_published
+                    ? (lang === 'fr' ? 'Visible par les agences' : 'Visible to agencies')
+                    : (lang === 'fr' ? 'Portfolio cache (prive)' : 'Hidden portfolio (private)')
+                  }
+                </span>
+                <div className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 ${profile.is_published ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                  <div className={`w-4 h-4 rounded-full bg-white mt-0.5 transition-transform duration-200 ${profile.is_published ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </div>
-                <Lock size={14} className="text-gray-700 flex-shrink-0 mt-0.5" />
+              </button>
+
+              {profile.slug && (
+                <div className="bg-gray-800 rounded-xl px-3 py-2 flex items-center gap-2">
+                  <Globe size={13} className="text-gray-500 flex-shrink-0" />
+                  <span className="text-xs text-gray-400 truncate flex-1">
+                    {typeof window !== 'undefined' ? window.location.origin : ''}/portfolio/{profile.slug}
+                  </span>
+                  <button onClick={copyUrl} className="flex-shrink-0 p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
+                    {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} className="text-gray-300" />}
+                  </button>
+                  <a href={publicUrl} target="_blank" rel="noopener"
+                    className="flex-shrink-0 p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
+                    <ExternalLink size={13} className="text-gray-300" />
+                  </a>
+                </div>
+              )}
+
+              <div className={`grid gap-2 ${typeof navigator !== 'undefined' && 'share' in navigator ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {typeof navigator !== 'undefined' && 'share' in navigator && (
+                  <button onClick={shareProfile}
+                    className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity">
+                    <Share2 size={15} /> {lang === 'fr' ? 'Partager' : 'Share'}
+                  </button>
+                )}
+                <button onClick={exportPDF} disabled={pdfExporting}
+                  className="flex items-center justify-center gap-2 py-3 bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 text-purple-300 rounded-xl text-sm transition-colors disabled:opacity-50">
+                  {pdfExporting
+                    ? <><Loader2 size={15} className="animate-spin" /> PDF...</>
+                    : <><FileDown size={15} /> PDF</>
+                  }
+                </button>
               </div>
-            ))}
-            <p className="text-xs text-gray-700 text-center pt-2">
-              {lang === 'fr'
-                ? 'Tu seras notifiee en premier quand ces fonctionnalites seront disponibles.'
-                : 'You will be notified first when these features become available.'}
-            </p>
+            </div>
+
+            {/* Installer l'app */}
+            {!appInstalled ? (
+              <div className="bg-gradient-to-br from-indigo-950/80 to-gray-900 rounded-2xl border border-indigo-800/30 p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-pink-900/30">
+                    <Sparkles size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">{lang === 'fr' ? 'Installer l\'app Portfolio' : 'Install Portfolio App'}</p>
+                    <p className="text-gray-400 text-xs">{lang === 'fr' ? 'Acces rapide depuis ton ecran d\'accueil' : 'Quick access from your home screen'}</p>
+                  </div>
+                </div>
+                {installPrompt ? (
+                  <button
+                    onClick={async () => {
+                      installPrompt.prompt()
+                      const { outcome } = await installPrompt.userChoice
+                      if (outcome === 'accepted') setAppInstalled(true)
+                      setInstallPrompt(null)
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+                    {lang === 'fr' ? 'Installer maintenant' : 'Install now'}
+                  </button>
+                ) : typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+                  <div className="bg-blue-950/50 border border-blue-800/50 rounded-xl p-3 space-y-1.5 text-xs text-blue-200">
+                    <p className="font-semibold text-blue-100">{lang === 'fr' ? 'Ajouter a l\'ecran d\'accueil (iOS Safari)' : 'Add to Home Screen (iOS Safari)'}</p>
+                    <p>1. {lang === 'fr' ? 'Appuie sur' : 'Tap'} <strong>{lang === 'fr' ? 'Partager' : 'Share'}</strong> <span className="font-bold">⬆</span> {lang === 'fr' ? 'en bas de Safari' : 'at the bottom of Safari'}</p>
+                    <p>2. {lang === 'fr' ? 'Selectionne' : 'Select'} <strong>&ldquo;{lang === 'fr' ? 'Sur l\'ecran d\'accueil' : 'Add to Home Screen'}&rdquo;</strong></p>
+                    <p>3. {lang === 'fr' ? 'Appuie sur' : 'Tap'} <strong>&ldquo;{lang === 'fr' ? 'Ajouter' : 'Add'}&rdquo;</strong></p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800/60 border border-gray-700/50 rounded-xl p-3 text-xs text-gray-400 space-y-1.5">
+                    <p className="font-medium text-gray-300">{lang === 'fr' ? 'Installer depuis Chrome Android' : 'Install from Chrome Android'}</p>
+                    <p>{lang === 'fr' ? 'Ouvre ce lien dans Chrome, puis appuie sur' : 'Open in Chrome, then tap'} <strong>{lang === 'fr' ? 'le menu ⋮' : 'the ⋮ menu'}</strong> → <strong>&ldquo;{lang === 'fr' ? 'Ajouter a l\'ecran d\'accueil' : 'Add to Home Screen'}&rdquo;</strong></p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-emerald-950/40 border border-emerald-800/30 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <Check size={20} className="text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-emerald-300 font-semibold text-sm">{lang === 'fr' ? 'App installee' : 'App installed'}</p>
+                  <p className="text-gray-500 text-xs">{lang === 'fr' ? 'Disponible depuis ton ecran d\'accueil' : 'Available from your home screen'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Mes services / Tarifs */}
+            <ServiceSection
+              services={services}
+              lang={lang}
+              onAdd={addService}
+              onDelete={deleteItem}
+            />
+
           </div>
         )}
       </div>
@@ -1595,6 +1702,57 @@ export default function PortfolioFillPage() {
       </div>{/* end split wrapper */}
 
     </main>
+  )
+}
+
+function ServiceSection({
+  services, lang, onAdd, onDelete
+}: {
+  services: PortfolioItem[]
+  lang: 'fr' | 'en'
+  onAdd: (name: string, rate: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [name, setName] = useState('')
+  const [rate, setRate] = useState('')
+
+  return (
+    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
+      <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
+        {lang === 'fr' ? 'Mes services & tarifs' : 'My services & rates'}
+      </p>
+
+      <div className="grid grid-cols-[1fr_auto] gap-2">
+        <input value={name} onChange={e => setName(e.target.value)}
+          placeholder={lang === 'fr' ? 'Ex: Shooting beaute, Placement produit...' : 'e.g. Beauty shoot, Product placement...'}
+          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+        <input value={rate} onChange={e => setRate(e.target.value)}
+          placeholder={lang === 'fr' ? 'Tarif' : 'Rate'}
+          className="w-24 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+      </div>
+      <button
+        onClick={() => { if (name.trim()) { onAdd(name, rate); setName(''); setRate('') } }}
+        disabled={!name.trim()}
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-pink-600/80 to-purple-600/80 hover:opacity-90 disabled:opacity-40 text-white rounded-xl text-sm font-medium transition-opacity">
+        <Plus size={15} /> {lang === 'fr' ? 'Ajouter' : 'Add'}
+      </button>
+
+      {services.length > 0 && (
+        <div className="space-y-2 pt-1">
+          {services.map(s => (
+            <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-xl">
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm truncate">{s.title}</p>
+                {s.category && <p className="text-pink-400 text-xs">{s.category}</p>}
+              </div>
+              <button onClick={() => onDelete(s.id)} className="p-1.5 text-gray-700 hover:text-red-400 transition-colors flex-shrink-0">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
