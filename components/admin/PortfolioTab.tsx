@@ -41,6 +41,10 @@ interface Profile {
   clothing_size: string
   languages: string[]
   special_skills: string
+  is_organization: boolean
+  is_paid: boolean
+  paid_at: string | null
+  renewal_due: string | null
   created_at: string
 }
 
@@ -188,6 +192,14 @@ export default function PortfolioTab() {
         setSelectedProfile({ ...profile, is_published: !profile.is_published })
       }
     }
+  }
+
+  const updateBilling = async (profileId: string, patch: Partial<Pick<Profile,'is_paid'|'paid_at'|'renewal_due'|'is_organization'>>) => {
+    const { error } = await supabase.from('portfolio_profiles').update(patch).eq('id', profileId)
+    if (error) { showToast('Erreur: ' + error.message, false); return }
+    setProfiles(ps => ps.map(p => p.id === profileId ? { ...p, ...patch } : p))
+    if (selectedProfile?.id === profileId) setSelectedProfile(s => s ? { ...s, ...patch } : s)
+    showToast('Facturation mise a jour')
   }
 
   const deleteProfile = async (id: string) => {
@@ -766,9 +778,15 @@ export default function PortfolioTab() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-white truncate">{p.name}</h3>
                     <p className="text-xs text-gray-400 truncate">{p.tagline || 'Artiste'}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${p.is_published ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-500'}`}>
                         {p.is_published ? 'Public' : 'Prive'}
+                      </span>
+                      {p.is_organization && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Org</span>
+                      )}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${p.is_paid ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-700/60 text-gray-600'}`}>
+                        {p.is_paid ? '$ Paye' : '$ En attente'}
                       </span>
                     </div>
                   </div>
@@ -1110,7 +1128,7 @@ export default function PortfolioTab() {
                     </div>
                     <div className="bg-gray-800 rounded-lg p-3 border border-gray-700">
                       <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
-                        <Edit2 size={11} /> Lien de remplissage (pour ta fille)
+                        <Edit2 size={11} /> Lien de remplissage (client)
                       </p>
                       <div className="flex items-center gap-2">
                         <code className="text-xs text-purple-400 truncate flex-1">/portfolio/fill/[token]</code>
@@ -1126,6 +1144,49 @@ export default function PortfolioTab() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Facturation */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Facturation</p>
+                    <span className="text-xs text-gray-600">150$ setup · 50$/an</span>
+                  </div>
+                  {/* Org checkbox */}
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox"
+                      checked={selectedProfile.is_organization ?? false}
+                      onChange={e => updateBilling(selectedProfile.id, { is_organization: e.target.checked })}
+                      className="w-4 h-4 rounded accent-blue-500 cursor-pointer" />
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Organisation / Agence</span>
+                  </label>
+                  {/* Paid checkbox */}
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox"
+                      checked={selectedProfile.is_paid ?? false}
+                      onChange={e => {
+                        const now = e.target.checked ? new Date().toISOString() : null
+                        const renewal = e.target.checked ? new Date(Date.now() + 365*24*3600*1000).toISOString().slice(0,10) : null
+                        updateBilling(selectedProfile.id, { is_paid: e.target.checked, paid_at: now, renewal_due: renewal })
+                      }}
+                      className="w-4 h-4 rounded accent-yellow-500 cursor-pointer" />
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                      Frais initial payé (150$)
+                      {selectedProfile.paid_at && (
+                        <span className="text-xs text-gray-600 ml-2">{new Date(selectedProfile.paid_at).toLocaleDateString('fr-CA')}</span>
+                      )}
+                    </span>
+                  </label>
+                  {/* Renewal date */}
+                  {selectedProfile.is_paid && selectedProfile.renewal_due && (
+                    <div className="flex items-center gap-3 pl-7">
+                      <span className="text-xs text-gray-500">Renouvellement annuel (50$) :</span>
+                      <input type="date"
+                        value={selectedProfile.renewal_due ?? ''}
+                        onChange={e => updateBilling(selectedProfile.id, { renewal_due: e.target.value || null })}
+                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-pink-500" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Bio resume */}

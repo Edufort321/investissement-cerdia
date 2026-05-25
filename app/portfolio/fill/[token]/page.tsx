@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CircleCropModal from '@/components/ui/CircleCropModal'
 import { getTheme, THEME_LABELS, GENDER_LABELS, AGE_CLASS_LABELS, defaultThemeForGender } from '@/lib/portfolioTheme'
-import jsPDF from 'jspdf'
 import {
   Save, Upload, Plus, Trash2, Check, ExternalLink, Sparkles,
   Camera, Link2, User, ChevronLeft, ChevronRight, Eye,
@@ -153,6 +152,8 @@ export default function PortfolioFillPage() {
   const [shareOpen, setShareOpen] = useState(false)
   const [pdfExporting, setPdfExporting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [appInstalled, setAppInstalled] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -170,6 +171,18 @@ export default function PortfolioFillPage() {
   const t = T[lang]
 
   useEffect(() => { if (token) load(token as string) }, [token])
+
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e) }
+    const installed = () => setAppInstalled(true)
+    window.addEventListener('beforeinstallprompt', handler as EventListener)
+    window.addEventListener('appinstalled', installed)
+    if (window.matchMedia('(display-mode: standalone)').matches) setAppInstalled(true)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler as EventListener)
+      window.removeEventListener('appinstalled', installed)
+    }
+  }, [])
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -236,6 +249,7 @@ export default function PortfolioFillPage() {
     if (!profile) return
     setPdfExporting(true)
     try {
+      const { default: jsPDF } = await import('jspdf')
       const makeCircle = (url: string): Promise<string | null> =>
         new Promise(res => {
           const img = new window.Image(); img.crossOrigin = 'anonymous'
@@ -1330,6 +1344,19 @@ export default function PortfolioFillPage() {
               </button>
             </div>
 
+            {!appInstalled && installPrompt && (
+              <button
+                onClick={async () => {
+                  installPrompt.prompt()
+                  const { outcome } = await installPrompt.userChoice
+                  if (outcome === 'accepted') setAppInstalled(true)
+                  setInstallPrompt(null)
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-900/40 hover:bg-indigo-800/50 border border-indigo-700/50 text-indigo-300 rounded-xl text-sm font-semibold transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+                {lang === 'fr' ? 'Installer l\'app Portfolio' : 'Install Portfolio app'}
+              </button>
+            )}
             {typeof navigator !== 'undefined' && 'share' in navigator && (
               <button
                 onClick={async () => { await shareProfile(); setShareOpen(false) }}

@@ -2,7 +2,7 @@
   "name": "Portfolio Artistique",
   "short_name": "Portfolio",
   "description": "Gere et partage ton portfolio artistique professionnel",
-  "start_url": ".",
+  "start_url": "/portfolio/",
   "scope": "/portfolio/",
   "display": "standalone",
   "background_color": "#0a0814",
