@@ -921,370 +921,423 @@ export default function PortfolioFillPage() {
 
       {/* ── CONTENT (scrollable sur desktop) ── */}
       <div className="lg:flex-1 lg:overflow-y-auto pb-28 lg:pb-0">
-      <div className="max-w-3xl mx-auto px-4 py-5 lg:max-w-2xl lg:py-6">
+      <div className="max-w-3xl mx-auto px-4 py-5 lg:max-w-none lg:py-5">
 
         {/* ── PROFIL ── */}
         {activeSection === 'profil' && (
-          <div className="space-y-5 md:grid md:grid-cols-2 md:gap-5 md:space-y-0 md:items-start">
+          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:items-start lg:grid-cols-[1fr_1.4fr_1fr] lg:gap-4">
 
-            {/* Photo section */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
-              <p className="text-xs text-gray-300 uppercase tracking-widest mb-3">{t.photos_section}</p>
-              <div className="flex gap-3">
-                {/* Headshot */}
-                <label className="flex-1 cursor-pointer group">
-                  <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-pink-500 transition-colors">
-                    {profile.headshot_url
-                      ? <img src={profile.headshot_url} alt="" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                          <User size={28} className="text-gray-600" />
-                          <span className="text-xs text-gray-600">{t.profile_photo}</span>
-                        </div>
-                    }
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                      <Camera size={20} className="text-white" />
+            {/* ── COL 1: Photos + Identite & Apparence ── */}
+            <div className="space-y-4 min-w-0 md:col-start-1 md:row-start-1">
+
+              {/* Photos */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
+                <p className="text-xs text-gray-300 uppercase tracking-widest mb-3">{t.photos_section}</p>
+                <div className="flex gap-3">
+                  <label className="flex-1 cursor-pointer group">
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-pink-500 transition-colors">
+                      {profile.headshot_url
+                        ? <img src={profile.headshot_url} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                            <User size={28} className="text-gray-600" />
+                            <span className="text-xs text-gray-600">{t.profile_photo}</span>
+                          </div>
+                      }
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                        <Camera size={20} className="text-white" />
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-center text-gray-500 mt-1">{t.profile_photo}</p>
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
-                </label>
+                    <p className="text-xs text-center text-gray-500 mt-1">{t.profile_photo}</p>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
+                  </label>
 
-                {/* Cover */}
-                <label className="flex-[2] cursor-pointer group">
-                  <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-purple-500 transition-colors" style={{ aspectRatio: '8/3' }}>
-                    {profile.cover_url
-                      ? <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                          <Upload size={24} className="text-gray-600" />
-                          <span className="text-xs text-gray-600">{t.cover}</span>
-                        </div>
-                    }
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                      <Crop size={20} className="text-white" />
+                  <label className="flex-[2] cursor-pointer group">
+                    <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-purple-500 transition-colors" style={{ aspectRatio: '8/3' }}>
+                      {profile.cover_url
+                        ? <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                            <Upload size={24} className="text-gray-600" />
+                            <span className="text-xs text-gray-600">{t.cover}</span>
+                          </div>
+                      }
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                        <Crop size={20} className="text-white" />
+                      </div>
                     </div>
+                    <p className="text-xs text-center text-gray-500 mt-1">{t.cover_desc}</p>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Identite & Apparence */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
+                  <Palette size={11} /> {lang === 'fr' ? 'Identite & Apparence' : 'Identity & Appearance'}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">
+                      {lang === 'fr' ? 'Genre' : 'Gender'}
+                    </label>
+                    <select value={(form as any).gender ?? ''}
+                      onChange={e => {
+                        const g = e.target.value
+                        setForm(f => ({ ...f, gender: g, theme: (f as any).theme || defaultThemeForGender(g) }))
+                      }}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {Object.entries(GENDER_LABELS).map(([v, lb]) => (
+                        <option key={v} value={v}>{lb[lang]}</option>
+                      ))}
+                    </select>
                   </div>
-                  <p className="text-xs text-center text-gray-500 mt-1">{t.cover_desc}</p>
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
-                </label>
-              </div>
-            </div>
-
-            {/* Form fields */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
-              <p className="text-xs text-gray-300 uppercase tracking-widest">{t.info}</p>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.full_name}</label>
-                <input value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder={t.name_ph}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.title_spec}</label>
-                <input value={form.tagline ?? ''} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
-                  placeholder={t.tagline_ph}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {TAGLINE_IDEAS[lang].map(idea => (
-                    <button key={idea} type="button" onClick={() => setForm(f => ({ ...f, tagline: idea }))}
-                      className="text-xs bg-pink-500/10 text-pink-400/80 border border-pink-500/20 px-2 py-1 rounded-full hover:bg-pink-500/20 transition-colors flex items-center gap-1">
-                      <Lightbulb size={10} /> {idea}
-                    </button>
-                  ))}
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">
+                      {lang === 'fr' ? "Classe d'age" : 'Age class'}
+                    </label>
+                    <select value={(form as any).age_class ?? ''}
+                      onChange={e => setForm(f => ({ ...f, age_class: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {Object.entries(AGE_CLASS_LABELS).map(([v, lb]) => (
+                        <option key={v} value={v}>{lb[lang]} ({lb.range})</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.city}</label>
-                <input value={form.location ?? ''} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder={t.city_ph}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.email}</label>
-                  <input type="email" value={form.contact_email ?? ''} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
-                    placeholder={t.email_ph}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.phone}</label>
-                  <input type="tel" value={form.phone ?? ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                    placeholder={t.phone_ph}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.ig_url}</label>
-                <div className="relative">
-                  <Instagram size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400/60" />
-                  <input value={form.instagram_url ?? ''} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))}
-                    placeholder={t.ig_ph}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.tt_url}</label>
-                <input value={form.tiktok_url ?? ''} onChange={e => setForm(f => ({ ...f, tiktok_url: e.target.value }))}
-                  placeholder={t.tt_ph}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">
-                  {t.uda} <span className="text-gray-600 font-normal">{t.uda_desc}</span>
-                </label>
-                <input value={(form as any).uda_number ?? ''} onChange={e => setForm(f => ({ ...f, uda_number: e.target.value }))}
-                  placeholder={t.uda_ph}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-              </div>
-            </div>
-
-            {/* Genre / Classe d'age / Theme */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
-              <p className="text-xs text-gray-300 uppercase tracking-widest font-medium flex items-center gap-1.5">
-                <Palette size={11} /> {lang === 'fr' ? 'Identite & Apparence' : 'Identity & Appearance'}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">
-                    {lang === 'fr' ? 'Genre' : 'Gender'}
+                  <label className="text-xs text-gray-400 mb-2 block font-medium">
+                    {lang === 'fr' ? 'Couleur du portfolio' : 'Portfolio color'}
                   </label>
-                  <select value={(form as any).gender ?? ''}
-                    onChange={e => {
-                      const g = e.target.value
-                      setForm(f => ({ ...f, gender: g, theme: (f as any).theme || defaultThemeForGender(g) }))
-                    }}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {Object.entries(GENDER_LABELS).map(([v, lb]) => (
-                      <option key={v} value={v}>{lb[lang]}</option>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(THEME_LABELS).filter(([k]) => k !== 'custom').map(([key, lb]) => (
+                      <button key={key} type="button"
+                        onClick={() => setForm(f => ({ ...f, theme: key }))}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${(form as any).theme === key ? 'text-white border-white/30 bg-white/10' : 'text-gray-400 border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: lb.preview }} />
+                        {lb[lang]}
+                      </button>
                     ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">
-                    {lang === 'fr' ? "Classe d'age" : 'Age class'}
-                  </label>
-                  <select value={(form as any).age_class ?? ''}
-                    onChange={e => setForm(f => ({ ...f, age_class: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {Object.entries(AGE_CLASS_LABELS).map(([v, lb]) => (
-                      <option key={v} value={v}>{lb[lang]} ({lb.range})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Theme color picker */}
-              <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium">
-                  {lang === 'fr' ? 'Couleur du portfolio' : 'Portfolio color'}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(THEME_LABELS).filter(([k]) => k !== 'custom').map(([key, lb]) => (
-                    <button key={key} type="button"
-                      onClick={() => setForm(f => ({ ...f, theme: key }))}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${(form as any).theme === key ? 'text-white border-white/30 bg-white/10' : 'text-gray-400 border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
-                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: lb.preview }} />
-                      {lb[lang]}
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, theme: 'custom' }))}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${(form as any).theme === 'custom' ? 'text-white border-white/30 bg-white/10' : 'text-gray-400 border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
+                      <Palette size={11} /> {lang === 'fr' ? 'Personnalise' : 'Custom'}
                     </button>
-                  ))}
-                  <button type="button"
-                    onClick={() => setForm(f => ({ ...f, theme: 'custom' }))}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${(form as any).theme === 'custom' ? 'text-white border-white/30 bg-white/10' : 'text-gray-400 border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
-                    <Palette size={11} /> {lang === 'fr' ? 'Personnalise' : 'Custom'}
+                  </div>
+
+                  {(form as any).theme === 'custom' && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <label className="text-xs text-gray-500 mb-1 block">
+                          {lang === 'fr' ? 'Couleur principale' : 'Primary color'}
+                        </label>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <input type="color" value={(form as any).theme_primary || '#ec4899'}
+                            onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
+                            className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
+                          <input type="text" value={(form as any).theme_primary || ''}
+                            onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
+                            placeholder="#ec4899"
+                            className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <label className="text-xs text-gray-500 mb-1 block">
+                          {lang === 'fr' ? 'Couleur accent' : 'Accent color'}
+                        </label>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <input type="color" value={(form as any).theme_accent || '#a855f7'}
+                            onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
+                            className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
+                          <input type="text" value={(form as any).theme_accent || ''}
+                            onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
+                            placeholder="#a855f7"
+                            className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>{/* end col 1 */}
+
+            {/* ── COL 2: Info + Physiques + Bio ── */}
+            <div className="space-y-4 min-w-0 md:col-start-2 md:row-start-1">
+
+              {/* Info */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+                <p className="text-xs text-gray-300 uppercase tracking-widest">{t.info}</p>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.full_name}</label>
+                  <input value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder={t.name_ph}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.title_spec}</label>
+                  <input value={form.tagline ?? ''} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
+                    placeholder={t.tagline_ph}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {TAGLINE_IDEAS[lang].map(idea => (
+                      <button key={idea} type="button" onClick={() => setForm(f => ({ ...f, tagline: idea }))}
+                        className="text-xs bg-pink-500/10 text-pink-400/80 border border-pink-500/20 px-2 py-1 rounded-full hover:bg-pink-500/20 transition-colors flex items-center gap-1">
+                        <Lightbulb size={10} /> {idea}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.city}</label>
+                  <input value={form.location ?? ''} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                    placeholder={t.city_ph}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.email}</label>
+                    <input type="email" value={form.contact_email ?? ''} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+                      placeholder={t.email_ph}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.phone}</label>
+                    <input type="tel" value={form.phone ?? ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                      placeholder={t.phone_ph}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Caracteristiques physiques */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
+                  {lang === 'fr' ? 'Caracteristiques physiques' : 'Physical attributes'}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille (cm)' : 'Height (cm)'}</label>
+                    <input type="number" min={50} max={250} value={(form as any).height_cm ?? ''}
+                      onChange={e => setForm(f => ({ ...f, height_cm: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder={lang === 'fr' ? 'Ex: 170' : 'e.g. 170'}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Poids (kg)' : 'Weight (kg)'}</label>
+                    <input type="number" min={20} max={300} step={0.1} value={(form as any).weight_kg ?? ''}
+                      onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder={lang === 'fr' ? 'Ex: 58.5' : 'e.g. 58.5'}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des yeux' : 'Eye color'}</label>
+                    <select value={(form as any).eye_color ?? ''}
+                      onChange={e => setForm(f => ({ ...f, eye_color: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {[['brun','Brown'],['bleu','Blue'],['vert','Green'],['gris','Gray'],['noisette','Hazel'],['noir','Dark'],['autre','Other']].map(([fr, en]) => (
+                        <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des cheveux' : 'Hair color'}</label>
+                    <select value={(form as any).hair_color ?? ''}
+                      onChange={e => setForm(f => ({ ...f, hair_color: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {[['noir','Black'],['brun','Brown'],['chatain','Chestnut'],['blond','Blonde'],['roux','Red'],['gris','Gray'],['blanc','White'],['colore','Colored']].map(([fr, en]) => (
+                        <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Longueur cheveux' : 'Hair length'}</label>
+                    <select value={(form as any).hair_length ?? ''}
+                      onChange={e => setForm(f => ({ ...f, hair_length: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {[['court','Short'],['mi-long','Medium'],['long','Long'],['tres-long','Very long']].map(([fr, en]) => (
+                        <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Teint' : 'Skin tone'}</label>
+                    <select value={(form as any).skin_tone ?? ''}
+                      onChange={e => setForm(f => ({ ...f, skin_tone: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
+                      <option value="">--</option>
+                      {[['clair','Fair'],['moyen','Medium'],['olive','Olive'],['fonce','Dark'],['tres-fonce','Very dark']].map(([fr, en]) => (
+                        <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Pointure' : 'Shoe size'}</label>
+                    <input value={(form as any).shoe_size ?? ''}
+                      onChange={e => setForm(f => ({ ...f, shoe_size: e.target.value }))}
+                      placeholder={lang === 'fr' ? 'Ex: 38' : 'e.g. 38'}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille vetement' : 'Clothing size'}</label>
+                    <input value={(form as any).clothing_size ?? ''}
+                      onChange={e => setForm(f => ({ ...f, clothing_size: e.target.value }))}
+                      placeholder={lang === 'fr' ? 'Ex: S, M, 36...' : 'e.g. S, M, 36...'}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Langues parlees' : 'Languages spoken'}</label>
+                    <input value={((form as any).languages ?? []).join(', ')}
+                      onChange={e => setForm(f => ({ ...f, languages: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }))}
+                      placeholder={lang === 'fr' ? 'francais, anglais...' : 'French, English...'}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Competences speciales' : 'Special skills'}</label>
+                  <textarea
+                    value={(form as any).special_skills ?? ''}
+                    onChange={e => setForm(f => ({ ...f, special_skills: e.target.value }))}
+                    onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
+                    placeholder={lang === 'fr' ? 'Ex: danse, equitation, plongee, conduite...' : 'e.g. dancing, horseback riding, diving, driving...'}
+                    style={{ minHeight: '72px', overflow: 'hidden' }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors resize-none" />
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t.bio_label}</p>
+                  <span className="text-xs text-gray-600">{(form.bio ?? '').length} {lang === 'fr' ? 'car.' : 'chars'}</span>
+                </div>
+                <textarea
+                  value={form.bio ?? ''}
+                  onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+                  onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
+                  placeholder={t.bio_ph}
+                  style={{ minHeight: '120px', overflow: 'hidden' }}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none leading-relaxed"
+                />
+                <div>
+                  <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                    <Lightbulb size={11} className="text-pink-400/60" /> {t.bio_ideas}
+                  </p>
+                  <div className="space-y-1.5">
+                    {BIO_IDEAS[lang].map(idea => (
+                      <button key={idea} type="button" onClick={() => setForm(f => ({ ...f, bio: idea }))}
+                        className="w-full text-left text-xs bg-gray-800/60 text-gray-400 border border-gray-700/50 px-3 py-2 rounded-lg hover:border-pink-500/40 hover:text-pink-300 transition-colors">
+                        {idea}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>{/* end col 2 */}
+
+            {/* ── COL 3: Reseaux + UDA + Actions ── */}
+            <div className="space-y-4 min-w-0 md:col-span-2 md:row-start-2 lg:col-span-1 lg:col-start-3 lg:row-start-1">
+
+              {/* Reseaux sociaux */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
+                  {lang === 'fr' ? 'Reseaux sociaux' : 'Social media'}
+                </p>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.ig_url}</label>
+                  <div className="relative">
+                    <Instagram size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400/60" />
+                    <input value={form.instagram_url ?? ''} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))}
+                      placeholder={t.ig_ph}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{t.tt_url}</label>
+                  <input value={form.tiktok_url ?? ''} onChange={e => setForm(f => ({ ...f, tiktok_url: e.target.value }))}
+                    placeholder={t.tt_ph}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+              </div>
+
+              {/* UDA */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">UDA</p>
+                <div>
+                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">
+                    {t.uda} <span className="text-gray-600 font-normal">{t.uda_desc}</span>
+                  </label>
+                  <input value={(form as any).uda_number ?? ''} onChange={e => setForm(f => ({ ...f, uda_number: e.target.value }))}
+                    placeholder={t.uda_ph}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+                </div>
+              </div>
+
+              {/* Actions desktop */}
+              <div className="hidden lg:block bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
+                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
+                  {lang === 'fr' ? 'Actions' : 'Actions'}
+                </p>
+
+                {profile.slug && (
+                  <button onClick={() => setShareOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl text-sm font-medium transition-colors">
+                    <Share2 size={15} /> {lang === 'fr' ? 'Partager le portfolio' : 'Share portfolio'}
                   </button>
-                </div>
+                )}
 
-                {/* Custom color pickers */}
-                {(form as any).theme === 'custom' && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="min-w-0">
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        {lang === 'fr' ? 'Couleur principale' : 'Primary color'}
-                      </label>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <input type="color" value={(form as any).theme_primary || '#ec4899'}
-                          onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
-                          className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
-                        <input type="text" value={(form as any).theme_primary || ''}
-                          onChange={e => setForm(f => ({ ...f, theme_primary: e.target.value }))}
-                          placeholder="#ec4899"
-                          className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        {lang === 'fr' ? 'Couleur accent' : 'Accent color'}
-                      </label>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <input type="color" value={(form as any).theme_accent || '#a855f7'}
-                          onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
-                          className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-700 cursor-pointer bg-gray-800 p-0.5" />
-                        <input type="text" value={(form as any).theme_accent || ''}
-                          onChange={e => setForm(f => ({ ...f, theme_accent: e.target.value }))}
-                          placeholder="#a855f7"
-                          className="min-w-0 flex-1 bg-gray-800 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                      </div>
-                    </div>
-                  </div>
+                <button onClick={saveProfile} disabled={saving || autoSaving}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
+                    bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white disabled:opacity-60 disabled:cursor-not-allowed">
+                  {saving
+                    ? <><Loader2 size={16} className="animate-spin" /> {t.saving}</>
+                    : autoSaving
+                      ? <><Loader2 size={16} className="animate-spin text-pink-200" /> {lang === 'fr' ? 'Sauvegarde auto...' : 'Auto-saving...'}</>
+                      : saved
+                        ? <><Check size={16} /> {t.saved}</>
+                        : <><Save size={16} /> {t.save}</>
+                  }
+                </button>
+
+                {autoSaving && (
+                  <p className="text-xs text-gray-600 text-center flex items-center justify-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    {lang === 'fr' ? 'Sauvegarde automatique active' : 'Auto-save active'}
+                  </p>
                 )}
               </div>
-            </div>
 
-            {/* Caracteristiques physiques */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-4">
-              <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">
-                {lang === 'fr' ? 'Caracteristiques physiques' : 'Physical attributes'}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille (cm)' : 'Height (cm)'}</label>
-                  <input type="number" min={50} max={250} value={(form as any).height_cm ?? ''}
-                    onChange={e => setForm(f => ({ ...f, height_cm: e.target.value ? Number(e.target.value) : null }))}
-                    placeholder={lang === 'fr' ? 'Ex: 170' : 'e.g. 170'}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
+              {saveError && (
+                <div className="bg-red-900/20 border border-red-700/40 rounded-xl px-4 py-3 text-sm text-red-400 flex items-start gap-2">
+                  <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+                  {saveError}
                 </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Poids (kg)' : 'Weight (kg)'}</label>
-                  <input type="number" min={20} max={300} step={0.1} value={(form as any).weight_kg ?? ''}
-                    onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
-                    placeholder={lang === 'fr' ? 'Ex: 58.5' : 'e.g. 58.5'}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des yeux' : 'Eye color'}</label>
-                  <select value={(form as any).eye_color ?? ''}
-                    onChange={e => setForm(f => ({ ...f, eye_color: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {[['brun','Brown'],['bleu','Blue'],['vert','Green'],['gris','Gray'],['noisette','Hazel'],['noir','Dark'],['autre','Other']].map(([fr, en]) => (
-                      <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Couleur des cheveux' : 'Hair color'}</label>
-                  <select value={(form as any).hair_color ?? ''}
-                    onChange={e => setForm(f => ({ ...f, hair_color: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {[['noir','Black'],['brun','Brown'],['chatain','Chestnut'],['blond','Blonde'],['roux','Red'],['gris','Gray'],['blanc','White'],['colore','Colored']].map(([fr, en]) => (
-                      <option key={fr} value={fr}>{lang === 'fr' ? fr.charAt(0).toUpperCase() + fr.slice(1) : en}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Longueur cheveux' : 'Hair length'}</label>
-                  <select value={(form as any).hair_length ?? ''}
-                    onChange={e => setForm(f => ({ ...f, hair_length: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {[['court','Short'],['mi-long','Medium'],['long','Long'],['tres-long','Very long']].map(([fr, en]) => (
-                      <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Teint' : 'Skin tone'}</label>
-                  <select value={(form as any).skin_tone ?? ''}
-                    onChange={e => setForm(f => ({ ...f, skin_tone: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors">
-                    <option value="">--</option>
-                    {[['clair','Fair'],['moyen','Medium'],['olive','Olive'],['fonce','Dark'],['tres-fonce','Very dark']].map(([fr, en]) => (
-                      <option key={fr} value={fr}>{lang === 'fr' ? fr : en}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Pointure' : 'Shoe size'}</label>
-                  <input value={(form as any).shoe_size ?? ''}
-                    onChange={e => setForm(f => ({ ...f, shoe_size: e.target.value }))}
-                    placeholder={lang === 'fr' ? 'Ex: 38' : 'e.g. 38'}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Taille vetement' : 'Clothing size'}</label>
-                  <input value={(form as any).clothing_size ?? ''}
-                    onChange={e => setForm(f => ({ ...f, clothing_size: e.target.value }))}
-                    placeholder={lang === 'fr' ? 'Ex: S, M, 36...' : 'e.g. S, M, 36...'}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Langues parlees' : 'Languages spoken'}</label>
-                  <input value={((form as any).languages ?? []).join(', ')}
-                    onChange={e => setForm(f => ({ ...f, languages: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }))}
-                    placeholder={lang === 'fr' ? 'francais, anglais...' : 'French, English...'}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-200 mb-1.5 block font-medium">{lang === 'fr' ? 'Competences speciales' : 'Special skills'}</label>
-                <textarea
-                  value={(form as any).special_skills ?? ''}
-                  onChange={e => setForm(f => ({ ...f, special_skills: e.target.value }))}
-                  onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
-                  placeholder={lang === 'fr' ? 'Ex: danse, equitation, plongee, conduite...' : 'e.g. dancing, horseback riding, diving, driving...'}
-                  style={{ minHeight: '72px', overflow: 'hidden' }}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors resize-none" />
-              </div>
-            </div>
-
-            {/* Bio */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t.bio_label}</p>
-                <span className="text-xs text-gray-600">{(form.bio ?? '').length} {lang === 'fr' ? 'car.' : 'chars'}</span>
-              </div>
-              <textarea
-                value={form.bio ?? ''}
-                onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-                onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
-                placeholder={t.bio_ph}
-                style={{ minHeight: '120px', overflow: 'hidden' }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none leading-relaxed"
-              />
-              <div>
-                <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                  <Lightbulb size={11} className="text-pink-400/60" /> {t.bio_ideas}
-                </p>
-                <div className="space-y-1.5">
-                  {BIO_IDEAS[lang].map(idea => (
-                    <button key={idea} type="button" onClick={() => setForm(f => ({ ...f, bio: idea }))}
-                      className="w-full text-left text-xs bg-gray-800/60 text-gray-400 border border-gray-700/50 px-3 py-2 rounded-lg hover:border-pink-500/40 hover:text-pink-300 transition-colors">
-                      {idea}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {saveError && (
-              <div className="bg-red-900/20 border border-red-700/40 rounded-xl px-4 py-3 text-sm text-red-400 flex items-start gap-2">
-                <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
-                {saveError}
-              </div>
-            )}
+              )}
+            </div>{/* end col 3 */}
           </div>
         )}
 
@@ -1506,9 +1559,9 @@ export default function PortfolioFillPage() {
         </div>
       )}
 
-      {/* ── SAVE BAR: fixed mobile, static desktop (dans la colonne droite) ── */}
+      {/* ── SAVE BAR: fixed mobile, hidden desktop on profil (save is in col 3 there) ── */}
       {activeSection !== 'boutique' && (
-        <div className="fixed bottom-0 left-0 right-0 lg:static lg:bottom-auto lg:left-auto lg:right-auto z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3">
+        <div className={`fixed bottom-0 left-0 right-0 z-40 bg-gray-950/95 backdrop-blur border-t border-gray-800/60 px-4 py-3${activeSection === 'profil' ? ' lg:hidden' : ' lg:static lg:bottom-auto lg:left-auto lg:right-auto'}`}>
           <div className="max-w-3xl mx-auto lg:max-w-none flex items-center gap-3">
             {autoSaving && (
               <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
