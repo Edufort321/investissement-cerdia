@@ -563,6 +563,17 @@ export default function PortfolioFillPage() {
   const openHeadshotCrop = (file: File) => setCropSrc(URL.createObjectURL(file))
   const openCoverCrop    = (file: File) => setCoverCropSrc(URL.createObjectURL(file))
 
+  const openHeadshotAdjust = async () => {
+    if (!profile?.headshot_url) return
+    const blob = await fetch(profile.headshot_url).then(r => r.blob())
+    setCropSrc(URL.createObjectURL(blob))
+  }
+  const openCoverAdjust = async () => {
+    if (!profile?.cover_url) return
+    const blob = await fetch(profile.cover_url).then(r => r.blob())
+    setCoverCropSrc(URL.createObjectURL(blob))
+  }
+
   const confirmHeadshotCrop = async (blob: Blob) => {
     if (cropSrc) URL.revokeObjectURL(cropSrc)
     setCropSrc(null)
@@ -962,41 +973,63 @@ export default function PortfolioFillPage() {
               <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
                 <p className="text-xs text-gray-300 uppercase tracking-widest mb-3">{t.photos_section}</p>
                 <div className="flex gap-3">
-                  <label className="flex-1 cursor-pointer group">
-                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-pink-500 transition-colors">
-                      {profile.headshot_url
-                        ? <img src={profile.headshot_url} alt="" className="w-full h-full object-cover object-top" />
-                        : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                            <User size={28} className="text-gray-600" />
-                            <span className="text-xs text-gray-600">{t.profile_photo}</span>
+                  {/* Headshot */}
+                  <div className="flex-1">
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 hover:border-pink-500 transition-colors group">
+                      {profile.headshot_url ? (
+                        <>
+                          <img src={profile.headshot_url} alt="" className="w-full h-full object-cover object-top" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-all">
+                            <label className="flex flex-col items-center gap-1 cursor-pointer text-white/80 hover:text-white transition-colors">
+                              <div className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"><Upload size={13} /></div>
+                              <span className="text-[9px]">{lang === 'fr' ? 'Changer' : 'Change'}</span>
+                              <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
+                            </label>
+                            <button onClick={openHeadshotAdjust} className="flex flex-col items-center gap-1 text-white/80 hover:text-white transition-colors">
+                              <div className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"><Crop size={13} /></div>
+                              <span className="text-[9px]">{lang === 'fr' ? 'Ajuster' : 'Adjust'}</span>
+                            </button>
                           </div>
-                      }
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                        <Camera size={20} className="text-white" />
-                      </div>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer">
+                          <User size={28} className="text-gray-600" />
+                          <span className="text-xs text-gray-600">{t.profile_photo}</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
+                        </label>
+                      )}
                     </div>
                     <p className="text-xs text-center text-gray-500 mt-1">{t.profile_photo}</p>
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
-                  </label>
+                  </div>
 
-                  <label className="flex-[2] cursor-pointer group">
-                    <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 group-hover:border-purple-500 transition-colors" style={{ aspectRatio: '8/3' }}>
-                      {profile.cover_url
-                        ? <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                            <Upload size={24} className="text-gray-600" />
-                            <span className="text-xs text-gray-600">{t.cover}</span>
+                  {/* Cover */}
+                  <div className="flex-[2]">
+                    <div className="relative rounded-xl overflow-hidden bg-gray-800 border-2 border-dashed border-gray-700 hover:border-purple-500 transition-colors group" style={{ aspectRatio: '8/3' }}>
+                      {profile.cover_url ? (
+                        <>
+                          <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-all">
+                            <label className="flex flex-col items-center gap-1 cursor-pointer text-white/80 hover:text-white transition-colors">
+                              <div className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"><Upload size={13} /></div>
+                              <span className="text-[9px]">{lang === 'fr' ? 'Changer' : 'Change'}</span>
+                              <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
+                            </label>
+                            <button onClick={openCoverAdjust} className="flex flex-col items-center gap-1 text-white/80 hover:text-white transition-colors">
+                              <div className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"><Crop size={13} /></div>
+                              <span className="text-[9px]">{lang === 'fr' ? 'Ajuster' : 'Adjust'}</span>
+                            </button>
                           </div>
-                      }
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                        <Crop size={20} className="text-white" />
-                      </div>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer">
+                          <Upload size={24} className="text-gray-600" />
+                          <span className="text-xs text-gray-600">{t.cover}</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
+                        </label>
+                      )}
                     </div>
                     <p className="text-xs text-center text-gray-500 mt-1">{t.cover_desc}</p>
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
-                  </label>
+                  </div>
                 </div>
               </div>
 

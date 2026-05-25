@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import CircleCropModal from '@/components/ui/CircleCropModal'
 import {
-  Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload,
+  Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Link2, Image, Upload, Crop,
   Copy, Check, Star, Globe, Instagram, Share2, ExternalLink, ChevronDown, ChevronUp,
   Phone, Mail, MapPin, User, Sparkles, FileDown, Loader2, RefreshCw
 } from 'lucide-react'
@@ -276,6 +276,17 @@ export default function PortfolioTab() {
   }
 
   const openCoverCrop = (file: File) => setCoverCropSrc(URL.createObjectURL(file))
+
+  const openHeadshotAdjust = async () => {
+    if (!selectedProfile?.headshot_url) return
+    const blob = await fetch(selectedProfile.headshot_url).then(r => r.blob())
+    setCropSrc(URL.createObjectURL(blob))
+  }
+  const openCoverAdjust = async () => {
+    if (!selectedProfile?.cover_url) return
+    const blob = await fetch(selectedProfile.cover_url).then(r => r.blob())
+    setCoverCropSrc(URL.createObjectURL(blob))
+  }
 
   const confirmCoverCrop = async (blob: Blob) => {
     if (coverCropSrc) URL.revokeObjectURL(coverCropSrc)
@@ -1145,35 +1156,50 @@ export default function PortfolioTab() {
                 <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
                   {/* Cover */}
                   <div
-                    className="h-36 relative group cursor-pointer"
+                    className="h-36 relative group"
                     style={selectedProfile.cover_url
                       ? { backgroundImage: `url(${selectedProfile.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                       : { background: 'linear-gradient(135deg, #1a0533 0%, #2d0a5e 50%, #0d1a3d 100%)' }
                     }
-                    onClick={() => coverInputRef.current?.click()}
                   >
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                      <Upload size={24} className="text-white" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-all">
+                      <label className="flex flex-col items-center gap-1 cursor-pointer text-white/80 hover:text-white transition-colors">
+                        <div className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl"><Upload size={18} /></div>
+                        <span className="text-[10px]">Changer</span>
+                        <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+                          onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
+                      </label>
+                      {selectedProfile.cover_url && (
+                        <button onClick={openCoverAdjust} className="flex flex-col items-center gap-1 text-white/80 hover:text-white transition-colors">
+                          <div className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl"><Crop size={18} /></div>
+                          <span className="text-[10px]">Ajuster</span>
+                        </button>
+                      )}
                     </div>
-                    <span className="absolute bottom-2 right-3 text-xs text-white/50 opacity-0 group-hover:opacity-100">Changer couverture</span>
                   </div>
-                  <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) openCoverCrop(e.target.files[0]); e.target.value = '' }} />
 
                   <div className="p-5 -mt-10 flex items-end gap-4">
-                    <div
-                      className="w-20 h-20 rounded-full ring-4 ring-gray-900 relative group cursor-pointer overflow-hidden"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {selectedProfile.headshot_url
-                        ? <img src={selectedProfile.headshot_url} alt={selectedProfile.name} className="w-full h-full object-cover object-top" />
-                        : <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                            <User size={28} />
-                          </div>
-                      }
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-full">
-                        <Upload size={18} className="text-white" />
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="w-20 h-20 rounded-full ring-4 ring-gray-900 relative group cursor-pointer overflow-hidden"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {selectedProfile.headshot_url
+                          ? <img src={selectedProfile.headshot_url} alt={selectedProfile.name} className="w-full h-full object-cover object-top" />
+                          : <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                              <User size={28} />
+                            </div>
+                        }
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-full">
+                          <Upload size={18} className="text-white" />
+                        </div>
                       </div>
+                      {selectedProfile.headshot_url && (
+                        <button onClick={openHeadshotAdjust}
+                          className="text-[10px] text-gray-500 hover:text-pink-400 transition-colors flex items-center gap-0.5">
+                          <Crop size={9} /> Ajuster
+                        </button>
+                      )}
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
                       onChange={e => { if (e.target.files?.[0]) openHeadshotCrop(e.target.files[0]); e.target.value = '' }} />
