@@ -57,31 +57,26 @@ export default function Home() {
 
     supabase
       .from('home_slides')
-      .select('image_url, flag, location, sub, stat, label_fr, label_en, type')
+      .select('*')
       .eq('active', true)
       .order('sort_order', { ascending: true })
-      .then(({ data }) => {
-        if (!data) return
-        const hero = data.filter(d => d.type === 'hero' || !d.type)
-        const platform = data.filter(d => d.type === 'platform')
-        // N'utilise les slides DB que si au moins un a un contenu textuel,
-        // sinon le fallback avec ses textes est utilisé
-        if (hero.length > 0 && hero.some(d => d.location?.trim())) {
-          setDbSlides(hero.map(d => ({
-            image: d.image_url, flag: d.flag || '', location: d.location || '',
-            sub: d.sub || '', stat: d.stat || '',
-            label_fr: d.label_fr || 'rendement locatif annuel',
-            label_en: d.label_en || 'annual rental yield',
-          })))
-        } else if (hero.length > 0) {
-          // Images uploadées sans texte : remplace seulement les images du fallback
-          setDbSlides(SLIDES_FALLBACK.map((s, i) => ({
-            ...s,
-            image: hero[i % hero.length].image_url,
-          })))
+      .then(({ data, error }) => {
+        if (error || !data || data.length === 0) return
+        const hero = data.filter((d: any) => d.type === 'hero' || !d.type)
+        const platform = data.filter((d: any) => d.type === 'platform')
+        if (hero.length > 0) {
+          // Si les slides ont du texte, on les utilise entièrement
+          // Sinon on garde le contenu du fallback et on remplace seulement les images
+          const hasContent = hero.some((d: any) => d.location?.trim())
+          setDbSlides(SLIDES_FALLBACK.map((s, i) => {
+            const db = hero[i % hero.length]
+            return hasContent
+              ? { image: db.image_url, flag: db.flag || '', location: db.location || s.location, sub: db.sub || s.sub, stat: db.stat || s.stat, label_fr: db.label_fr || s.label_fr, label_en: db.label_en || s.label_en }
+              : { ...s, image: db.image_url }
+          }))
         }
         if (platform.length > 0) {
-          setPlatformImages(platform.map(d => d.image_url))
+          setPlatformImages(platform.map((d: any) => d.image_url))
         }
       })
   }, [])
