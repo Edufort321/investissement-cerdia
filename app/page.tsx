@@ -29,7 +29,7 @@ const SLIDES = [
     image: '/cerdia-slide-intelligence.png',
     flag: '🇺🇸',
     location: 'Floride',
-    sub: 'Miami · Orlando · Sarasota',
+    sub: 'Miami · Fort Lauderdale · Tampa',
     stat: '5–9 %',
     label_fr: 'appréciation annuelle du capital',
     label_en: 'annual capital appreciation',
@@ -188,7 +188,7 @@ export default function Home() {
               de: '83% annual occupancy rate in Tulum. Prices 60–70% below Miami for equivalent properties. Residential market up 8.8% in 2025. Exceptional seasonal rental demand.',
             },
             {
-              flag: '🇺🇸', name: 'Floride', sub: 'Miami · Orlando · Sarasota',
+              flag: '🇺🇸', name: 'Floride', sub: 'Miami · Fort Lauderdale · Tampa',
               stat: '5–9 %', active: false,
               df: "Appréciation du capital soutenue. Aucun impôt sur le revenu de l'État. Marché locatif robuste alimenté par une migration constante. Déploiement CERDIA prévu — liste d'attente ouverte.",
               de: 'Sustained capital appreciation. No state income tax. Robust rental market fueled by steady migration. CERDIA deployment planned — waitlist open.',
