@@ -234,7 +234,7 @@ export default function Home() {
           <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
             {fr ? 'Notre approche' : 'Our approach'}
           </p>
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-14 max-w-xl leading-tight">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-14 max-w-xl leading-tight text-white">
             {fr ? "L'investissement immobilier, réinventé" : 'Real estate investment, reinvented'}
           </h2>
           <div className="grid md:grid-cols-3 gap-10">
@@ -265,7 +265,7 @@ export default function Home() {
                 <div className="w-10 h-10 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center">
                   <Icon size={20} strokeWidth={1.8} />
                 </div>
-                <h3 className="text-base font-semibold">{fr ? tf : te}</h3>
+                <h3 className="text-base font-semibold text-white">{fr ? tf : te}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{fr ? df : de}</p>
               </div>
             ))}
@@ -278,7 +278,7 @@ export default function Home() {
         <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
           {fr ? 'Pour les organisations' : 'For organizations'}
         </p>
-        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3">
+        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3 text-white">
           {fr ? 'Plateforme de gestion immobilière' : 'Real estate management platform'}
         </h2>
         <p className="text-gray-500 text-sm mb-12 max-w-lg leading-relaxed">
@@ -352,7 +352,7 @@ export default function Home() {
           <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-5">
             {fr ? 'Accès investisseur' : 'Investor access'}
           </p>
-          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight text-white">
             {fr
               ? "Construisez votre patrimoine à l'international"
               : 'Build your international wealth'}
