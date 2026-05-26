@@ -64,10 +64,20 @@ export default function Home() {
         if (!data) return
         const hero = data.filter(d => d.type === 'hero' || !d.type)
         const platform = data.filter(d => d.type === 'platform')
-        if (hero.length > 0) {
+        // N'utilise les slides DB que si au moins un a un contenu textuel,
+        // sinon le fallback avec ses textes est utilisé
+        if (hero.length > 0 && hero.some(d => d.location?.trim())) {
           setDbSlides(hero.map(d => ({
-            image: d.image_url, flag: d.flag, location: d.location,
-            sub: d.sub || '', stat: d.stat || '', label_fr: d.label_fr, label_en: d.label_en,
+            image: d.image_url, flag: d.flag || '', location: d.location || '',
+            sub: d.sub || '', stat: d.stat || '',
+            label_fr: d.label_fr || 'rendement locatif annuel',
+            label_en: d.label_en || 'annual rental yield',
+          })))
+        } else if (hero.length > 0) {
+          // Images uploadées sans texte : remplace seulement les images du fallback
+          setDbSlides(SLIDES_FALLBACK.map((s, i) => ({
+            ...s,
+            image: hero[i % hero.length].image_url,
           })))
         }
         if (platform.length > 0) {
