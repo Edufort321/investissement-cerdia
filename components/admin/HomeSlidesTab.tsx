@@ -28,7 +28,7 @@ const EMPTY: Omit<HomeSlide, 'id' | 'sort_order'> = {
   active: true,
 }
 
-export default function HomeSlidesTab({ toast }: { toast?: (msg: string, ok?: boolean) => void }) {
+export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; type: 'success' | 'error' }) => void }) {
   const [slides, setSlides] = useState<HomeSlide[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Omit<HomeSlide, 'id' | 'sort_order'>>(EMPTY)
@@ -36,7 +36,7 @@ export default function HomeSlidesTab({ toast }: { toast?: (msg: string, ok?: bo
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const notify = (msg: string, ok = true) => toast ? toast(msg, ok) : undefined
+  const notify = (msg: string, ok = true) => toast?.({ msg, type: ok ? 'success' : 'error' })
 
   const load = async () => {
     setLoading(true)
