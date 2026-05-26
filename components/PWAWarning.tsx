@@ -11,6 +11,17 @@ export default function PWAWarning() {
   const fr = language === 'fr'
 
   useEffect(() => {
+    // Recharger automatiquement quand un nouveau service worker prend le contrôle
+    // (évite que l'utilisateur voie des bundles JS obsolètes après un déploiement)
+    if ('serviceWorker' in navigator) {
+      let refreshing = false
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) { refreshing = true; window.location.reload() }
+      })
+    }
+  }, [])
+
+  useEffect(() => {
     // Vérifier si déjà dismissed dans localStorage
     const dismissed = localStorage.getItem('pwa-firefox-warning-dismissed')
     if (dismissed === 'true') {
