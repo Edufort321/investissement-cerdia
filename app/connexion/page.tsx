@@ -49,7 +49,6 @@ function ConnexionForm() {
         .from('organisations')
         .select('id, name, slug, plan, is_demo')
         .or(`name.ilike.%${orgInput.trim()}%,slug.ilike.%${orgInput.trim()}%`)
-        .neq('plan', 'internal')
         .limit(1)
         .single()
       if (!data) {
