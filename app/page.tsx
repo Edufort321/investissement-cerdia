@@ -97,16 +97,13 @@ export default function Home() {
     <div className="min-h-screen bg-[#0c0c0e] text-white">
 
       {/* ── HERO CAROUSEL ─────────────────────────────────────────────── */}
-      <section
-        className="relative h-screen overflow-hidden cursor-pointer select-none"
-        onClick={handleNext}
-      >
+      <section className="relative h-screen overflow-hidden select-none">
         {/* Flèches coins — discrètes */}
-        <button onClick={e => { e.stopPropagation(); handlePrev() }}
+        <button onClick={handlePrev}
           className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 text-white/30 hover:text-white/80 transition-colors">
           <ChevronLeft size={28} strokeWidth={1.5} />
         </button>
-        <button onClick={e => { e.stopPropagation(); handleNext() }}
+        <button onClick={handleNext}
           className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 text-white/30 hover:text-white/80 transition-colors">
           <ChevronRight size={28} strokeWidth={1.5} />
         </button>
@@ -132,35 +129,28 @@ export default function Home() {
 
         {/* Slide content */}
         <div className="relative h-full flex flex-col justify-end pb-20 px-8 md:px-16 max-w-7xl mx-auto">
-          <div key={idx}>
-            <p className="text-amber-400 text-xs font-medium tracking-[0.25em] uppercase mb-4 flex items-center gap-2">
-              <MapPin size={11} strokeWidth={2.5} />
-              {s.sub}
-            </p>
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold font-serif leading-none mb-6">
+          <div key={idx} className="flex flex-col gap-5">
+            {s.sub && (
+              <p className="text-amber-400 text-xs font-medium tracking-[0.25em] uppercase">
+                {s.sub}
+              </p>
+            )}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold font-serif leading-none text-white">
               {s.location}
             </h1>
-            <div className="flex flex-wrap items-end gap-8">
-              <div className="border-l-2 border-amber-400 pl-4">
+            {s.stat && (
+              <div>
                 <p className="text-3xl md:text-4xl font-bold text-amber-400 leading-none">{s.stat}</p>
                 <p className="text-gray-400 text-xs uppercase tracking-widest mt-1">
                   {fr ? s.label_fr : s.label_en}
                 </p>
               </div>
-              <Link href="/investir" onClick={e => e.stopPropagation()}>
-                <button className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-8 py-3 rounded-full text-sm tracking-wide transition-all hover:shadow-lg hover:shadow-amber-400/25">
-                  {fr ? 'Investir maintenant' : 'Invest now'}
-                </button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Dots indicator */}
-          <div className="mt-10 flex items-center gap-2" onClick={e => e.stopPropagation()}>
-            {SLIDES.map((_, i) => (
-              <button key={i} onClick={() => goTo(i)}
-                className={`h-[3px] rounded-full transition-all duration-300 ${i === idx ? 'bg-amber-400 w-8' : 'bg-white/25 w-4 hover:bg-white/50'}`} />
-            ))}
+            )}
+            <Link href="/investir">
+              <button className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-8 py-3 rounded-full text-sm tracking-wide transition-all hover:shadow-lg hover:shadow-amber-400/25 mt-2">
+                {fr ? 'Investir maintenant' : 'Invest now'}
+              </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -187,7 +177,7 @@ export default function Home() {
         <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
           {fr ? 'Nos marchés cibles' : 'Our target markets'}
         </p>
-        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-12">
+        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-12 text-white">
           {fr ? 'Opportunités à haut rendement' : 'High-yield opportunities'}
         </h2>
 
@@ -225,7 +215,7 @@ export default function Home() {
                 </span>
               </div>
               <div>
-                <h3 className="text-xl font-bold font-serif">{d.name}</h3>
+                <h3 className="text-xl font-bold font-serif text-white">{d.name}</h3>
                 <p className="text-gray-600 text-xs uppercase tracking-widest mt-0.5">{d.sub}</p>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed flex-1">{fr ? d.df : d.de}</p>
