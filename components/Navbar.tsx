@@ -26,7 +26,7 @@ export default function Navbar() {
   }, [])
 
   return (
-    <header className={`bg-[#717171] shadow-md fixed top-0 z-50 w-full transition-all duration-300 ${
+    <header className={`bg-gradient-to-b from-[#1e3564] to-[#162448] shadow-lg fixed top-0 z-50 w-full transition-all duration-300 ${
       scrolled ? 'py-1' : 'py-2'
     }`}>
       <div className="w-full px-4 sm:px-6 flex items-center justify-between">
@@ -45,12 +45,12 @@ export default function Navbar() {
 
         {/* Droite : FR/EN toujours visible + hamburger */}
         <div className="flex items-center gap-2">
-          <button className="bg-[#4a4a4a] text-white px-3 py-1.5 rounded-full hover:bg-[#333] transition text-xs font-semibold">
+          <button className="bg-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/20 transition text-xs font-semibold border border-white/15">
             <LanguageSwitcher />
           </button>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 bg-[#4a4a4a] text-white rounded-full hover:bg-[#333] transition"
+            className="p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition border border-white/15"
           >
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -59,42 +59,42 @@ export default function Navbar() {
 
       {/* Menu déroulant */}
       {menuOpen && (
-        <div className="bg-[#5e5e5e] border-t border-white/10">
+        <div className="bg-[#111e3a] border-t border-white/10">
           <nav className="flex flex-col px-4 py-3 gap-2">
             <button
               onClick={toggleTheme}
-              className="bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm flex items-center justify-center gap-2"
+              className="bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm flex items-center justify-center gap-2 border border-white/10"
             >
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
               <span>{isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}</span>
             </button>
             <Link href="/" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 {fr ? 'Accueil' : 'Home'}
               </button>
             </Link>
             <Link href="/investir" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 {fr ? 'Investir' : 'Invest'}
               </button>
             </Link>
             <Link href="/vision-cerdia" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 Vision
               </button>
             </Link>
             <Link href="/commerce" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 Commerce
               </button>
             </Link>
             <Link href="/demo" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 {fr ? 'Démo' : 'Demo'}
               </button>
             </Link>
             <Link href="/connexion?redirect=/dashboard" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
+              <button className="w-full bg-amber-400/15 text-amber-300 px-4 py-2 rounded-full hover:bg-amber-400/25 transition text-sm font-semibold border border-amber-400/20">
                 {fr ? 'Investisseur' : 'Investor'}
               </button>
             </Link>
