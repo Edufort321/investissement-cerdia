@@ -147,7 +147,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e]/70 via-transparent to-transparent pointer-events-none" />
 
         {/* Slide content */}
-        <div className="relative h-full flex flex-col justify-end pb-20 px-8 md:px-16 max-w-7xl mx-auto">
+        <div className="relative z-10 h-full flex flex-col justify-end pb-20 px-8 md:px-16 max-w-7xl mx-auto">
           <div key={idx} className="flex flex-col gap-5">
             {s.sub && (
               <p className="text-amber-400 text-xs font-medium tracking-[0.25em] uppercase">
