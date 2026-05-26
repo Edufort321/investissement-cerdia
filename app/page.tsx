@@ -129,7 +129,7 @@ export default function Home() {
               {s.sub}
             </p>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold font-serif leading-none mb-6">
-              <span className="mr-3">{s.flag}</span>{s.location}
+              {s.location}
             </h1>
             <div className="flex flex-wrap items-end gap-8">
               <div className="border-l-2 border-amber-400 pl-4">
@@ -221,7 +221,7 @@ export default function Home() {
                 ? 'border-amber-400/20 bg-[#111115] hover:border-amber-400/40'
                 : 'border-white/5 bg-[#0f0f12]'}`}>
               <div className="flex items-start justify-between">
-                <span className="text-3xl">{d.flag}</span>
+                <span className="text-3xl">{d.flag ?? ''}</span>
                 <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${d.active
                   ? 'bg-amber-400/10 text-amber-400'
                   : 'bg-white/5 text-gray-600'}`}>
