@@ -183,7 +183,7 @@ export default function Home() {
             },
             {
               flag: '🇲🇽', name: 'Riviera Maya', sub: 'Tulum · Playa del Carmen',
-              stat: '8–15 %', active: true,
+              stat: '8–15 %', active: false,
               df: "Taux d'occupation annuel de 83% à Tulum. Prix 60–70% inférieurs à Miami pour des biens équivalents. Marché résidentiel en hausse de 8.8% en 2025. Demande locative saisonnière exceptionnelle.",
               de: '83% annual occupancy rate in Tulum. Prices 60–70% below Miami for equivalent properties. Residential market up 8.8% in 2025. Exceptional seasonal rental demand.',
             },
