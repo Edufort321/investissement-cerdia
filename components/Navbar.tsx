@@ -38,19 +38,19 @@ export default function Navbar() {
             alt="Logo officiel CERDIA"
             width={40}
             height={20}
-            className={`h-auto transition-all duration-300 ${scrolled ? 'w-[32px]' : 'w-[40px]'}`}
+            className={`h-auto transition-all duration-300 ${scrolled ? 'w-[44px]' : 'w-[56px]'}`}
             priority
           />
         </Link>
 
         {/* Droite : FR/EN toujours visible + hamburger */}
         <div className="flex items-center gap-2">
-          <button className="bg-black/20 text-[#a8c4e0] px-3 py-1.5 rounded-full hover:bg-black/35 transition text-xs font-semibold border border-white/20">
+          <button className="bg-black/20 text-[#d4eaf7] px-3 py-1.5 rounded-full hover:bg-black/35 transition text-xs font-semibold border border-white/20">
             <LanguageSwitcher />
           </button>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 bg-black/20 text-[#a8c4e0] rounded-full hover:bg-black/35 transition border border-white/20"
+            className="p-2 bg-black/20 text-[#d4eaf7] rounded-full hover:bg-black/35 transition border border-white/20"
           >
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -63,28 +63,28 @@ export default function Navbar() {
           <nav className="flex flex-col px-4 py-3 gap-2">
             <button
               onClick={toggleTheme}
-              className="bg-black/20 text-[#a8c4e0] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm flex items-center justify-center gap-2 border border-white/10"
+              className="bg-black/20 text-[#d4eaf7] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm flex items-center justify-center gap-2 border border-white/10"
             >
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
               <span>{isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}</span>
             </button>
             <Link href="/" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-black/20 text-[#a8c4e0] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
+              <button className="w-full bg-black/20 text-[#d4eaf7] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
                 {fr ? 'Accueil' : 'Home'}
               </button>
             </Link>
             <Link href="/investir" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-black/20 text-[#a8c4e0] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
+              <button className="w-full bg-black/20 text-[#d4eaf7] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
                 {fr ? 'Investir' : 'Invest'}
               </button>
             </Link>
-            <Link href="/commerce" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-black/20 text-[#a8c4e0] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
+            <Link href="/commerce/admin" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-black/20 text-[#d4eaf7] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
                 Commerce
               </button>
             </Link>
             <Link href="/demo" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-black/20 text-[#a8c4e0] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
+              <button className="w-full bg-black/20 text-[#d4eaf7] px-4 py-2 rounded-full hover:bg-black/35 transition text-sm border border-white/10">
                 {fr ? 'Démo' : 'Demo'}
               </button>
             </Link>

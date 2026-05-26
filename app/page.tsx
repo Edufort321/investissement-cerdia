@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight, MapPin, TrendingUp, Shield, Globe, Sparkles } from 'lucide-react'
 
-const SLIDES = [
+const SLIDES_FALLBACK = [
   {
     image: '/cerdia-slide-immobilier.png',
     flag: '🇩🇴',
@@ -42,6 +42,7 @@ export default function Home() {
   const [idx, setIdx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [saasProducts, setSaasProducts] = useState<{ title: string; price: number | null; currency: string; description?: string }[]>([])
+  const [dbSlides, setDbSlides] = useState<typeof SLIDES_FALLBACK | null>(null)
 
   useEffect(() => {
     supabase
@@ -51,7 +52,28 @@ export default function Home() {
       .eq('active', true)
       .order('price', { ascending: true })
       .then(({ data }) => { if (data) setSaasProducts(data) })
+
+    supabase
+      .from('home_slides')
+      .select('image_url, flag, location, sub, stat, label_fr, label_en')
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setDbSlides(data.map(d => ({
+            image: d.image_url,
+            flag: d.flag,
+            location: d.location,
+            sub: d.sub || '',
+            stat: d.stat || '',
+            label_fr: d.label_fr,
+            label_en: d.label_en,
+          })))
+        }
+      })
   }, [])
+
+  const SLIDES = dbSlides ?? SLIDES_FALLBACK
 
   const advance = useCallback(() => setIdx(i => (i + 1) % SLIDES.length), [])
 

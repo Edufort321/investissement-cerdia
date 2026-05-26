@@ -8,6 +8,7 @@ import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
 import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
 import OrganisationsTab from '@/components/admin/OrganisationsTab'
 import PortfolioTab from '@/components/admin/PortfolioTab'
+import HomeSlidesTab from '@/components/admin/HomeSlidesTab'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -218,7 +219,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations' | 'artiste'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations' | 'artiste' | 'accueil'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -463,6 +464,7 @@ export default function CommerceAdminPage() {
               { key: 'factures', label: 'Factures', icon: FileText },
               { key: 'factures_gmail', label: 'Courriel', icon: Mail },
               { key: 'artiste', label: 'Artiste', icon: Sparkles },
+              { key: 'accueil', label: 'Page d\'accueil', icon: Home },
               ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
@@ -489,6 +491,7 @@ export default function CommerceAdminPage() {
         {tab === 'factures' && <FacturesTab />}
         {tab === 'organisations' && <OrganisationsTab toast={setToast} />}
         {tab === 'artiste' && <PortfolioTab />}
+        {tab === 'accueil' && <HomeSlidesTab toast={setToast} />}
         {tab === 'factures_gmail' && (
           <GmailFacturesTab
             filterCompanies={['Commerce CERDIA']}
