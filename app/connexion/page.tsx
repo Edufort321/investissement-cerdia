@@ -50,7 +50,7 @@ function ConnexionForm() {
         .select('id, name, slug, plan, is_demo')
         .or(`name.ilike.%${orgInput.trim()}%,slug.ilike.%${orgInput.trim()}%`)
         .limit(1)
-        .single()
+        .maybeSingle()
       if (!data) {
         setOrgError(fr ? 'Organisation introuvable. Vérifiez le nom.' : 'Organization not found. Check the name.')
       } else {
