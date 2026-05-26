@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Eye, EyeOff, Image as ImageIcon } from 'lucide-react'
+import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Eye, EyeOff, Image as ImageIcon, LayoutTemplate } from 'lucide-react'
 
 interface HomeSlide {
   id: string
@@ -15,6 +15,7 @@ interface HomeSlide {
   label_en: string
   active: boolean
   sort_order: number
+  type: string
 }
 
 type FormData = {
@@ -37,32 +38,40 @@ const EMPTY: FormData = {
   active: true,
 }
 
-export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; type: 'success' | 'error' }) => void }) {
-  const [slides, setSlides] = useState<HomeSlide[]>([])
-  const [loading, setLoading] = useState(true)
+function SlideSection({
+  title,
+  hint,
+  slides,
+  loading,
+  type,
+  toast,
+}: {
+  title: string
+  hint: string
+  slides: HomeSlide[]
+  loading: boolean
+  type: 'hero' | 'platform'
+  toast?: (t: { msg: string; type: 'success' | 'error' }) => void
+}) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [editId, setEditId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [localSlides, setLocalSlides] = useState<HomeSlide[]>(slides)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setLocalSlides(slides) }, [slides])
 
   const notify = (msg: string, ok = true) => toast?.({ msg, type: ok ? 'success' : 'error' })
 
-  const load = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('home_slides')
-      .select('*')
-      .order('sort_order', { ascending: true })
-    setSlides(data || [])
-    setLoading(false)
+  const reload = async () => {
+    const { data } = await supabase.from('home_slides').select('*').eq('type', type).order('sort_order')
+    setLocalSlides(data || [])
   }
-
-  useEffect(() => { load() }, [])
 
   const handleImageUpload = async (file: File) => {
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const path = `home-slides/${Date.now()}.${ext}`
+    const path = `home-slides/${type}-${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
     if (error) { notify('Erreur upload: ' + error.message, false); setUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
@@ -73,20 +82,18 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
 
   const handleSave = async () => {
     if (!form.image_url) { notify('Une image est requise', false); return }
-    const payload = { flag: '', location: form.location, sub: form.sub, stat: form.stat, label_fr: form.label_fr, label_en: form.label_en, active: form.active, image_url: form.image_url }
+    const payload = { flag: '', location: form.location, sub: form.sub, stat: form.stat, label_fr: form.label_fr, label_en: form.label_en, active: form.active, image_url: form.image_url, type }
     if (editId) {
       const { error } = await supabase.from('home_slides').update(payload).eq('id', editId)
       if (error) { notify('Erreur: ' + error.message, false); return }
       notify('Slide mis à jour')
     } else {
-      const maxOrder = slides.length ? Math.max(...slides.map(s => s.sort_order)) + 1 : 0
+      const maxOrder = localSlides.length ? Math.max(...localSlides.map(s => s.sort_order)) + 1 : 0
       const { error } = await supabase.from('home_slides').insert({ ...payload, sort_order: maxOrder })
       if (error) { notify('Erreur: ' + error.message, false); return }
       notify('Slide ajouté')
     }
-    setForm(EMPTY)
-    setEditId(null)
-    load()
+    setForm(EMPTY); setEditId(null); reload()
   }
 
   const handleEdit = (s: HomeSlide) => {
@@ -97,96 +104,83 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce slide ?')) return
     await supabase.from('home_slides').delete().eq('id', id)
-    notify('Slide supprimé')
-    load()
+    notify('Slide supprimé'); reload()
   }
 
   const toggleActive = async (s: HomeSlide) => {
     await supabase.from('home_slides').update({ active: !s.active }).eq('id', s.id)
-    load()
+    reload()
   }
 
   const moveSlide = async (idx: number, dir: -1 | 1) => {
     const target = idx + dir
-    if (target < 0 || target >= slides.length) return
-    const a = slides[idx]
-    const b = slides[target]
+    if (target < 0 || target >= localSlides.length) return
+    const a = localSlides[idx]; const b = localSlides[target]
     await supabase.from('home_slides').update({ sort_order: b.sort_order }).eq('id', a.id)
     await supabase.from('home_slides').update({ sort_order: a.sort_order }).eq('id', b.id)
-    load()
+    reload()
   }
 
-  const cancelEdit = () => { setForm(EMPTY); setEditId(null) }
-
   return (
-    <div className="space-y-8">
-
-      {/* Formulaire ajout/édition */}
+    <div className="space-y-5">
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
-          <ImageIcon size={16} className="text-orange-500" />
-          {editId ? 'Modifier le slide' : 'Ajouter un slide'}
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+          {type === 'hero' ? <ImageIcon size={15} className="text-orange-500" /> : <LayoutTemplate size={15} className="text-blue-500" />}
+          {editId ? `Modifier — ${title}` : `Ajouter — ${title}`}
         </h3>
+        <p className="text-xs text-gray-400 mb-5">{hint}</p>
 
         <div className="grid sm:grid-cols-2 gap-4">
-
-          {/* Upload image — seul champ obligatoire */}
           <div className="sm:col-span-2">
             {form.image_url ? (
-              <div className="relative group w-full h-48 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+              <div className="relative group w-full h-44 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                 <img src={form.image_url} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
                   <button onClick={() => { setForm(f => ({ ...f, image_url: '' })); if (fileRef.current) fileRef.current.value = '' }}
-                    className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
-                    Retirer
-                  </button>
+                    className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs">Retirer</button>
                   <button onClick={() => fileRef.current?.click()}
-                    className="bg-white text-gray-900 px-3 py-1.5 rounded-lg text-xs font-medium">
-                    Changer
-                  </button>
+                    className="bg-white text-gray-900 px-3 py-1.5 rounded-lg text-xs">Changer</button>
                 </div>
               </div>
             ) : (
               <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-400 transition text-gray-400 hover:text-orange-500">
+                className="w-full h-44 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-400 transition text-gray-400 hover:text-orange-500">
                 {uploading
                   ? <div className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                  : <><Upload size={24} /><span className="text-sm">Cliquer pour uploader une photo</span></>}
+                  : <><Upload size={22} /><span className="text-sm">Uploader une photo</span></>}
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
               onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
           </div>
 
-          {/* Destination (optionnel) */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Destination</label>
-            <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="République Dominicaine" />
-          </div>
+          {type === 'hero' && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Destination</label>
+                <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="République Dominicaine" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Villes</label>
+                <input value={form.sub} onChange={e => setForm(f => ({ ...f, sub: e.target.value }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="Punta Cana · Cabarete" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Rendement</label>
+                <input value={form.stat} onChange={e => setForm(f => ({ ...f, stat: e.target.value }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="6–12 %" />
+              </div>
+            </>
+          )}
 
-          {/* Villes (optionnel) */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Villes</label>
-            <input value={form.sub} onChange={e => setForm(f => ({ ...f, sub: e.target.value }))}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="Punta Cana · Cabarete" />
-          </div>
-
-          {/* Stat (optionnel) */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Rendement</label>
-            <input value={form.stat} onChange={e => setForm(f => ({ ...f, stat: e.target.value }))}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white" placeholder="6–12 %" />
-          </div>
-
-          {/* Actif */}
           <div className="flex items-center gap-3 pt-1">
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={form.active}
                 onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
               <div className="w-10 h-5 bg-gray-300 peer-checked:bg-orange-500 rounded-full transition peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
-            <span className="text-sm text-gray-600 dark:text-gray-400">Visible sur l'accueil</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Visible</span>
           </div>
         </div>
 
@@ -196,7 +190,7 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
             <Plus size={15} /> {editId ? 'Mettre à jour' : 'Ajouter'}
           </button>
           {editId && (
-            <button onClick={cancelEdit}
+            <button onClick={() => { setForm(EMPTY); setEditId(null) }}
               className="border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-5 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               Annuler
             </button>
@@ -204,28 +198,23 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
         </div>
       </div>
 
-      {/* Liste des slides */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Slides ({slides.length})</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Les slides actifs tournent dans l'ordre sur la page d'accueil.</p>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{title} — {localSlides.length} slide{localSlides.length !== 1 ? 's' : ''}</h3>
         </div>
-
         {loading ? (
           <div className="p-8 text-center text-gray-400 text-sm">Chargement...</div>
-        ) : slides.length === 0 ? (
+        ) : localSlides.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">Aucun slide — ajoutez-en un ci-dessus.</div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {slides.map((s, idx) => (
+            {localSlides.map((s, idx) => (
               <div key={s.id} className="flex items-center gap-4 px-6 py-4">
                 <div className="w-20 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                   <img src={s.image_url} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                    {s.location || '—'}
-                  </p>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{s.location || '—'}</p>
                   <p className="text-xs text-gray-500 truncate">{s.sub}{s.stat ? ` — ${s.stat}` : ''}</p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -233,7 +222,7 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
                     className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-25 transition rounded">
                     <ArrowUp size={14} />
                   </button>
-                  <button onClick={() => moveSlide(idx, 1)} disabled={idx === slides.length - 1}
+                  <button onClick={() => moveSlide(idx, 1)} disabled={idx === localSlides.length - 1}
                     className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-25 transition rounded">
                     <ArrowDown size={14} />
                   </button>
@@ -254,6 +243,53 @@ export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; ty
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+export default function HomeSlidesTab({ toast }: { toast?: (t: { msg: string; type: 'success' | 'error' }) => void }) {
+  const [heroSlides, setHeroSlides] = useState<HomeSlide[]>([])
+  const [platformSlides, setPlatformSlides] = useState<HomeSlide[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = async () => {
+    setLoading(true)
+    const { data } = await supabase.from('home_slides').select('*').order('sort_order')
+    const all = data || []
+    setHeroSlides(all.filter(s => s.type === 'hero' || !s.type))
+    setPlatformSlides(all.filter(s => s.type === 'platform'))
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  return (
+    <div className="space-y-12">
+      <div>
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">Carrousel principal</h2>
+        <p className="text-xs text-gray-500 mb-6">Photos qui tournent dans le haut de la page d'accueil.</p>
+        <SlideSection
+          title="Carrousel principal"
+          hint="Photos en haut de page — destination, villes et rendement optionnels."
+          slides={heroSlides}
+          loading={loading}
+          type="hero"
+          toast={toast}
+        />
+      </div>
+
+      <div>
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">Section Plateforme</h2>
+        <p className="text-xs text-gray-500 mb-6">Arrière-plan de la section "Plateforme de gestion immobilière" — condos, bureaux, dashboards.</p>
+        <SlideSection
+          title="Section Plateforme"
+          hint="Photos d'arrière-plan de la section Plateforme (condos, maisons, dashboards)."
+          slides={platformSlides}
+          loading={loading}
+          type="platform"
+          toast={toast}
+        />
       </div>
     </div>
   )

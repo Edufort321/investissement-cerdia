@@ -43,6 +43,8 @@ export default function Home() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [saasProducts, setSaasProducts] = useState<{ title: string; price: number | null; currency: string; description?: string }[]>([])
   const [dbSlides, setDbSlides] = useState<typeof SLIDES_FALLBACK | null>(null)
+  const [platformImages, setPlatformImages] = useState<string[]>([])
+  const [platformIdx, setPlatformIdx] = useState(0)
 
   useEffect(() => {
     supabase
@@ -55,23 +57,30 @@ export default function Home() {
 
     supabase
       .from('home_slides')
-      .select('image_url, flag, location, sub, stat, label_fr, label_en')
+      .select('image_url, flag, location, sub, stat, label_fr, label_en, type')
       .eq('active', true)
       .order('sort_order', { ascending: true })
       .then(({ data }) => {
-        if (data && data.length > 0) {
-          setDbSlides(data.map(d => ({
-            image: d.image_url,
-            flag: d.flag,
-            location: d.location,
-            sub: d.sub || '',
-            stat: d.stat || '',
-            label_fr: d.label_fr,
-            label_en: d.label_en,
+        if (!data) return
+        const hero = data.filter(d => d.type === 'hero' || !d.type)
+        const platform = data.filter(d => d.type === 'platform')
+        if (hero.length > 0) {
+          setDbSlides(hero.map(d => ({
+            image: d.image_url, flag: d.flag, location: d.location,
+            sub: d.sub || '', stat: d.stat || '', label_fr: d.label_fr, label_en: d.label_en,
           })))
+        }
+        if (platform.length > 0) {
+          setPlatformImages(platform.map(d => d.image_url))
         }
       })
   }, [])
+
+  useEffect(() => {
+    if (platformImages.length < 2) return
+    const t = setInterval(() => setPlatformIdx(i => (i + 1) % platformImages.length), 4000)
+    return () => clearInterval(t)
+  }, [platformImages])
 
   const SLIDES = dbSlides ?? SLIDES_FALLBACK
 
@@ -140,10 +149,10 @@ export default function Home() {
             </h1>
             {s.stat && (
               <div>
-                <p className="text-3xl md:text-4xl font-bold text-amber-400 leading-none">{s.stat}</p>
-                <p className="text-gray-400 text-xs uppercase tracking-widest mt-1">
+                <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">
                   {fr ? s.label_fr : s.label_en}
                 </p>
+                <p className="text-3xl md:text-4xl font-bold text-amber-400 leading-none">{s.stat}</p>
               </div>
             )}
             <Link href="/investir">
@@ -274,7 +283,26 @@ export default function Home() {
       </section>
 
       {/* ── PLATEFORME MULTI-TENANT ──────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
+      <section className="relative overflow-hidden py-20">
+
+        {/* Carrousel de fond — section plateforme */}
+        {platformImages.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none">
+            {platformImages.map((url, i) => (
+              <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === platformIdx ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `url(${url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'brightness(0.18) saturate(0.8)',
+                }} />
+              </div>
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e] via-[#0c0c0e]/80 to-[#0c0c0e]/60" />
+          </div>
+        )}
+
+        <div className="relative max-w-7xl mx-auto px-6">
         <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
           {fr ? 'Pour les organisations' : 'For organizations'}
         </p>
@@ -345,6 +373,7 @@ export default function Home() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </section>
 
