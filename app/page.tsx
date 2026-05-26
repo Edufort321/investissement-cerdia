@@ -1,230 +1,381 @@
 'use client'
 
-import Image from 'next/image'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { supabase } from '@/lib/supabase'
+import { ChevronLeft, ChevronRight, MapPin, TrendingUp, Shield, Globe, Sparkles } from 'lucide-react'
+
+const SLIDES = [
+  {
+    image: '/cerdia-slide-immobilier.png',
+    flag: '🇩🇴',
+    location: 'République Dominicaine',
+    sub: 'Punta Cana · Cabarete · Las Terrenas',
+    stat: '6–12 %',
+    label_fr: 'rendement locatif annuel',
+    label_en: 'annual rental yield',
+  },
+  {
+    image: '/cerdia-slide-location.png',
+    flag: '🇲🇽',
+    location: 'Riviera Maya',
+    sub: 'Tulum · Playa del Carmen · Cancún',
+    stat: '8–15 %',
+    label_fr: 'rendement locatif annuel',
+    label_en: 'annual rental yield',
+  },
+  {
+    image: '/cerdia-slide-intelligence.png',
+    flag: '🇺🇸',
+    location: 'Floride',
+    sub: 'Miami · Orlando · Sarasota',
+    stat: '5–9 %',
+    label_fr: 'appréciation annuelle du capital',
+    label_en: 'annual capital appreciation',
+  },
+]
 
 export default function Home() {
   const { language } = useLanguage()
+  const fr = language === 'fr'
+  const [idx, setIdx] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [saasProducts, setSaasProducts] = useState<{ title: string; price: number | null; currency: string; description?: string }[]>([])
 
-  const t = {
-    fr: {
-      title: "Une vision d'envergure alliant IA, immobilier, formation et luxe locatif",
-      subtitle: "L'intelligence au service de l'investissement. Rejoignez un réseau haut de gamme et faites croître votre capital stratégiquement.",
-      button: "Devenir investisseur",
-      footer: "Tous droits réservés.",
-      powered: "Version IA propulsée par OpenAI – Propulsé depuis le Québec 🇨🇦",
-      visionTitle: "Notre vision stratégique 2025–2045",
-      visionDesc: "CERDIA vise la construction d'un portefeuille immobilier 100 % autofinancé, sans dette bancaire, optimisé par intelligence artificielle. Trois unités déjà sécurisées en République dominicaine. Objectif d'ici 2045 : 15 à 25 propriétés, rendement net annuel > 500 000 $, valeur nette projetée : 12 à 18 M$. Tous les profits du commerce électronique CERDIA Commerce sont réinjectés dans l'immobilier. Un jeton Allcoin intelligent permettra un accès privilégié à l'écosystème, incluant dividendes, utilité et conversion en actions.",
-      visionCTA: "En savoir plus sur la vision",
-      // Nouvelles traductions
-      immobilierTitle: "Immobilier d'exception",
-      immobilierDesc: "Accédez à des projets ciblés dans les Caraïbes, États-Unis, Canada et ailleurs - optimisés pour la rentabilité durable",
-      immobilierCTA: "Découvrir nos projets",
-      locationTitle: "Location haut de gamme",
-      locationDesc: "Une plateforme locative CERDIA avec conciergerie VIP et rendement optimisé.",
-      locationCTA: "Explorer nos locations",
-      voyageTitle: "Mon Voyage",
-      voyageDesc: "Planifiez votre voyage parfait avec l'IA. Timeline 24/7, gestion de budget, suggestions intelligentes et mode partage.",
-      voyageCTA: "Planifier mon voyage",
-      commerceTitle: "Commerce CERDIA",
-      commerceDesc: "CERDIA Commerce réinvestit ses profits directement dans l'immobilier. Boutique en ligne, Amazon FBA et stratégies e-commerce optimisées par intelligence artificielle — un moteur de croissance au service du portefeuille.",
-      commerceCTA: "Découvrir CERDIA Commerce"
-    },
-    en: {
-      title: "A bold vision combining AI, real estate, education and luxury rentals",
-      subtitle: "Intelligence in the service of investment. Join a high-end network and grow your capital strategically.",
-      button: "Become an investor",
-      footer: "All rights reserved.",
-      powered: "AI version powered by OpenAI – Operated from Quebec 🇨🇦",
-      visionTitle: "Our Strategic Vision 2025–2045",
-      visionDesc: "CERDIA is building a fully self-financed real estate portfolio, debt-free, powered by artificial intelligence. Three units already secured in the Dominican Republic. By 2045: 15 to 25 premium properties, annual net revenue > $500,000, projected value: $12–18M. All profits from CERDIA Commerce (FBA) are reinvested into real estate. The Allcoin token offers privileged access, smart dividends, ecosystem utility, and convertible rights.",
-      visionCTA: "Discover the full vision",
-      // New translations
-      immobilierTitle: "Exceptional Real Estate",
-      immobilierDesc: "Access targeted projects in the Caribbean, United States, Canada and beyond - optimized for sustainable profitability",
-      immobilierCTA: "Discover our projects",
-      locationTitle: "Premium Rentals",
-      locationDesc: "A CERDIA rental platform with VIP concierge service and optimized returns.",
-      locationCTA: "Explore our rentals",
-      voyageTitle: "My Journey",
-      voyageDesc: "Plan your perfect trip with AI. 24/7 timeline, budget management, smart suggestions and share mode.",
-      voyageCTA: "Plan my trip",
-      commerceTitle: "CERDIA Commerce",
-      commerceDesc: "CERDIA Commerce reinvests all its profits directly into real estate. Online store, Amazon FBA and AI-optimized e-commerce strategies — a growth engine fueling the portfolio.",
-      commerceCTA: "Discover CERDIA Commerce"
-    }
-  }
+  useEffect(() => {
+    supabase
+      .from('commerce_products')
+      .select('title, price, currency, description')
+      .eq('category', 'saas')
+      .eq('active', true)
+      .order('price', { ascending: true })
+      .then(({ data }) => { if (data) setSaasProducts(data) })
+  }, [])
 
-  const tr = t[language]
+  const advance = useCallback(() => setIdx(i => (i + 1) % SLIDES.length), [])
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(advance, 5000)
+  }, [advance])
+
+  useEffect(() => {
+    resetTimer()
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [resetTimer])
+
+  const handleNext = () => { setIdx(i => (i + 1) % SLIDES.length); resetTimer() }
+  const handlePrev = () => { setIdx(i => (i - 1 + SLIDES.length) % SLIDES.length); resetTimer() }
+  const goTo = (i: number) => { setIdx(i); resetTimer() }
+
+  const s = SLIDES[idx]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
-        {/* HERO SECTION */}
-        <section className="max-w-6xl mx-auto px-6 py-16 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 font-serif mb-6 leading-tight">
-            {tr.title}
-          </h1>
-          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-            {tr.subtitle}
-          </p>
-          <Link href="/investir">
-            <button className="bg-[#5e5e5e] dark:bg-gray-700 text-white px-6 py-3 rounded-full text-lg hover:bg-[#3e3e3e] dark:hover:bg-gray-600 transition">
-              {tr.button}
-            </button>
-          </Link>
-        </section>
+    <div className="min-h-screen bg-[#0c0c0e] text-white">
 
-        {/* VISION STRATÉGIQUE SECTION */}
-        <section className="bg-white dark:bg-gray-800 py-12 px-6 text-center max-w-4xl mx-auto rounded-2xl shadow-md">
-          <h2 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{tr.visionTitle}</h2>
-          <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">
-            {tr.visionDesc}
-          </p>
-          <Link href="/vision-cerdia">
-            <button className="text-gray-900 dark:text-gray-100 underline hover:text-gray-700 dark:hover:text-gray-300 font-medium text-sm">
-              {tr.visionCTA} →
-            </button>
-          </Link>
-        </section>
+      {/* ── HERO CAROUSEL ─────────────────────────────────────────────── */}
+      <section
+        className="relative h-screen overflow-hidden cursor-pointer select-none"
+        onClick={handleNext}
+      >
+        {/* Background slides */}
+        {SLIDES.map((slide, i) => (
+          <div key={i}
+            className={`absolute inset-0 transition-opacity duration-1000 ${i === idx ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <div className="absolute inset-0 scale-[1.04]"
+              style={{
+                backgroundImage: `url(${slide.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'brightness(0.38) saturate(1.1)',
+              }}
+            />
+          </div>
+        ))}
 
-        {/* IMMOBILIER SECTION - Image + Text */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <Link href="/immobilier" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-              {/* Image */}
-              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden">
-                <Image
-                  src="/cerdia-slide-immobilier.png"
-                  alt="Immobilier"
-                  fill
-                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                  priority
-                />
-              </div>
-              {/* Texte */}
-              <div className="p-8 md:p-12">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
-                  {tr.immobilierTitle}
-                </h2>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
-                  {tr.immobilierDesc}
+        {/* Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e]/70 via-transparent to-transparent pointer-events-none" />
+
+        {/* Slide content */}
+        <div className="relative h-full flex flex-col justify-end pb-20 px-8 md:px-16 max-w-7xl mx-auto">
+          <div key={idx}>
+            <p className="text-amber-400 text-xs font-medium tracking-[0.25em] uppercase mb-4 flex items-center gap-2">
+              <MapPin size={11} strokeWidth={2.5} />
+              {s.sub}
+            </p>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold font-serif leading-none mb-6">
+              <span className="mr-3">{s.flag}</span>{s.location}
+            </h1>
+            <div className="flex flex-wrap items-end gap-8">
+              <div className="border-l-2 border-amber-400 pl-4">
+                <p className="text-3xl md:text-4xl font-bold text-amber-400 leading-none">{s.stat}</p>
+                <p className="text-gray-400 text-xs uppercase tracking-widest mt-1">
+                  {fr ? s.label_fr : s.label_en}
                 </p>
-                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
-                  {tr.immobilierCTA}
-                  <span className="text-xl">→</span>
-                </span>
               </div>
-            </div>
-          </Link>
-        </section>
-
-        {/* LOCATION SECTION - Text + Image (inversé) */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <Link href="/location" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-              {/* Texte (à gauche sur desktop) */}
-              <div className="p-8 md:p-12 order-2 md:order-1">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
-                  {tr.locationTitle}
-                </h2>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
-                  {tr.locationDesc}
-                </p>
-                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
-                  {tr.locationCTA}
-                  <span className="text-xl">→</span>
-                </span>
-              </div>
-              {/* Image (à droite sur desktop) */}
-              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden order-1 md:order-2">
-                <Image
-                  src="/cerdia-slide-location.png"
-                  alt="Location"
-                  fill
-                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-          </Link>
-        </section>
-
-        {/* MON VOYAGE SECTION - Image + Text */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <Link href="/mon-voyage" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-              {/* Image */}
-              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden">
-                <Image
-                  src="/cerdia-slide-voyage.png"
-                  alt="Mon Voyage"
-                  fill
-                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              {/* Texte */}
-              <div className="p-8 md:p-12">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
-                  {tr.voyageTitle}
-                </h2>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
-                  {tr.voyageDesc}
-                </p>
-                <span className="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold group-hover:gap-3 transition-all">
-                  {tr.voyageCTA}
-                  <span className="text-xl">→</span>
-                </span>
-              </div>
-            </div>
-          </Link>
-        </section>
-
-        {/* COMMERCE CERDIA SECTION - Image + Text */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <Link href="/commerce" className="block group">
-            <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-              {/* Texte - à gauche pour alterner avec Mon Voyage */}
-              <div className="p-8 md:p-12 order-2 md:order-1">
-                <span className="inline-block bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-                  E-Commerce & Amazon FBA
-                </span>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 font-serif">
-                  {tr.commerceTitle}
-                </h2>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
-                  {tr.commerceDesc}
-                </p>
-                <span className="inline-flex items-center gap-2 text-orange-700 dark:text-orange-400 font-semibold group-hover:gap-3 transition-all">
-                  {tr.commerceCTA}
-                  <span className="text-xl">→</span>
-                </span>
-              </div>
-              {/* Image */}
-              <div className="relative h-96 sm:h-[500px] md:h-full md:min-h-[450px] overflow-hidden order-1 md:order-2">
-                <Image
-                  src="/cerdia-slide-ecommerce.png"
-                  alt="Commerce CERDIA"
-                  fill
-                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-          </Link>
-        </section>
-
-        {/* FOOTER */}
-        <footer className="bg-gray-900 dark:bg-black text-white py-6 mt-16">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-center gap-2 md:gap-0">
-            <p>&copy; 2025 CERDIA. {tr.footer}</p>
-            <div className="flex items-center gap-4">
-              <Link href="/privacy" className="text-gray-300 hover:text-white transition-colors">
-                Politique de confidentialité
+              <Link href="/investir" onClick={e => e.stopPropagation()}>
+                <button className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-8 py-3 rounded-full text-sm tracking-wide transition-all hover:shadow-lg hover:shadow-amber-400/25">
+                  {fr ? 'Investir maintenant' : 'Invest now'}
+                </button>
               </Link>
-              <span className="text-gray-500">|</span>
-              <p>{tr.powered}</p>
             </div>
           </div>
-        </footer>
+
+          {/* Controls — stop click propagation so prev/next don't also advance */}
+          <div className="mt-10 flex items-center gap-3" onClick={e => e.stopPropagation()}>
+            <button onClick={handlePrev}
+              className="p-2 border border-white/15 rounded-full hover:border-amber-400/60 hover:text-amber-400 transition-colors">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="flex gap-2">
+              {SLIDES.map((_, i) => (
+                <button key={i} onClick={() => goTo(i)}
+                  className={`h-[3px] rounded-full transition-all duration-300 ${i === idx ? 'bg-amber-400 w-8' : 'bg-white/25 w-4 hover:bg-white/50'}`} />
+              ))}
+            </div>
+            <button onClick={handleNext}
+              className="p-2 border border-white/15 rounded-full hover:border-amber-400/60 hover:text-amber-400 transition-colors">
+              <ChevronRight size={16} />
+            </button>
+            <span className="ml-2 text-white/20 text-xs hidden sm:block pointer-events-none">
+              {fr ? 'Cliquez pour naviguer' : 'Click to navigate'}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS STRIP ──────────────────────────────────────────────── */}
+      <section className="border-y border-white/5 bg-[#111115]">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[
+            { val: '3',     lf: 'marchés internationaux',      le: 'international markets'   },
+            { val: '83 %',  lf: "taux d'occupation — Tulum",   le: 'occupancy rate — Tulum'  },
+            { val: '8–15 %',lf: 'rendement locatif cible',     le: 'target rental yield'     },
+            { val: '100 %', lf: 'autofinancé — zéro dette',    le: 'self-funded — zero debt' },
+          ].map((s, i) => (
+            <div key={i}>
+              <p className="text-2xl md:text-3xl font-bold text-amber-400">{s.val}</p>
+              <p className="text-gray-500 text-xs uppercase tracking-widest mt-1">{fr ? s.lf : s.le}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── DESTINATIONS ─────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-6 py-20">
+        <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
+          {fr ? 'Nos marchés cibles' : 'Our target markets'}
+        </p>
+        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-12">
+          {fr ? 'Opportunités à haut rendement' : 'High-yield opportunities'}
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {[
+            {
+              flag: '🇩🇴', name: 'République Dominicaine', sub: 'Punta Cana · Cabarete',
+              stat: '6–12 %', active: true,
+              df: "3 unités déjà sécurisées. Croissance touristique +9% en 2024 (11M visiteurs). Régime CONFOTUR : 15 ans d'exonération fiscale totale. Rendement locatif brut parmi les plus compétitifs des Caraïbes.",
+              de: '3 units already secured. +9% tourism growth in 2024 (11M visitors). CONFOTUR regime: 15-year full tax exemption. Among the most competitive gross rental yields in the Caribbean.',
+            },
+            {
+              flag: '🇲🇽', name: 'Riviera Maya', sub: 'Tulum · Playa del Carmen',
+              stat: '8–15 %', active: true,
+              df: "Taux d'occupation annuel de 83% à Tulum. Prix 60–70% inférieurs à Miami pour des biens équivalents. Marché résidentiel en hausse de 8.8% en 2025. Demande locative saisonnière exceptionnelle.",
+              de: '83% annual occupancy rate in Tulum. Prices 60–70% below Miami for equivalent properties. Residential market up 8.8% in 2025. Exceptional seasonal rental demand.',
+            },
+            {
+              flag: '🇺🇸', name: 'Floride', sub: 'Miami · Orlando · Sarasota',
+              stat: '5–9 %', active: false,
+              df: "Appréciation du capital soutenue. Aucun impôt sur le revenu de l'État. Marché locatif robuste alimenté par une migration constante. Déploiement CERDIA prévu — liste d'attente ouverte.",
+              de: 'Sustained capital appreciation. No state income tax. Robust rental market fueled by steady migration. CERDIA deployment planned — waitlist open.',
+            },
+          ].map((d, i) => (
+            <div key={i}
+              className={`rounded-2xl p-6 border flex flex-col gap-4 transition-colors ${d.active
+                ? 'border-amber-400/20 bg-[#111115] hover:border-amber-400/40'
+                : 'border-white/5 bg-[#0f0f12]'}`}>
+              <div className="flex items-start justify-between">
+                <span className="text-3xl">{d.flag}</span>
+                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${d.active
+                  ? 'bg-amber-400/10 text-amber-400'
+                  : 'bg-white/5 text-gray-600'}`}>
+                  {d.active ? (fr ? 'Actif' : 'Active') : (fr ? 'Bientôt' : 'Coming soon')}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold font-serif">{d.name}</h3>
+                <p className="text-gray-600 text-xs uppercase tracking-widest mt-0.5">{d.sub}</p>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed flex-1">{fr ? d.df : d.de}</p>
+              <div className="pt-2 border-t border-white/5">
+                <p className="text-2xl font-bold text-amber-400">{d.stat}</p>
+                <p className="text-gray-600 text-xs mt-0.5">{fr ? 'rendement cible' : 'target yield'}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── APPROCHE CERDIA ──────────────────────────────────────────── */}
+      <section className="bg-[#111115] py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
+            {fr ? 'Notre approche' : 'Our approach'}
+          </p>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-14 max-w-xl leading-tight">
+            {fr ? "L'investissement immobilier, réinventé" : 'Real estate investment, reinvented'}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-10">
+            {[
+              {
+                Icon: Shield,
+                tf: 'Sélection rigoureuse',
+                te: 'Rigorous selection',
+                df: "Chaque marché est analysé selon des critères stricts : emplacement, taux d'occupation, potentiel d'appréciation et rendement net projeté à 10 ans.",
+                de: 'Each market is analyzed against strict criteria: location, occupancy rate, appreciation potential and projected 10-year net yield.',
+              },
+              {
+                Icon: TrendingUp,
+                tf: 'Optimisation par IA',
+                te: 'AI optimization',
+                df: "Intelligence artificielle appliquée à la gestion locative : tarification dynamique, détection des opportunités et maximisation du rendement saison par saison.",
+                de: 'Artificial intelligence applied to rental management: dynamic pricing, opportunity detection and return maximization season by season.',
+              },
+              {
+                Icon: Globe,
+                tf: 'Portefeuille international',
+                te: 'International portfolio',
+                df: "Diversification sur 3 marchés à fort potentiel. Objectif 2045 : 15 à 25 propriétés, valeur nette projetée 12–18 M$, 100% autofinancé sans dette bancaire.",
+                de: 'Diversification across 3 high-potential markets. 2045 goal: 15 to 25 properties, projected net value $12–18M, 100% self-funded with no bank debt.',
+              },
+            ].map(({ Icon, tf, te, df, de }, i) => (
+              <div key={i} className="flex flex-col gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center">
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+                <h3 className="text-base font-semibold">{fr ? tf : te}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{fr ? df : de}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PLATEFORME MULTI-TENANT ──────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-6 py-20">
+        <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-3">
+          {fr ? 'Pour les organisations' : 'For organizations'}
+        </p>
+        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3">
+          {fr ? 'Plateforme de gestion immobilière' : 'Real estate management platform'}
+        </h2>
+        <p className="text-gray-500 text-sm mb-12 max-w-lg leading-relaxed">
+          {fr
+            ? "Solution multi-tenant complète : portefeuilles, locataires, rendements, IA — tout en un. Déployée pour organisations et investisseurs."
+            : "Complete multi-tenant solution: portfolios, tenants, yields, AI — all in one. Deployed for organizations and investors."}
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-5 max-w-2xl">
+          {/* Demo CTA */}
+          <Link href="/demo">
+            <div className="rounded-2xl border border-white/10 bg-[#111115] hover:border-amber-400/30 p-6 h-full cursor-pointer transition-colors group flex flex-col justify-between gap-6">
+              <div>
+                <div className="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center mb-4">
+                  <Sparkles size={17} className="text-amber-400" />
+                </div>
+                <p className="text-white font-semibold mb-2">{fr ? 'Essai gratuit' : 'Free trial'}</p>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  {fr
+                    ? "Explorez la plateforme sans engagement. Accès complet au tableau de bord démo avec données réelles."
+                    : "Explore the platform with no commitment. Full access to demo dashboard with real data."}
+                </p>
+              </div>
+              <span className="text-amber-400 text-xs font-semibold flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+                {fr ? 'Démarrer la démo' : 'Start demo'} <ChevronRight size={13} />
+              </span>
+            </div>
+          </Link>
+
+          {/* Prix dynamique depuis commerce_products */}
+          <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-6 ${saasProducts.length > 0 ? 'border-amber-400/25 bg-[#111115]' : 'border-white/5 bg-[#0f0f12] opacity-60'}`}>
+            {saasProducts.length > 0 ? (
+              <>
+                <div>
+                  <p className="text-gray-600 text-xs uppercase tracking-widest mb-4">{saasProducts[0].title}</p>
+                  <p className="text-4xl font-bold text-white leading-none">
+                    {saasProducts[0].price !== null && saasProducts[0].price !== undefined
+                      ? saasProducts[0].price.toLocaleString(fr ? 'fr-CA' : 'en-CA', {
+                          style: 'currency', currency: saasProducts[0].currency || 'CAD', minimumFractionDigits: 0,
+                        })
+                      : '—'}
+                    <span className="text-gray-600 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                  </p>
+                  {saasProducts[0].description && (
+                    <p className="text-gray-500 text-xs leading-relaxed mt-3">{saasProducts[0].description}</p>
+                  )}
+                </div>
+                <Link href="/investir" className="block">
+                  <button className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-full text-xs tracking-wide transition-all">
+                    {fr ? 'Nous contacter' : 'Contact us'}
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <div>
+                <p className="text-gray-600 text-xs uppercase tracking-widest mb-4">
+                  {fr ? 'Plateforme Multi-Tenant — Organisation' : 'Multi-Tenant Platform — Organization'}
+                </p>
+                <p className="text-4xl font-bold text-white leading-none">
+                  —<span className="text-gray-600 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA FINAL ────────────────────────────────────────────────── */}
+      <section className="py-28 px-6 text-center">
+        <div className="max-w-xl mx-auto">
+          <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-5">
+            {fr ? 'Accès investisseur' : 'Investor access'}
+          </p>
+          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight">
+            {fr
+              ? "Construisez votre patrimoine à l'international"
+              : 'Build your international wealth'}
+          </h2>
+          <p className="text-gray-500 mb-10 leading-relaxed text-sm">
+            {fr
+              ? "Rejoignez un réseau sélect d'investisseurs. Accédez à des opportunités immobilières exclusives en République Dominicaine, Mexique et Floride — sélectionnées et optimisées par CERDIA."
+              : "Join a select network of investors. Access exclusive real estate opportunities in the Dominican Republic, Mexico and Florida — selected and optimized by CERDIA."}
+          </p>
+          <Link href="/investir">
+            <button className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-12 py-4 rounded-full text-sm tracking-wide transition-all hover:shadow-xl hover:shadow-amber-400/20">
+              {fr ? 'Devenir investisseur' : 'Become an investor'}
+            </button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 py-8 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-600">
+          <p>© 2025 CERDIA. {fr ? 'Tous droits réservés.' : 'All rights reserved.'}</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-gray-400 transition-colors">
+              {fr ? 'Confidentialité' : 'Privacy'}
+            </Link>
+            <Link href="/vision-cerdia" className="hover:text-gray-400 transition-colors">
+              {fr ? 'Notre vision' : 'Our vision'}
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
