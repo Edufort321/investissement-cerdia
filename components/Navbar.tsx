@@ -78,11 +78,6 @@ export default function Navbar() {
                 {fr ? 'Investir' : 'Invest'}
               </button>
             </Link>
-            <Link href="/vision-cerdia" onClick={() => setMenuOpen(false)}>
-              <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
-                Vision
-              </button>
-            </Link>
             <Link href="/commerce" onClick={() => setMenuOpen(false)}>
               <button className="w-full bg-white/8 text-white px-4 py-2 rounded-full hover:bg-white/15 transition text-sm border border-white/10">
                 Commerce
