@@ -15,149 +15,86 @@ export default function Navbar() {
   const fr = language === 'fr'
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  // Cache la navbar publique sur les pages tenant (onboarding wizard pleine page)
   if (pathname?.startsWith('/onboarding')) return null
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-
+    const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 1024
-      setIsMobile(mobile)
-      if (!mobile) {
-        setMobileMenuOpen(false)
-      }
-    }
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
   return (
-    <header className={`bg-[#c7c7c7] shadow-sm fixed top-0 z-50 w-full transition-all duration-300 ${
+    <header className={`bg-[#717171] shadow-md fixed top-0 z-50 w-full transition-all duration-300 ${
       scrolled ? 'py-1' : 'py-2'
     }`}>
-      <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Logo CERDIA responsive - toujours à gauche */}
+      <div className="w-full px-4 sm:px-6 flex items-center justify-between">
+
+        {/* Logo — plus compact */}
         <Link href="/" className="flex items-center flex-shrink-0">
           <Image
             src="/logo-cerdia3.png"
             alt="Logo officiel CERDIA"
-            width={60}
-            height={30}
-            className={`h-auto transition-all duration-300 ${
-              scrolled ? 'w-[60px] sm:w-[70px] md:w-[80px]' : 'w-[70px] sm:w-[90px] md:w-[100px]'
-            }`}
+            width={40}
+            height={20}
+            className={`h-auto transition-all duration-300 ${scrolled ? 'w-[32px]' : 'w-[40px]'}`}
             priority
           />
         </Link>
 
-        {/* Navigation Desktop - toujours à droite */}
-        <nav className="hidden lg:flex gap-2 items-center flex-shrink-0">
-          <button
-            onClick={toggleTheme}
-            className="bg-[#5e5e5e] text-white p-2 rounded-full hover:bg-[#3e3e3e] transition"
-            title={isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
+        {/* Droite : FR/EN toujours visible + hamburger */}
+        <div className="flex items-center gap-2">
+          <button className="bg-[#4a4a4a] text-white px-3 py-1.5 rounded-full hover:bg-[#333] transition text-xs font-semibold">
             <LanguageSwitcher />
           </button>
-          <Link href="/">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              {fr ? 'Accueil' : 'Home'}
-            </button>
-          </Link>
-          <Link href="/investir">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              {fr ? 'Investir' : 'Invest'}
-            </button>
-          </Link>
-          <Link href="/vision-cerdia">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Vision
-            </button>
-          </Link>
-          <Link href="/commerce">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              Commerce
-            </button>
-          </Link>
-          <Link href="/demo">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              {fr ? 'Démo' : 'Demo'}
-            </button>
-          </Link>
-          <Link href="/connexion?redirect=/dashboard">
-            <button className="bg-[#5e5e5e] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-[#3e3e3e] transition text-xs sm:text-sm">
-              {fr ? 'Investisseur' : 'Investor'}
-            </button>
-          </Link>
-        </nav>
-
-        {/* Hamburger Menu Button */}
-        {isMobile && (
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 bg-[#5e5e5e] text-white rounded-full hover:bg-[#3e3e3e] transition"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 bg-[#4a4a4a] text-white rounded-full hover:bg-[#333] transition"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobile && mobileMenuOpen && (
-        <div className="lg:hidden bg-[#c7c7c7] border-t border-gray-400">
+      {/* Menu déroulant */}
+      {menuOpen && (
+        <div className="bg-[#5e5e5e] border-t border-white/10">
           <nav className="flex flex-col px-4 py-3 gap-2">
             <button
               onClick={toggleTheme}
-              className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm flex items-center justify-center gap-2"
+              className="bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm flex items-center justify-center gap-2"
             >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
               <span>{isDark ? (fr ? 'Mode jour' : 'Day mode') : (fr ? 'Mode sombre' : 'Dark mode')}</span>
             </button>
-            <button className="bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm text-center">
-              <LanguageSwitcher />
-            </button>
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 {fr ? 'Accueil' : 'Home'}
               </button>
             </Link>
-            <Link href="/investir" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/investir" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 {fr ? 'Investir' : 'Invest'}
               </button>
             </Link>
-            <Link href="/vision-cerdia" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/vision-cerdia" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 Vision
               </button>
             </Link>
-            <Link href="/commerce" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/commerce" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 Commerce
               </button>
             </Link>
-            <Link href="/demo" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/demo" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 {fr ? 'Démo' : 'Demo'}
               </button>
             </Link>
-            <Link href="/connexion?redirect=/dashboard" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full bg-[#5e5e5e] text-white px-4 py-2 rounded-full hover:bg-[#3e3e3e] transition text-sm">
+            <Link href="/connexion?redirect=/dashboard" onClick={() => setMenuOpen(false)}>
+              <button className="w-full bg-[#4a4a4a] text-white px-4 py-2 rounded-full hover:bg-[#333] transition text-sm">
                 {fr ? 'Investisseur' : 'Investor'}
               </button>
             </Link>
