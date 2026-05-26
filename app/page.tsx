@@ -334,13 +334,13 @@ export default function Home() {
                 </Link>
               </>
             ) : (
-              <div>
-                <p className="text-white text-xs uppercase tracking-widest mb-1">Revenus SaaS</p>
-                <p className="text-white/50 text-xs mb-4">
+              <div className="space-y-1">
+                <p className="text-white font-semibold text-sm">Revenus SaaS</p>
+                <p className="text-white text-sm">
                   {fr ? 'Plateforme Multi-Tenant — Organisation' : 'Multi-Tenant Platform — Organization'}
                 </p>
-                <p className="text-4xl font-bold text-white leading-none">
-                  —<span className="text-gray-500 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                <p className="text-4xl font-bold text-white pt-2">
+                  —<span className="text-white text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
                 </p>
               </div>
             )}
