@@ -313,17 +313,18 @@ export default function Home() {
             {saasProducts.length > 0 ? (
               <>
                 <div>
-                  <p className="text-gray-600 text-xs uppercase tracking-widest mb-4">{saasProducts[0].title}</p>
+                  <p className="text-white text-xs uppercase tracking-widest mb-1">Revenus SaaS</p>
+                  <p className="text-white/50 text-xs mb-4">{saasProducts[0].title}</p>
                   <p className="text-4xl font-bold text-white leading-none">
                     {saasProducts[0].price !== null && saasProducts[0].price !== undefined
                       ? saasProducts[0].price.toLocaleString(fr ? 'fr-CA' : 'en-CA', {
                           style: 'currency', currency: saasProducts[0].currency || 'CAD', minimumFractionDigits: 0,
                         })
                       : '—'}
-                    <span className="text-gray-600 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                    <span className="text-gray-500 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
                   </p>
                   {saasProducts[0].description && (
-                    <p className="text-gray-500 text-xs leading-relaxed mt-3">{saasProducts[0].description}</p>
+                    <p className="text-gray-400 text-xs leading-relaxed mt-3">{saasProducts[0].description}</p>
                   )}
                 </div>
                 <Link href="/investir" className="block">
@@ -334,11 +335,12 @@ export default function Home() {
               </>
             ) : (
               <div>
-                <p className="text-gray-600 text-xs uppercase tracking-widest mb-4">
+                <p className="text-white text-xs uppercase tracking-widest mb-1">Revenus SaaS</p>
+                <p className="text-white/50 text-xs mb-4">
                   {fr ? 'Plateforme Multi-Tenant — Organisation' : 'Multi-Tenant Platform — Organization'}
                 </p>
                 <p className="text-4xl font-bold text-white leading-none">
-                  —<span className="text-gray-600 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                  —<span className="text-gray-500 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
                 </p>
               </div>
             )}
