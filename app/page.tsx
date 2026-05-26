@@ -101,6 +101,15 @@ export default function Home() {
         className="relative h-screen overflow-hidden cursor-pointer select-none"
         onClick={handleNext}
       >
+        {/* Flèches coins — discrètes */}
+        <button onClick={e => { e.stopPropagation(); handlePrev() }}
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 text-white/30 hover:text-white/80 transition-colors">
+          <ChevronLeft size={28} strokeWidth={1.5} />
+        </button>
+        <button onClick={e => { e.stopPropagation(); handleNext() }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 text-white/30 hover:text-white/80 transition-colors">
+          <ChevronRight size={28} strokeWidth={1.5} />
+        </button>
         {/* Background slides */}
         {SLIDES.map((slide, i) => (
           <div key={i}
@@ -146,25 +155,12 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Controls — stop click propagation so prev/next don't also advance */}
-          <div className="mt-10 flex items-center gap-3" onClick={e => e.stopPropagation()}>
-            <button onClick={handlePrev}
-              className="p-2 border border-white/15 rounded-full hover:border-amber-400/60 hover:text-amber-400 transition-colors">
-              <ChevronLeft size={16} />
-            </button>
-            <div className="flex gap-2">
-              {SLIDES.map((_, i) => (
-                <button key={i} onClick={() => goTo(i)}
-                  className={`h-[3px] rounded-full transition-all duration-300 ${i === idx ? 'bg-amber-400 w-8' : 'bg-white/25 w-4 hover:bg-white/50'}`} />
-              ))}
-            </div>
-            <button onClick={handleNext}
-              className="p-2 border border-white/15 rounded-full hover:border-amber-400/60 hover:text-amber-400 transition-colors">
-              <ChevronRight size={16} />
-            </button>
-            <span className="ml-2 text-white/20 text-xs hidden sm:block pointer-events-none">
-              {fr ? 'Cliquez pour naviguer' : 'Click to navigate'}
-            </span>
+          {/* Dots indicator */}
+          <div className="mt-10 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            {SLIDES.map((_, i) => (
+              <button key={i} onClick={() => goTo(i)}
+                className={`h-[3px] rounded-full transition-all duration-300 ${i === idx ? 'bg-amber-400 w-8' : 'bg-white/25 w-4 hover:bg-white/50'}`} />
+            ))}
           </div>
         </div>
       </section>
