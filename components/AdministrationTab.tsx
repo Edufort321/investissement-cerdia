@@ -3640,13 +3640,20 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           </div>
                         )}
                       </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900">{transaction.description}</div>
+                      <td className="px-3 sm:px-6 py-4 max-w-[220px]">
+                        <div className="group relative">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
+                            {transaction.description}
+                          </div>
+                          <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                            {transaction.description}
+                          </div>
+                        </div>
                         {investor && (
-                          <div className="text-xs text-gray-500">{fr ? 'Investisseur' : 'Investor'}: {investor.first_name} {investor.last_name}</div>
+                          <div className="text-xs text-gray-500 truncate">{fr ? 'Investisseur' : 'Investor'}: {investor.first_name} {investor.last_name}</div>
                         )}
                         {property && (
-                          <div className="text-xs text-gray-500">{fr ? 'Propriété' : 'Property'}: {property.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{fr ? 'Propriété' : 'Property'}: {property.name}</div>
                         )}
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -4106,8 +4113,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                        <td className="px-6 py-4 max-w-[220px]">
+                          <div className="group relative">
+                            <div className="text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
+                              {transaction.description}
+                            </div>
+                            <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                              {transaction.description}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
@@ -4231,8 +4245,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                        <td className="px-6 py-4 max-w-[220px]">
+                          <div className="group relative">
+                            <div className="text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
+                              {transaction.description}
+                            </div>
+                            <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                              {transaction.description}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800">
@@ -4324,8 +4345,15 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                                 {investor ? `${investor.first_name} ${investor.last_name}` : 'Non assigné'}
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900">{transaction.description}</div>
+                            <td className="px-6 py-4 max-w-[220px]">
+                              <div className="group relative">
+                                <div className="text-sm text-gray-900 truncate cursor-default" title={transaction.description}>
+                                  {transaction.description}
+                                </div>
+                                <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                                  {transaction.description}
+                                </div>
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <span className="text-sm font-semibold text-purple-600">
