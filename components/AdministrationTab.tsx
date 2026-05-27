@@ -3014,6 +3014,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="text"
                   inputMode="decimal"
                   value={transactionFormData.amount}
+                  onFocus={(e) => { if (Number(transactionFormData.amount) === 0) e.target.select() }}
                   onChange={(e) => {
                     let value = e.target.value.replace(',', '.')
                     if (value === '' || value === '.' || value === '-' || /^-?\d*\.?\d*$/.test(value)) {

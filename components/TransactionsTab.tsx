@@ -524,6 +524,7 @@ export default function TransactionsTab() {
                   </span>
                   <input type="text" inputMode="decimal" required
                     value={formData.amount || ''}
+                    onFocus={e => { if (!formData.amount || formData.amount === 0) e.target.select() }}
                     onChange={e => {
                       const v = e.target.value.replace(/,/g, '.')
                       const n = parseFloat(v)
