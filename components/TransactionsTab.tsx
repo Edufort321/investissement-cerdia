@@ -614,7 +614,7 @@ export default function TransactionsTab() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.descriptionLabel')}</label>
                 <textarea required rows={2} value={formData.description}
                   onChange={e => set({ description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] resize-none min-h-[72px] max-h-[120px]" />
               </div>
 
               {/* Référence */}
@@ -687,12 +687,23 @@ export default function TransactionsTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getTypeBadge(transaction.type)}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
-                        {investor && <div className="text-xs text-gray-500">{t('transactions.investorRow')} {investor.first_name} {investor.last_name}</div>}
-                        {property && <div className="text-xs text-gray-500">{t('transactions.propertyRow')} {property.name}</div>}
+                      <td className="px-6 py-4 max-w-[220px]">
+                        {/* Description tronquée + tooltip complet au survol */}
+                        <div className="group relative">
+                          <div
+                            className="text-sm font-medium text-gray-900 truncate cursor-default"
+                            title={transaction.description}
+                          >
+                            {transaction.description}
+                          </div>
+                          <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                            {transaction.description}
+                          </div>
+                        </div>
+                        {investor && <div className="text-xs text-gray-500 truncate mt-0.5">{t('transactions.investorRow')} {investor.first_name} {investor.last_name}</div>}
+                        {property && <div className="text-xs text-gray-500 truncate">{t('transactions.propertyRow')} {property.name}</div>}
                         {(transaction as any).target_account && (
-                          <div className="text-xs text-teal-600">
+                          <div className="text-xs text-teal-600 truncate">
                             {t('transactions.toRow')} {(transaction as any).target_account === 'compte_courant' ? t('transactions.compteCourant') : t('transactions.typeCapex')}
                           </div>
                         )}
