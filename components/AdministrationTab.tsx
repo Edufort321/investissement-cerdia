@@ -156,6 +156,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   // Transactions state
   const [showAddTransactionForm, setShowAddTransactionForm] = useState(false)
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
+  const [txDirection, setTxDirection] = useState<'revenu' | 'depense' | 'neutre'>('revenu')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterYear, setFilterYear] = useState<string>('all')
@@ -764,6 +765,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const handleEditTransaction = (transaction: any) => {
     setEditingTransactionId(transaction.id)
+    setTxDirection(txDirFromType(transaction.type ?? 'investissement'))
     setTransactionFormData({
       date: transaction.date.split('T')[0],
       type: transaction.type,
@@ -818,7 +820,33 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     }
   }
 
+  const TX_REVENU_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
+  const TX_DEPENSE_TYPES = ['paiement', 'depense', 'capex', 'maintenance', 'admin', 'remboursement_investisseur']
+
+  const txDirFromType = (type: string): 'revenu' | 'depense' | 'neutre' => {
+    if (TX_REVENU_TYPES.includes(type))  return 'revenu'
+    if (type === 'transfert')             return 'neutre'
+    return 'depense'
+  }
+
+  const switchTxDirection = (d: 'revenu' | 'depense' | 'neutre') => {
+    setTxDirection(d)
+    const defaultType = d === 'revenu' ? 'investissement' : d === 'depense' ? 'paiement' : 'transfert'
+    setTransactionFormData(prev => ({
+      ...prev,
+      type: defaultType,
+      fiscal_category: null,
+      target_account: null,
+      transfer_source: null,
+      occurrence_type: 'unique',
+      recurrence_frequency: null,
+      recurrence_end_date: null,
+      recurrence_no_end: false,
+    }))
+  }
+
   const resetTransactionForm = () => {
+    setTxDirection('revenu')
     setTransactionFormData({
       date: new Date().toISOString().split('T')[0],
       type: 'investissement',
@@ -2644,6 +2672,24 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {editingTransactionId ? t('transactions.edit') : t('transactions.new')}
           </h3>
           <form onSubmit={handleTransactionSubmit} className="space-y-6">
+
+            {/* ── Sélecteur direction ── */}
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+              {([
+                { key: 'revenu',  label: fr ? '↑ Revenu'   : '↑ Revenue',  cls: 'bg-green-500'  },
+                { key: 'depense', label: fr ? '↓ Dépense'  : '↓ Expense',  cls: 'bg-red-500'    },
+                { key: 'neutre',  label: fr ? '↔ Neutre'   : '↔ Neutral',  cls: 'bg-indigo-500' },
+              ] as { key: 'revenu'|'depense'|'neutre'; label: string; cls: string }[]).map(({ key, label, cls }) => (
+                <button key={key} type="button"
+                  onClick={() => switchTxDirection(key)}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    txDirection === key ? `${cls} text-white shadow-sm` : 'text-gray-500 hover:text-gray-700'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {/* SECTION 1: INFORMATIONS DE BASE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
@@ -2657,8 +2703,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 />
               </div>
 
+              {/* Type — filtré par direction */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📋 Type (À quoi sert l'argent) *" : '📋 Type (Purpose) *'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📋 Type *" : '📋 Type *'}</label>
                 <select
                   value={transactionFormData.type}
                   onChange={(e) => setTransactionFormData({
@@ -2674,71 +2721,78 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
-                  <optgroup label={fr ? "── Entrées d'argent ──" : '── Money in ──'}>
+                  {txDirection === 'revenu' && <>
                     <option value="investissement">{fr ? 'Investissement' : 'Investment'}</option>
                     <option value="loyer">{fr ? 'Loyer' : 'Rent'}</option>
                     <option value="loyer_locatif">{fr ? 'Revenu locatif (avec compte dest.)' : 'Rental income (with dest. account)'}</option>
                     <option value="revenu">{fr ? 'Revenu général' : 'General revenue'}</option>
                     <option value="dividende">{fr ? 'Dividende' : 'Dividend'}</option>
-                  </optgroup>
-                  <optgroup label={fr ? '── Sorties d\'argent ──' : '── Money out ──'}>
+                  </>}
+                  {txDirection === 'depense' && <>
                     <option value="paiement">{fr ? 'Paiement' : 'Payment'}</option>
                     <option value="depense">{fr ? 'Dépense' : 'Expense'}</option>
                     <option value="capex">CAPEX</option>
                     <option value="maintenance">Maintenance</option>
                     <option value="admin">Administration</option>
                     <option value="remboursement_investisseur">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
-                  </optgroup>
-                  <optgroup label={fr ? '── Autre ──' : '── Other ──'}>
+                  </>}
+                  {txDirection === 'neutre' && <>
                     <option value="transfert">{fr ? 'Transfert (courant ↔ CAPEX)' : 'Transfer (current ↔ CAPEX)'}</option>
-                  </optgroup>
+                  </>}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🧾 Catégorie fiscale' : '🧾 Fiscal category'}</label>
-                <select
-                  value={transactionFormData.fiscal_category || ''}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                >
-                  <option value="">{fr ? '— Aucune —' : '— None —'}</option>
-                  <optgroup label={fr ? '── REVENUS ──' : '── REVENUES ──'}>
-                    <option value="rental_income">{fr ? 'Revenu locatif' : 'Rental income'}</option>
-                    <option value="dividend_income">{fr ? 'Dividende / distribution' : 'Dividend / distribution'}</option>
-                    <option value="interest_income">{fr ? 'Intérêts reçus' : 'Interest received'}</option>
-                    <option value="other_income">{fr ? 'Autre revenu' : 'Other revenue'}</option>
-                  </optgroup>
-                  <optgroup label={fr ? '── OPEX (déduit immédiatement) ──' : '── OPEX (deducted immediately) ──'}>
-                    <option value="management_fee">{fr ? 'Frais de gestion' : 'Management fees'}</option>
-                    <option value="insurance">{fr ? 'Assurance propriété' : 'Property insurance'}</option>
-                    <option value="property_tax">{fr ? 'Taxes foncières' : 'Property taxes'}</option>
-                    <option value="condo_fees">{fr ? 'Frais de condo / charges' : 'Condo fees / charges'}</option>
-                    <option value="utilities">{fr ? 'Services publics (eau, élec.)' : 'Utilities (water, electricity)'}</option>
-                    <option value="maintenance_repair">{fr ? 'Entretien & réparations' : 'Maintenance & repairs'}</option>
-                    <option value="professional_fees">{fr ? 'Honoraires prof. (comptable, notaire)' : 'Professional fees (accountant, notary)'}</option>
-                    <option value="advertising">{fr ? 'Publicité / location' : 'Advertising / rental'}</option>
-                    <option value="travel">{fr ? 'Frais de déplacement' : 'Travel expenses'}</option>
-                    <option value="interest_expense">{fr ? 'Intérêts hypothécaires' : 'Mortgage interest'}</option>
-                    <option value="bank_fees">{fr ? 'Frais bancaires / conversion' : 'Bank / conversion fees'}</option>
-                    <option value="other_opex">{fr ? 'Autre OPEX' : 'Other OPEX'}</option>
-                  </optgroup>
-                  <optgroup label={fr ? '── CAPEX (amorti sur plusieurs années) ──' : '── CAPEX (amortized over multiple years) ──'}>
-                    <option value="property_purchase">{fr ? "Acquisition propriété (prix d'achat)" : 'Property acquisition (purchase price)'}</option>
-                    <option value="renovation">{fr ? 'Rénovation majeure' : 'Major renovation'}</option>
-                    <option value="equipment">{fr ? 'Équipements & appareils' : 'Equipment & appliances'}</option>
-                    <option value="furnishing">{fr ? 'Ameublement' : 'Furnishing'}</option>
-                    <option value="acquisition_costs">{fr ? "Frais d'acquisition (notaire, inspection)" : 'Acquisition costs (notary, inspection)'}</option>
-                    <option value="land_improvement">{fr ? 'Amélioration terrain' : 'Land improvement'}</option>
-                    <option value="other_capex">{fr ? 'Autre CAPEX' : 'Other CAPEX'}</option>
-                  </optgroup>
-                  <optgroup label={fr ? '── FINANCEMENT ──' : '── FINANCING ──'}>
-                    <option value="loan_principal">{fr ? 'Remboursement capital prêt' : 'Loan principal repayment'}</option>
-                    <option value="investor_capital">{fr ? 'Capital investisseur' : 'Investor capital'}</option>
-                    <option value="investor_repayment">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
-                  </optgroup>
-                </select>
-              </div>
+              {/* Catégorie fiscale — filtrée par direction */}
+              {txDirection !== 'neutre' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🧾 Catégorie fiscale' : '🧾 Fiscal category'}</label>
+                  <select
+                    value={transactionFormData.fiscal_category || ''}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">{fr ? '— Aucune —' : '— None —'}</option>
+                    {txDirection === 'revenu' && <>
+                      <optgroup label={fr ? '── REVENUS ──' : '── REVENUES ──'}>
+                        <option value="rental_income">{fr ? 'Revenu locatif' : 'Rental income'}</option>
+                        <option value="dividend_income">{fr ? 'Dividende / distribution' : 'Dividend / distribution'}</option>
+                        <option value="interest_income">{fr ? 'Intérêts reçus' : 'Interest received'}</option>
+                        <option value="other_income">{fr ? 'Autre revenu' : 'Other revenue'}</option>
+                      </optgroup>
+                    </>}
+                    {txDirection === 'depense' && <>
+                      <optgroup label={fr ? '── OPEX (déduit immédiatement) ──' : '── OPEX (deducted immediately) ──'}>
+                        <option value="management_fee">{fr ? 'Frais de gestion' : 'Management fees'}</option>
+                        <option value="insurance">{fr ? 'Assurance propriété' : 'Property insurance'}</option>
+                        <option value="property_tax">{fr ? 'Taxes foncières' : 'Property taxes'}</option>
+                        <option value="condo_fees">{fr ? 'Frais de condo / charges' : 'Condo fees / charges'}</option>
+                        <option value="utilities">{fr ? 'Services publics (eau, élec.)' : 'Utilities (water, electricity)'}</option>
+                        <option value="maintenance_repair">{fr ? 'Entretien & réparations' : 'Maintenance & repairs'}</option>
+                        <option value="professional_fees">{fr ? 'Honoraires prof. (comptable, notaire)' : 'Professional fees (accountant, notary)'}</option>
+                        <option value="advertising">{fr ? 'Publicité / location' : 'Advertising / rental'}</option>
+                        <option value="travel">{fr ? 'Frais de déplacement' : 'Travel expenses'}</option>
+                        <option value="interest_expense">{fr ? 'Intérêts hypothécaires' : 'Mortgage interest'}</option>
+                        <option value="bank_fees">{fr ? 'Frais bancaires / conversion' : 'Bank / conversion fees'}</option>
+                        <option value="other_opex">{fr ? 'Autre OPEX' : 'Other OPEX'}</option>
+                      </optgroup>
+                      <optgroup label={fr ? '── CAPEX (amorti sur plusieurs années) ──' : '── CAPEX (amortized over multiple years) ──'}>
+                        <option value="property_purchase">{fr ? "Acquisition propriété (prix d'achat)" : 'Property acquisition (purchase price)'}</option>
+                        <option value="renovation">{fr ? 'Rénovation majeure' : 'Major renovation'}</option>
+                        <option value="equipment">{fr ? 'Équipements & appareils' : 'Equipment & appliances'}</option>
+                        <option value="furnishing">{fr ? 'Ameublement' : 'Furnishing'}</option>
+                        <option value="acquisition_costs">{fr ? "Frais d'acquisition (notaire, inspection)" : 'Acquisition costs (notary, inspection)'}</option>
+                        <option value="land_improvement">{fr ? 'Amélioration terrain' : 'Land improvement'}</option>
+                        <option value="other_capex">{fr ? 'Autre CAPEX' : 'Other CAPEX'}</option>
+                      </optgroup>
+                      <optgroup label={fr ? '── FINANCEMENT ──' : '── FINANCING ──'}>
+                        <option value="loan_principal">{fr ? 'Remboursement capital prêt' : 'Loan principal repayment'}</option>
+                        <option value="investor_capital">{fr ? 'Capital investisseur' : 'Investor capital'}</option>
+                        <option value="investor_repayment">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
+                      </optgroup>
+                    </>}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* SECTION 1b: REVENU LOCATIF — compte destination */}
