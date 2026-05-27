@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { CheckCircle, AlertTriangle, Calendar, RefreshCw, FileDown, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
 interface Verification {
@@ -194,6 +195,7 @@ async function buildPDFDoc(
 export default function MonthlyControl({ onClose, onStatusChange }: Props) {
   const { language } = useLanguage()
   const fr = language === 'fr'
+  const { organization } = useOrganization()
   const [startDate, setStartDate] = useState(prevMonthStart())
   const [endDate, setEndDate] = useState(prevMonthEnd())
   const [ccActual, setCcActual] = useState('')
@@ -212,11 +214,13 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
   useEffect(() => { loadVerifications() }, [])
 
   const loadVerifications = async () => {
-    const { data } = await supabase
+    let q = supabase
       .from('monthly_verifications')
       .select('*')
       .order('period_start', { ascending: false })
       .limit(24)
+    if (organization?.id) q = q.eq('organization_id', organization.id)
+    const { data } = await q
     const rows = data || []
     setVerifications(rows)
     if (onStatusChange) {
@@ -233,12 +237,14 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
     setError(null)
     setSaved(false)
     try {
-      const { data: allTx, error: txErr } = await supabase
+      let txQuery = supabase
         .from('transactions')
         .select('*')
         .lte('date', endDate + 'T23:59:59')
         .neq('status', 'cancelled')
-        .order('date', { ascending: true })
+      if (organization?.id) txQuery = txQuery.eq('organization_id', organization.id)
+
+      const { data: allTx, error: txErr } = await txQuery.order('date', { ascending: true })
 
       if (txErr) throw txErr
       const txs = allTx || []
@@ -287,6 +293,7 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
         (capexVariance !== null && Math.abs(capexVariance) > 0.01)
 
       const { error: saveErr } = await supabase.from('monthly_verifications').upsert({
+        ...(organization?.id ? { organization_id: organization.id } : {}),
         period_start: startDate,
         period_end: endDate,
         cc_opening_balance: calcResult.cc.opening,
@@ -323,10 +330,12 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
           .from('transaction-attachments')
           .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true })
         if (uploadData) {
-          await supabase.from('monthly_verifications')
+          let updateQ = supabase.from('monthly_verifications')
             .update({ pdf_storage_path: uploadData.path })
             .eq('period_start', startDate)
             .eq('period_end', endDate)
+          if (organization?.id) updateQ = updateQ.eq('organization_id', organization.id)
+          await updateQ
         }
       } catch (pdfErr) {
         console.warn('PDF upload failed (non-blocking):', pdfErr)
@@ -374,12 +383,13 @@ export default function MonthlyControl({ onClose, onStatusChange }: Props) {
   const regeneratePDF = async (v: Verification) => {
     setOpeningPDF(v.id)
     try {
-      const { data: allTx } = await supabase
+      let regenQuery = supabase
         .from('transactions')
         .select('*')
         .lte('date', v.period_end + 'T23:59:59')
         .neq('status', 'cancelled')
-        .order('date', { ascending: true })
+      if (organization?.id) regenQuery = regenQuery.eq('organization_id', organization.id)
+      const { data: allTx } = await regenQuery.order('date', { ascending: true })
 
       const inPeriod = (allTx || []).filter(t => {
         const d = (t.date || '').slice(0, 10)

@@ -57,9 +57,18 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Overlay transparent — ferme le menu au clic extérieur */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Menu déroulant */}
       {menuOpen && (
-        <div className="bg-[#222222] border-t border-white/10">
+        <div className="relative z-50 bg-[#222222] border-t border-white/10">
           <nav className="flex flex-col px-4 py-3 gap-2">
             <button
               onClick={toggleTheme}

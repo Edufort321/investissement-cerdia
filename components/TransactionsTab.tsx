@@ -5,6 +5,17 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { DollarSign, Plus, Edit2, Trash2, Calendar, Filter, X, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react'
 
+type Direction = 'revenu' | 'depense' | 'neutre'
+
+const REVENU_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
+const DEPENSE_TYPES = ['paiement', 'depense', 'capex', 'maintenance', 'admin', 'remboursement_investisseur']
+
+function dirFromType(type: string): Direction {
+  if (REVENU_TYPES.includes(type))  return 'revenu'
+  if (type === 'transfert')          return 'neutre'
+  return 'depense'
+}
+
 interface TransactionFormData {
   date: string
   type: string
@@ -74,10 +85,27 @@ export default function TransactionsTab() {
   const [filterType, setFilterType]       = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [saving, setSaving]               = useState(false)
+  const [direction, setDirection]         = useState<Direction>('revenu')
 
   const [formData, setFormData] = useState<TransactionFormData>(defaultForm)
 
   const set = (patch: Partial<TransactionFormData>) => setFormData(prev => ({ ...prev, ...patch }))
+
+  const switchDirection = (d: Direction) => {
+    setDirection(d)
+    const defaultType = d === 'revenu' ? 'investissement' : d === 'depense' ? 'paiement' : 'transfert'
+    const defaultCat  = d === 'revenu' ? 'capital' : 'operation'
+    set({
+      type: defaultType,
+      category: defaultCat,
+      target_account: null,
+      transfer_source: null,
+      occurrence_type: 'unique',
+      recurrence_frequency: null,
+      recurrence_end_date: null,
+      recurrence_no_end: false,
+    })
+  }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,6 +171,7 @@ export default function TransactionsTab() {
 
   const handleEdit = (transaction: any) => {
     setEditingId(transaction.id)
+    setDirection(dirFromType(transaction.type ?? 'investissement'))
     setFormData({
       date:                transaction.date?.split('T')[0] ?? new Date().toISOString().split('T')[0],
       type:                transaction.type ?? 'investissement',
@@ -173,6 +202,7 @@ export default function TransactionsTab() {
 
   const resetForm = () => {
     setFormData(defaultForm)
+    setDirection('revenu')
     setShowAddForm(false)
     setEditingId(null)
   }
@@ -184,14 +214,14 @@ export default function TransactionsTab() {
     return true
   })
 
-  const INFLOW_TYPES = ['investissement', 'dividende', 'loyer', 'loyer_locatif', 'revenu']
+  const INFLOW_TYPES = REVENU_TYPES
 
   const totalIn = filteredTransactions
     .filter(tx => INFLOW_TYPES.includes(tx.type))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
 
   const totalOut = filteredTransactions
-    .filter(tx => ['paiement', 'depense'].includes(tx.type))
+    .filter(tx => DEPENSE_TYPES.includes(tx.type))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
 
   const balance = totalIn - totalOut
@@ -304,6 +334,24 @@ export default function TransactionsTab() {
             {editingId ? t('transactions.edit') : t('transactions.new')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* ── Direction toggle ── */}
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+              {([
+                { key: 'revenu',  label: fr ? '↑ Revenu'  : '↑ Revenue', active: 'bg-green-500',  inactive: 'hover:text-green-700' },
+                { key: 'depense', label: fr ? '↓ Dépense' : '↓ Expense', active: 'bg-red-500',    inactive: 'hover:text-red-700'   },
+                { key: 'neutre',  label: fr ? '↔ Neutre'  : '↔ Neutral', active: 'bg-indigo-500', inactive: 'hover:text-indigo-700' },
+              ] as { key: Direction; label: string; active: string; inactive: string }[]).map(({ key, label, active, inactive }) => (
+                <button key={key} type="button"
+                  onClick={() => switchDirection(key)}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    direction === key ? `${active} text-white shadow-sm` : `text-gray-500 ${inactive}`
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               {/* Date */}
@@ -318,7 +366,7 @@ export default function TransactionsTab() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
               </div>
 
-              {/* Type */}
+              {/* Type — filtré par direction */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.typeLabel')}</label>
                 <select required value={formData.type}
@@ -332,24 +380,24 @@ export default function TransactionsTab() {
                     recurrence_no_end: false,
                   })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                  <optgroup label={t('transactions.totalIn')}>
+                  {direction === 'revenu' && <>
                     <option value="investissement">{t('transactionType.investment')}</option>
                     <option value="loyer">{t('transactions.typeLoyer')}</option>
                     <option value="loyer_locatif">{t('transactions.typeLoyerLocatif')}</option>
                     <option value="revenu">{t('transactions.typeRevenu')}</option>
                     <option value="dividende">{t('transactionType.dividend')}</option>
-                  </optgroup>
-                  <optgroup label={t('transactions.totalOut')}>
+                  </>}
+                  {direction === 'depense' && <>
                     <option value="paiement">{t('transactionType.payment')}</option>
                     <option value="depense">{t('transactionType.expense')}</option>
                     <option value="capex">{t('transactions.typeCapex')}</option>
                     <option value="maintenance">{t('transactions.typeMaintenance')}</option>
                     <option value="admin">{t('transactions.typeAdmin')}</option>
                     <option value="remboursement_investisseur">{t('transactions.typeRemboursement')}</option>
-                  </optgroup>
-                  <optgroup label={t('transactions.groupOther')}>
+                  </>}
+                  {direction === 'neutre' && <>
                     <option value="transfert">{t('transactions.typeTransfertFull')}</option>
-                  </optgroup>
+                  </>}
                 </select>
               </div>
             </div>
@@ -465,31 +513,43 @@ export default function TransactionsTab() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Montant */}
+              {/* Montant avec indicateur de signe */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.amountLabel')}</label>
-                <input type="text" inputMode="decimal" required
-                  value={formData.amount || ''}
-                  onChange={e => {
-                    const v = e.target.value.replace(/,/g, '.')
-                    const n = parseFloat(v)
-                    set({ amount: isNaN(n) ? 0 : n })
-                  }}
-                  placeholder={fr ? 'Ex: 1 500,00' : 'E.g. 1500.00'}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                <div className="relative">
+                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold text-base select-none ${
+                    direction === 'revenu' ? 'text-green-600' : direction === 'depense' ? 'text-red-600' : 'text-indigo-600'
+                  }`}>
+                    {direction === 'revenu' ? '+' : direction === 'depense' ? '−' : '↔'}
+                  </span>
+                  <input type="text" inputMode="decimal" required
+                    value={formData.amount || ''}
+                    onChange={e => {
+                      const v = e.target.value.replace(/,/g, '.')
+                      const n = parseFloat(v)
+                      set({ amount: isNaN(n) ? 0 : Math.abs(n) })
+                    }}
+                    placeholder={fr ? 'Ex: 1 500,00' : 'E.g. 1500.00'}
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                </div>
               </div>
 
-              {/* Catégorie (masquée pour transfert) */}
-              {formData.type !== 'transfert' && (
+              {/* Catégorie — filtrée par direction, masquée pour neutre/transfert */}
+              {direction !== 'neutre' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.categoryLabel')}</label>
                   <select required value={formData.category}
                     onChange={e => set({ category: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
-                    <option value="capital">{t('category.capital')}</option>
-                    <option value="operation">{t('category.operation')}</option>
-                    <option value="maintenance">{t('category.maintenance')}</option>
-                    <option value="admin">{t('category.admin')}</option>
+                    {direction === 'revenu' ? <>
+                      <option value="capital">{t('category.capital')}</option>
+                      <option value="operation">{t('category.operation')}</option>
+                    </> : <>
+                      <option value="operation">{t('category.operation')}</option>
+                      <option value="maintenance">{t('category.maintenance')}</option>
+                      <option value="admin">{t('category.admin')}</option>
+                      <option value="capital">{t('category.capital')}</option>
+                    </>}
                   </select>
                 </div>
               )}

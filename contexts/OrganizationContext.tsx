@@ -105,9 +105,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const loadFor = useCallback(async (userId: string) => {
     setLoading(true)
     try {
+      // JOIN en une seule requête : profile + organization en même temps
       const { data: profileRow, error: profileErr } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, organizations(*)')
         .eq('id', userId)
         .maybeSingle()
 
@@ -119,14 +120,14 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         return
       }
 
-      const p = profileRow as UserProfile
+      const { organizations: orgData, ...profileData } = profileRow as any
+      const p = profileData as UserProfile
       setProfile(p)
 
-      // Charge l'organisation réelle du user
-      const realOrg = await fetchOrgById(p.organization_id)
+      const realOrg = (orgData as Organization) || null
       setRealOrganization(realOrg)
 
-      // Si super_admin avec un override actif → charge l'org override comme vue active
+      // Si super_admin avec un override actif → charge l'org override en parallèle
       if (p.role === 'super_admin') {
         const overrideId = typeof window !== 'undefined' ? localStorage.getItem(OVERRIDE_KEY) : null
         if (overrideId && overrideId !== p.organization_id) {
@@ -135,7 +136,6 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             setOrganization(overrideOrg)
             return
           }
-          // Override invalide → on le clear
           localStorage.removeItem(OVERRIDE_KEY)
         }
       }
