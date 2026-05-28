@@ -194,6 +194,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [linkedGmailId, setLinkedGmailId] = useState<string>('')
   const [linkedGmailCompany, setLinkedGmailCompany] = useState<string>('CERDIA Globale')
 
+  // Dividend simulator state
+  const [dividendYear, setDividendYear] = useState<number>(new Date().getFullYear())
+  const [dividendAmount, setDividendAmount] = useState<number>(0)
+  const [dividendDate, setDividendDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [capexReservePct, setCapexReservePct] = useState<number>(20)
+  const [distributingDividends, setDistributingDividends] = useState<boolean>(false)
+
   useEffect(() => {
     if (!showAddTransactionForm) return
     supabase.from('gmail_invoices').select('id,vendor_name,document_date,amount,currency,category')
@@ -4577,125 +4584,349 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   const renderRdDividendesTab = () => {
-    // Calculer les totaux R&D depuis les comptes
+    // ── Données R&D ───────────────────────────────────────────────────────
     const totalInvestmentRnd = rndAccounts.reduce((sum, acc) => sum + (acc.investment_capex || 0), 0)
     const totalOperationRnd = rndAccounts.reduce((sum, acc) => sum + (acc.operation_capex || 0), 0)
-    const totalDividends = rndAccounts.reduce((sum, acc) => sum + (acc.dividend_total || 0), 0)
-
-    // Transactions R&D et Dividendes
     const rndTransactions = transactions.filter(t => t.type === 'rnd')
-    const dividendeTransactions = transactions.filter(t => t.type === 'dividende')
     const totalRndSpent = rndTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-    const totalDividendsDistributed = dividendeTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-    // Dividendes par investisseur
+    // ── Dividendes distribués ─────────────────────────────────────────────
+    const dividendeTransactions = transactions.filter(t => t.type === 'dividende')
+    const totalDividendsDistributed = dividendeTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const dividendsByInvestor = investors.map(investor => {
       const investorDividends = dividendeTransactions.filter(t => t.investor_id === investor.id)
       const totalReceived = investorDividends.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-      return {
-        investor,
-        totalReceived,
-        transactionCount: investorDividends.length
+      return { investor, totalReceived, transactionCount: investorDividends.length }
+    }).filter(item => item.totalReceived > 0).sort((a, b) => b.totalReceived - a.totalReceived)
+
+    // ── Simulateur de distribution intelligente ───────────────────────────
+    const REVENU_TYPES = ['loyer', 'loyer_locatif', 'revenu', 'dividende_recu']
+    const DEPENSE_TYPES = ['depense', 'maintenance', 'admin', 'rnd', 'capex']
+
+    const yearTx = transactions.filter(t => new Date(t.date).getFullYear() === dividendYear)
+    const annualRevenues = yearTx
+      .filter(t => REVENU_TYPES.includes(t.type))
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const annualExpenses = yearTx
+      .filter(t => DEPENSE_TYPES.includes(t.type))
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const netIncome = annualRevenues - annualExpenses
+
+    const compteCourantBalance = financialSummary?.compte_courant_balance ?? 0
+    const capexBalance = financialSummary?.capex_balance ?? 0
+    const capexReserve = compteCourantBalance * (capexReservePct / 100)
+    const maxDistributable = Math.max(0, compteCourantBalance - capexReserve)
+    const recommendedDistribution = Math.max(0, Math.min(netIncome * 0.8, maxDistributable))
+
+    // Parts par investisseur
+    const totalShares = investorSummaries.reduce((sum, s) => sum + (s.total_shares || 0), 0)
+    const investorAllocations = investorSummaries
+      .filter(s => (s.total_shares || 0) > 0)
+      .map(summary => {
+        const investor = investors.find(inv => inv.id === summary.investor_id)
+        const pct = totalShares > 0 ? (summary.total_shares / totalShares) : 0
+        const amount = dividendAmount * pct
+        return { investor, summary, pct, amount }
+      })
+      .filter(a => a.investor)
+      .sort((a, b) => b.pct - a.pct)
+
+    const handleDistributeDividends = async () => {
+      if (dividendAmount <= 0 || investorAllocations.length === 0) return
+      if (!confirm(fr
+        ? `Confirmer la distribution de ${dividendAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} en dividendes à ${investorAllocations.length} investisseurs ?`
+        : `Confirm distribution of ${dividendAmount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} in dividends to ${investorAllocations.length} investors?`
+      )) return
+
+      setDistributingDividends(true)
+      try {
+        for (const alloc of investorAllocations) {
+          if (!alloc.investor || alloc.amount <= 0) continue
+          await addTransaction({
+            date: dividendDate,
+            type: 'dividende',
+            amount: -Math.round(alloc.amount * 100) / 100,
+            description: fr
+              ? `Dividende ${dividendYear} — ${alloc.pct.toFixed(2)}% (${alloc.summary.total_shares} parts)`
+              : `Dividend ${dividendYear} — ${alloc.pct.toFixed(2)}% (${alloc.summary.total_shares} shares)`,
+            investor_id: alloc.investor.id,
+            property_id: null,
+            payment_schedule_id: null,
+            category: 'dividende',
+            payment_method: 'virement',
+            reference_number: '',
+            status: 'complete',
+            source_currency: 'CAD',
+            source_amount: null,
+            exchange_rate: 1.0,
+            source_country: null,
+            foreign_tax_paid: 0,
+            foreign_tax_rate: 0,
+            tax_credit_claimable: 0,
+            fiscal_category: 'dividend_income',
+            vendor_name: null,
+            accountant_notes: null,
+          } as any)
+        }
+        alert(fr ? '✅ Dividendes distribués avec succès!' : '✅ Dividends distributed successfully!')
+        setDividendAmount(0)
+      } catch (err: any) {
+        alert((fr ? 'Erreur: ' : 'Error: ') + err.message)
+      } finally {
+        setDistributingDividends(false)
       }
-    }).filter(item => item.totalReceived > 0)
-    .sort((a, b) => b.totalReceived - a.totalReceived)
+    }
+
+    const fmtCAD = (n: number) => n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
+    const fmtPct = (n: number) => (n * 100).toFixed(2) + '%'
 
     return (
       <div className="space-y-6">
-        {/* Header Stats */}
+
+        {/* ── Simulateur de distribution intelligente ── */}
+        <div className="bg-white rounded-xl shadow-md border border-purple-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-purple-800 px-6 py-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <DollarSign size={20} />
+              {fr ? 'Simulateur de Distribution Intelligente' : 'Smart Distribution Simulator'}
+            </h3>
+            <p className="text-purple-200 text-sm mt-1">
+              {fr ? 'Calcul automatique basé sur revenus annuels, compte courant et réserve CAPEX' : 'Auto-calculation from annual revenues, compte courant and CAPEX reserve'}
+            </p>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Année et paramètres */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{fr ? 'Année fiscale' : 'Fiscal year'}</label>
+                <select
+                  value={dividendYear}
+                  onChange={e => setDividendYear(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                >
+                  {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{fr ? `Réserve compte courant (${capexReservePct}%)` : `CC reserve (${capexReservePct}%)`}</label>
+                <input
+                  type="range" min={0} max={50} step={5}
+                  value={capexReservePct}
+                  onChange={e => setCapexReservePct(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-gray-500 text-right">{fmtCAD(capexReserve)}</div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{fr ? 'Date de distribution' : 'Distribution date'}</label>
+                <input
+                  type="date"
+                  value={dividendDate}
+                  onChange={e => setDividendDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Analyse financière */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="text-xs text-green-600 font-medium">{fr ? `Revenus ${dividendYear}` : `${dividendYear} revenues`}</div>
+                <div className="text-lg font-bold text-green-800">{fmtCAD(annualRevenues)}</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="text-xs text-red-600 font-medium">{fr ? `Dépenses ${dividendYear}` : `${dividendYear} expenses`}</div>
+                <div className="text-lg font-bold text-red-800">{fmtCAD(annualExpenses)}</div>
+              </div>
+              <div className={`border rounded-lg p-3 ${netIncome >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'}`}>
+                <div className={`text-xs font-medium ${netIncome >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>{fr ? 'Revenu net' : 'Net income'}</div>
+                <div className={`text-lg font-bold ${netIncome >= 0 ? 'text-blue-800' : 'text-orange-800'}`}>{fmtCAD(netIncome)}</div>
+              </div>
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+                <div className="text-xs text-teal-600 font-medium">{fr ? 'Solde C/C disponible' : 'Available CC balance'}</div>
+                <div className="text-lg font-bold text-teal-800">{fmtCAD(compteCourantBalance)}</div>
+              </div>
+            </div>
+
+            {/* Recommandation */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-purple-900">{fr ? 'Montant recommandé à distribuer' : 'Recommended distribution amount'}</div>
+                  <div className="text-xs text-purple-600 mt-0.5">
+                    {fr
+                      ? `80% du revenu net, plafonné au C/C disponible (${fmtCAD(maxDistributable)}) après réserve`
+                      : `80% of net income, capped at available CC (${fmtCAD(maxDistributable)}) after reserve`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold text-purple-700">{fmtCAD(recommendedDistribution)}</span>
+                  <button
+                    onClick={() => setDividendAmount(Math.round(recommendedDistribution))}
+                    className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700"
+                  >
+                    {fr ? 'Utiliser' : 'Use'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Montant personnalisé */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {fr ? 'Montant total à distribuer (CAD)' : 'Total amount to distribute (CAD)'}
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="number"
+                  value={dividendAmount || ''}
+                  onChange={e => setDividendAmount(parseFloat(e.target.value) || 0)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400"
+                  placeholder="Ex: 25000"
+                  min={0}
+                  step={100}
+                />
+                <button
+                  onClick={() => setDividendAmount(0)}
+                  className="px-3 py-2 text-gray-500 hover:text-red-500 border border-gray-300 rounded-lg"
+                  title={fr ? 'Réinitialiser' : 'Reset'}
+                >×</button>
+              </div>
+              {dividendAmount > maxDistributable && (
+                <p className="text-xs text-red-600 mt-1">
+                  ⚠️ {fr ? `Dépasse le C/C disponible après réserve (${fmtCAD(maxDistributable)})` : `Exceeds available CC after reserve (${fmtCAD(maxDistributable)})`}
+                </p>
+              )}
+            </div>
+
+            {/* Répartition par investisseur */}
+            {dividendAmount > 0 && investorAllocations.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  {fr ? `Répartition pour ${investorAllocations.length} investisseurs` : `Breakdown for ${investorAllocations.length} investors`}
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-purple-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-purple-700">{fr ? 'Investisseur' : 'Investor'}</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-purple-700">{fr ? 'Parts' : 'Shares'}</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-purple-700">%</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-purple-700">{fr ? 'Montant' : 'Amount'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {investorAllocations.map(({ investor, summary, pct, amount }) => (
+                        <tr key={summary.investor_id} className="hover:bg-purple-50/50">
+                          <td className="px-4 py-2.5">
+                            <div className="text-sm font-medium text-gray-900">
+                              {investor?.first_name} {investor?.last_name}
+                            </div>
+                            <div className="text-xs text-gray-500">{(investor as any)?.action_class || 'A'}</div>
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-sm text-gray-700">{summary.total_shares.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right">
+                            <span className="inline-block bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {fmtPct(pct)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-sm font-bold text-purple-700">{fmtCAD(amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50">
+                      <tr>
+                        <td className="px-4 py-2 text-sm font-bold text-gray-700" colSpan={3}>{fr ? 'Total' : 'Total'}</td>
+                        <td className="px-4 py-2 text-right text-sm font-bold text-purple-800">{fmtCAD(dividendAmount)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <button
+                  onClick={handleDistributeDividends}
+                  disabled={distributingDividends || dividendAmount <= 0}
+                  className="mt-4 w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {distributingDividends ? (
+                    <><span className="animate-spin">⟳</span> {fr ? 'Distribution en cours...' : 'Distributing...'}</>
+                  ) : (
+                    <><DollarSign size={18} /> {fr ? `Distribuer ${fmtCAD(dividendAmount)} aux investisseurs` : `Distribute ${fmtCAD(dividendAmount)} to investors`}</>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {totalShares === 0 && (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                {fr ? 'Aucune part enregistrée — ajoutez des investisseurs avec des parts pour activer le simulateur.' : 'No shares recorded — add investors with shares to enable the simulator.'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Header Stats ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-lg border border-cyan-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-cyan-700">{fr ? 'R&D Investissement' : 'Investment R&D'}</span>
               <TrendingUp className="text-cyan-600" size={20} />
             </div>
-            <p className="text-2xl font-bold text-cyan-900">
-              {totalInvestmentRnd.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-2xl font-bold text-cyan-900">{fmtCAD(totalInvestmentRnd)}</p>
           </div>
-
           <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-indigo-700">{fr ? 'R&D Operation' : 'Operation R&D'}</span>
               <TrendingUp className="text-indigo-600" size={20} />
             </div>
-            <p className="text-2xl font-bold text-indigo-900">
-              {totalOperationRnd.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-2xl font-bold text-indigo-900">{fmtCAD(totalOperationRnd)}</p>
           </div>
-
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-700">{fr ? 'Total Dividendes' : 'Total Dividends'}</span>
+              <span className="text-sm font-medium text-purple-700">{fr ? 'Total Dividendes Distribués' : 'Total Dividends Distributed'}</span>
               <DollarSign className="text-purple-600" size={20} />
             </div>
-            <p className="text-2xl font-bold text-purple-900">
-              {totalDividends.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-2xl font-bold text-purple-900">{fmtCAD(totalDividendsDistributed)}</p>
           </div>
         </div>
 
-        {/* Section R&D */}
+        {/* ── Section R&D ───────────────────────────────────────────────────── */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <TrendingUp size={20} className="text-cyan-600" />
             {fr ? `Depenses R&D (${rndTransactions.length} transactions)` : `R&D Expenses (${rndTransactions.length} transactions)`}
           </h3>
-
           {rndTransactions.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 text-gray-500">
               <TrendingUp size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">{fr ? 'Aucune depense R&D pour le moment' : 'No R&D expenses yet'}</p>
+              <p>{fr ? 'Aucune depense R&D pour le moment' : 'No R&D expenses yet'}</p>
             </div>
           ) : (
             <>
-              <div className="mb-4 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-cyan-700">{fr ? 'Total depense en R&D' : 'Total spent on R&D'}</span>
-                  <span className="text-xl font-bold text-cyan-900">
-                    {totalRndSpent.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </span>
-                </div>
+              <div className="mb-4 p-4 bg-cyan-50 rounded-lg border border-cyan-200 flex items-center justify-between">
+                <span className="text-sm font-medium text-cyan-700">{fr ? 'Total depense en R&D' : 'Total spent on R&D'}</span>
+                <span className="text-xl font-bold text-cyan-900">{fmtCAD(totalRndSpent)}</span>
               </div>
-
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Categorie' : 'Category'}</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Montant' : 'Amount'}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{fr ? 'Categorie' : 'Category'}</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{fr ? 'Montant' : 'Amount'}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {rndTransactions
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                    {rndTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => (
+                      <tr key={tx.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
+                        <td className="px-6 py-4 max-w-[220px] text-sm font-medium text-gray-900 truncate" title={tx.description}>{tx.description}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800">{tx.category || 'R&D'}</span>
                         </td>
-                        <td className="px-6 py-4 max-w-[220px]">
-                          <div className="group relative">
-                            <div className="text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
-                              {transaction.description}
-                            </div>
-                            <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
-                              {transaction.description}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800">
-                            {transaction.category || 'R&D'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <span className="text-sm font-semibold text-gray-900">
-                            {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                          </span>
-                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{fmtCAD(Math.abs(tx.amount))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -4705,95 +4936,59 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           )}
         </div>
 
-        {/* Section Dividendes */}
+        {/* ── Historique Dividendes ─────────────────────────────────────────── */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <DollarSign size={20} className="text-purple-600" />
-            {fr ? `Dividendes Distribues (${dividendeTransactions.length} transactions)` : `Distributed Dividends (${dividendeTransactions.length} transactions)`}
+            {fr ? `Historique Dividendes (${dividendeTransactions.length} distributions)` : `Dividend History (${dividendeTransactions.length} distributions)`}
           </h3>
-
           {dividendeTransactions.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 text-gray-500">
               <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">{fr ? 'Aucun dividende distribue pour le moment' : 'No dividends distributed yet'}</p>
+              <p>{fr ? 'Aucun dividende distribue — utilisez le simulateur ci-dessus' : 'No dividends distributed — use the simulator above'}</p>
             </div>
           ) : (
             <>
-              <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-purple-700">{fr ? 'Total distribue' : 'Total distributed'}</span>
-                  <span className="text-xl font-bold text-purple-900">
-                    {totalDividendsDistributed.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                  </span>
-                </div>
+              <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200 flex items-center justify-between">
+                <span className="text-sm font-medium text-purple-700">{fr ? 'Total distribue (tous temps)' : 'Total distributed (all time)'}</span>
+                <span className="text-xl font-bold text-purple-900">{fmtCAD(totalDividendsDistributed)}</span>
               </div>
-
-              {/* Dividendes par investisseur */}
               {dividendsByInvestor.length > 0 && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <h4 className="text-sm font-semibold text-purple-900 mb-3">{fr ? 'Repartition par Investisseur' : 'Breakdown by Investor'}</h4>
+                  <h4 className="text-sm font-semibold text-purple-900 mb-3">{fr ? 'Cumulatif par Investisseur' : 'Cumulative by Investor'}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {dividendsByInvestor.map(({ investor, totalReceived, transactionCount }) => (
                       <div key={investor.id} className="bg-white p-3 rounded-lg border border-purple-100">
-                        <div className="text-sm font-medium text-gray-900">
-                          {investor.first_name} {investor.last_name}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {transactionCount} {fr ? `paiement${transactionCount > 1 ? 's' : ''}` : `payment${transactionCount > 1 ? 's' : ''}`}
-                        </div>
-                        <div className="text-lg font-bold text-purple-600 mt-2">
-                          {totalReceived.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{investor.first_name} {investor.last_name}</div>
+                        <div className="text-xs text-gray-500 mt-1">{transactionCount} {fr ? 'paiement(s)' : 'payment(s)'}</div>
+                        <div className="text-lg font-bold text-purple-600 mt-2">{fmtCAD(totalReceived)}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* Tableau des transactions dividendes */}
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Investisseur' : 'Investor'}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{fr ? 'Montant' : 'Amount'}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{fr ? 'Investisseur' : 'Investor'}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{fr ? 'Montant' : 'Amount'}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {dividendeTransactions
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((transaction) => {
-                        const investor = investors.find(inv => inv.id === transaction.investor_id)
-                        return (
-                          <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">
-                                {investor ? `${investor.first_name} ${investor.last_name}` : 'Non assigné'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 max-w-[220px]">
-                              <div className="group relative">
-                                <div className="text-sm text-gray-900 truncate cursor-default" title={transaction.description}>
-                                  {transaction.description}
-                                </div>
-                                <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
-                                  {transaction.description}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <span className="text-sm font-semibold text-purple-600">
-                                {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
+                    {dividendeTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => {
+                      const inv = investors.find(i => i.id === tx.investor_id)
+                      return (
+                        <tr key={tx.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : 'Non assigné'}</td>
+                          <td className="px-6 py-4 max-w-[220px] text-sm text-gray-900 truncate" title={tx.description}>{tx.description}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-purple-600">{fmtCAD(Math.abs(tx.amount))}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

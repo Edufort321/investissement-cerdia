@@ -21,6 +21,7 @@ interface PropertyFormData {
   country_code: string
   state_province: string
   county_code: string
+  cca_class: string
   total_cost: number
   paid_amount: number
   reservation_date: string
@@ -91,6 +92,7 @@ export default function ProjetTab() {
     country_code: '',
     state_province: '',
     county_code: '',
+    cca_class: '',
     total_cost: 0,
     paid_amount: 0,
     reservation_date: new Date().toISOString().split('T')[0],
@@ -205,6 +207,7 @@ export default function ProjetTab() {
       country_code: (property as any).country_code || '',
       state_province: (property as any).state_province || '',
       county_code: (property as any).county_code || '',
+      cca_class: (property as any).cca_class || '',
       total_cost: property.total_cost,
       paid_amount: calculatedPaidAmount, // Calculé automatiquement
       reservation_date: property.reservation_date.split('T')[0],
@@ -243,6 +246,7 @@ export default function ProjetTab() {
       country_code: '',
       state_province: '',
       county_code: '',
+      cca_class: '',
       total_cost: 0,
       paid_amount: 0,
       reservation_date: new Date().toISOString().split('T')[0],
@@ -1092,6 +1096,29 @@ export default function ProjetTab() {
                     <option value="BC">Colombie-Britannique</option>
                     <option value="AB">Alberta</option>
                   </select>
+                </div>
+              )}
+
+              {(formData.country_code === 'CA' || formData.country_code === 'US' || !formData.country_code) && formData.property_type !== 'terrain' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {fr ? 'Classe CCA / FNACC (amortissement fiscal)' : 'CCA Class / UCC (tax depreciation)'}
+                  </label>
+                  <select
+                    value={formData.cca_class}
+                    onChange={(e) => setFormData({ ...formData, cca_class: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">— {fr ? 'Auto selon type' : 'Auto by type'} —</option>
+                    <option value="Class1">{fr ? 'Classe 1 — Bâtiment résidentiel (4%/an)' : 'Class 1 — Residential building (4%/yr)'}</option>
+                    <option value="Class8">{fr ? 'Classe 8 — Mobilier / équipement (20%/an)' : 'Class 8 — Furniture / equipment (20%/yr)'}</option>
+                    <option value="Class13">{fr ? 'Classe 13 — Améliorations locatives (20%/an)' : 'Class 13 — Leasehold improvements (20%/yr)'}</option>
+                    {formData.country_code === 'US' && <option value="US_Res">{fr ? 'USA — Résidentiel 27,5 ans (3.636%/an)' : 'USA — Residential 27.5yr (3.636%/yr)'}</option>}
+                    {formData.country_code === 'US' && <option value="US_Com">{fr ? 'USA — Commercial 39 ans (2.564%/an)' : 'USA — Commercial 39yr (2.564%/yr)'}</option>}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {fr ? 'Utilisé pour estimer la DPA/CCA dans les rapports fiscaux.' : 'Used to estimate CCA deduction in tax reports.'}
+                  </p>
                 </div>
               )}
 
