@@ -15,6 +15,7 @@ interface Scenario {
   management_company_name?: string
   management_company_contact?: string
   management_company_email?: string
+  source: 'scenario' | 'property'  // which table this row came from
 }
 
 interface Investor {
@@ -25,14 +26,16 @@ interface Investor {
 
 interface Reservation {
   id?: string
-  scenario_id: string
+  unit_id: string        // unified key = scenario_id or property_id
+  scenario_id?: string
+  property_id?: string
   investor_id: string
   investor_name?: string
   start_date: string
   end_date: string
   status: 'confirmed' | 'cancelled' | 'pending'
   notes?: string
-  type?: 'owner' | 'commercial' // Type de réservation
+  type?: 'owner' | 'commercial'
 }
 
 interface CommercialBooking {
@@ -126,17 +129,52 @@ export default function InvestorReservationsCalendar() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      // Charger les scénarios (projets purchased uniquement, tenant courant)
       const orgId = organization!.id
+
+      // Charger les propriétés actives (complete / livré / actif) — source principale
+      // Note: properties n'a pas unit_number (colonne propre aux scenarios)
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select('id, name, status, owner_occupation_days')
+        .eq('organization_id', orgId)
+        .in('status', ['complete', 'livré', 'actif'])
+        .order('name', { ascending: true })
+
+      if (propertiesError) console.error('Error loading properties:', propertiesError)
+
+      // Charger les scénarios achetés (backward compat)
       const { data: scenariosData, error: scenariosError } = await supabase
         .from('scenarios')
         .select('id, name, unit_number, status, owner_occupation_days, management_company_name, management_company_contact, management_company_email')
         .eq('organization_id', orgId)
-        .in('status', ['purchased', 'livré'])
+        .eq('status', 'purchased')
         .order('name', { ascending: true })
 
-      if (scenariosError) throw scenariosError
-      setScenarios(scenariosData || [])
+      if (scenariosError) console.error('Error loading scenarios:', scenariosError)
+
+      // Fusionner : éviter les doublons si un scénario a converted_property_id = une propriété déjà chargée
+      const mappedProperties: Scenario[] = (propertiesData || []).map((p: any) => ({
+        id: p.id,
+        name: p.name || '',
+        unit_number: '',
+        status: p.status,
+        owner_occupation_days: p.owner_occupation_days ?? 60,
+        source: 'property' as const,
+      }))
+      const mappedScenarios: Scenario[] = (scenariosData || []).map((s: any) => ({
+        id: s.id,
+        name: s.name || '',
+        unit_number: s.unit_number || '',
+        status: s.status,
+        owner_occupation_days: s.owner_occupation_days ?? 60,
+        management_company_name: s.management_company_name,
+        management_company_contact: s.management_company_contact,
+        management_company_email: s.management_company_email,
+        source: 'scenario' as const,
+      }))
+
+      const merged = [...mappedProperties, ...mappedScenarios]
+      setScenarios(merged)
 
       // Charger les investisseurs du tenant courant
       const { data: investorsData, error: investorsError } = await supabase
@@ -178,15 +216,19 @@ export default function InvestorReservationsCalendar() {
         .from('investor_reservations')
         .select(`
           *,
-          investors!investor_reservations_investor_id_fkey (name)
+          investors!investor_reservations_investor_id_fkey (first_name, last_name)
         `)
         .eq('status', 'confirmed')
 
       if (error) throw error
 
-      const reservationsWithNames = (data || []).map(r => ({
+      // Normaliser : unit_id = scenario_id ?? property_id pour la correspondance dans le calendrier
+      const reservationsWithNames: Reservation[] = (data || []).map((r: any) => ({
         ...r,
-        investor_name: r.investors?.name
+        unit_id: r.scenario_id ?? r.property_id,
+        investor_name: r.investors
+          ? `${r.investors.first_name || ''} ${r.investors.last_name || ''}`.trim()
+          : undefined,
       }))
 
       setReservations(reservationsWithNames)
@@ -266,17 +308,22 @@ export default function InvestorReservationsCalendar() {
   const handleQuickReserve = async () => {
     if (!selectedCell || !selectedInvestor) return
 
+    const item = scenarios.find(s => s.id === selectedCell.scenarioId)
+    const isProperty = item?.source === 'property'
+
     try {
       const dateStr = selectedCell.date.toISOString().split('T')[0]
 
-      // Vérifier les quotas avant de créer la réservation
+      const rpcParams: any = {
+        p_investor_id: selectedInvestor,
+        p_scenario_id: isProperty ? null : selectedCell.scenarioId,
+        p_start_date: dateStr,
+        p_end_date: dateStr,
+      }
+      if (isProperty) rpcParams.p_property_id = selectedCell.scenarioId
+
       const { data: quotaCheck, error: quotaError } = await supabase
-        .rpc('check_investor_can_reserve', {
-          p_investor_id: selectedInvestor,
-          p_scenario_id: selectedCell.scenarioId,
-          p_start_date: dateStr,
-          p_end_date: dateStr
-        })
+        .rpc('check_investor_can_reserve', rpcParams)
 
       if (quotaError) {
         console.error('Error checking quota:', quotaError)
@@ -284,10 +331,8 @@ export default function InvestorReservationsCalendar() {
         return
       }
 
-      // Vérifier si la réservation est autorisée
       if (quotaCheck && quotaCheck.length > 0) {
         const check = quotaCheck[0]
-
         if (!check.can_reserve) {
           alert(fr
             ? `❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants (cette unité): ${check.days_available_unit}\nJours restants (total): ${check.days_available_total}`
@@ -296,21 +341,22 @@ export default function InvestorReservationsCalendar() {
         }
       }
 
-      // Si tout est OK, créer la réservation
-      const { error } = await supabase
-        .from('investor_reservations')
-        .insert([{
-          scenario_id: selectedCell.scenarioId,
-          investor_id: selectedInvestor,
-          start_date: dateStr,
-          end_date: dateStr,
-          status: 'confirmed',
-          reserved_by: selectedInvestor
-        }])
+      const insertPayload: any = {
+        investor_id: selectedInvestor,
+        start_date: dateStr,
+        end_date: dateStr,
+        status: 'confirmed',
+        reserved_by: selectedInvestor,
+      }
+      if (isProperty) {
+        insertPayload.property_id = selectedCell.scenarioId
+      } else {
+        insertPayload.scenario_id = selectedCell.scenarioId
+      }
 
+      const { error } = await supabase.from('investor_reservations').insert([insertPayload])
       if (error) throw error
 
-      // Recharger les données
       await loadReservations()
       await loadInvestorQuotas()
 
@@ -351,46 +397,53 @@ export default function InvestorReservationsCalendar() {
       return
     }
 
+    const item = scenarios.find(s => s.id === addForm.scenarioId)
+    const isProperty = item?.source === 'property'
+
     setIsSaving(true)
     try {
+      const rpcParams: any = {
+        p_investor_id: addForm.investorId,
+        p_scenario_id: isProperty ? null : addForm.scenarioId,
+        p_start_date: addForm.startDate,
+        p_end_date: addForm.endDate,
+      }
+      if (isProperty) rpcParams.p_property_id = addForm.scenarioId
+
       const { data: quotaCheck, error: quotaError } = await supabase
-        .rpc('check_investor_can_reserve', {
-          p_investor_id: addForm.investorId,
-          p_scenario_id: addForm.scenarioId,
-          p_start_date: addForm.startDate,
-          p_end_date: addForm.endDate
-        })
+        .rpc('check_investor_can_reserve', rpcParams)
 
       if (quotaError) {
         console.error('Quota check error:', quotaError)
-        // Ne pas bloquer si la vérification échoue (investisseur peut ne pas être dans investor_properties)
       } else if (quotaCheck && quotaCheck.length > 0 && !quotaCheck[0].can_reserve) {
         const check = quotaCheck[0]
         alert(fr
-        ? `❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants: ${check.days_available_unit ?? check.days_available_total}`
-        : `❌ Reservation denied:\n\n${check.reason}\n\nDays requested: ${check.days_requested}\nDays remaining: ${check.days_available_unit ?? check.days_available_total}`)
+          ? `❌ Réservation refusée:\n\n${check.reason}\n\nJours demandés: ${check.days_requested}\nJours restants: ${check.days_available_unit ?? check.days_available_total}`
+          : `❌ Reservation denied:\n\n${check.reason}\n\nDays requested: ${check.days_requested}\nDays remaining: ${check.days_available_unit ?? check.days_available_total}`)
         setIsSaving(false)
         return
       }
 
-      const { error } = await supabase
-        .from('investor_reservations')
-        .insert([{
-          scenario_id: addForm.scenarioId,
-          investor_id: addForm.investorId,
-          start_date: addForm.startDate,
-          end_date: addForm.endDate,
-          status: 'confirmed',
-          notes: addForm.notes || null,
-          reserved_by: addForm.investorId
-        }])
+      const insertPayload: any = {
+        investor_id: addForm.investorId,
+        start_date: addForm.startDate,
+        end_date: addForm.endDate,
+        status: 'confirmed',
+        notes: addForm.notes || null,
+        reserved_by: addForm.investorId,
+      }
+      if (isProperty) {
+        insertPayload.property_id = addForm.scenarioId
+      } else {
+        insertPayload.scenario_id = addForm.scenarioId
+      }
 
+      const { error } = await supabase.from('investor_reservations').insert([insertPayload])
       if (error) throw error
 
       await loadReservations()
       await loadInvestorQuotas()
 
-      // Naviguer vers le mois de la réservation
       const startDate = new Date(addForm.startDate)
       setCurrentMonth(startDate.getMonth())
       setCurrentYear(startDate.getFullYear())
@@ -410,7 +463,7 @@ export default function InvestorReservationsCalendar() {
 
     // Vérifier d'abord les réservations d'investisseurs (priorité)
     const ownerReservation = reservations.find(r =>
-      r.scenario_id === scenarioId &&
+      r.unit_id === scenarioId &&
       r.start_date <= dateStr &&
       r.end_date >= dateStr
     )
@@ -517,8 +570,10 @@ export default function InvestorReservationsCalendar() {
             className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm sm:text-base"
           >
             <option value="all">{fr ? 'Tous les statuts' : 'All statuses'}</option>
+            <option value="complete">{fr ? 'Complétés' : 'Completed'}</option>
             <option value="livré">{fr ? 'Livrés' : 'Delivered'}</option>
-            <option value="purchased">{fr ? 'Achetés' : 'Purchased'}</option>
+            <option value="actif">{fr ? 'Actifs' : 'Active'}</option>
+            <option value="purchased">{fr ? 'Achetés (scénarios)' : 'Purchased (scenarios)'}</option>
           </select>
 
           <button
@@ -696,7 +751,15 @@ export default function InvestorReservationsCalendar() {
                     <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 p-2 sm:p-3 border-r-2 border-gray-200 dark:border-gray-600 font-medium text-gray-900 dark:text-gray-100">
                       <div>
                         <div className="font-semibold text-xs sm:text-sm truncate">{scenario.name}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">{fr ? 'Unité' : 'Unit'} {scenario.unit_number}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                          {scenario.unit_number ? `${fr ? 'Unité' : 'Unit'} ${scenario.unit_number} · ` : ''}
+                          <span className={`inline-block px-1 rounded text-[9px] font-medium ${
+                            scenario.status === 'complete' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' :
+                            scenario.status === 'livré' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' :
+                            scenario.status === 'actif' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' :
+                            'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                          }`}>{scenario.status}</span>
+                        </div>
                       </div>
                     </td>
                     {Array.from({ length: daysInMonth }).map((_, i) => {
