@@ -87,6 +87,16 @@ interface TransactionFormData {
   recurrence_frequency?: 'quotidien' | 'hebdomadaire' | 'mensuel' | 'trimestriel' | 'annuel' | null
   recurrence_end_date?: string | null
   recurrence_no_end?: boolean
+  // Tax jurisdiction fields (migration 193)
+  tax_country?: string | null
+  tax_state_province?: string | null
+  rental_type?: 'short_term' | 'long_term' | null
+  owner_fiscal_status?: 'resident' | 'non_resident' | 'foreign_entity' | null
+  is_furnished?: boolean
+  is_confotur?: boolean
+  sales_tax_amount?: number | null
+  state_income_tax_amt?: number | null
+  federal_withholding?: number | null
 }
 
 interface Document {
@@ -171,6 +181,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({})
 
+  // Tax jurisdiction rates (from DB — loaded dynamically when country/state changes)
+  const [taxRates, setTaxRates] = useState<any[]>([])
+  const [taxBreakdown, setTaxBreakdown] = useState<{
+    salesTax: number; stateTax: number; federalWithholding: number; total: number
+    salesLabel: string; stateLabel: string; federalLabel: string
+    filingNote: string; isConfoturExempt: boolean
+  } | null>(null)
+
   // Gmail invoice linking
   const [gmailInvoices, setGmailInvoices] = useState<Array<{ id: string; vendor_name: string | null; document_date: string | null; amount: number | null; currency: string | null; category: string }>>([])
   const [linkedGmailId, setLinkedGmailId] = useState<string>('')
@@ -244,7 +262,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     occurrence_type: 'unique',
     recurrence_frequency: null,
     recurrence_end_date: null,
-    recurrence_no_end: false
+    recurrence_no_end: false,
+    tax_country: null,
+    tax_state_province: null,
+    rental_type: null,
+    owner_fiscal_status: null,
+    is_furnished: false,
+    is_confotur: false,
+    sales_tax_amount: null,
+    state_income_tax_amt: null,
+    federal_withholding: null,
   })
 
   // Fetch documents for selected investor
@@ -683,6 +710,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         investor_id: formBase.investor_id || undefined,
         property_id: formBase.property_id || undefined,
         payment_schedule_id: formBase.payment_schedule_id || undefined,
+        // Tax jurisdiction fields (migration 193)
+        tax_country: formBase.tax_country || null,
+        tax_state_province: formBase.tax_state_province || null,
+        rental_type: formBase.rental_type || null,
+        owner_fiscal_status: formBase.owner_fiscal_status || null,
+        is_furnished: !!formBase.is_furnished,
+        is_confotur: !!formBase.is_confotur,
+        sales_tax_amount: formBase.sales_tax_amount ?? null,
+        state_income_tax_amt: formBase.state_income_tax_amt ?? null,
+        federal_withholding: formBase.federal_withholding ?? null,
       }
 
       if (editingTransactionId) {
@@ -806,7 +843,16 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       occurrence_type: 'unique',
       recurrence_frequency: null,
       recurrence_end_date: null,
-      recurrence_no_end: false
+      recurrence_no_end: false,
+      tax_country: (transaction as any).tax_country || null,
+      tax_state_province: (transaction as any).tax_state_province || null,
+      rental_type: (transaction as any).rental_type || null,
+      owner_fiscal_status: (transaction as any).owner_fiscal_status || null,
+      is_furnished: (transaction as any).is_furnished || false,
+      is_confotur: false,
+      sales_tax_amount: null,
+      state_income_tax_amt: null,
+      federal_withholding: null,
     })
     setShowAddTransactionForm(true)
   }
@@ -822,6 +868,115 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
   const TX_REVENU_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
   const TX_DEPENSE_TYPES = ['paiement', 'depense', 'capex', 'maintenance', 'admin', 'remboursement_investisseur']
+
+  // ─── Tax jurisdiction: charger les taux depuis la DB ────────────────
+  const loadTaxRatesForJurisdiction = async (country: string, stateProvince?: string | null) => {
+    if (!country || country === 'OTHER') { setTaxRates([]); setTaxBreakdown(null); return }
+    const query = supabase
+      .from('tax_jurisdiction_rates')
+      .select('*')
+      .eq('country_code', country)
+      .is('organization_id', null)   // taux globaux uniquement
+    const { data } = await query
+    setTaxRates(data || [])
+  }
+
+  const computeTaxBreakdown = (
+    rates: any[], form: TransactionFormData, gross: number
+  ) => {
+    if (!form.tax_country || form.tax_country === 'OTHER' || gross <= 0) {
+      setTaxBreakdown(null); return
+    }
+    const isNR = form.owner_fiscal_status !== 'resident'
+    const isShortTerm = form.rental_type === 'short_term'
+    const isFurnished = !!form.is_furnished
+    const isConfotur = !!form.is_confotur
+
+    const federalRate = rates.find(r => r.jurisdiction_level === 'federal')
+    const stateRate = rates.find(r =>
+      r.jurisdiction_code === (form.tax_state_province || '') &&
+      (r.jurisdiction_level === 'state' || r.jurisdiction_level === 'province')
+    )
+
+    let salesTax = 0; let salesLabel = ''
+    let stateTax = 0; let stateLabel = ''
+    let federalWithholding = 0; let federalLabel = ''
+
+    // Taxe de vente / TVA / ITBIS / IVA
+    if (isShortTerm && !isConfotur) {
+      if (stateRate?.sales_tax_rate > 0) {
+        salesTax += gross * stateRate.sales_tax_rate / 100
+        salesLabel = `Taxe de vente ${stateRate.jurisdiction_name} ${stateRate.sales_tax_rate}%`
+      }
+      if (federalRate?.vat_rate > 0) {
+        const vatApplies = (form.tax_country === 'DO') ||
+          (form.tax_country === 'MX' && isFurnished) ||
+          (form.tax_country === 'CA' && federalRate.vat_applies_short_term)
+        if (vatApplies) {
+          salesTax += gross * federalRate.vat_rate / 100
+          salesLabel += (salesLabel ? ' + ' : '') +
+            `TVA/ITBIS/IVA ${federalRate.vat_rate}%`
+        }
+      }
+    }
+
+    // Impôt État/Province
+    if (isNR && stateRate?.income_tax_rate) {
+      stateTax = gross * stateRate.income_tax_rate / 100
+      stateLabel = `Impôt ${stateRate.jurisdiction_name} ${stateRate.income_tax_rate}% (NR)`
+    }
+
+    // Retenue fédérale NR
+    if (isNR && federalRate?.withholding_rate_nr > 0 && !isConfotur) {
+      federalWithholding = gross * federalRate.withholding_rate_nr / 100
+      federalLabel = `Retenue fédérale ${federalRate.withholding_rate_nr}% (NR)`
+    }
+
+    const filing = stateRate?.filing_deadline_note || federalRate?.filing_deadline_note || ''
+
+    setTaxBreakdown({
+      salesTax, stateTax, federalWithholding,
+      total: salesTax + stateTax + federalWithholding,
+      salesLabel: salesLabel || (salesTax > 0 ? 'Taxe de vente' : ''),
+      stateLabel: stateLabel || (stateTax > 0 ? 'Impôt État/Province' : ''),
+      federalLabel: federalLabel || (federalWithholding > 0 ? 'Retenue fédérale' : ''),
+      filingNote: filing,
+      isConfoturExempt: isConfotur && form.tax_country === 'DO',
+    })
+
+    // Mettre à jour les champs de formulaire (pour enregistrement)
+    setTransactionFormData(prev => ({
+      ...prev,
+      sales_tax_amount: salesTax || null,
+      state_income_tax_amt: stateTax || null,
+      federal_withholding: federalWithholding || null,
+    }))
+  }
+
+  // Recharger les taux quand le pays ou la juridiction change
+  useEffect(() => {
+    loadTaxRatesForJurisdiction(
+      transactionFormData.tax_country || '',
+      transactionFormData.tax_state_province
+    )
+  }, [transactionFormData.tax_country, transactionFormData.tax_state_province])
+
+  // Recalculer la ventilation quand un paramètre fiscal change
+  useEffect(() => {
+    const gross = typeof transactionFormData.amount === 'number'
+      ? transactionFormData.amount
+      : parseFloat(transactionFormData.amount as any) || 0
+    computeTaxBreakdown(taxRates, transactionFormData, gross)
+  }, [
+    taxRates,
+    transactionFormData.amount,
+    transactionFormData.rental_type,
+    transactionFormData.owner_fiscal_status,
+    transactionFormData.is_furnished,
+    transactionFormData.is_confotur,
+    transactionFormData.tax_state_province,
+  ])
+  // ────────────────────────────────────────────────────────────────────
 
   const txDirFromType = (type: string): 'revenu' | 'depense' | 'neutre' => {
     if (TX_REVENU_TYPES.includes(type))  return 'revenu'
@@ -2788,6 +2943,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <option value="investor_capital">{fr ? 'Capital investisseur' : 'Investor capital'}</option>
                         <option value="investor_repayment">{fr ? 'Remboursement investisseur' : 'Investor repayment'}</option>
                       </optgroup>
+                      <optgroup label={fr ? '── REMISES FISCALES ──' : '── TAX REMITTANCES ──'}>
+                        <option value="sales_tax_remittance">{fr ? 'Remise taxe de vente / TVA (FL DR-15, QST, ITBIS…)' : 'Sales tax / VAT remittance (FL DR-15, QST, ITBIS…)'}</option>
+                        <option value="income_tax_remittance">{fr ? 'Remise impôt sur le revenu NR (Form 1040-NR, T1…)' : 'NR income tax remittance (Form 1040-NR, T1…)'}</option>
+                        <option value="withholding_remittance">{fr ? 'Remise retenue à la source (IRS 1042-S, ARC NR4…)' : 'Withholding remittance (IRS 1042-S, ARC NR4…)'}</option>
+                      </optgroup>
                     </>}
                   </select>
                 </div>
@@ -3005,10 +3165,27 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               )}
             </div>
 
-            {/* SECTION 3: MONTANT ET CATÉGORIE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* SECTION 3: DEVISE + MONTANT + CATÉGORIE */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💵 Montant ($) *' : '💵 Amount ($) *'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💱 Devise *' : '💱 Currency *'}</label>
+                <select
+                  value={transactionFormData.source_currency}
+                  onChange={(e) => setTransactionFormData({ ...transactionFormData, source_currency: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="CAD">CAD — Dollar canadien</option>
+                  <option value="USD">USD — Dollar américain</option>
+                  <option value="DOP">DOP — Peso dominicain</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="MXN">MXN — Peso mexicain</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {fr ? `💵 Montant (${transactionFormData.source_currency}) *` : `💵 Amount (${transactionFormData.source_currency}) *`}
+                </label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -3272,108 +3449,306 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className="pt-4 border-t border-gray-200">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">{fr ? 'Fiscalité Internationale (Optionnel)' : 'International Taxation (Optional)'}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Devise source' : 'Source currency'}</label>
-                  <select
-                    value={transactionFormData.source_currency}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_currency: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
-                  >
-                    <option value="CAD">CAD $</option>
-                    <option value="USD">USD $</option>
-                    <option value="DOP">DOP (Peso Dominicain)</option>
-                    <option value="EUR">EUR €</option>
-                  </select>
+
+                {/* Conversion de devise — visible seulement si non-CAD */}
+                {transactionFormData.source_currency !== 'CAD' && (<>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {fr ? `Montant en ${transactionFormData.source_currency} (original)` : `Amount in ${transactionFormData.source_currency} (original)`}
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={transactionFormData.source_amount ?? ''}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(',', '.')
+                        if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
+                          setTransactionFormData({ ...transactionFormData, source_amount: value === '' ? null : value as any })
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const sourceAmount = e.target.value ? parseFloat(e.target.value) : null
+                        setTransactionFormData({ ...transactionFormData, source_amount: sourceAmount })
+
+                        // Calculer automatiquement le taux de change
+                        if (sourceAmount && typeof transactionFormData.amount === 'number' && transactionFormData.amount > 0) {
+                          const rate = transactionFormData.amount / sourceAmount
+                          setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      placeholder={fr ? 'Montant original' : 'Original amount'}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais bancaires/conversion (CAD $)' : 'Bank/conversion fees (CAD $)'}</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={transactionFormData.bank_fees}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(',', '.')
+                        if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
+                          setTransactionFormData({ ...transactionFormData, bank_fees: value === '' ? 0 : value as any })
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const bankFees = parseFloat(e.target.value) || 0
+                        setTransactionFormData({ ...transactionFormData, bank_fees: bankFees })
+
+                        // Recalculer le taux avec les frais
+                        if (typeof transactionFormData.source_amount === 'number' && transactionFormData.source_amount > 0) {
+                          const amount = typeof transactionFormData.amount === 'number' ? transactionFormData.amount : parseFloat(transactionFormData.amount as any) || 0
+                          const amountMinusFees = amount - bankFees
+                          const rate = amountMinusFees / transactionFormData.source_amount
+                          setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux de change (calculé auto)' : 'Exchange rate (auto-calculated)'}</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={transactionFormData.exchange_rate}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(',', '.')
+                        if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
+                          setTransactionFormData({ ...transactionFormData, exchange_rate: value === '' ? 1 : value as any })
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const numValue = parseFloat(e.target.value) || 1
+                        setTransactionFormData({ ...transactionFormData, exchange_rate: numValue })
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
+                      placeholder="1.0000"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{fr ? 'Se calcule automatiquement ou modifiable manuellement' : 'Auto-calculated or manually editable'}</p>
+                  </div>
+                </>)}
+
+                {/* ── Juridiction fiscale ─────────────────────────────── */}
+                <div className="sm:col-span-2 border-t border-dashed border-gray-300 pt-4 mt-2">
+                  <h5 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    🏛️ {fr ? 'Juridiction fiscale' : 'Tax Jurisdiction'}
+                    <span className="text-xs font-normal text-gray-500">{fr ? '— taux chargés depuis la base de données' : '— rates loaded from database'}</span>
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Pays */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Pays' : 'Country'}</label>
+                      <select
+                        value={transactionFormData.tax_country || ''}
+                        onChange={e => setTransactionFormData(f => ({
+                          ...f, tax_country: e.target.value || null,
+                          tax_state_province: null,
+                          source_country: e.target.value === 'CA' ? 'Canada' : e.target.value === 'US' ? 'États-Unis' : e.target.value === 'DO' ? 'République Dominicaine' : e.target.value === 'MX' ? 'Mexique' : f.source_country
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                      >
+                        <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
+                        <option value="CA">🇨🇦 Canada</option>
+                        <option value="US">🇺🇸 États-Unis</option>
+                        <option value="DO">🇩🇴 Rép. Dominicaine</option>
+                        <option value="MX">🇲🇽 Mexique</option>
+                        <option value="OTHER">{fr ? 'Autre pays' : 'Other country'}</option>
+                      </select>
+                    </div>
+
+                    {/* État / Province (conditionnel) */}
+                    {transactionFormData.tax_country === 'US' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'État' : 'State'}</label>
+                        <select
+                          value={transactionFormData.tax_state_province || ''}
+                          onChange={e => setTransactionFormData(f => ({ ...f, tax_state_province: e.target.value || null }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        >
+                          <option value="">— {fr ? 'État' : 'State'} —</option>
+                          <option value="FL">Floride (FL) — 6% sales tax, pas d'impôt revenu</option>
+                          <option value="NY">New York (NY) — 4% + 6.85% impôt NR</option>
+                          <option value="CA">Californie (CA) — 13.3% impôt NR</option>
+                          <option value="TX">Texas (TX) — 6% sales tax, pas d'impôt revenu</option>
+                          <option value="NV">Nevada (NV) — pas d'impôt revenu</option>
+                          <option value="WA">Washington — pas d'impôt revenu</option>
+                          <option value="OTHER_US">{fr ? 'Autre état' : 'Other state'}</option>
+                        </select>
+                      </div>
+                    )}
+                    {transactionFormData.tax_country === 'CA' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Province' : 'Province'}</label>
+                        <select
+                          value={transactionFormData.tax_state_province || ''}
+                          onChange={e => setTransactionFormData(f => ({ ...f, tax_state_province: e.target.value || null }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        >
+                          <option value="">— Province —</option>
+                          <option value="QC">Québec (QC) — 14.5% NR + QST</option>
+                          <option value="ON">Ontario (ON) — 11.16% NR</option>
+                          <option value="BC">Colombie-Britannique (BC) — 12.29% NR</option>
+                          <option value="AB">Alberta (AB) — pas d'impôt provincial</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Type de location (si revenu) */}
+                    {txDirection === 'revenu' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Type de location' : 'Rental type'}</label>
+                        <select
+                          value={transactionFormData.rental_type || ''}
+                          onChange={e => setTransactionFormData(f => ({ ...f, rental_type: (e.target.value || null) as any }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        >
+                          <option value="">—</option>
+                          <option value="short_term">
+                            {fr ? 'Court terme (taxe de vente applicable)' : 'Short term (sales tax applies)'}
+                          </option>
+                          <option value="long_term">
+                            {fr ? 'Long terme (location résidentielle)' : 'Long term (residential rental)'}
+                          </option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Statut fiscal propriétaire */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Statut fiscal propriétaire' : 'Owner fiscal status'}</label>
+                      <select
+                        value={transactionFormData.owner_fiscal_status || ''}
+                        onChange={e => setTransactionFormData(f => ({ ...f, owner_fiscal_status: (e.target.value || null) as any }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                      >
+                        <option value="">—</option>
+                        <option value="resident">{fr ? 'Résident' : 'Resident'}</option>
+                        <option value="non_resident">{fr ? 'Non-résident' : 'Non-resident'}</option>
+                        <option value="foreign_entity">{fr ? 'Entité étrangère' : 'Foreign entity'}</option>
+                      </select>
+                    </div>
+
+                    {/* Flags DR / Mexique */}
+                    {(transactionFormData.tax_country === 'MX' || transactionFormData.tax_country === 'DO') && (
+                      <div className="flex flex-wrap gap-4 items-center">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                          <input type="checkbox" checked={!!transactionFormData.is_furnished}
+                            onChange={e => setTransactionFormData(f => ({ ...f, is_furnished: e.target.checked }))}
+                            className="rounded"
+                          />
+                          {fr ? 'Location meublée' : 'Furnished rental'}
+                          {transactionFormData.tax_country === 'MX' && <span className="text-xs text-orange-600">(IVA 16%)</span>}
+                        </label>
+                        {transactionFormData.tax_country === 'DO' && (
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                            <input type="checkbox" checked={!!transactionFormData.is_confotur}
+                              onChange={e => setTransactionFormData(f => ({ ...f, is_confotur: e.target.checked }))}
+                              className="rounded"
+                            />
+                            Confotur <span className="text-xs text-green-600">(exonération ~15 ans)</span>
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Montant devise source' : 'Source amount'}</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={transactionFormData.source_amount ?? ''}
-                    onChange={(e) => {
-                      let value = e.target.value.replace(',', '.')
-                      if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        setTransactionFormData({ ...transactionFormData, source_amount: value === '' ? null : value as any })
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const sourceAmount = e.target.value ? parseFloat(e.target.value) : null
-                      setTransactionFormData({ ...transactionFormData, source_amount: sourceAmount })
+                {/* Ventilation fiscale calculée (read-only) */}
+                {taxBreakdown && (taxBreakdown.salesTax > 0 || taxBreakdown.stateTax > 0 || taxBreakdown.federalWithholding > 0) && (
+                  <div className="sm:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h5 className="text-sm font-semibold text-amber-900 mb-3">
+                      📊 {fr ? 'Ventilation fiscale estimée' : 'Estimated tax breakdown'}
+                      {taxBreakdown.isConfoturExempt && <span className="ml-2 text-green-700 font-normal">(Confotur — exonéré)</span>}
+                    </h5>
+                    <div className="space-y-2 text-sm">
+                      {taxBreakdown.salesTax > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800">{taxBreakdown.salesLabel || (fr ? 'Taxe de vente / TVA' : 'Sales tax / VAT')}</span>
+                          <span className="font-semibold text-amber-900">
+                            {taxBreakdown.salesTax.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          </span>
+                        </div>
+                      )}
+                      {taxBreakdown.stateTax > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800">{taxBreakdown.stateLabel || (fr ? 'Impôt État/Province' : 'State/Province tax')}</span>
+                          <span className="font-semibold text-amber-900">
+                            {taxBreakdown.stateTax.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          </span>
+                        </div>
+                      )}
+                      {taxBreakdown.federalWithholding > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800">{taxBreakdown.federalLabel || (fr ? 'Retenue fédérale (NR)' : 'Federal withholding (NR)')}</span>
+                          <span className="font-semibold text-amber-900">
+                            {taxBreakdown.federalWithholding.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center border-t border-amber-300 pt-2 mt-2">
+                        <span className="font-semibold text-amber-900">{fr ? 'Total taxes estimées' : 'Total estimated taxes'}</span>
+                        <span className="font-bold text-amber-900">
+                          {taxBreakdown.total.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                        </span>
+                      </div>
+                    </div>
+                    {taxBreakdown.filingNote && (
+                      <p className="mt-3 text-xs text-amber-700 border-t border-amber-200 pt-2">
+                        📅 {fr ? 'Échéance :' : 'Deadline:'} {taxBreakdown.filingNote}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-amber-600 italic">
+                      ⚠️ {fr ? 'Estimation à titre indicatif — faire valider par un CPA.' : 'Indicative estimate — validate with a CPA.'}
+                    </p>
+                  </div>
+                )}
 
-                      // Calculer automatiquement le taux de change
-                      if (sourceAmount && typeof transactionFormData.amount === 'number' && transactionFormData.amount > 0) {
-                        const rate = transactionFormData.amount / sourceAmount
-                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder={fr ? 'Montant original' : 'Original amount'}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais bancaires/conversion (CAD $)' : 'Bank/conversion fees (CAD $)'}</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={transactionFormData.bank_fees}
-                    onChange={(e) => {
-                      let value = e.target.value.replace(',', '.')
-                      if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        setTransactionFormData({ ...transactionFormData, bank_fees: value === '' ? 0 : value as any })
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const bankFees = parseFloat(e.target.value) || 0
-                      setTransactionFormData({ ...transactionFormData, bank_fees: bankFees })
-
-                      // Recalculer le taux avec les frais
-                      if (typeof transactionFormData.source_amount === 'number' && transactionFormData.source_amount > 0) {
-                        const amount = typeof transactionFormData.amount === 'number' ? transactionFormData.amount : parseFloat(transactionFormData.amount as any) || 0
-                        const amountMinusFees = amount - bankFees
-                        const rate = amountMinusFees / transactionFormData.source_amount
-                        setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux de change (calculé auto)' : 'Exchange rate (auto-calculated)'}</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={transactionFormData.exchange_rate}
-                    onChange={(e) => {
-                      let value = e.target.value.replace(',', '.')
-                      if (value === '' || value === '.' || /^\d*\.?\d*$/.test(value)) {
-                        setTransactionFormData({ ...transactionFormData, exchange_rate: value === '' ? 1 : value as any })
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const numValue = parseFloat(e.target.value) || 1
-                      setTransactionFormData({ ...transactionFormData, exchange_rate: numValue })
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
-                    placeholder="1.0000"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">{fr ? 'Se calcule automatiquement ou modifiable manuellement' : 'Auto-calculated or manually editable'}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Pays source' : 'Source country'}</label>
-                  <input
-                    type="text"
-                    value={transactionFormData.source_country || ''}
-                    onChange={(e) => setTransactionFormData({ ...transactionFormData, source_country: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
-                    placeholder={fr ? 'Ex: République Dominicaine' : 'Ex: Dominican Republic'}
-                  />
-                </div>
+                {/* ── Conformité en 1 clic ─────────────────────────────── */}
+                {(() => {
+                  const isRevenu = txDirection === 'revenu'
+                  const hasTaxCountry = !!transactionFormData.tax_country
+                  const checks = [
+                    { ok: !!transactionFormData.fiscal_category, label: fr ? 'Catégorie fiscale' : 'Fiscal category' },
+                    { ok: hasTaxCountry, label: fr ? 'Pays/juridiction' : 'Tax country' },
+                    { ok: transactionFormData.source_currency === 'CAD' || !!transactionFormData.source_amount, label: fr ? 'Montant source (si devise ≠ CAD)' : 'Source amount (if non-CAD)' },
+                    { ok: !isRevenu || !hasTaxCountry || !!transactionFormData.rental_type, label: fr ? 'Type de location (revenu)' : 'Rental type (income)' },
+                    { ok: !isRevenu || !hasTaxCountry || !!transactionFormData.owner_fiscal_status, label: fr ? 'Statut fiscal propriétaire' : 'Owner fiscal status' },
+                    { ok: !!transactionFormData.description, label: fr ? 'Description' : 'Description' },
+                    { ok: !['management_fee','professional_fees','insurance'].includes(transactionFormData.fiscal_category||'') || !!transactionFormData.vendor_name, label: fr ? 'Fournisseur (OPEX)' : 'Vendor (OPEX)' },
+                  ]
+                  const score = checks.filter(c => c.ok).length
+                  const pct = Math.round((score / checks.length) * 100)
+                  const color = pct === 100 ? 'green' : pct >= 70 ? 'amber' : 'red'
+                  const bgCls = color === 'green' ? 'bg-green-50 border-green-200' : color === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'
+                  const textCls = color === 'green' ? 'text-green-800' : color === 'amber' ? 'text-amber-800' : 'text-red-800'
+                  const barCls = color === 'green' ? 'bg-green-500' : color === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+                  return (
+                    <div className={`sm:col-span-2 border rounded-xl p-3 ${bgCls}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={`text-xs font-semibold ${textCls}`}>
+                          {fr ? `Conformité fiscale : ${score}/${checks.length}` : `Fiscal compliance: ${score}/${checks.length}`}
+                        </span>
+                        <div className="flex-1 bg-white/60 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={`text-xs font-bold ${textCls}`}>{pct}%</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                        {checks.map((c, i) => (
+                          <div key={i} className="flex items-center gap-1 text-xs">
+                            <span className="text-base">{c.ok ? '✅' : '⬜'}</span>
+                            <span className={c.ok ? 'text-gray-500 line-through' : `font-medium ${textCls}`}>{c.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Impôt étranger payé (CAD $)' : 'Foreign tax paid (CAD $)'}</label>
@@ -3681,6 +4056,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                               {({
                                 rental_income: 'Rev. locatif', dividend_income: 'Dividende', interest_income: 'Intérêts reçus', other_income: 'Autre revenu',
                                 management_fee: 'Gest.', insurance: 'Assurance', property_tax: 'Taxes fonc.', condo_fees: 'Condo', utilities: 'Services pub.', maintenance_repair: 'Entretien', professional_fees: 'Honoraires', advertising: 'Publicité', travel: 'Déplacement', interest_expense: 'Intérêts hyp.', bank_fees: 'Frais banc.', other_opex: 'Autre OPEX',
+                                sales_tax_remittance: '🧾 Remise taxe vente', income_tax_remittance: '🏛️ Remise impôt NR', withholding_remittance: '🏦 Remise retenue',
                                 property_purchase: 'Achat propriété', renovation: 'Rénovation', equipment: 'Équipements', furnishing: 'Ameublement', acquisition_costs: "Frais acquis.", land_improvement: 'Amél. terrain', other_capex: 'Autre CAPEX',
                                 loan_principal: 'Rembours. prêt', investor_capital: 'Capital inv.', investor_repayment: 'Rembours. inv.',
                               } as Record<string, string>)[transaction.fiscal_category] || transaction.fiscal_category}
