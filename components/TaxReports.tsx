@@ -36,6 +36,16 @@ interface Property {
   location: string
   total_cost: number
   currency: string
+  status?: string
+  sale_price?: number
+  sale_date?: string
+  property_type?: string
+  country_code?: string
+  state_province?: string
+  county_code?: string
+  firpta_withholding_amount?: number
+  firpta_form_8288_submitted?: boolean
+  firpta_withholding_refunded?: boolean
 }
 
 interface T1135Data {
@@ -231,6 +241,41 @@ export default function TaxReports() {
       foreignIncome,
       foreignGains,
     }
+  }
+
+  const calculateFIRPTAData = () => {
+    // FIRPTA s'applique à la VENTE de biens immobiliers US par des non-résidents
+    const soldUSProperties = properties.filter(p =>
+      p.status === 'vendu' &&
+      (p.country_code === 'US' || p.currency === 'USD') &&
+      p.sale_price && p.sale_price > 0
+    )
+    return soldUSProperties.map(p => {
+      const salePrice = p.sale_price || 0
+      const salePriceCAD = salePrice * getExchangeRate(p.currency || 'USD')
+      const withholdingPct = 15
+      const withholdingAmountUSD = p.firpta_withholding_amount ?? (salePrice * withholdingPct / 100)
+      const withholdingAmountCAD = withholdingAmountUSD * getExchangeRate(p.currency || 'USD')
+      const saleYear = p.sale_date ? new Date(p.sale_date).getFullYear() : null
+      const form8288Deadline = p.sale_date ? (() => {
+        const d = new Date(p.sale_date)
+        d.setDate(d.getDate() + 20)
+        return d.toISOString().split('T')[0]
+      })() : null
+      return {
+        propertyName: p.name,
+        saleDate: p.sale_date || null,
+        saleYear,
+        salePriceUSD: salePrice,
+        salePriceCAD,
+        withholdingAmountUSD,
+        withholdingAmountCAD,
+        form8288Deadline,
+        form8288Submitted: p.firpta_form_8288_submitted ?? false,
+        withholdingRefunded: p.firpta_withholding_refunded ?? false,
+        stateProvince: p.state_province || null,
+      }
+    })
   }
 
   const saveFiscalYearSettings = async () => {
@@ -1315,6 +1360,7 @@ export default function TaxReports() {
 
   const t1135Data = calculateT1135Data()
   const t2209Data = calculateT2209Data()
+  const firptaData = calculateFIRPTAData()
 
   // Check if T1135 is required (foreign assets > $100,000 CAD)
   const t1135Required = t1135Data.totalForeignAssets > 100000
@@ -1680,6 +1726,61 @@ export default function TaxReports() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FIRPTA — Retenue à la vente USA */}
+      {activeReport === 'T1135' && firptaData.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-4">
+          <h4 className="text-sm font-bold text-red-800 flex items-center gap-2 mb-3">
+            🇺🇸 FIRPTA — Retenue à la source sur ventes immobilières USA
+            <span title="Foreign Investment in Real Property Tax Act : 15% du prix de vente brut est retenu par l'acheteur et remis à l'IRS. Form 8288 dans 20 jours suivant la clôture.">
+              <Info size={13} className="text-red-400 cursor-help" />
+            </span>
+          </h4>
+          <div className="space-y-3">
+            {firptaData.map((f, i) => (
+              <div key={i} className="bg-white border border-red-100 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{f.propertyName}</p>
+                    <p className="text-xs text-gray-500">
+                      Vendu le {f.saleDate ? new Date(f.saleDate).toLocaleDateString('fr-CA') : '—'}
+                      {f.stateProvince ? ` · ${f.stateProvince}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {f.form8288Submitted
+                      ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Form 8288 ✅</span>
+                      : <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Form 8288 ⚠️ Non soumis</span>
+                    }
+                    {f.withholdingRefunded &&
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Remboursé via 1040-NR ✅</span>
+                    }
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-gray-500">Prix de vente</p>
+                    <p className="font-bold text-gray-900">{formatCurrency(f.salePriceUSD)} USD</p>
+                  </div>
+                  <div className="bg-red-50 rounded p-2">
+                    <p className="text-gray-500">Retenue FIRPTA 15%</p>
+                    <p className="font-bold text-red-700">{formatCurrency(f.withholdingAmountUSD)} USD</p>
+                    <p className="text-gray-400">≈ {formatCurrency(f.withholdingAmountCAD)} CAD</p>
+                  </div>
+                  <div className="bg-amber-50 rounded p-2">
+                    <p className="text-gray-500">Échéance Form 8288</p>
+                    <p className="font-bold text-amber-700">{f.form8288Deadline ? new Date(f.form8288Deadline).toLocaleDateString('fr-CA') : '—'}</p>
+                    <p className="text-gray-400 text-[10px]">20 jours après clôture</p>
+                  </div>
+                </div>
+                <p className="text-xs text-red-600 mt-2">
+                  💡 Si impôt réel &lt; retenue FIRPTA, réclamez le remboursement via Form 1040-NR. Discutez avec votre CPA américain.
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       )}

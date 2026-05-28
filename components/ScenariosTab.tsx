@@ -50,6 +50,7 @@ interface Scenario {
   payment_terms: PaymentTerm[]
   recurring_fees?: RecurringFee[] // Frais récurrents (HOA, entretien, etc.)
   // Structure d'achat (migration 161)
+  property_type?: string // 'condo' | 'maison' | 'terrain' | 'commercial' | 'multiplex' | 'condo_hotel' | 'chalet' | 'preconstruction'
   purchase_type?: 'cash' | 'preconstruction' | 'mortgage'
   down_payment?: number // % de mise de fonds (hypothèque)
   interest_rate?: number // % taux annuel (hypothèque)
@@ -277,6 +278,8 @@ export default function ScenariosTab() {
     },
     payment_terms: [] as PaymentTerm[],
     recurring_fees: [] as RecurringFee[],
+    // Type de propriété (migration 197)
+    property_type: 'condo',
     // Structure d'achat (migration 161)
     purchase_type: 'cash' as 'cash' | 'preconstruction' | 'mortgage',
     down_payment: 20,
@@ -349,6 +352,7 @@ export default function ScenariosTab() {
         },
         payment_terms: selectedScenario.payment_terms || [],
         recurring_fees: selectedScenario.recurring_fees || [],
+        property_type: selectedScenario.property_type || 'condo',
         purchase_type: selectedScenario.purchase_type || 'cash',
         down_payment: selectedScenario.down_payment ?? 20,
         interest_rate: selectedScenario.interest_rate ?? 5,
@@ -577,6 +581,7 @@ export default function ScenariosTab() {
           promoter_data: formData.promoter_data,
           payment_terms: formData.payment_terms,
           recurring_fees: formData.recurring_fees || [],
+          property_type: formData.property_type || 'condo',
           ...buildPurchaseFields(),
           status: 'draft',
           created_by: currentUser.investorData?.id,
@@ -648,6 +653,7 @@ export default function ScenariosTab() {
         },
         payment_terms: [],
         recurring_fees: [],
+        property_type: 'condo',
         purchase_type: 'cash',
         down_payment: 20,
         interest_rate: 5,
@@ -696,6 +702,7 @@ export default function ScenariosTab() {
           payment_terms: formData.payment_terms,
           recurring_fees: formData.recurring_fees,
           main_photo_url: formData.main_photo_url,
+          property_type: formData.property_type || 'condo',
           ...buildPurchaseFields()
         })
         .eq('id', selectedScenario.id)
@@ -1239,6 +1246,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       },
       payment_terms: selectedScenario.payment_terms || [],
       recurring_fees: selectedScenario.recurring_fees || [],
+      property_type: selectedScenario.property_type || 'condo',
       purchase_type: selectedScenario.purchase_type || 'cash',
       down_payment: selectedScenario.down_payment ?? 20,
       interest_rate: selectedScenario.interest_rate ?? 5,
@@ -1325,6 +1333,37 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         purchase_type: selectedScenario.purchase_type || 'cash'
       }
 
+      // Dériver le code pays depuis le champ libre `country` du scénario
+      const deriveCountryCode = (country: string): string | null => {
+        const c = (country || '').toLowerCase()
+        if (c.includes('usa') || c.includes('united states') || c.includes('états-unis') || c.includes('etats-unis') || c.includes('florida') || c.includes('floride')) return 'US'
+        if (c.includes('dominicaine') || c.includes('dominican') || c.includes('bavaro') || c.includes('punta cana') || c.includes('santo domingo')) return 'DO'
+        if (c.includes('mexique') || c.includes('mexico') || c.includes('cancun') || c.includes('playa') || c.includes('tulum')) return 'MX'
+        if (c.includes('canada') || c.includes('québec') || c.includes('ontario') || c.includes('montréal') || c.includes('toronto')) return 'CA'
+        return null
+      }
+
+      // Dériver le code état/province depuis state_region du scénario
+      const deriveStateProvince = (state: string, countryCode: string | null): string | null => {
+        if (!state) return null
+        const s = state.toLowerCase()
+        if (countryCode === 'US') {
+          if (s.includes('florida') || s === 'fl') return 'FL'
+          if (s.includes('new york') || s === 'ny') return 'NY'
+          if (s.includes('california') || s === 'ca') return 'CA'
+          if (s.includes('texas') || s === 'tx') return 'TX'
+        }
+        if (countryCode === 'CA') {
+          if (s.includes('québec') || s === 'qc') return 'QC'
+          if (s.includes('ontario') || s === 'on') return 'ON'
+          if (s.includes('colombie') || s.includes('british columbia') || s === 'bc') return 'BC'
+        }
+        return state.length <= 10 ? state.toUpperCase() : null
+      }
+
+      const derivedCountryCode = deriveCountryCode(selectedScenario.country)
+      const derivedStateProvince = deriveStateProvince(selectedScenario.state_region, derivedCountryCode)
+
       // Créer la propriété
       const propertyData = {
         name: getFullName(selectedScenario.name, selectedScenario.unit_number),
@@ -1338,6 +1377,9 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         recurring_fees: selectedScenario.recurring_fees || [],
         initial_fees_distribution: selectedScenario.initial_fees_distribution || 'first_payment',
         deduct_initial_from_first_term: selectedScenario.deduct_initial_from_first_term || false,
+        property_type: selectedScenario.property_type || 'condo',
+        country_code: derivedCountryCode,
+        state_province: derivedStateProvince,
         ...purchaseFields
       }
 
@@ -2041,6 +2083,31 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: La Altagracia' : 'E.g.: La Altagracia'}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {language === 'fr' ? 'Type de propriété' : 'Property type'}
+                </label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) => setFormData({...formData, property_type: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="condo">{language === 'fr' ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
+                  <option value="maison">{language === 'fr' ? 'Maison / Villa' : 'House / Villa'}</option>
+                  <option value="condo_hotel">{language === 'fr' ? 'Condo-hôtel (location touristique)' : 'Condo-hotel (tourist rental)'}</option>
+                  <option value="multiplex">{language === 'fr' ? 'Multiplex (duplex/triplex/4+)' : 'Multiplex (duplex/triplex/4+)'}</option>
+                  <option value="commercial">{language === 'fr' ? 'Local commercial' : 'Commercial space'}</option>
+                  <option value="terrain">{language === 'fr' ? 'Terrain / Lot' : 'Land / Lot'}</option>
+                  <option value="chalet">{language === 'fr' ? 'Chalet / Maison de vacances' : 'Chalet / Vacation home'}</option>
+                  <option value="preconstruction">{language === 'fr' ? 'Préconstruction (unité à livrer)' : 'Preconstruction (unit to be delivered)'}</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {language === 'fr'
+                    ? 'Affecte la fiscalité (CCA, T1135, Florida TDT, Confotur...)'
+                    : 'Affects taxation (CCA, T1135, Florida TDT, Confotur...)'}
+                </p>
               </div>
 
               <div>
@@ -3372,6 +3439,26 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="Ex: Punta Cana"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {language === 'fr' ? 'Type de propriété' : 'Property type'}
+                </label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) => setFormData({...formData, property_type: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                >
+                  <option value="condo">{language === 'fr' ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
+                  <option value="maison">{language === 'fr' ? 'Maison / Villa' : 'House / Villa'}</option>
+                  <option value="condo_hotel">{language === 'fr' ? 'Condo-hôtel (location touristique)' : 'Condo-hotel (tourist rental)'}</option>
+                  <option value="multiplex">{language === 'fr' ? 'Multiplex (duplex/triplex/4+)' : 'Multiplex (duplex/triplex/4+)'}</option>
+                  <option value="commercial">{language === 'fr' ? 'Local commercial' : 'Commercial space'}</option>
+                  <option value="terrain">{language === 'fr' ? 'Terrain / Lot' : 'Land / Lot'}</option>
+                  <option value="chalet">{language === 'fr' ? 'Chalet / Maison de vacances' : 'Chalet / Vacation home'}</option>
+                  <option value="preconstruction">{language === 'fr' ? 'Préconstruction (unité à livrer)' : 'Preconstruction (unit to be delivered)'}</option>
+                </select>
               </div>
 
               <div>

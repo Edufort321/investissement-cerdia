@@ -17,6 +17,10 @@ interface PropertyFormData {
   name: string
   location: string
   status: string
+  property_type: string
+  country_code: string
+  state_province: string
+  county_code: string
   total_cost: number
   paid_amount: number
   reservation_date: string
@@ -83,6 +87,10 @@ export default function ProjetTab() {
     name: '',
     location: '',
     status: 'reservation',
+    property_type: 'condo',
+    country_code: '',
+    state_province: '',
+    county_code: '',
     total_cost: 0,
     paid_amount: 0,
     reservation_date: new Date().toISOString().split('T')[0],
@@ -193,6 +201,10 @@ export default function ProjetTab() {
       name: property.name,
       location: property.location,
       status: property.status,
+      property_type: (property as any).property_type || 'condo',
+      country_code: (property as any).country_code || '',
+      state_province: (property as any).state_province || '',
+      county_code: (property as any).county_code || '',
       total_cost: property.total_cost,
       paid_amount: calculatedPaidAmount, // Calculé automatiquement
       reservation_date: property.reservation_date.split('T')[0],
@@ -227,6 +239,10 @@ export default function ProjetTab() {
       name: '',
       location: '',
       status: 'reservation',
+      property_type: 'condo',
+      country_code: '',
+      state_province: '',
+      county_code: '',
       total_cost: 0,
       paid_amount: 0,
       reservation_date: new Date().toISOString().split('T')[0],
@@ -979,6 +995,108 @@ export default function ProjetTab() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {fr ? 'Type de propriété' : 'Property type'}
+                </label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) => setFormData({ ...formData, property_type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="condo">{fr ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
+                  <option value="maison">{fr ? 'Maison / Villa' : 'House / Villa'}</option>
+                  <option value="condo_hotel">{fr ? 'Condo-hôtel (location touristique)' : 'Condo-hotel (tourist rental)'}</option>
+                  <option value="multiplex">{fr ? 'Multiplex (duplex/triplex/4+)' : 'Multiplex (duplex/triplex/4+)'}</option>
+                  <option value="commercial">{fr ? 'Local commercial' : 'Commercial space'}</option>
+                  <option value="terrain">{fr ? 'Terrain / Lot' : 'Land / Lot'}</option>
+                  <option value="chalet">{fr ? 'Chalet / Maison de vacances' : 'Chalet / Vacation home'}</option>
+                  <option value="preconstruction">{fr ? 'Préconstruction (unité à livrer)' : 'Preconstruction (to be delivered)'}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {fr ? 'Pays (juridiction fiscale)' : 'Country (tax jurisdiction)'}
+                </label>
+                <select
+                  value={formData.country_code}
+                  onChange={(e) => setFormData({ ...formData, country_code: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                >
+                  <option value="">{fr ? '— Non défini —' : '— Not defined —'}</option>
+                  <option value="CA">🇨🇦 Canada</option>
+                  <option value="US">🇺🇸 États-Unis / USA</option>
+                  <option value="DO">🇩🇴 République Dominicaine</option>
+                  <option value="MX">🇲🇽 Mexique</option>
+                </select>
+              </div>
+
+              {formData.country_code === 'US' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {fr ? 'État (pour TDT Florida / Sales Tax)' : 'State (for Florida TDT / Sales Tax)'}
+                  </label>
+                  <select
+                    value={formData.state_province}
+                    onChange={(e) => setFormData({ ...formData, state_province: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
+                    <option value="FL">Florida</option>
+                    <option value="NY">New York</option>
+                    <option value="CA">California</option>
+                    <option value="TX">Texas</option>
+                    <option value="NV">Nevada</option>
+                  </select>
+                </div>
+              )}
+
+              {formData.country_code === 'US' && formData.state_province === 'FL' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {fr ? 'Comté Florida (TDT Tourist Development Tax)' : 'Florida County (TDT Tourist Development Tax)'}
+                  </label>
+                  <select
+                    value={formData.county_code}
+                    onChange={(e) => setFormData({ ...formData, county_code: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
+                    <option value="FL-MIAMI">Miami-Dade County (TDT 6%)</option>
+                    <option value="FL-BROWARD">Broward County (TDT 5%)</option>
+                    <option value="FL-ORANGE">Orange County / Orlando (TDT 6%)</option>
+                    <option value="FL-OSCEOLA">Osceola County / Kissimmee (TDT 6%)</option>
+                    <option value="FL-PINELLAS">Pinellas County (TDT 6%)</option>
+                    <option value="FL-HILLSBOROUGH">Hillsborough County (TDT 5%)</option>
+                    <option value="FL-COLLIER">Collier County (TDT 5%)</option>
+                    <option value="FL-KEYS">Monroe County / Keys (TDT 5%)</option>
+                  </select>
+                  <p className="text-xs text-amber-600 mt-1">
+                    {fr ? '⚠️ TDT = taxe locale additionnelle à la Sales Tax État (6%). Déclaration mensuelle séparée.' : '⚠️ TDT = local tax added on top of State Sales Tax (6%). Separate monthly filing.'}
+                  </p>
+                </div>
+              )}
+
+              {formData.country_code === 'CA' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {fr ? 'Province' : 'Province'}
+                  </label>
+                  <select
+                    value={formData.state_province}
+                    onChange={(e) => setFormData({ ...formData, state_province: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  >
+                    <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
+                    <option value="QC">Québec (QST 9.975% + GST 5%)</option>
+                    <option value="ON">Ontario</option>
+                    <option value="BC">Colombie-Britannique</option>
+                    <option value="AB">Alberta</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('projects.reservationDate')} *
                 </label>
                 <input
@@ -1418,6 +1536,17 @@ export default function ProjetTab() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(property.status)}
+                      {(() => {
+                        const pt = (property as any).property_type
+                        const cc = (property as any).country_code
+                        const ptLabel: Record<string,string> = { condo:'Condo', maison:'Maison', terrain:'Terrain', commercial:'Commercial', multiplex:'Multiplex', condo_hotel:'Condo-Hôtel', chalet:'Chalet', preconstruction:'Préconstruction' }
+                        const ccFlag: Record<string,string> = { CA:'🇨🇦', US:'🇺🇸', DO:'🇩🇴', MX:'🇲🇽' }
+                        return (
+                          <span className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                            {cc ? ccFlag[cc] : ''} {ptLabel[pt] || pt || 'Condo'}
+                          </span>
+                        )
+                      })()}
 
                       {/* Menu hamburger */}
                       <div className="relative">
