@@ -263,13 +263,32 @@ export default function CSecur360Tab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Clients facturables — valeur principale */}
+        <div className="bg-white border border-emerald-200 rounded-xl p-4">
+          <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center mb-2">
+            <BadgeCheck size={15} className="text-emerald-600" />
+          </div>
+          <p className="text-base font-black text-emerald-700 leading-tight">{billableActive.length}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Clients facturables</p>
+          <p className="text-[10px] text-gray-400">{activeClients.length} actifs · {clients.length} total</p>
+        </div>
+        {/* Modules par client facturables */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mb-2">
+            <Layers size={15} className="text-blue-600" />
+          </div>
+          <p className="text-base font-black text-gray-900 leading-tight">
+            {modules.filter(m => m.is_active && m.billable_tenants > 0).length}
+            <span className="text-xs font-normal text-gray-400"> / {modules.filter(m => m.is_active).length}</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">Modules fact. / actifs</p>
+          <p className="text-[10px] text-gray-400">{modules.filter(m => m.is_active && m.billable_tenants > 0).reduce((s, m) => s + m.billable_tenants, 0)} assign. facturables</p>
+        </div>
         {[
-          { icon: Users,       label: 'Clients actifs',    value: String(activeClients.length),  color: 'text-blue-600',   bg: 'bg-blue-50' },
-          { icon: Building2,   label: 'Total clients',     value: String(clients.length),         color: 'text-purple-600', bg: 'bg-purple-50' },
-          { icon: DollarSign,  label: 'Revenu mensuel',    value: fmt(totalMonthly),              color: 'text-orange-600', bg: 'bg-orange-50' },
-          { icon: TrendingUp,  label: 'Revenu annuel',     value: fmt(totalAnnual),               color: 'text-green-600',  bg: 'bg-green-50' },
-          { icon: BadgeCheck,  label: 'Net CERDIA',        value: fmt(netCerdia),                 color: 'text-emerald-700',bg: 'bg-emerald-50' },
-          { icon: UserCheck,   label: 'Commissions vend.', value: fmt(totalCommission),           color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { icon: DollarSign, label: 'Revenu mensuel',    sub: `${billableActive.length} fact.`, value: fmt(totalMonthly),    color: 'text-orange-600', bg: 'bg-orange-50' },
+          { icon: TrendingUp, label: 'Revenu annuel',     sub: `${billableActive.length} fact.`, value: fmt(totalAnnual),     color: 'text-green-600',  bg: 'bg-green-50' },
+          { icon: UserCheck,  label: 'Net CERDIA',        sub: 'après commissions',              value: fmt(netCerdia),       color: 'text-emerald-700',bg: 'bg-emerald-50' },
+          { icon: Percent,    label: 'Commissions vend.', sub: `${vendorClientCount} client${vendorClientCount !== 1 ? 's' : ''}`, value: fmt(totalCommission), color: 'text-indigo-600', bg: 'bg-indigo-50' },
         ].map((k, i) => (
           <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
             <div className={`w-8 h-8 ${k.bg} rounded-lg flex items-center justify-center mb-2`}>
@@ -277,6 +296,7 @@ export default function CSecur360Tab() {
             </div>
             <p className="text-base font-black text-gray-900 leading-tight">{k.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
+            <p className="text-[10px] text-gray-400">{k.sub}</p>
           </div>
         ))}
       </div>
@@ -304,8 +324,8 @@ export default function CSecur360Tab() {
       <div className="border-b border-gray-200">
         <div className="flex gap-1">
           {([
-            { key: 'clients',  label: `Clients (${clients.length})` },
-            { key: 'modules',  label: `Modules (${modules.length})` },
+            { key: 'clients',  label: `Clients (${billableActive.length}/${clients.length} fact.)` },
+            { key: 'modules',  label: `Modules (${modules.filter(m => m.is_active && m.billable_tenants > 0).length}/${modules.length} fact.)` },
             { key: 'vendeurs', label: `Vendeurs (${vendors.length})` },
           ] as const).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -490,7 +510,17 @@ export default function CSecur360Tab() {
                           <span className="text-gray-400 text-xs">/{c.id}</span>
                         </td>
                         <td className="px-3 py-3 text-xs text-gray-500 max-w-[140px] truncate">{c.admin_email || '—'}</td>
-                        <td className="px-3 py-3 text-sm text-center text-gray-700">{c.modules_count}</td>
+                        <td className="px-3 py-3 text-sm text-center">
+                          {c.billable ? (
+                            <span className="font-semibold text-emerald-700">{c.modules_count}</span>
+                          ) : (
+                            <span>
+                              <span className="font-semibold text-gray-400">0</span>
+                              <span className="text-[10px] text-gray-400">/{c.modules_count}</span>
+                            </span>
+                          )}
+                          <p className="text-[10px] text-gray-400">{c.billable ? 'fact.' : 'non-fact.'}</p>
+                        </td>
                         <td className="px-3 py-3 text-sm text-center text-gray-700">{c.sites_count}</td>
                         <td className="px-3 py-3 text-sm font-bold text-gray-900 whitespace-nowrap">
                           {c.billable ? fmt(c.annual_revenue) : (
