@@ -703,8 +703,13 @@ function ProduitsTab({ toast, onNavigate }: {
     }, 0)
     const csNET = csARR - csComm
 
+    // Produits physiques
+    const physActive   = products.filter(p => p.active && (p.price ?? 0) > 0)
+    const physRevenue  = physActive.reduce((s, p) => s + (p.price ?? 0) * (p.inventory ?? 0), 0)
+    const physTotalQty = physActive.reduce((s, p) => s + (p.inventory ?? 0), 0)
+
     // Combiné
-    const totalARR  = cerdiaARR + csARR
+    const totalARR  = cerdiaARR + csARR + physRevenue
     const totalComm = cerdiaComm + csComm
     const totalNET  = totalARR - totalComm
     const totalMRR  = totalARR / 12
@@ -719,6 +724,9 @@ function ProduitsTab({ toast, onNavigate }: {
       csActiveCount: csActive.length,
       csNonBillableCount: csNonBillable.length,
       csARR, csComm, csNET,
+      // Produits physiques
+      physActiveCount: physActive.length,
+      physRevenue, physTotalQty,
       // Combiné
       totalARR, totalComm, totalNET, totalMRR,
       // Pour les lignes module table (compatibilité)
@@ -869,7 +877,7 @@ function ProduitsTab({ toast, onNavigate }: {
       {isSuperAdmin && (
         <div className="mb-6 space-y-3">
           {/* Ligne 1 : breakdown par source */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {/* CERDIA SaaS */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-purple-200 dark:border-purple-700 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -952,14 +960,43 @@ function ProduitsTab({ toast, onNavigate }: {
                 </div>
               )}
             </div>
+
+            {/* Produits physiques */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-teal-200 dark:border-teal-700 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-teal-100 dark:bg-teal-900/40 rounded-lg flex items-center justify-center">
+                    <Package size={14} className="text-teal-600" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">Produits physiques</span>
+                </div>
+                <span className="text-xs text-teal-600 font-semibold">{metrics.physActiveCount} actif{metrics.physActiveCount !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Produits actifs</p>
+                  <p className="text-xl font-black text-gray-900 dark:text-white">{metrics.physActiveCount}</p>
+                  <p className="text-[10px] text-gray-400">{metrics.totalProducts} au total</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Quantité totale</p>
+                  <p className="text-xl font-black text-teal-700 dark:text-teal-300">{metrics.physTotalQty}</p>
+                  <p className="text-[10px] text-gray-400">unités en stock</p>
+                </div>
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-teal-600 mb-0.5 font-bold">Valeur stock</p>
+                  <p className="text-xl font-black text-teal-700 dark:text-teal-300">{fmtCAD(metrics.physRevenue)}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Ligne 2 : Totaux combinés */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl p-4 shadow-sm">
-              <p className="text-[10px] uppercase tracking-wide text-gray-300 font-bold mb-1">ARR Total projeté</p>
+              <p className="text-[10px] uppercase tracking-wide text-gray-300 font-bold mb-1">Revenus projetés</p>
               <p className="text-2xl font-black text-white">{fmtCAD(metrics.totalARR)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{metrics.cerdiaBillableCount + metrics.csActiveCount} clients facturables</p>
+              <p className="text-xs text-gray-400 mt-0.5">SaaS + C-Secur360 + Produits</p>
             </div>
             <div className="bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-2xl p-4 shadow-sm">
               <p className="text-[10px] uppercase tracking-wide text-emerald-100 font-bold mb-1">Net CERDIA total</p>
@@ -976,7 +1013,7 @@ function ProduitsTab({ toast, onNavigate }: {
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-700 p-4 shadow-sm">
               <p className="text-[10px] uppercase tracking-wide text-blue-500 font-bold mb-1">MRR projeté</p>
               <p className="text-2xl font-black text-blue-700 dark:text-blue-300">{fmtCAD(metrics.totalMRR)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">ARR total ÷ 12</p>
+              <p className="text-xs text-gray-400 mt-0.5">Revenus totaux ÷ 12</p>
             </div>
           </div>
         </div>
@@ -1122,7 +1159,7 @@ function ProduitsTab({ toast, onNavigate }: {
               <input type="number" min="0" className="input" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))} />
             </div>
             <div>
-              <label className="label">Inventaire (unités en stock)</label>
+              <label className="label">Quantité en stock</label>
               <input type="number" min="0" className="input" placeholder="0" value={form.inventory} onChange={e => setForm(f => ({ ...f, inventory: parseInt(e.target.value) || 0 }))} />
             </div>
             <div>
@@ -1195,7 +1232,7 @@ function ProduitsTab({ toast, onNavigate }: {
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Produit</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Catégorie</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Prix</th>
-                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Stock</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Quantité</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Note</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Statut</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Actions</th>
@@ -1272,7 +1309,7 @@ function ProduitsTab({ toast, onNavigate }: {
                     </tr>
                     {csModules.map((m, idx) => {
                       const colorCls = CS_MODULE_COLORS[m.key] ?? 'bg-gray-100 text-gray-600'
-                      const annualRevenue = m.monthly_price * 12 * m.billable_tenants
+                      const annualRevenue = m.monthly_price * m.billable_tenants
                       return (
                         <tr key={m.key}
                           className={`hover:bg-orange-50/40 dark:hover:bg-orange-900/10 transition-colors border-l-4 border-orange-300 ${!m.is_active ? 'opacity-50' : ''}`}
@@ -1295,9 +1332,8 @@ function ProduitsTab({ toast, onNavigate }: {
                           <td className="px-4 py-2.5 hidden md:table-cell">
                             {m.monthly_price > 0 ? (
                               <div>
-                                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(m.monthly_price * 12)}</span>
+                                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(m.monthly_price)}</span>
                                 <span className="text-xs text-gray-400">/an</span>
-                                <p className="text-[10px] text-gray-400 mt-0.5">{fmtCAD(m.monthly_price)}/mois</p>
                                 {annualRevenue > 0 && (
                                   <p className="text-[10px] text-emerald-600 mt-0.5">ARR {fmtCAD(annualRevenue)}</p>
                                 )}
@@ -1313,7 +1349,7 @@ function ProduitsTab({ toast, onNavigate }: {
                           </td>
                           <td className="px-4 py-2.5 hidden lg:table-cell">
                             {m.billable_tenants > 0 && m.monthly_price > 0
-                              ? <span className="text-xs font-semibold text-emerald-600">{fmtCAD(m.monthly_price * 12 * m.billable_tenants)}/an</span>
+                              ? <span className="text-xs font-semibold text-emerald-600">{fmtCAD(m.monthly_price * m.billable_tenants)}/an</span>
                               : <span className="text-gray-400 text-xs">—</span>}
                           </td>
                           <td className="px-4 py-2.5 text-center">
