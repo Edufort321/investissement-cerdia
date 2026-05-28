@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import { useFinancialSummary } from '@/hooks/useFinancialSummary'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown, Paperclip, Menu } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Calendar, DollarSign, TrendingUp, X, Upload, FileText, Download, Filter, TrendingDown, ChevronDown, ChevronUp, FileDown, Paperclip, Menu, ArrowLeftRight } from 'lucide-react'
 import TransactionAttachmentsManager from './admin/TransactionAttachmentsManager'
 import MonthlyControl from './admin/MonthlyControl'
 import TaxReports from './TaxReports'
@@ -913,9 +913,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   }
 
   const getTypeIcon = (type: string) => {
-    if (['investissement', 'dividende'].includes(type)) {
-      return <TrendingUp className="text-green-600" size={20} />
-    }
+    if (TX_REVENU_TYPES.includes(type)) return <TrendingUp className="text-green-600" size={20} />
+    if (type === 'transfert') return <ArrowLeftRight className="text-indigo-600" size={20} />
     return <TrendingDown className="text-red-600" size={20} />
   }
 
@@ -3713,10 +3712,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className={`flex items-center gap-1 text-xs sm:text-sm font-semibold ${
-                          ['investissement', 'dividende'].includes(transaction.type) ? 'text-green-600' : 'text-red-600'
+                          TX_REVENU_TYPES.includes(transaction.type) ? 'text-green-600' :
+                          transaction.type === 'transfert' ? 'text-indigo-600' : 'text-red-600'
                         }`}>
                           {getTypeIcon(transaction.type)}
-                          {transaction.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                          {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
