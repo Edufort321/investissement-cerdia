@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
             sort_order: Number(m.sort_order ?? 0),
             is_active: m.is_active !== false,
             active_tenants: Number(m.active_tenants ?? 0),
+            billable_tenants: Number(m.billable_tenants ?? 0),
             synced_at: new Date().toISOString(),
           })),
           { onConflict: 'key' }

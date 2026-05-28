@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { data, error } = await supabase
     .from('csecur360_modules')
-    .select('*')
+    .select('key, name_fr, name_en, monthly_price, sort_order, is_active, active_tenants, billable_tenants, synced_at')
     .order('sort_order')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ modules: data || [] })

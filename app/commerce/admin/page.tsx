@@ -515,6 +515,8 @@ interface OrgRow {
   status: string
   plan: string
   is_demo: boolean
+  is_billable: boolean
+  vendor_id: string | null
   settings: any
   created_at: string
 }
@@ -527,7 +529,23 @@ interface CSModule {
   sort_order: number
   is_active: boolean
   active_tenants: number
+  billable_tenants: number
   synced_at: string
+}
+
+interface CSClientRow {
+  id: string
+  annual_revenue: number
+  monthly_revenue: number
+  status: string
+  vendor_id: string | null
+  billable: boolean
+}
+
+interface VendorRow {
+  id: string
+  commission_rate: number
+  is_active: boolean
 }
 
 const CS_MODULE_COLORS: Record<string, string> = {
@@ -565,7 +583,28 @@ function ProduitsTab({ toast, onNavigate }: {
   const fileRef = useRef<HTMLInputElement>(null)
   const docRef = useRef<HTMLInputElement>(null)
   const [csModules, setCsModules] = useState<CSModule[]>([])
+  const [csClients, setCsClients] = useState<CSClientRow[]>([])
+  const [csVendors, setCsVendors] = useState<VendorRow[]>([])
+  const [saasVendors, setSaasVendors] = useState<VendorRow[]>([])
   const [syncingModules, setSyncingModules] = useState(false)
+
+  const loadCsData = async () => {
+    try {
+      const [mRes, { data: cc }, { data: cv }, { data: sv }] = await Promise.all([
+        fetch('/api/commerce/csecur360/modules', { headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` } }),
+        supabase.from('csecur360_clients').select('id, annual_revenue, monthly_revenue, status, vendor_id, billable'),
+        supabase.from('csecur360_vendors').select('id, commission_rate, is_active'),
+        supabase.from('saas_vendors').select('id, commission_rate, is_active'),
+      ])
+      if (mRes.ok) {
+        const d = await mRes.json()
+        setCsModules((d.modules || []).sort((a: CSModule, b: CSModule) => a.sort_order - b.sort_order))
+      }
+      setCsClients((cc || []) as CSClientRow[])
+      setCsVendors((cv || []) as VendorRow[])
+      setSaasVendors((sv || []) as VendorRow[])
+    } catch { /* non critique */ }
+  }
 
   const loadCsModules = async () => {
     try {
@@ -587,7 +626,7 @@ function ProduitsTab({ toast, onNavigate }: {
         headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` },
       })
       const d = await res.json()
-      await loadCsModules()
+      await loadCsData()
       toast({
         msg: d.ok
           ? `✓ ${d.modulesSynced ?? 0} modules · ${d.clientsSynced ?? 0} clients synchronisés`
@@ -616,7 +655,7 @@ function ProduitsTab({ toast, onNavigate }: {
   }
 
   useEffect(() => { load() }, [])
-  useEffect(() => { if (isSuperAdmin) loadCsModules() }, [isSuperAdmin])
+  useEffect(() => { if (isSuperAdmin) loadCsData() }, [isSuperAdmin])
 
   // Charge les organisations (super_admin seulement, pour le KPI banner et la ligne SaaS)
   useEffect(() => {
@@ -625,30 +664,68 @@ function ProduitsTab({ toast, onNavigate }: {
     ;(async () => {
       const { data } = await supabase
         .from('organizations')
-        .select('id, name, status, plan, is_demo, settings, created_at')
+        .select('id, name, status, plan, is_demo, is_billable, vendor_id, settings, created_at')
         .order('created_at', { ascending: false })
       if (!cancelled) setOrgs((data || []) as OrgRow[])
     })()
     return () => { cancelled = true }
   }, [isSuperAdmin])
 
-  // Metriques globales pour le KPI banner
+  // ─── Métriques combinées temps réel ─────────────────────────────────────────
   const metrics = (() => {
     const totalProducts = products.length
     const activeProducts = products.filter(p => p.active).length
-    // Exclure CERDIA Globale (plan=internal) et les demos du compte de clients SaaS
-    const externalOrgs = orgs.filter(o => o.plan !== 'internal' && !o.is_demo)
-    const activeOrgs = externalOrgs.filter(o => o.status === 'active')
-    // Prix unitaire annuel : depuis CERDIA Globale settings.saas_pricing.annual_amount_cad
-    // (source unique de verite, defini dans /commerce/admin/Organisations)
     const cerdiaOrg = orgs.find(o => o.plan === 'internal')
     const unitPrice = Number(cerdiaOrg?.settings?.saas_pricing?.annual_amount_cad) || 0
-    // ARR = prix unitaire x nombre d'orgs actives
-    const arr = unitPrice * activeOrgs.length
+    const externalOrgs = orgs.filter(o => o.plan !== 'internal')
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const newThisMonth = externalOrgs.filter(o => new Date(o.created_at) >= monthStart).length
-    return { totalProducts, activeProducts, activeOrgs: activeOrgs.length, arr, unitPrice, newThisMonth, totalClients: externalOrgs.length }
+
+    // CERDIA SaaS
+    const cerdiaBillable  = externalOrgs.filter(o => o.status === 'active' && o.is_billable && !o.is_demo)
+    const cerdiaDemo      = externalOrgs.filter(o => o.is_demo || !o.is_billable)
+    const cerdiaARR       = unitPrice * cerdiaBillable.length
+    const cerdiaComm      = cerdiaBillable.reduce((sum, org) => {
+      const v = saasVendors.find(x => x.id === (org as any).vendor_id)
+      return sum + (v ? unitPrice * Number(v.commission_rate) : 0)
+    }, 0)
+    const cerdiaNET = cerdiaARR - cerdiaComm
+
+    // C-Secur360
+    const csActive     = csClients.filter(c => c.status === 'active' && c.billable)
+    const csNonBillable = csClients.filter(c => c.status === 'active' && !c.billable)
+    const csARR        = csActive.reduce((s, c) => s + Number(c.annual_revenue), 0)
+    const csComm       = csActive.reduce((sum, c) => {
+      if (!c.vendor_id) return sum
+      const v = csVendors.find(x => x.id === c.vendor_id)
+      return sum + Number(c.annual_revenue) * Number(v?.commission_rate ?? 0)
+    }, 0)
+    const csNET = csARR - csComm
+
+    // Combiné
+    const totalARR  = cerdiaARR + csARR
+    const totalComm = cerdiaComm + csComm
+    const totalNET  = totalARR - totalComm
+    const totalMRR  = totalARR / 12
+
+    return {
+      totalProducts, activeProducts, unitPrice, newThisMonth,
+      // CERDIA SaaS
+      cerdiaBillableCount: cerdiaBillable.length,
+      cerdiaDemoCount: cerdiaDemo.length,
+      cerdiaARR, cerdiaComm, cerdiaNET,
+      // C-Secur360
+      csActiveCount: csActive.length,
+      csNonBillableCount: csNonBillable.length,
+      csARR, csComm, csNET,
+      // Combiné
+      totalARR, totalComm, totalNET, totalMRR,
+      // Pour les lignes module table (compatibilité)
+      activeOrgs: cerdiaBillable.length,
+      arr: cerdiaARR,
+      totalClients: externalOrgs.length,
+    }
   })()
 
   const fmtCAD = (n: number) =>
@@ -788,40 +865,119 @@ function ProduitsTab({ toast, onNavigate }: {
 
   return (
     <div>
-      {/* KPI Banner — vision globale (super_admin uniquement) */}
+      {/* ── Dashboard revenus projetés temps réel (super_admin) ──────────────── */}
       {isSuperAdmin && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Produits</p>
-              <Package size={14} className="text-gray-400" />
+        <div className="mb-6 space-y-3">
+          {/* Ligne 1 : breakdown par source */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* CERDIA SaaS */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-purple-200 dark:border-purple-700 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-purple-100 dark:bg-purple-900/40 rounded-lg flex items-center justify-center">
+                    <Building2 size={14} className="text-purple-600" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">CERDIA SaaS — Organisations</span>
+                </div>
+                {metrics.unitPrice > 0
+                  ? <span className="text-xs text-purple-600 font-semibold">{fmtCAD(metrics.unitPrice)}/an·client</span>
+                  : <span className="text-xs text-amber-500">Prix non défini</span>}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Clients facturables</p>
+                  <p className="text-xl font-black text-gray-900 dark:text-white">{metrics.cerdiaBillableCount}</p>
+                  {metrics.cerdiaDemoCount > 0 && (
+                    <p className="text-[10px] text-gray-400">{metrics.cerdiaDemoCount} démo/non-fact.</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">ARR brut</p>
+                  <p className="text-xl font-black text-purple-700 dark:text-purple-300">{fmtCAD(metrics.cerdiaARR)}</p>
+                  {metrics.cerdiaComm > 0 && (
+                    <p className="text-[10px] text-indigo-500">comm. {fmtCAD(metrics.cerdiaComm)}</p>
+                  )}
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-emerald-600 mb-0.5 font-bold">Net CERDIA</p>
+                  <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{fmtCAD(metrics.cerdiaNET)}</p>
+                </div>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.totalProducts}</p>
-            <p className="text-xs text-gray-500 mt-1">{metrics.activeProducts} actif{metrics.activeProducts !== 1 ? 's' : ''}</p>
+
+            {/* C-Secur360 */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-200 dark:border-orange-700 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-orange-100 dark:bg-orange-900/40 rounded-lg flex items-center justify-center">
+                    <Shield size={14} className="text-orange-600" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">C-Secur360 — Modules SaaS</span>
+                </div>
+                <span className="text-xs text-orange-600 font-semibold">{csModules.filter(m => m.is_active && m.monthly_price > 0).length} modules payants</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Clients facturables</p>
+                  <p className="text-xl font-black text-gray-900 dark:text-white">{metrics.csActiveCount}</p>
+                  {metrics.csNonBillableCount > 0 && (
+                    <p className="text-[10px] text-gray-400">{metrics.csNonBillableCount} démo/non-fact.</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">ARR brut</p>
+                  <p className="text-xl font-black text-orange-700 dark:text-orange-300">{fmtCAD(metrics.csARR)}</p>
+                  {metrics.csComm > 0 && (
+                    <p className="text-[10px] text-indigo-500">comm. {fmtCAD(metrics.csComm)}</p>
+                  )}
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-emerald-600 mb-0.5 font-bold">Net CERDIA</p>
+                  <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{fmtCAD(metrics.csNET)}</p>
+                </div>
+              </div>
+              {/* Mini breakdown modules */}
+              {csModules.filter(m => m.is_active && m.monthly_price > 0 && m.billable_tenants > 0).length > 0 && (
+                <div className="mt-3 pt-3 border-t border-orange-100 dark:border-orange-900/30 flex flex-wrap gap-1.5">
+                  {csModules.filter(m => m.is_active && m.monthly_price > 0).map(m => (
+                    <span key={m.key} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
+                      <span className="font-bold text-orange-800 dark:text-orange-300">{m.key}</span>
+                      <span className="text-orange-600 dark:text-orange-400">
+                        {m.billable_tenants > 0
+                          ? `${m.billable_tenants}✓ / ${m.active_tenants}`
+                          : <span className="text-gray-400">{m.active_tenants} (0 fact.)</span>}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Clients SaaS</p>
-              <Building2 size={14} className="text-purple-500" />
+
+          {/* Ligne 2 : Totaux combinés */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl p-4 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wide text-gray-300 font-bold mb-1">ARR Total projeté</p>
+              <p className="text-2xl font-black text-white">{fmtCAD(metrics.totalARR)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{metrics.cerdiaBillableCount + metrics.csActiveCount} clients facturables</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.activeOrgs}</p>
-            <p className="text-xs text-gray-500 mt-1">{metrics.totalClients} total{metrics.newThisMonth > 0 ? ` · +${metrics.newThisMonth} ce mois` : ''}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">ARR SaaS</p>
-              <DollarSign size={14} className="text-emerald-500" />
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-2xl p-4 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wide text-emerald-100 font-bold mb-1">Net CERDIA total</p>
+              <p className="text-2xl font-black text-white">{fmtCAD(metrics.totalNET)}</p>
+              {metrics.totalComm > 0 && (
+                <p className="text-xs text-emerald-200 mt-0.5">après {fmtCAD(metrics.totalComm)} comm.</p>
+              )}
             </div>
-            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{fmtCAD(metrics.arr)}</p>
-            <p className="text-xs text-gray-500 mt-1">Revenu récurrent annuel</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">MRR estimé</p>
-              <TrendingUp size={14} className="text-blue-500" />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-700 p-4 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wide text-indigo-500 font-bold mb-1">Commissions vendeurs</p>
+              <p className="text-2xl font-black text-indigo-700 dark:text-indigo-300">{fmtCAD(metrics.totalComm)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">CERDIA + C-Secur360</p>
             </div>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{fmtCAD(metrics.arr / 12)}</p>
-            <p className="text-xs text-gray-500 mt-1">ARR / 12</p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-700 p-4 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wide text-blue-500 font-bold mb-1">MRR projeté</p>
+              <p className="text-2xl font-black text-blue-700 dark:text-blue-300">{fmtCAD(metrics.totalMRR)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">ARR total ÷ 12</p>
+            </div>
           </div>
         </div>
       )}
@@ -1150,11 +1306,14 @@ function ProduitsTab({ toast, onNavigate }: {
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-center hidden md:table-cell">
-                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{m.active_tenants}</span>
-                            <p className="text-[10px] text-gray-400">clients</p>
+                            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{m.billable_tenants}</span>
+                            <span className="text-xs text-gray-400"> / {m.active_tenants}</span>
+                            <p className="text-[10px] text-gray-400">fact. / total</p>
                           </td>
                           <td className="px-4 py-2.5 hidden lg:table-cell">
-                            <span className="text-gray-400 text-xs">—</span>
+                            {m.billable_tenants > 0 && m.monthly_price > 0
+                              ? <span className="text-xs font-semibold text-emerald-600">{fmtCAD(m.monthly_price * 12 * m.billable_tenants)}/an</span>
+                              : <span className="text-gray-400 text-xs">—</span>}
                           </td>
                           <td className="px-4 py-2.5 text-center">
                             <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${m.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
