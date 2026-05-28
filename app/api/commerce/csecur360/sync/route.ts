@@ -1,0 +1,98 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
+const CSECUR360_API_URL = process.env.CSECUR360_API_URL || 'http://localhost:3000'
+
+// POST /api/commerce/csecur360/sync
+// Tire tous les tenants + vendeurs depuis C-Secur360 et upsert localement
+export async function POST(req: NextRequest) {
+  const auth = req.headers.get('authorization')
+  if (auth !== `Bearer ${SYNC_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${SYNC_SECRET}`,
+  }
+
+  let vendorsSynced = 0
+  let clientsSynced = 0
+  const errors: string[] = []
+
+  try {
+    // 1. Pull vendeurs
+    const vRes = await fetch(`${CSECUR360_API_URL}/api/admin/vendors`, { headers })
+    if (vRes.ok) {
+      const { vendors } = await vRes.json()
+      if (Array.isArray(vendors) && vendors.length > 0) {
+        const { error } = await supabase.from('csecur360_vendors').upsert(
+          vendors.map((v: any) => ({
+            id: v.id,
+            name: v.name,
+            email: v.email || null,
+            phone: v.phone || null,
+            commission_rate: Number(v.commission_rate ?? 0.20),
+            is_active: v.is_active !== false,
+            notes: v.notes || null,
+            synced_at: new Date().toISOString(),
+          })),
+          { onConflict: 'id' }
+        )
+        if (error) errors.push(`vendors: ${error.message}`)
+        else vendorsSynced = vendors.length
+      }
+    } else {
+      errors.push(`vendors fetch: HTTP ${vRes.status}`)
+    }
+  } catch (e: any) {
+    errors.push(`vendors: ${e.message}`)
+  }
+
+  try {
+    // 2. Pull tenants
+    const tRes = await fetch(`${CSECUR360_API_URL}/api/admin/tenants`, { headers })
+    if (tRes.ok) {
+      const { tenants } = await tRes.json()
+      if (Array.isArray(tenants) && tenants.length > 0) {
+        const { error } = await supabase.from('csecur360_clients').upsert(
+          tenants.map((t: any) => ({
+            id: t.id,
+            company_name: t.companyName || t.id,
+            admin_email: t.adminEmail || t.billing_email || null,
+            plan: t.plan || 'professional',
+            monthly_revenue: Math.round(Number(t.annualRevenue || 0) / 12 * 100) / 100,
+            annual_revenue: Number(t.annualRevenue || 0),
+            modules_count: Object.keys(t.modules || {}).length || 0,
+            sites_count: 1,
+            status: t.archived ? 'archived' : t.isActive === false ? 'suspended' : 'active',
+            vendor_id: t.vendor_id || null,
+            billable: t.billable !== false,
+            synced_at: new Date().toISOString(),
+          })),
+          { onConflict: 'id' }
+        )
+        if (error) errors.push(`clients: ${error.message}`)
+        else clientsSynced = tenants.length
+      }
+    } else {
+      errors.push(`tenants fetch: HTTP ${tRes.status}`)
+    }
+  } catch (e: any) {
+    errors.push(`clients: ${e.message}`)
+  }
+
+  return NextResponse.json({
+    ok: errors.length === 0,
+    vendorsSynced,
+    clientsSynced,
+    errors,
+    syncedAt: new Date().toISOString(),
+  })
+}
