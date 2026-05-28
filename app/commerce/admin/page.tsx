@@ -18,7 +18,7 @@ import {
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
   Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail,
-  Building2, Sparkles
+  Building2, Sparkles, RefreshCw, Layers,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -519,6 +519,32 @@ interface OrgRow {
   created_at: string
 }
 
+interface CSModule {
+  key: string
+  name_fr: string
+  name_en: string
+  monthly_price: number
+  sort_order: number
+  is_active: boolean
+  active_tenants: number
+  synced_at: string
+}
+
+const CS_MODULE_COLORS: Record<string, string> = {
+  admin:       'bg-gray-100 text-gray-600',
+  projects:    'bg-blue-100 text-blue-700',
+  planner:     'bg-violet-100 text-violet-700',
+  ast:         'bg-orange-100 text-orange-700',
+  permits:     'bg-amber-100 text-amber-700',
+  accidents:   'bg-red-100 text-red-700',
+  near_miss:   'bg-yellow-100 text-yellow-700',
+  inventory:   'bg-teal-100 text-teal-700',
+  inspections: 'bg-cyan-100 text-cyan-700',
+  timesheets:  'bg-indigo-100 text-indigo-700',
+  todo:        'bg-emerald-100 text-emerald-700',
+}
+const CS_SYNC_SECRET = process.env.NEXT_PUBLIC_CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
+
 function ProduitsTab({ toast, onNavigate }: {
   toast: (t: { msg: string; type: 'success' | 'error' }) => void
   onNavigate?: (tab: Tab) => void
@@ -538,6 +564,42 @@ function ProduitsTab({ toast, onNavigate }: {
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const docRef = useRef<HTMLInputElement>(null)
+  const [csModules, setCsModules] = useState<CSModule[]>([])
+  const [syncingModules, setSyncingModules] = useState(false)
+
+  const loadCsModules = async () => {
+    try {
+      const res = await fetch('/api/commerce/csecur360/modules', {
+        headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` },
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setCsModules((d.modules || []).sort((a: CSModule, b: CSModule) => a.sort_order - b.sort_order))
+      }
+    } catch { /* non critique */ }
+  }
+
+  const syncCsModules = async () => {
+    setSyncingModules(true)
+    try {
+      const res = await fetch('/api/commerce/csecur360/sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` },
+      })
+      const d = await res.json()
+      await loadCsModules()
+      toast({
+        msg: d.ok
+          ? `✓ ${d.modulesSynced ?? 0} modules · ${d.clientsSynced ?? 0} clients synchronisés`
+          : `⚠ Sync partielle — ${d.errors?.join(', ')}`,
+        type: d.ok ? 'success' : 'error',
+      })
+    } catch (e: any) {
+      toast({ msg: `Erreur sync : ${e.message}`, type: 'error' })
+    } finally {
+      setSyncingModules(false)
+    }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -554,6 +616,7 @@ function ProduitsTab({ toast, onNavigate }: {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { if (isSuperAdmin) loadCsModules() }, [isSuperAdmin])
 
   // Charge les organisations (super_admin seulement, pour le KPI banner et la ligne SaaS)
   useEffect(() => {
@@ -767,11 +830,27 @@ function ProduitsTab({ toast, onNavigate }: {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gestion des produits</h2>
-          <p className="text-sm text-gray-500">{products.length} produit{products.length !== 1 ? 's' : ''} physique{products.length !== 1 ? 's' : ''}{isSuperAdmin ? ' + 1 service SaaS' : ''}</p>
+          <p className="text-sm text-gray-500">
+            {products.length} produit{products.length !== 1 ? 's' : ''} physique{products.length !== 1 ? 's' : ''}
+            {isSuperAdmin && ' + 1 plateforme SaaS'}
+            {isSuperAdmin && csModules.length > 0 && ` + ${csModules.length} modules C-Secur360`}
+          </p>
         </div>
-        <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
-          <Plus size={15} /> Nouveau produit
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isSuperAdmin && (
+            <button
+              onClick={syncCsModules}
+              disabled={syncingModules}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-full hover:bg-orange-100 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={syncingModules ? 'animate-spin' : ''} />
+              {syncingModules ? 'Sync…' : 'Sync modules C-Secur360'}
+            </button>
+          )}
+          <button onClick={startNew} className="flex items-center gap-2 bg-[#5e5e5e] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#3e3e3e] transition-colors shadow-sm">
+            <Plus size={15} /> Nouveau produit
+          </button>
+        </div>
       </div>
 
       {/* Form */}
@@ -1018,6 +1097,88 @@ function ProduitsTab({ toast, onNavigate }: {
                     </td>
                   </tr>
                 )}
+                {/* Lignes épinglées : modules C-Secur360 (super_admin uniquement) */}
+                {isSuperAdmin && csModules.length > 0 && (
+                  <>
+                    <tr>
+                      <td colSpan={7} className="px-4 py-2 bg-orange-50/60 dark:bg-orange-900/10 border-y border-orange-100 dark:border-orange-900/30">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wide">
+                            <Layers size={12} /> C-Secur360 — Modules SaaS ({csModules.length})
+                          </span>
+                          {csModules[0]?.synced_at && (
+                            <span className="text-[10px] text-orange-400">
+                              Sync {new Date(csModules[0].synced_at).toLocaleDateString('fr-CA')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {csModules.map((m, idx) => {
+                      const colorCls = CS_MODULE_COLORS[m.key] ?? 'bg-gray-100 text-gray-600'
+                      const annualRevenue = m.monthly_price * 12 * m.active_tenants
+                      return (
+                        <tr key={m.key}
+                          className={`hover:bg-orange-50/40 dark:hover:bg-orange-900/10 transition-colors border-l-4 border-orange-300 ${!m.is_active ? 'opacity-50' : ''}`}
+                        >
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black ${colorCls}`}>
+                                {m.key.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[200px]">{m.name_fr}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] font-mono text-gray-400 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600">{m.key}</span>
+                                  <span className="text-[10px] text-gray-400">{m.name_en}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500 text-xs hidden sm:table-cell">Module / SaaS</td>
+                          <td className="px-4 py-2.5 hidden md:table-cell">
+                            {m.monthly_price > 0 ? (
+                              <div>
+                                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(m.monthly_price)}</span>
+                                <span className="text-xs text-gray-400">/mois</span>
+                                {annualRevenue > 0 && (
+                                  <p className="text-[10px] text-emerald-600 mt-0.5">ARR {fmtCAD(annualRevenue)}</p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">Inclus</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-center hidden md:table-cell">
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{m.active_tenants}</span>
+                            <p className="text-[10px] text-gray-400">clients</p>
+                          </td>
+                          <td className="px-4 py-2.5 hidden lg:table-cell">
+                            <span className="text-gray-400 text-xs">—</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${m.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {m.is_active ? 'Actif' : 'Inactif'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center justify-end">
+                              {idx === 0 && (
+                                <button
+                                  onClick={() => onNavigate?.('csecur360')}
+                                  className="flex items-center gap-1 px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                                >
+                                  Gérer →
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </>
+                )}
+
                 {filtered.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3">
