@@ -27,6 +27,7 @@ interface CSModule {
   sort_order: number
   is_active: boolean
   active_tenants: number
+  billable_tenants: number
   synced_at: string
 }
 
@@ -333,9 +334,9 @@ export default function CSecur360Tab() {
             {/* Revenu annuel potentiel par module */}
             {modules.some(m => m.monthly_price > 0) && (
               <div className="text-right">
-                <p className="text-xs text-gray-400">Revenu mensuel potentiel (si tous actifs)</p>
+                <p className="text-xs text-gray-400">ARR (clients facturables)</p>
                 <p className="text-lg font-black text-orange-600">
-                  {fmt(modules.filter(m => m.is_active).reduce((s, m) => s + m.monthly_price * m.active_tenants, 0))}
+                  {fmt(modules.filter(m => m.is_active).reduce((s, m) => s + m.monthly_price * 12 * m.billable_tenants, 0))}
                 </p>
               </div>
             )}
@@ -353,7 +354,7 @@ export default function CSecur360Tab() {
               {modules.map(m => {
                 const Icon = MODULE_ICONS[m.key] ?? Package
                 const colors = MODULE_COLORS[m.key] ?? { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' }
-                const annualRevenue = m.monthly_price * 12 * m.active_tenants
+                const annualRevenue = m.monthly_price * 12 * m.billable_tenants
                 return (
                   <div key={m.key}
                     className={`bg-white border ${colors.border} rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${!m.is_active ? 'opacity-50' : ''}`}>
@@ -379,17 +380,17 @@ export default function CSecur360Tab() {
                     {/* Prix */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Prix / mois</span>
+                        <span className="text-xs text-gray-500">Prix / an</span>
                         {m.monthly_price > 0 ? (
-                          <span className="text-sm font-black text-gray-900">{fmt(m.monthly_price)}</span>
+                          <span className="text-sm font-black text-gray-900">{fmt(m.monthly_price * 12)}</span>
                         ) : (
                           <span className="text-xs text-gray-400 italic">Inclus</span>
                         )}
                       </div>
                       {m.monthly_price > 0 && (
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">Prix / an</span>
-                          <span className="text-xs font-semibold text-gray-700">{fmt(m.monthly_price * 12)}</span>
+                          <span className="text-xs text-gray-400">Prix / mois</span>
+                          <span className="text-xs text-gray-400">{fmt(m.monthly_price)}</span>
                         </div>
                       )}
                     </div>
@@ -402,12 +403,14 @@ export default function CSecur360Tab() {
                       <div className="flex items-center gap-1.5">
                         <Users size={13} className="text-gray-400" />
                         <span className="text-xs text-gray-600">
-                          <span className="font-bold text-gray-900">{m.active_tenants}</span> client{m.active_tenants !== 1 ? 's' : ''}
+                          <span className="font-bold text-emerald-700">{m.billable_tenants}</span>
+                          <span className="text-gray-400">/{m.active_tenants}</span>
+                          <span className="text-gray-400 ml-0.5">fact.</span>
                         </span>
                       </div>
-                      {m.active_tenants > 0 && m.monthly_price > 0 && (
+                      {m.billable_tenants > 0 && m.monthly_price > 0 && (
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-400">Rev. annuel</p>
+                          <p className="text-[10px] text-gray-400">ARR</p>
                           <p className="text-xs font-bold text-emerald-700">{fmt(annualRevenue)}</p>
                         </div>
                       )}
@@ -427,7 +430,7 @@ export default function CSecur360Tab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {['Module', 'Prix/mois', 'Clients actifs', 'Rev. mensuel', 'Rev. annuel'].map(h => (
+                    {['Module', 'Prix/an', 'Clients fact.', 'MRR fact.', 'ARR fact.'].map(h => (
                       <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -436,10 +439,13 @@ export default function CSecur360Tab() {
                   {modules.filter(m => m.is_active && m.monthly_price > 0).map(m => (
                     <tr key={m.key} className="hover:bg-gray-50/50">
                       <td className="px-4 py-2.5 font-semibold text-gray-900">{m.name_fr}</td>
-                      <td className="px-4 py-2.5 text-gray-700">{fmt(m.monthly_price)}</td>
-                      <td className="px-4 py-2.5 text-center font-bold text-gray-900">{m.active_tenants}</td>
-                      <td className="px-4 py-2.5 font-semibold text-gray-700">{m.active_tenants > 0 ? fmt(m.monthly_price * m.active_tenants) : '—'}</td>
-                      <td className="px-4 py-2.5 font-bold text-emerald-700">{m.active_tenants > 0 ? fmt(m.monthly_price * 12 * m.active_tenants) : '—'}</td>
+                      <td className="px-4 py-2.5 font-bold text-gray-900">{fmt(m.monthly_price * 12)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="font-bold text-emerald-700">{m.billable_tenants}</span>
+                        <span className="text-xs text-gray-400">/{m.active_tenants}</span>
+                      </td>
+                      <td className="px-4 py-2.5 font-semibold text-gray-700">{m.billable_tenants > 0 ? fmt(m.monthly_price * m.billable_tenants) : '—'}</td>
+                      <td className="px-4 py-2.5 font-bold text-emerald-700">{m.billable_tenants > 0 ? fmt(m.monthly_price * 12 * m.billable_tenants) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -448,10 +454,10 @@ export default function CSecur360Tab() {
                     <td colSpan={2} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Total</td>
                     <td className="px-4 py-2.5 text-center font-black text-gray-900">—</td>
                     <td className="px-4 py-2.5 font-black text-gray-900">
-                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * m.active_tenants, 0))}
+                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * m.billable_tenants, 0))}
                     </td>
                     <td className="px-4 py-2.5 font-black text-emerald-700">
-                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * 12 * m.active_tenants, 0))}
+                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * 12 * m.billable_tenants, 0))}
                     </td>
                   </tr>
                 </tfoot>

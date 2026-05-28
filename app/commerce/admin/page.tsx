@@ -1272,7 +1272,7 @@ function ProduitsTab({ toast, onNavigate }: {
                     </tr>
                     {csModules.map((m, idx) => {
                       const colorCls = CS_MODULE_COLORS[m.key] ?? 'bg-gray-100 text-gray-600'
-                      const annualRevenue = m.monthly_price * 12 * m.active_tenants
+                      const annualRevenue = m.monthly_price * 12 * m.billable_tenants
                       return (
                         <tr key={m.key}
                           className={`hover:bg-orange-50/40 dark:hover:bg-orange-900/10 transition-colors border-l-4 border-orange-300 ${!m.is_active ? 'opacity-50' : ''}`}
@@ -1295,8 +1295,9 @@ function ProduitsTab({ toast, onNavigate }: {
                           <td className="px-4 py-2.5 hidden md:table-cell">
                             {m.monthly_price > 0 ? (
                               <div>
-                                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(m.monthly_price)}</span>
-                                <span className="text-xs text-gray-400">/mois</span>
+                                <span className="font-semibold text-gray-900 dark:text-white text-sm">{fmtCAD(m.monthly_price * 12)}</span>
+                                <span className="text-xs text-gray-400">/an</span>
+                                <p className="text-[10px] text-gray-400 mt-0.5">{fmtCAD(m.monthly_price)}/mois</p>
                                 {annualRevenue > 0 && (
                                   <p className="text-[10px] text-emerald-600 mt-0.5">ARR {fmtCAD(annualRevenue)}</p>
                                 )}
