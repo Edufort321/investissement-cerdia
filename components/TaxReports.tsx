@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { FileText, Download, Calendar, ExternalLink, Filter, Share2 } from 'lucide-react'
+import { FileText, Download, Calendar, ExternalLink, Filter, Share2, Info } from 'lucide-react'
 import jsPDF from 'jspdf'
+import PropertyFiscalPanel from './PropertyFiscalPanel'
 
 interface Transaction {
   id: string
@@ -87,6 +88,17 @@ export default function TaxReports() {
   const [shareLink, setShareLink] = useState('')
   const [generatingShare, setGeneratingShare] = useState(false)
   const [generatingMJPDF, setGeneratingMJPDF] = useState(false)
+  // Taux de change annuels (chargés depuis exchange_rates_annual)
+  const [annualRates, setAnnualRates] = useState<Map<string, number>>(new Map([
+    ['USD_2025', 1.3950], ['USD_2024', 1.3601], ['USD_2023', 1.3497], ['USD_2022', 1.3013],
+    ['EUR_2025', 1.5400], ['EUR_2024', 1.4779], ['EUR_2023', 1.4641],
+    ['DOP_2025', 0.02380], ['DOP_2024', 0.02320], ['DOP_2023', 0.02440],
+    ['MXN_2025', 0.06890], ['MXN_2024', 0.07825], ['MXN_2023', 0.07820],
+  ]))
+  // T2209 : revenu imposable canadien pour calcul plafond 15%
+  const [canadianTaxableIncome, setCanadianTaxableIncome] = useState<number>(0)
+  const [fiscalYearSettings, setFiscalYearSettings] = useState<any>(null)
+  const [savingFiscalSettings, setSavingFiscalSettings] = useState(false)
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -136,25 +148,41 @@ export default function TaxReports() {
       const startDate = `${selectedYear}-01-01`
       const endDate = `${selectedYear}-12-31`
 
-      const { data: transData, error: transError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('organization_id', orgId)
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: true })
+      const [transResult, propResult, ratesResult, fiscalResult] = await Promise.all([
+        supabase.from('transactions').select('*').eq('organization_id', orgId)
+          .gte('date', startDate).lte('date', endDate).order('date', { ascending: true }),
+        supabase.from('properties').select('*').eq('organization_id', orgId),
+        supabase.from('exchange_rates_annual').select('currency_from, annual_avg_rate')
+          .eq('currency_to', 'CAD').in('year', [selectedYear, selectedYear - 1, selectedYear - 2]),
+        supabase.from('fiscal_year_settings').select('*')
+          .eq('organization_id', orgId).eq('fiscal_year', selectedYear).maybeSingle(),
+      ])
 
-      if (transError) throw transError
+      if (transResult.error) throw transResult.error
+      if (propResult.error) throw propResult.error
 
-      const { data: propData, error: propError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('organization_id', orgId)
+      setTransactions(transResult.data || [])
+      setProperties(propResult.data || [])
 
-      if (propError) throw propError
+      // Mettre à jour le cache des taux de change avec les données DB
+      if (ratesResult.data && ratesResult.data.length > 0) {
+        setAnnualRates(prev => {
+          const next = new Map(prev)
+          ratesResult.data!.forEach((r: any) => {
+            next.set(`${r.currency_from}_${selectedYear}`, r.annual_avg_rate)
+          })
+          return next
+        })
+      }
 
-      setTransactions(transData || [])
-      setProperties(propData || [])
+      // Paramètres fiscaux de l'année
+      if (fiscalResult.data) {
+        setFiscalYearSettings(fiscalResult.data)
+        setCanadianTaxableIncome(fiscalResult.data.canadian_taxable_income || 0)
+      } else {
+        setFiscalYearSettings(null)
+        setCanadianTaxableIncome(0)
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -164,27 +192,59 @@ export default function TaxReports() {
 
   const calculateT1135Data = (): T1135Data => {
     const foreignProperties = properties.filter(p => p.currency && p.currency !== 'CAD')
+
+    // CRA exige juste valeur marchande — on utilise current_market_value_cad si dispo, sinon coût achat
     const totalForeignAssets = foreignProperties.reduce((sum, prop) => {
-      const exchangeRate = getExchangeRate(prop.currency, 'CAD')
-      return sum + (prop.total_cost * exchangeRate)
+      const p = prop as any
+      const valueCAD = p.current_market_value_cad ?? (prop.total_cost * getExchangeRate(prop.currency))
+      return sum + valueCAD
     }, 0)
+
     const foreignIncome = filteredTransactions
-      .filter(t => t.type === 'dividende' && t.source_currency && t.source_currency !== 'CAD')
+      .filter(t => t.source_currency && t.source_currency !== 'CAD' &&
+        ['rental_income', 'dividend_income', 'interest_income', 'other_income'].includes(t.fiscal_category || t.type))
       .reduce((sum, t) => sum + (t.amount || 0), 0)
+
+    // Gains en capital sur ventes de propriétés étrangères
+    const foreignGains = filteredTransactions
+      .filter((t: any) => t.fiscal_category === 'property_sale_foreign' && t.tax_country && t.tax_country !== 'CA')
+      .reduce((sum, t) => sum + Math.max(0, t.amount || 0), 0)
 
     return {
       year: selectedYear,
       totalForeignAssets,
-      properties: foreignProperties.map(p => ({
-        name: p.name,
-        location: p.location,
-        country: extractCountry(p.location),
-        cost: p.total_cost,
-        currency: p.currency,
-        costCAD: p.total_cost * getExchangeRate(p.currency, 'CAD')
-      })),
+      properties: foreignProperties.map(p => {
+        const pa = p as any
+        const valueCAD = pa.current_market_value_cad ?? (p.total_cost * getExchangeRate(p.currency))
+        return {
+          name: p.name,
+          location: p.location,
+          country: extractCountry(p.location),
+          cost: p.total_cost,
+          currency: p.currency,
+          costCAD: valueCAD,
+          hasValuation: !!pa.current_market_value_cad,
+          valuationDate: pa.valuation_date ?? null,
+          t1135Category: pa.t1135_category ?? '5',
+        }
+      }),
       foreignIncome,
-      foreignGains: 0 // Would need additional data for capital gains
+      foreignGains,
+    }
+  }
+
+  const saveFiscalYearSettings = async () => {
+    if (!orgId) return
+    setSavingFiscalSettings(true)
+    try {
+      await supabase.from('fiscal_year_settings').upsert({
+        organization_id: orgId,
+        fiscal_year: selectedYear,
+        canadian_taxable_income: canadianTaxableIncome || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'organization_id,fiscal_year' })
+    } finally {
+      setSavingFiscalSettings(false)
     }
   }
 
@@ -213,13 +273,30 @@ export default function TaxReports() {
       ...data
     }))
 
+    const totalForeignIncome = byCountryArray.reduce((sum, c) => sum + c.income, 0)
+    const totalForeignTaxPaid = byCountryArray.reduce((sum, c) => sum + c.taxPaid, 0)
+    const totalTaxCredit = byCountryArray.reduce((sum, c) => sum + c.taxCredit, 0)
+
+    // Plafond 15% ARC pour revenus de biens (loyers passifs)
+    // Crédit = MIN(impôt étranger payé, 15% × revenu net étranger)
+    const plafond15 = canadianTaxableIncome > 0 ? canadianTaxableIncome * 0.15 : null
+    const usableCredit = plafond15 !== null ? Math.min(totalTaxCredit, plafond15) : totalTaxCredit
+    const carryforward = plafond15 !== null ? Math.max(0, totalTaxCredit - plafond15) : 0
+    const priorCarryforward = fiscalYearSettings?.t2209_carryforward_from_prior || 0
+
     return {
       year: selectedYear,
-      totalForeignIncome: byCountryArray.reduce((sum, c) => sum + c.income, 0),
-      totalForeignTaxPaid: byCountryArray.reduce((sum, c) => sum + c.taxPaid, 0),
-      totalTaxCredit: byCountryArray.reduce((sum, c) => sum + c.taxCredit, 0),
-      byCountry: byCountryArray
-    }
+      totalForeignIncome,
+      totalForeignTaxPaid,
+      totalTaxCredit,
+      byCountry: byCountryArray,
+      // Extended fields
+      plafond15,
+      usableCredit,
+      carryforward,
+      priorCarryforward,
+      netUsableCredit: Math.min(usableCredit + priorCarryforward, plafond15 ?? usableCredit + priorCarryforward),
+    } as any
   }
 
   const COUNTRY_DISPLAY: Record<string, { name: string; flag: string }> = {
@@ -301,15 +378,14 @@ export default function TaxReports() {
     }
   }
 
-  const getExchangeRate = (from: string, to: string): number => {
-    // Simplified exchange rates (should be fetched from API or database)
-    const rates: { [key: string]: number } = {
-      'USD_CAD': 1.35,
-      'EUR_CAD': 1.45,
-      'MAD_CAD': 0.135,
-      'CAD_CAD': 1.0
-    }
-    return rates[`${from}_${to}`] || 1.0
+  // Taux annuel moyen officiel BdC — utilise le cache chargé depuis DB
+  const getExchangeRate = (from: string, _to: string = 'CAD', year?: number): number => {
+    if (from === 'CAD') return 1.0
+    const y = year ?? selectedYear
+    return annualRates.get(`${from}_${y}`)
+      ?? annualRates.get(`${from}_${y - 1}`)
+      ?? ({ USD: 1.36, EUR: 1.48, DOP: 0.023, MXN: 0.078 } as Record<string, number>)[from]
+      ?? 1.0
   }
 
   const extractCountry = (location: string): string => {
@@ -1502,6 +1578,20 @@ export default function TaxReports() {
             </div>
           </div>
 
+          {/* Panneau données fiscales propriétés */}
+          <PropertyFiscalPanel properties={properties as any} onSaved={fetchData} />
+
+          {/* Taux de change utilisés */}
+          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+            <span className="font-medium text-gray-600">Taux BdC {selectedYear} :</span>
+            {['USD','EUR','DOP','MXN'].map(cur => (
+              <span key={cur} className="bg-gray-100 px-2 py-0.5 rounded">
+                {cur}/CAD = {getExchangeRate(cur).toFixed(4)}
+              </span>
+            ))}
+            <span className="text-gray-400 italic">(Banque du Canada — moyennes annuelles officielles)</span>
+          </div>
+
           {/* Properties Table */}
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
@@ -1546,24 +1636,37 @@ export default function TaxReports() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.name')}</th>
-                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.location')}</th>
-                    <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
-                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.originalCost')}</th>
-                    <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.costCAD')}</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.name')}</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.location')}</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cat.</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.originalCost')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                      Valeur CAD *
+                      <span className="ml-1 text-amber-500" title="CRA exige juste valeur marchande">⚠</span>
+                    </th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Évaluée</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {t1135Data.properties.map((prop, index) => (
+                  {t1135Data.properties.map((prop: any, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900">{prop.name}</td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-600">{prop.location}</td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-600">{prop.country}</td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{prop.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{prop.location}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 text-center">
+                        <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded">Cat. {prop.t1135Category}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right whitespace-nowrap">
                         {formatCurrency(prop.cost, prop.currency)}
                       </td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 text-right whitespace-nowrap">
-                        {formatCurrency(prop.costCAD)}
+                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                        <span className={prop.hasValuation ? 'text-green-700' : 'text-amber-600'}>
+                          {formatCurrency(prop.costCAD)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {prop.hasValuation
+                          ? <span title={`Évalué le ${prop.valuationDate}`} className="text-green-600">✅</span>
+                          : <span title="Valeur marchande non renseignée — coût d'achat utilisé" className="text-amber-500">⚠️</span>}
                       </td>
                     </tr>
                   ))}
@@ -1584,6 +1687,64 @@ export default function TaxReports() {
       {/* T2209 Report */}
       {activeReport === 'T2209' && (
         <div className="space-y-4 sm:space-y-6">
+
+          {/* Panneau revenu imposable canadien — plafond 15% ARC */}
+          <div className="bg-white border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-1">
+                  🍁 Plafond 15% ARC — Revenu imposable canadien {selectedYear}
+                  <span title="CRA : crédit T2209 limité à 15% du revenu net étranger pour revenus de biens (loyers passifs). Carryforward 10 ans.">
+                    <Info size={13} className="text-blue-400 cursor-help" />
+                  </span>
+                </h4>
+                <p className="text-xs text-blue-600 mt-0.5">Requis pour calculer le plafond réel de crédit réclamable (ligne 40500 T2)</p>
+              </div>
+              <button
+                onClick={saveFiscalYearSettings}
+                disabled={savingFiscalSettings}
+                className="text-xs px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+              >
+                {savingFiscalSettings ? '⏳' : '💾 Sauver'}
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Revenu imposable canadien total (CAD)</label>
+                <input
+                  type="number"
+                  value={canadianTaxableIncome || ''}
+                  onChange={e => setCanadianTaxableIncome(e.target.value ? parseFloat(e.target.value) : 0)}
+                  onBlur={saveFiscalYearSettings}
+                  placeholder="Ex : 180 000"
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              {canadianTaxableIncome > 0 && (() => {
+                const d = t2209Data as any
+                return (<>
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 mb-0.5">Plafond 15% (max crédit)</p>
+                    <p className="text-base font-bold text-blue-900">{formatCurrency(d.plafond15 ?? 0)}</p>
+                    <p className="text-xs text-blue-500">= {canadianTaxableIncome.toLocaleString('fr-CA')} × 15%</p>
+                  </div>
+                  <div className={`rounded-lg p-3 border ${d.carryforward > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-100'}`}>
+                    <p className={`text-xs mb-0.5 ${d.carryforward > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {d.carryforward > 0 ? '⚠️ Crédit inutilisable (carryforward 10 ans)' : '✅ Crédit pleinement utilisable'}
+                    </p>
+                    <p className={`text-base font-bold ${d.carryforward > 0 ? 'text-amber-900' : 'text-green-900'}`}>
+                      {d.carryforward > 0 ? formatCurrency(d.carryforward) : formatCurrency(d.usableCredit ?? 0)}
+                    </p>
+                    {d.carryforward > 0 && <p className="text-xs text-amber-600">Utilisable en ligne 40500 : {formatCurrency(d.usableCredit ?? 0)}</p>}
+                  </div>
+                </>)
+              })()}
+            </div>
+            {canadianTaxableIncome === 0 && (
+              <p className="mt-2 text-xs text-amber-600">⚠️ Sans revenu imposable canadien, le plafond 15% ne peut être calculé — crédit potentiellement surestimé.</p>
+            )}
+          </div>
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
