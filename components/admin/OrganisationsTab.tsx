@@ -14,7 +14,7 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Plus, Eye, Shield, Building2, Copy, Check, AlertCircle, X, RefreshCw, ExternalLink,
-  Pause, Play, Archive, Trash2, MoreVertical, TrendingUp,
+  Pause, Play, Archive, Trash2, MoreVertical, TrendingUp, UserCheck, Percent,
 } from 'lucide-react'
 
 interface Org {
@@ -32,6 +32,18 @@ interface Org {
   next_renewal_date: string | null
   last_reminder_sent_at: string | null
   suspended_at: string | null
+  vendor_id: string | null
+  created_at: string
+}
+
+interface SaasVendor {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  commission_rate: number
+  is_active: boolean
+  notes: string | null
   created_at: string
 }
 
@@ -66,8 +78,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     contact_email: '',
     billing_address: '',
     next_renewal_date: '',
+    vendor_id: '',
   })
   const [savingEdit, setSavingEdit] = useState(false)
+
+  // Vendeurs / représentants commerciaux
+  const [vendors, setVendors] = useState<SaasVendor[]>([])
+  const [showVendorForm, setShowVendorForm] = useState(false)
+  const [newVendor, setNewVendor] = useState({ name: '', email: '', phone: '', commission_rate: 20, notes: '' })
+  const [savingVendor, setSavingVendor] = useState(false)
 
   // is_billable controls ARR only -- alerts/status apply to any org with a renewal date
   const getPaymentStatus = (org: Org): PaymentStatus => {
@@ -86,6 +105,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       contact_email: org.contact_email ?? '',
       billing_address: org.billing_address ?? '',
       next_renewal_date: org.next_renewal_date ? org.next_renewal_date.split('T')[0] : '',
+      vendor_id: org.vendor_id ?? '',
     })
     setEditOrg(org)
   }
@@ -101,6 +121,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         contact_email: editForm.contact_email.trim() || null,
         billing_address: editForm.billing_address.trim() || null,
         next_renewal_date: editForm.next_renewal_date || null,
+        vendor_id: editForm.vendor_id || null,
       })
       .eq('id', editOrg.id)
     setSavingEdit(false)
@@ -125,6 +146,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     admin_full_name: '',
     logo_url: '',
     start_date: new Date().toISOString().split('T')[0],
+    vendor_id: '',
   })
 
   const CERDIA_UUID = 'c0000000-0000-0000-0000-000000000001'
@@ -186,6 +208,11 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
     setLoading(false)
   }, [])
 
+  const loadVendors = useCallback(async () => {
+    const { data } = await supabase.from('saas_vendors').select('*').order('name')
+    setVendors((data || []) as SaasVendor[])
+  }, [])
+
   const handleRenew = async (org: Org) => {
     if (!confirm(fr
       ? `Renouveler "${org.name}" pour 1 an ?\n\n(A faire apres reception du paiement annuel.)`
@@ -225,11 +252,13 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
 
   useEffect(() => { load() }, [load])
   useEffect(() => { loadPrice() }, [loadPrice])
+  useEffect(() => { loadVendors() }, [loadVendors])
 
   const resetForm = () => {
     setForm({
       name: '', slug: '', admin_email: '', admin_full_name: '',
       logo_url: '', start_date: new Date().toISOString().split('T')[0],
+      vendor_id: '',
     })
     setLastCreated(null)
   }
@@ -255,6 +284,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
       if (form.admin_full_name.trim()) payload.admin_full_name = form.admin_full_name.trim()
       if (form.logo_url.trim()) payload.logo_url = form.logo_url.trim()
       if (form.start_date) payload.start_date = form.start_date
+      if (form.vendor_id) payload.vendor_id = form.vendor_id
 
       const res = await fetch('/api/admin/organizations/create', {
         method: 'POST',
@@ -416,11 +446,22 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
         const payingOrgs = orgs.filter(o => o.is_billable && o.status !== 'archived')
         const divisor = revPeriod === 'year' ? 1 : revPeriod === 'month' ? 12 : 365
         const perOrg = annualPrice > 0 ? annualPrice / divisor : 0
+        const totalAnnual = annualPrice * payingOrgs.length
         const total = perOrg * payingOrgs.length
         const fmtNum = (n: number) => n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         const periodLabel = fr
           ? (revPeriod === 'year' ? 'annuel' : revPeriod === 'month' ? 'mensuel' : 'quotidien')
           : (revPeriod === 'year' ? 'annual' : revPeriod === 'month' ? 'monthly' : 'daily')
+
+        // Calcul commissions vendeurs
+        const totalCommission = payingOrgs.reduce((sum, org) => {
+          if (!org.vendor_id) return sum
+          const v = vendors.find(x => x.id === org.vendor_id)
+          return sum + annualPrice * Number(v?.commission_rate ?? 0)
+        }, 0)
+        const netCerdia = totalAnnual - totalCommission
+        const vendorClientCount = payingOrgs.filter(o => o.vendor_id).length
+
         return (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -449,26 +490,40 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
               </div>
             </div>
 
+            {/* 3 cartes répartition */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-              <div className="sm:col-span-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4">
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+              <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                   {fr ? `Revenu ${periodLabel} total` : `Total ${periodLabel} revenue`}
                 </p>
-                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {annualPrice > 0 ? `${fmtNum(total)} CAD` : <span className="text-base font-medium text-amber-600">{fr ? 'Prix non defini' : 'Price not set'}</span>}
                 </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                  {fr
-                    ? `${payingOrgs.length} tenant${payingOrgs.length !== 1 ? 's' : ''} payant${payingOrgs.length !== 1 ? 's' : ''}${annualPrice > 0 ? ` x ${fmtNum(perOrg)} CAD` : ''}`
-                    : `${payingOrgs.length} paying tenant${payingOrgs.length !== 1 ? 's' : ''}${annualPrice > 0 ? ` x ${fmtNum(perOrg)} CAD` : ''}`}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {payingOrgs.length} tenant{payingOrgs.length !== 1 ? 's' : ''} {fr ? 'payants' : 'paying'}
                 </p>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ARR</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
-                  {annualPrice > 0 ? `${fmtNum(annualPrice * payingOrgs.length)} CAD` : '—'}
+              <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4">
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-wide mb-1">
+                  {fr ? 'Net CERDIA' : 'CERDIA net'}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Annual recurring revenue</p>
+                <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                  {annualPrice > 0 ? `${fmtNum(revPeriod === 'year' ? netCerdia : netCerdia / divisor)} CAD` : '—'}
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                  {fr ? 'Après commissions vendeurs' : 'After vendor commissions'}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-4">
+                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-300 uppercase tracking-wide mb-1">
+                  {fr ? 'Commissions vendeurs' : 'Vendor commissions'}
+                </p>
+                <p className="text-2xl font-bold text-indigo-800 dark:text-indigo-200">
+                  {annualPrice > 0 ? `${fmtNum(revPeriod === 'year' ? totalCommission : totalCommission / divisor)} CAD` : '—'}
+                </p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                  {vendorClientCount} client{vendorClientCount !== 1 ? 's' : ''} {fr ? 'avec représentant' : 'with rep'}
+                </p>
               </div>
             </div>
 
@@ -648,6 +703,7 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                 <th className="text-left px-4 py-3 font-medium">{fr ? 'Organisation' : 'Organization'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Plan</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Status</th>
+                <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">{fr ? 'Représentant' : 'Rep'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Prochain renouvellement' : 'Next renewal'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Creee le' : 'Created'}</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
@@ -717,6 +773,20 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                       }`}>
                         {org.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell">
+                      {(() => {
+                        const v = vendors.find(x => x.id === org.vendor_id)
+                        if (!v) return <span className="text-xs text-gray-400">—</span>
+                        return (
+                          <div>
+                            <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                              {v.name}
+                            </span>
+                            <p className="text-xs text-gray-400 mt-0.5">{Math.round(v.commission_rate * 100)}%</p>
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs hidden lg:table-cell">
                       {(() => {
@@ -969,6 +1039,34 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                   </p>
                 )}
               </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <UserCheck size={13} /> {fr ? 'Représentant commercial' : 'Sales representative'}
+                </p>
+                <select
+                  value={editForm.vendor_id}
+                  onChange={e => setEditForm(f => ({ ...f, vendor_id: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                >
+                  <option value="">{fr ? 'Aucun représentant' : 'No representative'}</option>
+                  {vendors.filter(v => v.is_active).map(v => (
+                    <option key={v.id} value={v.id}>{v.name} — {Math.round(v.commission_rate * 100)}%</option>
+                  ))}
+                </select>
+                {editForm.vendor_id && annualPrice > 0 && (() => {
+                  const v = vendors.find(x => x.id === editForm.vendor_id)
+                  if (!v) return null
+                  const comm = annualPrice * v.commission_rate
+                  return (
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1.5 px-1">
+                      {fr
+                        ? `Commission estimée : ${comm.toFixed(2)} CAD/an (${Math.round(v.commission_rate * 100)}% de ${annualPrice.toFixed(2)} CAD)`
+                        : `Estimated commission: ${comm.toFixed(2)} CAD/yr (${Math.round(v.commission_rate * 100)}% of ${annualPrice.toFixed(2)} CAD)`}
+                    </p>
+                  )
+                })()}
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -983,6 +1081,188 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           </div>
         </div>
       )}
+
+      {/* Section vendeurs / représentants */}
+      {(() => {
+        const payingOrgs = orgs.filter(o => o.is_billable && o.status !== 'archived')
+        const fmtNum = (n: number) => n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+        const saveVendor = async () => {
+          if (!newVendor.name.trim()) {
+            toast({ msg: fr ? 'Nom requis.' : 'Name required.', type: 'error' })
+            return
+          }
+          setSavingVendor(true)
+          const { error } = await supabase.from('saas_vendors').insert({
+            name: newVendor.name.trim(),
+            email: newVendor.email.trim() || null,
+            phone: newVendor.phone.trim() || null,
+            commission_rate: newVendor.commission_rate / 100,
+            notes: newVendor.notes.trim() || null,
+          })
+          setSavingVendor(false)
+          if (error) { toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${error.message}`, type: 'error' }); return }
+          setNewVendor({ name: '', email: '', phone: '', commission_rate: 20, notes: '' })
+          setShowVendorForm(false)
+          await loadVendors()
+          toast({ msg: fr ? 'Représentant ajouté.' : 'Representative added.', type: 'success' })
+        }
+
+        const toggleVendorActive = async (v: SaasVendor) => {
+          await supabase.from('saas_vendors').update({ is_active: !v.is_active }).eq('id', v.id)
+          await loadVendors()
+        }
+
+        return (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <UserCheck size={18} className="text-indigo-600" />
+                {fr ? 'Représentants commerciaux' : 'Sales representatives'}
+              </h3>
+              <button
+                onClick={() => setShowVendorForm(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus size={12} /> {fr ? 'Ajouter' : 'Add'}
+              </button>
+            </div>
+
+            {showVendorForm && (
+              <div className="px-5 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                  <input
+                    type="text"
+                    placeholder={fr ? 'Nom *' : 'Name *'}
+                    value={newVendor.name}
+                    onChange={e => setNewVendor(v => ({ ...v, name: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={newVendor.email}
+                    onChange={e => setNewVendor(v => ({ ...v, email: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder={fr ? 'Téléphone' : 'Phone'}
+                    value={newVendor.phone}
+                    onChange={e => setNewVendor(v => ({ ...v, phone: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      placeholder="20"
+                      value={newVendor.commission_rate}
+                      onChange={e => setNewVendor(v => ({ ...v, commission_rate: Number(e.target.value) }))}
+                      className="w-20 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">%</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder={fr ? 'Notes (optionnel)' : 'Notes (optional)'}
+                    value={newVendor.notes}
+                    onChange={e => setNewVendor(v => ({ ...v, notes: e.target.value }))}
+                    className="flex-1 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <button
+                    onClick={saveVendor}
+                    disabled={savingVendor}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {savingVendor ? '...' : (fr ? 'Enregistrer' : 'Save')}
+                  </button>
+                  <button
+                    onClick={() => setShowVendorForm(false)}
+                    className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl"
+                  >
+                    {fr ? 'Annuler' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {vendors.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-400">
+                {fr ? 'Aucun représentant défini.' : 'No representatives defined.'}
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">{fr ? 'Nom' : 'Name'}</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Email</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Téléphone' : 'Phone'}</th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <span className="flex items-center gap-1"><Percent size={11} /> {fr ? 'Taux' : 'Rate'}</span>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">{fr ? 'Clients' : 'Clients'}</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Rev. annuel géré' : 'Annual rev. managed'}</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{fr ? 'Commission estimée' : 'Est. commission'}</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Statut</th>
+                    <th className="text-right px-4 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {vendors.map(v => {
+                    const clientCount = payingOrgs.filter(o => o.vendor_id === v.id).length
+                    const revenue = clientCount * annualPrice
+                    const commission = revenue * Number(v.commission_rate)
+                    return (
+                      <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900 dark:text-white">{v.name}</p>
+                          {v.notes && <p className="text-xs text-gray-400 truncate max-w-[160px]">{v.notes}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{v.email || '—'}</td>
+                        <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{v.phone || '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-semibold px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded">
+                            {Math.round(Number(v.commission_rate) * 100)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="font-semibold text-gray-900 dark:text-white">{clientCount}</span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 hidden lg:table-cell">
+                          {annualPrice > 0 ? `${fmtNum(revenue)} CAD` : '—'}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          {annualPrice > 0 ? (
+                            <span className="text-indigo-700 dark:text-indigo-300 font-semibold">{fmtNum(commission)} CAD</span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className={`text-xs px-2 py-0.5 rounded ${v.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                            {v.is_active ? (fr ? 'Actif' : 'Active') : (fr ? 'Inactif' : 'Inactive')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => toggleVendorActive(v)}
+                            className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            {v.is_active ? (fr ? 'Désactiver' : 'Disable') : (fr ? 'Activer' : 'Enable')}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Modal -- creation */}
       {showForm && (
@@ -1090,6 +1370,24 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                     </label>
                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm" placeholder="https://..." value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} />
                   </div>
+                  {vendors.filter(v => v.is_active).length > 0 && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                        <UserCheck size={13} className="text-indigo-500" />
+                        {fr ? 'Représentant commercial (optionnel)' : 'Sales representative (optional)'}
+                      </label>
+                      <select
+                        value={form.vendor_id}
+                        onChange={e => setForm(f => ({ ...f, vendor_id: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                      >
+                        <option value="">{fr ? 'Aucun représentant' : 'No representative'}</option>
+                        {vendors.filter(v => v.is_active).map(v => (
+                          <option key={v.id} value={v.id}>{v.name} — {Math.round(v.commission_rate * 100)}%</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="sm:col-span-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl">
                     <p className="text-xs text-purple-900 dark:text-purple-200">
                       <strong>{fr ? 'Prix annuel applique :' : 'Applied annual price:'}</strong>{' '}
