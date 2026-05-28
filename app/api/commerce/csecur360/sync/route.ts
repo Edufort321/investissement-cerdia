@@ -88,10 +88,41 @@ export async function POST(req: NextRequest) {
     errors.push(`clients: ${e.message}`)
   }
 
+  let modulesSynced = 0
+  try {
+    // 3. Pull modules catalogue
+    const mRes = await fetch(`${CSECUR360_API_URL}/api/admin/modules`, { headers })
+    if (mRes.ok) {
+      const { modules } = await mRes.json()
+      if (Array.isArray(modules) && modules.length > 0) {
+        const { error } = await supabase.from('csecur360_modules').upsert(
+          modules.map((m: any) => ({
+            key: m.key,
+            name_fr: m.name_fr,
+            name_en: m.name_en,
+            monthly_price: Number(m.monthly_price ?? 0),
+            sort_order: Number(m.sort_order ?? 0),
+            is_active: m.is_active !== false,
+            active_tenants: Number(m.active_tenants ?? 0),
+            synced_at: new Date().toISOString(),
+          })),
+          { onConflict: 'key' }
+        )
+        if (error) errors.push(`modules: ${error.message}`)
+        else modulesSynced = modules.length
+      }
+    } else {
+      errors.push(`modules fetch: HTTP ${mRes.status}`)
+    }
+  } catch (e: any) {
+    errors.push(`modules: ${e.message}`)
+  }
+
   return NextResponse.json({
     ok: errors.length === 0,
     vendorsSynced,
     clientsSynced,
+    modulesSynced,
     errors,
     syncedAt: new Date().toISOString(),
   })

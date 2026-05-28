@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Shield, Users, TrendingUp, DollarSign, RefreshCw, ExternalLink,
   CheckCircle, XCircle, Clock, Building2, UserCheck, Plus, Percent,
-  BadgeCheck, AlertTriangle, ArrowDownToLine,
+  BadgeCheck, AlertTriangle, ArrowDownToLine, Package, Calendar,
+  FileCheck, ClipboardList, Layers, HardHat, BoxesIcon,
 } from 'lucide-react'
 
 interface CSVendor {
@@ -15,6 +16,17 @@ interface CSVendor {
   commission_rate: number
   is_active: boolean
   notes: string | null
+  synced_at: string
+}
+
+interface CSModule {
+  key: string
+  name_fr: string
+  name_en: string
+  monthly_price: number
+  sort_order: number
+  is_active: boolean
+  active_tenants: number
   synced_at: string
 }
 
@@ -67,10 +79,40 @@ const statusBadge = (s: string) => {
 
 const BLANK_VENDOR = { name: '', email: '', phone: '', commission_rate: 20, notes: '' }
 
+// Icône par clé de module
+const MODULE_ICONS: Record<string, React.ElementType> = {
+  admin:       Shield,
+  projects:    Layers,
+  planner:     Calendar,
+  ast:         HardHat,
+  permits:     FileCheck,
+  accidents:   AlertTriangle,
+  near_miss:   AlertTriangle,
+  inventory:   BoxesIcon,
+  inspections: ClipboardList,
+  timesheets:  Clock,
+  todo:        CheckCircle,
+}
+
+const MODULE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  admin:       { bg: 'bg-gray-100',    text: 'text-gray-600',   border: 'border-gray-200' },
+  projects:    { bg: 'bg-blue-50',     text: 'text-blue-600',   border: 'border-blue-200' },
+  planner:     { bg: 'bg-violet-50',   text: 'text-violet-600', border: 'border-violet-200' },
+  ast:         { bg: 'bg-orange-50',   text: 'text-orange-600', border: 'border-orange-200' },
+  permits:     { bg: 'bg-amber-50',    text: 'text-amber-600',  border: 'border-amber-200' },
+  accidents:   { bg: 'bg-red-50',      text: 'text-red-600',    border: 'border-red-200' },
+  near_miss:   { bg: 'bg-yellow-50',   text: 'text-yellow-600', border: 'border-yellow-200' },
+  inventory:   { bg: 'bg-teal-50',     text: 'text-teal-600',   border: 'border-teal-200' },
+  inspections: { bg: 'bg-cyan-50',     text: 'text-cyan-600',   border: 'border-cyan-200' },
+  timesheets:  { bg: 'bg-indigo-50',   text: 'text-indigo-600', border: 'border-indigo-200' },
+  todo:        { bg: 'bg-emerald-50',  text: 'text-emerald-600',border: 'border-emerald-200' },
+}
+
 export default function CSecur360Tab() {
-  const [tab, setTab] = useState<'clients' | 'vendeurs'>('clients')
+  const [tab, setTab] = useState<'clients' | 'modules' | 'vendeurs'>('clients')
   const [clients, setClients] = useState<CSClient[]>([])
   const [vendors, setVendors] = useState<CSVendor[]>([])
+  const [modules, setModules] = useState<CSModule[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,9 +126,10 @@ export default function CSecur360Tab() {
     setLoading(true)
     setError(null)
     try {
-      const [cRes, vRes] = await Promise.all([
+      const [cRes, vRes, mRes] = await Promise.all([
         fetch('/api/commerce/csecur360', { headers: authHeader }),
         fetch('/api/commerce/csecur360/vendors', { headers: authHeader }),
+        fetch('/api/commerce/csecur360/modules', { headers: authHeader }),
       ])
       if (!cRes.ok) throw new Error(`clients HTTP ${cRes.status}`)
       const cData = await cRes.json()
@@ -94,6 +137,10 @@ export default function CSecur360Tab() {
       if (vRes.ok) {
         const vData = await vRes.json()
         setVendors(vData.vendors || [])
+      }
+      if (mRes.ok) {
+        const mData = await mRes.json()
+        setModules(mData.modules || [])
       }
     } catch (e: any) {
       setError(e.message)
@@ -114,7 +161,7 @@ export default function CSecur360Tab() {
       })
       const d = await res.json()
       if (d.ok) {
-        setSyncMsg(`✓ ${d.clientsSynced} clients · ${d.vendorsSynced} vendeurs synchronisés`)
+        setSyncMsg(`✓ ${d.clientsSynced} clients · ${d.vendorsSynced} vendeurs · ${d.modulesSynced ?? 0} modules synchronisés`)
       } else {
         setSyncMsg(`⚠ Sync partielle — ${d.errors?.join(', ')}`)
       }
@@ -255,14 +302,164 @@ export default function CSecur360Tab() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <div className="flex gap-1">
-          {(['clients', 'vendeurs'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${tab === t ? 'bg-white border border-b-white border-gray-200 -mb-px text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-              {t === 'clients' ? `Clients (${clients.length})` : `Vendeurs (${vendors.length})`}
+          {([
+            { key: 'clients',  label: `Clients (${clients.length})` },
+            { key: 'modules',  label: `Modules (${modules.length})` },
+            { key: 'vendeurs', label: `Vendeurs (${vendors.length})` },
+          ] as const).map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${tab === t.key ? 'bg-white border border-b-white border-gray-200 -mb-px text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+              {t.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Tab: Modules */}
+      {tab === 'modules' && (
+        <div className="space-y-4">
+          {/* Info bar */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {modules.filter(m => m.is_active).length} modules actifs · {modules.filter(m => m.monthly_price > 0).length} payants
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {modules.length === 0
+                  ? 'Aucun module — clique Sync depuis C-Secur360 pour importer.'
+                  : `Dernière sync : ${modules[0]?.synced_at ? new Date(modules[0].synced_at).toLocaleDateString('fr-CA') : '—'}`}
+              </p>
+            </div>
+            {/* Revenu annuel potentiel par module */}
+            {modules.some(m => m.monthly_price > 0) && (
+              <div className="text-right">
+                <p className="text-xs text-gray-400">Revenu mensuel potentiel (si tous actifs)</p>
+                <p className="text-lg font-black text-orange-600">
+                  {fmt(modules.filter(m => m.is_active).reduce((s, m) => s + m.monthly_price * m.active_tenants, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {modules.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
+              <Package size={32} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm text-gray-400">
+                Aucun module synchronisé. Clique <strong>Sync depuis C-Secur360</strong> pour importer le catalogue.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {modules.map(m => {
+                const Icon = MODULE_ICONS[m.key] ?? Package
+                const colors = MODULE_COLORS[m.key] ?? { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' }
+                const annualRevenue = m.monthly_price * 12 * m.active_tenants
+                return (
+                  <div key={m.key}
+                    className={`bg-white border ${colors.border} rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${!m.is_active ? 'opacity-50' : ''}`}>
+                    {/* Header carte */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-10 h-10 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                        <Icon size={20} className={colors.text} />
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-400'}`}>
+                          {m.is_active ? 'Actif' : 'Inactif'}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                          {m.key}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Nom */}
+                    <h4 className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{m.name_fr}</h4>
+                    <p className="text-xs text-gray-400 mb-4">{m.name_en}</p>
+
+                    {/* Prix */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Prix / mois</span>
+                        {m.monthly_price > 0 ? (
+                          <span className="text-sm font-black text-gray-900">{fmt(m.monthly_price)}</span>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Inclus</span>
+                        )}
+                      </div>
+                      {m.monthly_price > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Prix / an</span>
+                          <span className="text-xs font-semibold text-gray-700">{fmt(m.monthly_price * 12)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Séparateur */}
+                    <div className="border-t border-gray-100 my-3" />
+
+                    {/* Utilisation */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Users size={13} className="text-gray-400" />
+                        <span className="text-xs text-gray-600">
+                          <span className="font-bold text-gray-900">{m.active_tenants}</span> client{m.active_tenants !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      {m.active_tenants > 0 && m.monthly_price > 0 && (
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400">Rev. annuel</p>
+                          <p className="text-xs font-bold text-emerald-700">{fmt(annualRevenue)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Tableau récap prix si modules présents */}
+          {modules.filter(m => m.monthly_price > 0).length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mt-2">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Récapitulatif revenu par module</h4>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {['Module', 'Prix/mois', 'Clients actifs', 'Rev. mensuel', 'Rev. annuel'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {modules.filter(m => m.is_active && m.monthly_price > 0).map(m => (
+                    <tr key={m.key} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2.5 font-semibold text-gray-900">{m.name_fr}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{fmt(m.monthly_price)}</td>
+                      <td className="px-4 py-2.5 text-center font-bold text-gray-900">{m.active_tenants}</td>
+                      <td className="px-4 py-2.5 font-semibold text-gray-700">{m.active_tenants > 0 ? fmt(m.monthly_price * m.active_tenants) : '—'}</td>
+                      <td className="px-4 py-2.5 font-bold text-emerald-700">{m.active_tenants > 0 ? fmt(m.monthly_price * 12 * m.active_tenants) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 border-t border-gray-200">
+                    <td colSpan={2} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Total</td>
+                    <td className="px-4 py-2.5 text-center font-black text-gray-900">—</td>
+                    <td className="px-4 py-2.5 font-black text-gray-900">
+                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * m.active_tenants, 0))}
+                    </td>
+                    <td className="px-4 py-2.5 font-black text-emerald-700">
+                      {fmt(modules.filter(m => m.is_active && m.monthly_price > 0).reduce((s, m) => s + m.monthly_price * 12 * m.active_tenants, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tab: Clients */}
       {tab === 'clients' && (
