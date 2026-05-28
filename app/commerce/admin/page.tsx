@@ -33,6 +33,7 @@ interface Product {
   title: string
   description?: string
   price?: number
+  net_profit?: number
   currency: string
   amazon_url: string
   image_url?: string
@@ -204,7 +205,7 @@ const BADGE_OPTIONS = ['', 'Nouveau', 'Bestseller', 'Populaire', 'Promo', 'Exclu
 const CATEGORIES = ['Maison & Cuisine', 'Électronique', 'Mode', 'Sport', 'Beauté', 'Livres', 'Autre']
 
 const EMPTY_PRODUCT = {
-  title: '', description: '', price: '', currency: 'CAD',
+  title: '', description: '', price: '', net_profit: '', currency: 'CAD',
   amazon_url: '', image_urls: [] as string[], badge: '', category: '',
   rating: 0, review_count: 0, active: true, sort_order: 0, inventory: 0,
   gs1_code: '', asin: '',
@@ -704,9 +705,10 @@ function ProduitsTab({ toast, onNavigate }: {
     const csNET = csARR - csComm
 
     // Produits physiques
-    const physActive   = products.filter(p => p.active && (p.price ?? 0) > 0)
-    const physRevenue  = physActive.reduce((s, p) => s + (p.price ?? 0) * (p.inventory ?? 0), 0)
-    const physTotalQty = physActive.reduce((s, p) => s + (p.inventory ?? 0), 0)
+    const physActive      = products.filter(p => p.active && (p.price ?? 0) > 0)
+    const physRevenue     = physActive.reduce((s, p) => s + (p.net_profit ?? 0) * (p.inventory ?? 0), 0)
+    const physAmazonValue = physActive.reduce((s, p) => s + (p.price ?? 0) * (p.inventory ?? 0), 0)
+    const physTotalQty    = physActive.reduce((s, p) => s + (p.inventory ?? 0), 0)
 
     // Combiné
     const totalARR  = cerdiaARR + csARR + physRevenue
@@ -726,7 +728,7 @@ function ProduitsTab({ toast, onNavigate }: {
       csARR, csComm, csNET,
       // Produits physiques
       physActiveCount: physActive.length,
-      physRevenue, physTotalQty,
+      physRevenue, physAmazonValue, physTotalQty,
       // Combiné
       totalARR, totalComm, totalNET, totalMRR,
       // Pour les lignes module table (compatibilité)
@@ -754,7 +756,7 @@ function ProduitsTab({ toast, onNavigate }: {
       : (p.image_url ? [p.image_url] : [])
     setForm({
       title: p.title, description: p.description || '',
-      price: p.price?.toString() || '', currency: p.currency,
+      price: p.price?.toString() || '', net_profit: p.net_profit?.toString() || '', currency: p.currency,
       amazon_url: p.amazon_url, image_urls: imgs,
       badge: p.badge || '', category: p.category || '',
       rating: p.rating, review_count: p.review_count,
@@ -778,6 +780,7 @@ function ProduitsTab({ toast, onNavigate }: {
         title: form.title.trim(),
         description: form.description.trim() || null,
         price: form.price ? parseFloat(form.price as string) : null,
+        net_profit: (form.net_profit as string) ? parseFloat(form.net_profit as string) : null,
         currency: form.currency,
         amazon_url: form.amazon_url.trim(),
         image_url: cleanUrls[0] || null,
@@ -976,16 +979,17 @@ function ProduitsTab({ toast, onNavigate }: {
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Produits actifs</p>
                   <p className="text-xl font-black text-gray-900 dark:text-white">{metrics.physActiveCount}</p>
-                  <p className="text-[10px] text-gray-400">{metrics.totalProducts} au total</p>
+                  <p className="text-[10px] text-gray-400">{metrics.physTotalQty} unités</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Quantité totale</p>
-                  <p className="text-xl font-black text-teal-700 dark:text-teal-300">{metrics.physTotalQty}</p>
-                  <p className="text-[10px] text-gray-400">unités en stock</p>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Valeur Amazon</p>
+                  <p className="text-xl font-black text-gray-600 dark:text-gray-300">{fmtCAD(metrics.physAmazonValue)}</p>
+                  <p className="text-[10px] text-gray-400">prix vente × qté</p>
                 </div>
                 <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-2">
-                  <p className="text-[10px] uppercase tracking-wide text-teal-600 mb-0.5 font-bold">Valeur stock</p>
+                  <p className="text-[10px] uppercase tracking-wide text-teal-600 mb-0.5 font-bold">Profit net</p>
                   <p className="text-xl font-black text-teal-700 dark:text-teal-300">{fmtCAD(metrics.physRevenue)}</p>
+                  <p className="text-[10px] text-teal-500">net × qté</p>
                 </div>
               </div>
             </div>
@@ -1125,13 +1129,28 @@ function ProduitsTab({ toast, onNavigate }: {
               )}
             </div>
             <div>
-              <label className="label">Prix</label>
+              <label className="label">Prix Amazon (vente)</label>
               <div className="flex gap-2">
                 <input type="number" step="0.01" min="0" className="input flex-1" placeholder="29.99" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
                 <select className="input w-20" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
                   <option>CAD</option><option>USD</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label className="label">Profit net / unité</label>
+              <div className="flex items-center gap-2">
+                <input type="number" step="0.01" min="0" className="input flex-1" placeholder="0.00"
+                  value={form.net_profit as string}
+                  onChange={e => setForm(f => ({ ...f, net_profit: e.target.value }))} />
+                <span className="text-xs text-gray-400 whitespace-nowrap">{form.currency}</span>
+                {(form.price as string) && (form.net_profit as string) && parseFloat(form.price as string) > 0 && (
+                  <span className="text-xs font-bold text-emerald-600 whitespace-nowrap">
+                    {Math.round(parseFloat(form.net_profit as string) / parseFloat(form.price as string) * 100)} %
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Ce que vous gardez après frais Amazon, expédition, coût produit</p>
             </div>
             <div>
               <label className="label">Badge</label>
@@ -1231,7 +1250,8 @@ function ProduitsTab({ toast, onNavigate }: {
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Produit</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">Catégorie</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Prix</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Prix Amazon</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Profit net</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden md:table-cell">Quantité</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400 hidden lg:table-cell">Note</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Statut</th>
@@ -1401,8 +1421,24 @@ function ProduitsTab({ toast, onNavigate }: {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{p.category || '—'}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white hidden md:table-cell">
-                      {p.price ? `${p.price.toFixed(2)} ${p.currency}` : '—'}
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {p.price ? `${p.price.toFixed(2)} ${p.currency}` : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {p.net_profit != null ? (
+                        <div>
+                          <span className="font-bold text-emerald-700 dark:text-emerald-400">{p.net_profit.toFixed(2)} {p.currency}</span>
+                          {p.price && p.price > 0 && (
+                            <span className="ml-1.5 text-[10px] text-gray-400">
+                              {Math.round(p.net_profit / p.price * 100)} %
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-amber-500 text-xs">— à définir</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center hidden md:table-cell">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
