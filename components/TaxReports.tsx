@@ -278,6 +278,61 @@ export default function TaxReports() {
     })
   }
 
+  const calculateCCAData = () => {
+    const CCA_RATES: Record<string, number> = {
+      Class1: 0.04, Class8: 0.20, Class13: 0.20,
+      US_Res: 0.03636, US_Com: 0.02564,
+    }
+    const CCA_LABELS: Record<string, string> = {
+      Class1: 'Classe 1 (4% — Bâtiment résidentiel)',
+      Class8: 'Classe 8 (20% — Mobilier/Ameublement)',
+      Class13: 'Classe 13 (20% — Améliorations locatives)',
+      US_Res: '27,5 ans (3,636%/an — Résidentiel USA)',
+      US_Com: '39 ans (2,564%/an — Commercial USA)',
+    }
+    const LAND_PCT = 0.20 // 20% terrain par défaut
+
+    return properties.filter(p => {
+      // CCA applicable : propriétés actives (pas terrain seul, pas vendu)
+      const pa = p as any
+      return p.status !== 'vendu' && p.status !== 'en_vente' && pa.property_type !== 'terrain'
+    }).map(p => {
+      const pa = p as any
+      const ccaClass = pa.cca_class || (pa.country_code === 'US' ? 'US_Res' : 'Class1')
+      const rate = CCA_RATES[ccaClass] ?? 0.04
+      const acqYear = pa.reservation_date
+        ? new Date(pa.reservation_date).getFullYear()
+        : selectedYear - 1
+      const buildingCost = p.total_cost * (1 - LAND_PCT) * getExchangeRate(p.currency)
+      // Calcul UCC approximatif (declining balance depuis l'année d'acquisition)
+      let ucc = buildingCost
+      for (let y = acqYear; y < selectedYear; y++) {
+        const deduct = y === acqYear ? ucc * rate * 0.5 : ucc * rate
+        ucc = Math.max(0, ucc - deduct)
+      }
+      const uccOpen = ucc
+      const isFirstYear = acqYear === selectedYear
+      const ccaThisYear = Math.min(uccOpen, uccOpen * rate * (isFirstYear ? 0.5 : 1))
+      const uccClose = uccOpen - ccaThisYear
+      return {
+        propertyName: p.name,
+        location: p.location,
+        propertyType: pa.property_type || 'condo',
+        countryCode: pa.country_code || 'CA',
+        ccaClass,
+        ccaLabel: CCA_LABELS[ccaClass] || ccaClass,
+        acquisitionYear: acqYear,
+        buildingCost,
+        landCost: p.total_cost * LAND_PCT * getExchangeRate(p.currency),
+        uccOpen,
+        ccaThisYear,
+        uccClose,
+        isFirstYear,
+        hasCcaClass: !!pa.cca_class,
+      }
+    }).filter(d => d.buildingCost > 0)
+  }
+
   const saveFiscalYearSettings = async () => {
     if (!orgId) return
     setSavingFiscalSettings(true)
@@ -354,6 +409,20 @@ export default function TaxReports() {
 
   const calculateMultiJurisdictionData = () => {
     // Revenue transactions with a tax jurisdiction
+    // On utilise tax_country si défini, sinon on tente de dériver depuis la propriété liée
+    const resolveCountry = (t: any): string | null => {
+      if (t.tax_country) return t.tax_country as string
+      if (t.property_id) {
+        const prop = properties.find(p => p.id === t.property_id) as any
+        if (prop?.country_code && prop.country_code !== 'CA') return prop.country_code
+        // Inférer depuis la devise source
+        if (t.source_currency === 'USD') return 'US'
+        if (t.source_currency === 'DOP') return 'DO'
+        if (t.source_currency === 'MXN') return 'MX'
+      }
+      return null
+    }
+
     const revenueByCountry = new Map<string, {
       transactionCount: number
       totalSalesTax: number
@@ -361,14 +430,32 @@ export default function TaxReports() {
       totalFederalWithholding: number
       totalGross: number
       alreadyWithheld: number  // foreign_tax_paid on revenue transactions (withheld by payer)
+      itbisEstimated: number   // ITBIS DR estimé (location court terme)
+      tdtEstimated: number     // TDT Florida estimé
     }>()
 
     filteredTransactions.forEach((t: any) => {
-      if (!t.tax_country) return
-      const key = t.tax_country as string
+      const key = resolveCountry(t)
+      if (!key) return
       const cur = revenueByCountry.get(key) || {
-        transactionCount: 0, totalSalesTax: 0, totalStateTax: 0, totalFederalWithholding: 0, totalGross: 0, alreadyWithheld: 0,
+        transactionCount: 0, totalSalesTax: 0, totalStateTax: 0, totalFederalWithholding: 0,
+        totalGross: 0, alreadyWithheld: 0, itbisEstimated: 0, tdtEstimated: 0,
       }
+      // Estimer ITBIS DR (18%) pour locations court terme DR sans impôt saisi
+      const isRentalIncome = ['loyer', 'loyer_locatif', 'revenu'].includes(t.type)
+      const durDays: number = t.rental_duration_days ?? 0
+      const itbisEstimate = (key === 'DO' && isRentalIncome && durDays > 0 && durDays <= 30 && !(t.is_confotur))
+        ? (Number(t.amount) || 0) * 0.18 : 0
+      // Estimer TDT Florida pour locations court terme
+      const prop = t.property_id ? (properties.find(p => p.id === t.property_id) as any) : null
+      const countyCode = prop?.county_code ?? null
+      const FL_TDT: Record<string, number> = {
+        'FL-MIAMI': 0.06, 'FL-BROWARD': 0.05, 'FL-ORANGE': 0.06, 'FL-OSCEOLA': 0.06,
+        'FL-PINELLAS': 0.06, 'FL-HILLSBOROUGH': 0.05, 'FL-COLLIER': 0.05, 'FL-KEYS': 0.05,
+      }
+      const tdtEstimate = (key === 'US' && isRentalIncome && durDays > 0 && durDays <= 182 && countyCode && FL_TDT[countyCode])
+        ? (Number(t.amount) || 0) * (FL_TDT[countyCode]) : 0
+
       revenueByCountry.set(key, {
         transactionCount: cur.transactionCount + 1,
         totalSalesTax: cur.totalSalesTax + (Number(t.sales_tax_amount) || 0),
@@ -376,6 +463,8 @@ export default function TaxReports() {
         totalFederalWithholding: cur.totalFederalWithholding + (Number(t.federal_withholding) || 0),
         totalGross: cur.totalGross + (Number(t.amount) || 0),
         alreadyWithheld: cur.alreadyWithheld + (Number(t.foreign_tax_paid) || 0),
+        itbisEstimated: cur.itbisEstimated + itbisEstimate,
+        tdtEstimated: cur.tdtEstimated + tdtEstimate,
       })
     })
 
@@ -389,7 +478,9 @@ export default function TaxReports() {
     })
 
     const rows = Array.from(revenueByCountry.entries()).map(([code, data]) => {
+      // Inclure ITBIS et TDT dans le total estimé
       const totalTaxEstimated = data.totalSalesTax + data.totalStateTax + data.totalFederalWithholding
+        + data.itbisEstimated + data.tdtEstimated
       const alreadyRemitted = remittedByCountry.get(code) || 0
       const netOwing = Math.max(0, totalTaxEstimated - data.alreadyWithheld - alreadyRemitted)
       const status: 'ok' | 'partial' | 'owing' =
@@ -1361,6 +1452,7 @@ export default function TaxReports() {
   const t1135Data = calculateT1135Data()
   const t2209Data = calculateT2209Data()
   const firptaData = calculateFIRPTAData()
+  const ccaData = calculateCCAData()
 
   // Check if T1135 is required (foreign assets > $100,000 CAD)
   const t1135Required = t1135Data.totalForeignAssets > 100000
@@ -1782,6 +1874,77 @@ export default function TaxReports() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* CCA / FNACC — Déduction pour amortissement (T1135) */}
+      {activeReport === 'T1135' && ccaData.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
+          <h4 className="text-sm font-bold text-green-800 flex items-center gap-2 mb-3">
+            📊 CCA / FNACC — Déduction pour amortissement {selectedYear}
+            <span title="La DPA (déduction pour amortissement) réduit votre revenu locatif imposable. Bâtiment = Class 1 (4%/an), ameublement = Class 8 (20%/an). Règle de la demi-année en année d'acquisition.">
+              <Info size={13} className="text-green-400 cursor-help" />
+            </span>
+          </h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-green-100 text-green-800">
+                  <th className="px-3 py-2 text-left font-semibold">Propriété</th>
+                  <th className="px-3 py-2 text-left font-semibold">Classe CCA</th>
+                  <th className="px-3 py-2 text-right font-semibold">FNACC début</th>
+                  <th className="px-3 py-2 text-right font-semibold">DPA {selectedYear}</th>
+                  <th className="px-3 py-2 text-right font-semibold">FNACC fin</th>
+                  <th className="px-3 py-2 text-center font-semibold">Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-green-100">
+                {ccaData.map((d, i) => (
+                  <tr key={i} className="hover:bg-green-50">
+                    <td className="px-3 py-2">
+                      <p className="font-medium text-gray-900">{d.propertyName}</p>
+                      <p className="text-gray-500">{d.location}</p>
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {d.hasCcaClass
+                        ? <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{d.ccaLabel}</span>
+                        : <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" title="Classe estimée — à confirmer avec votre CPA">⚠️ {d.ccaLabel}</span>
+                      }
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(d.uccOpen)}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-green-700">
+                      − {formatCurrency(d.ccaThisYear)}
+                      {d.isFirstYear && <span className="block text-gray-400 font-normal text-[10px]">½ année d'acquisition</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(d.uccClose)}</td>
+                    <td className="px-3 py-2 text-center">
+                      {d.countryCode !== 'CA' &&
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                          {d.countryCode === 'US' ? '1040-NR' : d.countryCode}
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-green-100 font-semibold">
+                  <td className="px-3 py-2 text-green-800" colSpan={3}>Total DPA estimée {selectedYear}</td>
+                  <td className="px-3 py-2 text-right text-green-800">
+                    − {formatCurrency(ccaData.reduce((s, d) => s + d.ccaThisYear, 0))}
+                  </td>
+                  <td className="px-3 py-2 text-right text-green-800">
+                    {formatCurrency(ccaData.reduce((s, d) => s + d.uccClose, 0))}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="text-xs text-green-600 mt-2">
+            💡 Terrain non amortissable (20% exclu). Classes confirmées par votre CPA — ces estimations sont calculées en décroissant depuis l'année d'acquisition.
+            Configurez la classe CCA dans l'onglet Projets (édition de propriété).
+          </p>
         </div>
       )}
 

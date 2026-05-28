@@ -10,6 +10,18 @@ type Direction = 'revenu' | 'depense' | 'neutre'
 const REVENU_TYPES  = ['investissement', 'loyer', 'loyer_locatif', 'revenu', 'dividende']
 const DEPENSE_TYPES = ['paiement', 'depense', 'capex', 'maintenance', 'admin', 'remboursement_investisseur']
 
+// TDT Florida par comté (Tourist Development Tax)
+const FL_TDT_RATES: Record<string, number> = {
+  'FL-MIAMI': 6, 'FL-BROWARD': 5, 'FL-ORANGE': 6, 'FL-OSCEOLA': 6,
+  'FL-PINELLAS': 6, 'FL-HILLSBOROUGH': 5, 'FL-COLLIER': 5, 'FL-KEYS': 5,
+}
+// Seuil court terme Florida : ≤ 182 nuits → Sales Tax + TDT applicables
+const FL_SHORT_TERM_DAYS = 182
+// ITBIS République Dominicaine (location touristique court terme)
+const DR_ITBIS_RATE = 18
+// Seuil court terme DR : ≤ 30 nuits
+const DR_SHORT_TERM_DAYS = 30
+
 function dirFromType(type: string): Direction {
   if (REVENU_TYPES.includes(type))  return 'revenu'
   if (type === 'transfert')          return 'neutre'
@@ -36,6 +48,11 @@ interface TransactionFormData {
   recurrence_no_end: boolean
   // Transfert
   transfer_source: 'compte_courant' | 'capex' | null
+  // Fiscal international
+  source_currency: string | null      // Devise d'origine (USD/DOP/EUR/MXN)
+  source_amount: number | null        // Montant dans la devise d'origine
+  foreign_tax_paid: number | null     // Impôt étranger payé (T2209)
+  rental_duration_days: number | null // Durée location (court/long terme)
 }
 
 const defaultForm: TransactionFormData = {
@@ -55,6 +72,10 @@ const defaultForm: TransactionFormData = {
   recurrence_end_date: null,
   recurrence_no_end: false,
   transfer_source: null,
+  source_currency: null,
+  source_amount: null,
+  foreign_tax_paid: null,
+  rental_duration_days: null,
 }
 
 function generateDates(start: string, frequency: string, endDate: string | null): string[] {
@@ -113,18 +134,22 @@ export default function TransactionsTab() {
     setSaving(true)
 
     const base = {
-      date:             formData.date,
-      type:             formData.type,
-      amount:           formData.amount,
-      description:      formData.description,
-      investor_id:      formData.investor_id || null,
-      property_id:      formData.property_id || null,
-      category:         formData.category,
-      payment_method:   formData.payment_method,
-      reference_number: formData.reference_number,
-      status:           formData.status,
-      target_account:   formData.target_account || undefined,
-      transfer_source:  formData.transfer_source || undefined,
+      date:                 formData.date,
+      type:                 formData.type,
+      amount:               formData.amount,
+      description:          formData.description,
+      investor_id:          formData.investor_id || null,
+      property_id:          formData.property_id || null,
+      category:             formData.category,
+      payment_method:       formData.payment_method,
+      reference_number:     formData.reference_number,
+      status:               formData.status,
+      target_account:       formData.target_account || undefined,
+      transfer_source:      formData.transfer_source || undefined,
+      source_currency:      formData.source_currency || undefined,
+      source_amount:        formData.source_amount || undefined,
+      foreign_tax_paid:     formData.foreign_tax_paid || undefined,
+      rental_duration_days: formData.rental_duration_days || undefined,
     }
 
     try {
@@ -178,7 +203,11 @@ export default function TransactionsTab() {
       amount:              Math.abs(transaction.amount ?? 0),
       description:         transaction.description ?? '',
       investor_id:         transaction.investor_id ?? null,
-      property_id:         transaction.property_id ?? null,
+      property_id:          transaction.property_id ?? null,
+      source_currency:      (transaction as any).source_currency ?? null,
+      source_amount:        (transaction as any).source_amount ?? null,
+      foreign_tax_paid:     (transaction as any).foreign_tax_paid ?? null,
+      rental_duration_days: (transaction as any).rental_duration_days ?? null,
       category:            transaction.category ?? 'capital',
       payment_method:      transaction.payment_method ?? 'virement',
       reference_number:    transaction.reference_number ?? '',
@@ -617,6 +646,147 @@ export default function TransactionsTab() {
                   onChange={e => set({ description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] resize-none min-h-[72px] max-h-[120px]" />
               </div>
+
+              {/* ── Devise étrangère (si propriété hors Canada) ── */}
+              {(() => {
+                const linkedProp = formData.property_id ? properties.find(p => p.id === formData.property_id) as any : null
+                const cc = linkedProp?.country_code
+                const countyCode = linkedProp?.county_code
+                const isRentalIncome = ['loyer', 'loyer_locatif', 'revenu'].includes(formData.type)
+                const isInternational = cc && cc !== 'CA'
+                const tdtRate = countyCode ? (FL_TDT_RATES[countyCode] ?? null) : null
+                const isShortTermFL = formData.rental_duration_days != null && formData.rental_duration_days <= FL_SHORT_TERM_DAYS
+                const isShortTermDR = formData.rental_duration_days != null && formData.rental_duration_days <= DR_SHORT_TERM_DAYS
+                const tdtAmount = (isShortTermFL && tdtRate && formData.amount > 0) ? Math.round(formData.amount * tdtRate / 100 * 100) / 100 : null
+                const itbisAmount = (cc === 'DO' && isShortTermDR && formData.amount > 0) ? Math.round(formData.amount * DR_ITBIS_RATE / 100 * 100) / 100 : null
+                const flStateTax = (isShortTermFL && formData.amount > 0) ? Math.round(formData.amount * 6 / 100 * 100) / 100 : null
+                if (!isInternational && !isRentalIncome) return null
+                return (
+                  <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                    <p className="text-sm font-semibold text-blue-800">
+                      {cc === 'US' ? '🇺🇸 Fiscal USA' : cc === 'DO' ? '🇩🇴 Fiscal République Dominicaine' : cc === 'MX' ? '🇲🇽 Fiscal Mexique' : '🌎 Fiscal international'}
+                      {linkedProp?.name && <span className="text-blue-600 font-normal ml-2">— {linkedProp.name}</span>}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {fr ? 'Devise d\'origine' : 'Source currency'}
+                        </label>
+                        <select value={formData.source_currency ?? ''}
+                          onChange={e => set({ source_currency: e.target.value || null })}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400">
+                          <option value="">CAD (par défaut)</option>
+                          <option value="USD">USD — Dollar américain</option>
+                          <option value="DOP">DOP — Peso dominicain</option>
+                          <option value="MXN">MXN — Peso mexicain</option>
+                          <option value="EUR">EUR — Euro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {fr ? 'Montant devise d\'origine' : 'Amount in source currency'}
+                        </label>
+                        <input type="number" step="0.01"
+                          value={formData.source_amount ?? ''}
+                          onChange={e => set({ source_amount: e.target.value ? parseFloat(e.target.value) : null })}
+                          placeholder={fr ? '0.00' : '0.00'}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {fr ? 'Impôt étranger payé (T2209)' : 'Foreign tax paid (T2209)'}
+                        </label>
+                        <input type="number" step="0.01"
+                          value={formData.foreign_tax_paid ?? ''}
+                          onChange={e => set({ foreign_tax_paid: e.target.value ? parseFloat(e.target.value) : null })}
+                          placeholder={fr ? 'Impôt payé à l\'étranger' : 'Tax paid abroad'}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
+                        <p className="text-xs text-gray-400 mt-0.5">{fr ? 'Pour crédit T2209 / ligne 40500' : 'For T2209 credit / line 40500'}</p>
+                      </div>
+                    </div>
+
+                    {/* Durée location pour calcul Sales Tax / ITBIS */}
+                    {isRentalIncome && (cc === 'US' || cc === 'DO') && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {fr ? 'Durée de la location (jours)' : 'Rental duration (days)'}
+                          <span className="text-gray-400 ml-1">
+                            {cc === 'US' ? `Court terme ≤ ${FL_SHORT_TERM_DAYS}j → Sales Tax + TDT applicables` : `Court terme ≤ ${DR_SHORT_TERM_DAYS}j → ITBIS 18% applicable`}
+                          </span>
+                        </label>
+                        <input type="number" min="1" max="365"
+                          value={formData.rental_duration_days ?? ''}
+                          onChange={e => set({ rental_duration_days: e.target.value ? parseInt(e.target.value) : null })}
+                          placeholder={fr ? 'Ex: 7 (1 semaine)' : 'E.g. 7 (1 week)'}
+                          className="w-full sm:w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
+                      </div>
+                    )}
+
+                    {/* Alerte TDT Florida */}
+                    {cc === 'US' && isRentalIncome && (
+                      <div className={`rounded-lg p-3 text-xs ${isShortTermFL && tdtRate ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'}`}>
+                        {isShortTermFL && tdtRate ? (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-amber-800">⚠️ Florida — Taxes applicables (location court terme)</p>
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div className="bg-white rounded p-2 text-center">
+                                <p className="text-gray-500">State Sales Tax</p>
+                                <p className="font-bold text-orange-700">{flStateTax != null ? `${flStateTax.toFixed(2)} $` : '—'}</p>
+                                <p className="text-gray-400">6% (DR-15)</p>
+                              </div>
+                              <div className="bg-white rounded p-2 text-center">
+                                <p className="text-gray-500">TDT {countyCode?.replace('FL-', '')}</p>
+                                <p className="font-bold text-red-700">{tdtAmount != null ? `${tdtAmount.toFixed(2)} $` : '—'}</p>
+                                <p className="text-gray-400">{tdtRate}% (mensuel)</p>
+                              </div>
+                              <div className="bg-orange-50 rounded p-2 text-center">
+                                <p className="text-gray-500">Total taxes</p>
+                                <p className="font-bold text-orange-900">
+                                  {flStateTax != null && tdtAmount != null ? `${(flStateTax + tdtAmount).toFixed(2)} $` : '—'}
+                                </p>
+                                <p className="text-gray-400">{6 + (tdtRate || 0)}%</p>
+                              </div>
+                            </div>
+                            <p className="text-amber-700 mt-1">DR-15 (Sales Tax) → déclaration mensuelle/trimestrielle à l'État. TDT → déclaration mensuelle au comté.</p>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500">
+                            {fr ? `Entrez la durée de location pour voir les taxes applicables (Sales Tax État 6% + TDT comté ${tdtRate ?? '?'}%)` : `Enter rental duration to see applicable taxes`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Alerte ITBIS République Dominicaine */}
+                    {cc === 'DO' && isRentalIncome && (
+                      <div className={`rounded-lg p-3 text-xs ${isShortTermDR && itbisAmount ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'}`}>
+                        {isShortTermDR && itbisAmount ? (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-amber-800">⚠️ République Dominicaine — ITBIS applicable</p>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <div className="bg-white rounded p-2 text-center">
+                                <p className="text-gray-500">ITBIS 18%</p>
+                                <p className="font-bold text-red-700">{itbisAmount.toFixed(2)} $</p>
+                                <p className="text-gray-400">Location touristique court terme</p>
+                              </div>
+                              <div className="bg-blue-50 rounded p-2 text-center">
+                                <p className="text-gray-500">Confotur</p>
+                                <p className="font-bold text-blue-700">{(linkedProp as any)?.confotur_certification_date ? '✅ Exonéré' : '❌ Vérifier'}</p>
+                                <p className="text-gray-400">Loi 158-01 (si certifié)</p>
+                              </div>
+                            </div>
+                            <p className="text-amber-700 mt-1">ITBIS à déclarer mensuellement à la DGII. Si propriété Confotur certifiée : exonération possible.</p>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500">
+                            {fr ? `Entrez la durée de location pour voir si ITBIS 18% s'applique (court terme ≤ ${DR_SHORT_TERM_DAYS} nuits)` : `Enter rental duration to check if ITBIS 18% applies`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Référence */}
               <div>
