@@ -91,21 +91,22 @@ CREATE POLICY "auth_manage_fiscal_year_settings"
 -- ─────────────────────────────────────────────────────────────
 
 -- Si la table tax_jurisdiction_rates existe (migration 193), ajouter comtés Florida
+-- (colonnes réelles : withholding_rate_nr, pas withholding_rate)
 INSERT INTO tax_jurisdiction_rates (
-  country_code, jurisdiction_code, jurisdiction_name, jurisdiction_level,
-  sales_tax_rate, income_tax_rate, withholding_rate,
+  country_code, jurisdiction_level, jurisdiction_code, jurisdiction_name,
+  sales_tax_rate, income_tax_rate, withholding_rate_nr,
   filing_deadline_note, effective_date
 )
 SELECT * FROM (VALUES
-  ('US','FL-MIAMI',   'Florida — Miami-Dade County (TDT 6%)',    'county', 0.0600, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-BROWARD', 'Florida — Broward County (TDT 5%)',       'county', 0.0500, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-ORANGE',  'Florida — Orange County (TDT 6%)',        'county', 0.0600, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-OSCEOLA', 'Florida — Osceola County (TDT 6%)',       'county', 0.0600, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-PINELLAS','Florida — Pinellas County (TDT 6%)',      'county', 0.0600, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-HILLSBOROUGH','Florida — Hillsborough County (TDT 5%)','county',0.0500,0.0000,0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-COLLIER', 'Florida — Collier County (TDT 5%)',       'county', 0.0500, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'),
-  ('US','FL-KEYS',    'Florida — Monroe County/Keys (TDT 5%)',   'county', 0.0500, 0.0000, 0.0000, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01')
-) AS v(country_code, jurisdiction_code, jurisdiction_name, jurisdiction_level, sales_tax_rate, income_tax_rate, withholding_rate, filing_deadline_note, effective_date)
+  ('US','county','FL-MIAMI',        'Florida — Miami-Dade County (TDT 6%)',    6.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-BROWARD',      'Florida — Broward County (TDT 5%)',       5.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-ORANGE',       'Florida — Orange County (TDT 6%)',        6.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-OSCEOLA',      'Florida — Osceola County (TDT 6%)',       6.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-PINELLAS',     'Florida — Pinellas County (TDT 6%)',      6.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-HILLSBOROUGH', 'Florida — Hillsborough County (TDT 5%)', 5.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-COLLIER',      'Florida — Collier County (TDT 5%)',       5.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE),
+  ('US','county','FL-KEYS',         'Florida — Monroe County/Keys (TDT 5%)',   5.0::NUMERIC, NULL::NUMERIC, 0::NUMERIC, 'TDT mensuel au comté + DR-15 État séparé', '2024-01-01'::DATE)
+) AS v(country_code, jurisdiction_level, jurisdiction_code, jurisdiction_name, sales_tax_rate, income_tax_rate, withholding_rate_nr, filing_deadline_note, effective_date)
 WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tax_jurisdiction_rates')
 ON CONFLICT DO NOTHING;
 
