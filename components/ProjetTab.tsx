@@ -189,6 +189,8 @@ export default function ProjetTab() {
       ...formData,
       completion_date: formData.completion_date || undefined,
       sale_date: formData.sale_date || undefined,
+      w8ben_submission_date: formData.w8ben_submission_date || undefined,
+      w8eci_submission_date: formData.w8eci_submission_date || undefined,
     }
     const result = await updateProperty(editingId, sanitizedData)
     if (result.success) {
