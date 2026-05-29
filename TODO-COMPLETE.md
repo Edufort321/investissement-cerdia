@@ -101,8 +101,11 @@ auto-sync sur add/edit/delete de booking. Fonctionnel.
 
 ## 🟡 RESTE À FAIRE — non bloquant
 
-### D4 — Bouton « Convertir scénario → propriété »
-Automatiser `origin_scenario_id` / `converted_property_id` / `status='purchased'`.
+### D4 — Conversion scénario → propriété : COMPLÉTÉE
+La conversion existait déjà (crée la propriété + payment_schedules + transfert des
+pièces jointes + `status='purchased'` + `converted_property_id` + `converted_at`).
+Seul maillon manquant ajouté le 2026-05-29 : **`origin_scenario_id`** sur la propriété
+créée (lien retour scénario → propriété). ScenariosTab ~l.1383.
 
 ### Fiscal — raffinements restants
 - [ ] `nr6_election_*` : champs déclarés en DB, jamais utilisés (UI + calcul, ou supprimer)

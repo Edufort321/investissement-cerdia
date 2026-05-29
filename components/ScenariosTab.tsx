@@ -1380,6 +1380,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         property_type: selectedScenario.property_type || 'condo',
         country_code: derivedCountryCode,
         state_province: derivedStateProvince,
+        origin_scenario_id: selectedScenario.id, // lien retour scénario → propriété (D4)
         ...purchaseFields
       }
 
