@@ -796,6 +796,43 @@ export default function TransactionsTab() {
                         )}
                       </div>
                     )}
+
+                    {/* Alerte IRNR République Dominicaine (retenue 27% non-résidents) */}
+                    {cc === 'DO' && isRentalIncome && !(linkedProp as any)?.is_confotur && (
+                      (() => {
+                        const irnrEstimate = formData.amount > 0 ? Math.round(formData.amount * 0.27 * 100) / 100 : null
+                        const hasForeignTax = (formData.foreign_tax_paid ?? 0) > 0
+                        return (
+                          <div className={`rounded-lg p-3 text-xs ${!hasForeignTax && irnrEstimate ? 'bg-rose-50 border border-rose-200' : 'bg-green-50 border border-green-200'}`}>
+                            {!hasForeignTax && irnrEstimate ? (
+                              <div className="space-y-1">
+                                <p className="font-semibold text-rose-800">🏛️ IRNR — Retenue non-résidents (27%) estimée</p>
+                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                  <div className="bg-white rounded p-2 text-center">
+                                    <p className="text-gray-500">Revenu brut</p>
+                                    <p className="font-bold text-gray-800">{formData.amount.toFixed(2)} $</p>
+                                  </div>
+                                  <div className="bg-white rounded p-2 text-center">
+                                    <p className="text-gray-500">IRNR 27%</p>
+                                    <p className="font-bold text-rose-700">{irnrEstimate.toFixed(2)} $</p>
+                                    <p className="text-gray-400">Retenu par locataire</p>
+                                  </div>
+                                  <div className="bg-rose-100 rounded p-2 text-center">
+                                    <p className="text-gray-500">Net reçu</p>
+                                    <p className="font-bold text-rose-900">{(formData.amount - irnrEstimate).toFixed(2)} $</p>
+                                  </div>
+                                </div>
+                                <p className="text-rose-700 mt-1">Retenu mensuellement par le locataire → versé à la DGII. Saisissez le montant retenu dans « Impôt étranger payé » pour crédit T2209.</p>
+                              </div>
+                            ) : (
+                              <p className="text-green-700 font-medium">
+                                ✅ IRNR — Impôt étranger saisi ({(formData.foreign_tax_paid ?? 0).toFixed(2)} $) → crédit T2209 applicable
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()
+                    )}
                   </div>
                 )
               })()}
