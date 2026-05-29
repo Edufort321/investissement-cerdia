@@ -22,6 +22,9 @@ interface PropertyFormData {
   state_province: string
   county_code: string
   cca_class: string
+  w8ben_submitted: boolean
+  w8ben_submission_date: string
+  w8eci_submission_date: string
   total_cost: number
   paid_amount: number
   reservation_date: string
@@ -93,6 +96,9 @@ export default function ProjetTab() {
     state_province: '',
     county_code: '',
     cca_class: '',
+    w8ben_submitted: false,
+    w8ben_submission_date: '',
+    w8eci_submission_date: '',
     total_cost: 0,
     paid_amount: 0,
     reservation_date: new Date().toISOString().split('T')[0],
@@ -208,6 +214,9 @@ export default function ProjetTab() {
       state_province: (property as any).state_province || '',
       county_code: (property as any).county_code || '',
       cca_class: (property as any).cca_class || '',
+      w8ben_submitted: (property as any).w8ben_submitted || false,
+      w8ben_submission_date: (property as any).w8ben_submission_date?.split('T')[0] || '',
+      w8eci_submission_date: (property as any).w8eci_submission_date?.split('T')[0] || '',
       total_cost: property.total_cost,
       paid_amount: calculatedPaidAmount, // Calculé automatiquement
       reservation_date: property.reservation_date.split('T')[0],
@@ -247,6 +256,9 @@ export default function ProjetTab() {
       state_province: '',
       county_code: '',
       cca_class: '',
+      w8ben_submitted: false,
+      w8ben_submission_date: '',
+      w8eci_submission_date: '',
       total_cost: 0,
       paid_amount: 0,
       reservation_date: new Date().toISOString().split('T')[0],
@@ -1119,6 +1131,50 @@ export default function ProjetTab() {
                   <p className="text-xs text-gray-500 mt-1">
                     {fr ? 'Utilisé pour estimer la DPA/CCA dans les rapports fiscaux.' : 'Used to estimate CCA deduction in tax reports.'}
                   </p>
+                </div>
+              )}
+
+              {/* W-8BEN / W-8ECI — Propriétés US seulement */}
+              {formData.country_code === 'US' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+                  <p className="text-xs font-semibold text-blue-800">
+                    🇺🇸 Formulaires W-8 IRS — Statut non-résident (FIRPTA / revenus locatifs)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.w8ben_submitted}
+                          onChange={e => setFormData({ ...formData, w8ben_submitted: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{fr ? 'W-8BEN soumis' : 'W-8BEN submitted'}</span>
+                      </label>
+                      <p className="text-xs text-gray-400 mt-1 ml-6">{fr ? 'Statut non-résident pour retenue FIRPTA' : 'Non-resident status for FIRPTA withholding'}</p>
+                    </div>
+                    {formData.w8ben_submitted && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Date soumission W-8BEN' : 'W-8BEN submission date'}</label>
+                        <input
+                          type="date"
+                          value={formData.w8ben_submission_date}
+                          onChange={e => setFormData({ ...formData, w8ben_submission_date: e.target.value })}
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-400"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Date soumission W-8ECI' : 'W-8ECI submission date'}</label>
+                      <input
+                        type="date"
+                        value={formData.w8eci_submission_date}
+                        onChange={e => setFormData({ ...formData, w8eci_submission_date: e.target.value })}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-400"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">{fr ? 'Revenus ECI — réduit retenue à la source' : 'ECI election — reduces withholding'}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 

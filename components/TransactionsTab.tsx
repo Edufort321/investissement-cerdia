@@ -133,6 +133,16 @@ export default function TransactionsTab() {
     e.preventDefault()
     setSaving(true)
 
+    // Auto-calcul TDT Florida lors de la soumission
+    const _linkedProp = formData.property_id ? (properties.find(p => p.id === formData.property_id) as any) : null
+    const _countyCode = _linkedProp?.county_code
+    const _tdtRate = _countyCode ? (FL_TDT_RATES[_countyCode] ?? null) : null
+    const _isRentalIncome = ['loyer', 'loyer_locatif', 'revenu'].includes(formData.type)
+    const _isShortTermFL = formData.rental_duration_days != null && formData.rental_duration_days <= FL_SHORT_TERM_DAYS
+    const _autoTdtAmount = (_isRentalIncome && _isShortTermFL && _tdtRate && formData.amount > 0)
+      ? Math.round(formData.amount * _tdtRate / 100 * 100) / 100 : undefined
+    const _autoTdtRate = _autoTdtAmount != null ? _tdtRate : undefined
+
     const base = {
       date:                 formData.date,
       type:                 formData.type,
@@ -150,6 +160,8 @@ export default function TransactionsTab() {
       source_amount:        formData.source_amount || undefined,
       foreign_tax_paid:     formData.foreign_tax_paid || undefined,
       rental_duration_days: formData.rental_duration_days || undefined,
+      county_tdt_amount:    _autoTdtAmount,
+      county_tdt_rate:      _autoTdtRate,
     }
 
     try {

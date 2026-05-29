@@ -2636,6 +2636,7 @@ export default function TaxReports() {
                         <th className="px-3 py-2 text-right font-medium text-amber-600 uppercase">{fr ? 'Taxe vente' : 'Sales tax'}</th>
                         <th className="px-3 py-2 text-right font-medium text-blue-600 uppercase">{fr ? 'Impôt État' : 'State tax'}</th>
                         <th className="px-3 py-2 text-right font-medium text-purple-600 uppercase">{fr ? 'Retenue NR' : 'Withholding'}</th>
+                        <th className="px-3 py-2 text-right font-medium text-rose-600 uppercase">IRNR RD</th>
                         <th className="px-3 py-2 text-right font-medium text-gray-700 uppercase">{fr ? 'Total estimé' : 'Estimated'}</th>
                         <th className="px-3 py-2 text-right font-medium text-green-600 uppercase">{fr ? 'Déjà retenu' : 'Withheld'}</th>
                         <th className="px-3 py-2 text-right font-medium text-teal-600 uppercase">{fr ? 'Remis' : 'Remitted'}</th>
@@ -2651,6 +2652,11 @@ export default function TaxReports() {
                           <td className="px-3 py-3 text-right text-amber-700 whitespace-nowrap">{row.totalSalesTax > 0 ? formatCurrency(row.totalSalesTax) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right text-blue-700 whitespace-nowrap">{row.totalStateTax > 0 ? formatCurrency(row.totalStateTax) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right text-purple-700 whitespace-nowrap">{row.totalFederalWithholding > 0 ? formatCurrency(row.totalFederalWithholding) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-3 py-3 text-right text-rose-700 whitespace-nowrap">
+                            {(row as any).irnrEstimated > 0 ? (
+                              <span title="IRNR 27% — Impuesto sobre la Renta No Residentes (RD)">{formatCurrency((row as any).irnrEstimated)}</span>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
                           <td className="px-3 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(row.totalTax)}</td>
                           <td className="px-3 py-3 text-right text-green-700 whitespace-nowrap">{row.alreadyWithheld > 0 ? formatCurrency(row.alreadyWithheld) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right text-teal-700 whitespace-nowrap">{row.alreadyRemitted > 0 ? formatCurrency(row.alreadyRemitted) : <span className="text-gray-300">—</span>}</td>
@@ -2668,6 +2674,7 @@ export default function TaxReports() {
                         <td className="px-3 py-2 text-right text-amber-800">{formatCurrency(mjData.totalSalesTax)}</td>
                         <td className="px-3 py-2 text-right text-blue-800">{formatCurrency(mjData.totalStateTax)}</td>
                         <td className="px-3 py-2 text-right text-purple-800">{formatCurrency(mjData.totalFederalWithholding)}</td>
+                        <td className="px-3 py-2 text-right text-rose-800">{formatCurrency(mjData.rows.reduce((s, r) => s + ((r as any).irnrEstimated ?? 0), 0))}</td>
                         <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(mjData.totalTax)}</td>
                         <td className="px-3 py-2 text-right text-green-800">{formatCurrency(mjData.totalAlreadyWithheld)}</td>
                         <td className="px-3 py-2 text-right text-teal-800">{formatCurrency(mjData.totalAlreadyRemitted)}</td>
