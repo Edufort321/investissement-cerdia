@@ -568,23 +568,38 @@ export default function TaxReports() {
         transactionCount: 0, totalSalesTax: 0, totalStateTax: 0, totalFederalWithholding: 0,
         totalGross: 0, alreadyWithheld: 0, itbisEstimated: 0, tdtEstimated: 0, irnrEstimated: 0,
       }
-      // Estimer ITBIS DR (18%) pour locations court terme DR sans impôt saisi
+      // ITBIS DR (18%) : locations touristiques DR — court terme (≤30 j) OU meublées
+      // (ITBIS frappe le locatif meublé/touristique en RD, pas seulement le court terme).
+      // La valeur saisie en transaction (sales_tax_amount) prime sur l'estimation.
       const isRentalIncome = ['loyer', 'loyer_locatif', 'revenu'].includes(t.type)
       const durDays: number = t.rental_duration_days ?? 0
-      const itbisEstimate = (key === 'DO' && isRentalIncome && durDays > 0 && durDays <= 30 && !(t.is_confotur))
-        ? (Number(t.amount) || 0) * 0.18 : 0
-      // Estimer IRNR RD 27% pour revenus locatifs non-résidents (long terme aussi)
-      const irnrEstimate = (key === 'DO' && isRentalIncome && !(t.is_confotur) && (Number(t.foreign_tax_paid) || 0) === 0)
-        ? (Number(t.amount) || 0) * 0.27 : 0
-      // Estimer TDT Florida pour locations court terme
+      const itbisApplies = key === 'DO' && isRentalIncome && !(t.is_confotur)
+        && ((durDays > 0 && durDays <= 30) || t.is_furnished === true)
+      const itbisSaved = Number(t.sales_tax_amount)
+      const itbisEstimate = !itbisApplies ? 0
+        : (Number.isFinite(itbisSaved) && itbisSaved > 0 ? itbisSaved : (Number(t.amount) || 0) * 0.18)
+      // IRNR RD 27% (non-résidents, revenus locatifs, court et long terme).
+      // Le montant saisi (irnr_amount) prime ; sinon estimation au taux saisi (irnr_rate) ou 27%.
+      const irnrApplies = key === 'DO' && isRentalIncome && !(t.is_confotur) && (Number(t.foreign_tax_paid) || 0) === 0
+      const irnrSaved = Number(t.irnr_amount)
+      const irnrRate = Number.isFinite(Number(t.irnr_rate)) && Number(t.irnr_rate) > 0 ? Number(t.irnr_rate) / 100 : 0.27
+      const irnrEstimate = !irnrApplies ? 0
+        : (Number.isFinite(irnrSaved) && irnrSaved > 0 ? irnrSaved : (Number(t.amount) || 0) * irnrRate)
+      // TDT Florida : montant saisi (county_tdt_amount) prime ; sinon taux saisi
+      // (county_tdt_rate) ou table de référence par comté.
       const prop = t.property_id ? (properties.find(p => p.id === t.property_id) as any) : null
       const countyCode = prop?.county_code ?? null
       const FL_TDT: Record<string, number> = {
         'FL-MIAMI': 0.06, 'FL-BROWARD': 0.05, 'FL-ORANGE': 0.06, 'FL-OSCEOLA': 0.06,
         'FL-PINELLAS': 0.06, 'FL-HILLSBOROUGH': 0.05, 'FL-COLLIER': 0.05, 'FL-KEYS': 0.05,
       }
-      const tdtEstimate = (key === 'US' && isRentalIncome && durDays > 0 && durDays <= 182 && countyCode && FL_TDT[countyCode])
-        ? (Number(t.amount) || 0) * (FL_TDT[countyCode]) : 0
+      const tdtApplies = key === 'US' && isRentalIncome && durDays > 0 && durDays <= 182
+      const tdtSaved = Number(t.county_tdt_amount)
+      const tdtRate = Number.isFinite(Number(t.county_tdt_rate)) && Number(t.county_tdt_rate) > 0
+        ? Number(t.county_tdt_rate) / 100
+        : (countyCode && FL_TDT[countyCode] ? FL_TDT[countyCode] : 0)
+      const tdtEstimate = !tdtApplies ? 0
+        : (Number.isFinite(tdtSaved) && tdtSaved > 0 ? tdtSaved : (Number(t.amount) || 0) * tdtRate)
 
       revenueByCountry.set(key, {
         transactionCount: cur.transactionCount + 1,

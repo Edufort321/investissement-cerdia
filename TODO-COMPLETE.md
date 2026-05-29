@@ -73,34 +73,44 @@ TABLE investor_report_requests→ Rapports trimestriels + cron Vercel (mig. 203)
 
 ---
 
+## ✅ TRAITÉ LE 2026-05-29 (suite)
+
+### C3 — Doublons de parts : protection confirmée + diagnostic livré
+Le trigger `auto_create_investor_shares` (mig. 113) est **idempotent par transaction_id**
+(refuse une 2e ligne pour la même transaction). Le mécanisme de doublon est fermé.
+**Migration 205** = diagnostic non destructif (SELECT) pour repérer d'éventuels doublons
+résiduels d'avant la 113. Si la requête 1 renvoie des lignes → créer une 206 de cleanup.
+
+### C4 — Lien transaction ↔ payment_schedule : DÉJÀ OK
+Vérifié : `markPaymentAsPaid()` (InvestmentContext l.852-900) remplit bien
+`property_id` ET `payment_schedule_id` sur la transaction créée. Rien à corriger.
+
+### D3 — Sync revenus bookings : DÉJÀ FAIT
+`BookingRevenueSync` synchronise via RPC `sync_complete_booking_data` +
+auto-sync sur add/edit/delete de booking. Fonctionnel.
+
+### Fiscal — 3 incohérences corrigées (TaxReports.tsx)
+- **ITBIS RD** : s'applique maintenant aussi aux locations **meublées** (`is_furnished`),
+  pas seulement ≤30 j. La valeur saisie (`sales_tax_amount`) prime sur l'estimation.
+- **IRNR RD** : la valeur saisie (`irnr_amount`) prime ; sinon estimation au taux saisi
+  (`irnr_rate`) ou 27 % par défaut. Fin de la double-source.
+- **TDT Floride** : montant saisi (`county_tdt_amount`) prime ; sinon taux saisi
+  (`county_tdt_rate`) ou table par comté. Plus de hardcodé prioritaire.
+
+---
+
 ## 🟡 RESTE À FAIRE — non bloquant
-
-### C3 (à AUDITER) — Double représentation des parts
-Deux sources coexistent : `investors.number_of_shares` (dénormalisé) **et** la table
-`investor_investments` (alimentée par le trigger `auto_create_investor_shares` sur
-`type='investissement'`). Historique de bugs de double-comptage (mig. 83, 89, 100-103, 110, 171).
-**Action :** requête de contrôle pour confirmer qu'il n'y a pas de doublon résiduel :
-```sql
-SELECT investor_id, COUNT(*), SUM(number_of_shares)
-FROM investor_investments WHERE status='active' GROUP BY investor_id;
--- comparer à investors.number_of_shares
-```
-
-### C4 — Lien transaction ↔ payment_schedule
-Vérifier que `markPaymentAsPaid()` remplit bien `payment_schedule_id` ET `property_id`
-sur la transaction créée (sinon « montant payé » ProjetTab ≠ compte courant).
-
-### D3 — Sync revenus bookings → transactions
-`bookings_calendar` confirmés ne créent pas auto de transactions `loyer`. Compléter
-BookingRevenueSync (Admin → sync_revenues).
 
 ### D4 — Bouton « Convertir scénario → propriété »
 Automatiser `origin_scenario_id` / `converted_property_id` / `status='purchased'`.
 
+### Fiscal — raffinements restants
+- [ ] `nr6_election_*` : champs déclarés en DB, jamais utilisés (UI + calcul, ou supprimer)
+- [ ] Mexique (MX) : pays accepté mais aucun calcul fiscal implémenté
+- [ ] Faire valider tous les taux par un CPA avant production (note présente dans mig. 193)
+
 ### Nettoyage
 - [ ] Retirer pages `/test`, `/test-supabase`, `/demo` avant audit final
-- [ ] `lib/financial-summary-service.ts` : confirmer usage réel (utilisé via useFinancialSummary)
-- [ ] Florida TDT 6 % = taux haut ; varie par comté → rendre configurable si plusieurs comtés
 
 ---
 
@@ -113,9 +123,12 @@ Automatiser `origin_scenario_id` / `converted_property_id` / `status='purchased'
 ---
 
 ## 📊 MIGRATIONS
-Rendu à **204** dans `supabase/migrations-investisseur/`. Toujours prendre le prochain
+Rendu à **205** dans `supabase/migrations-investisseur/`. Toujours prendre le prochain
 numéro libre — ne jamais renuméroter. ⚠️ Ne **jamais** recréer `transactions_type_check`
 avec une liste devinée : faire l'UNION des types existants (leçon mig. 204 / erreur 23514).
+⚠️ Dans les blocs `DO $$ ... RAISE NOTICE`, éviter `%` littéral et caractères spéciaux
+non échappés (erreur 42601 « too few parameters for RAISE ») — préférer des `SELECT`
+étiquetés pour les diagnostics (cf. mig. 205).
 
 ## 🎯 PROCHAINES ÉTAPES RECOMMANDÉES
 1. Auditer C3 (doublons parts) — requête SQL ci-dessus
