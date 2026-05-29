@@ -54,7 +54,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
-  const [paymentFilter, setPaymentFilter] = useState<'all' | 'upcoming' | 'paid' | 'overdue'>('all')
+  const [paymentFilters, setPaymentFilters] = useState<Set<string>>(new Set(['upcoming', 'overdue', 'paid']))
   const [showPaymentFilterMenu, setShowPaymentFilterMenu] = useState(false)
 
   // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
@@ -823,40 +823,68 @@ export default function DashboardPage() {
                     </span>
                     {/* Filtre hamburger */}
                     <div className="ml-auto relative">
-                      <button
-                        onClick={() => setShowPaymentFilterMenu(v => !v)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-                        title={language === 'fr' ? 'Filtrer les paiements' : 'Filter payments'}
-                      >
-                        <span>
-                          {paymentFilter === 'all' ? '☰ Tous' :
-                           paymentFilter === 'upcoming' ? '🔵 À venir' :
-                           paymentFilter === 'paid' ? '🟢 Payés' : '🔴 En retard'}
-                        </span>
-                        <span className="text-gray-400">▾</span>
-                      </button>
-                      {showPaymentFilterMenu && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setShowPaymentFilterMenu(false)} />
-                          <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-44 py-1 overflow-hidden text-sm">
-                            {([
-                              { key: 'all', label: '☰ Tous', desc: `${upcomingPayments.length} total` },
-                              { key: 'upcoming', label: '🔵 À venir', desc: `${upcomingPayments.filter(p => p.color_flag.color !== 'green' && p.color_flag.color !== 'red').length} versements` },
-                              { key: 'paid', label: '🟢 Payés', desc: `${upcomingPayments.filter(p => p.color_flag.color === 'green').length} versements` },
-                              { key: 'overdue', label: '🔴 En retard', desc: `${upcomingPayments.filter(p => p.color_flag.color === 'red').length} versements` },
-                            ] as const).map(opt => (
-                              <button
-                                key={opt.key}
-                                onClick={() => { setPaymentFilter(opt.key); setShowPaymentFilterMenu(false) }}
-                                className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-blue-50 transition-colors ${paymentFilter === opt.key ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'}`}
-                              >
-                                <span>{opt.label}</span>
-                                <span className="text-xs text-gray-400">{opt.desc}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                      {(() => {
+                        const allKeys = ['upcoming', 'overdue', 'paid']
+                        const allSelected = allKeys.every(k => paymentFilters.has(k))
+                        const activeCount = paymentFilters.size
+                        const toggleFilter = (key: string) => {
+                          setPaymentFilters(prev => {
+                            const next = new Set(prev)
+                            if (next.has(key)) { next.delete(key) } else { next.add(key) }
+                            if (next.size === 0) return new Set(allKeys)
+                            return next
+                          })
+                        }
+                        const toggleAll = () => setPaymentFilters(new Set(allKeys))
+                        const filterLabel = allSelected ? '☰ Tous' :
+                          activeCount === 1
+                            ? (paymentFilters.has('overdue') ? '🔴 Retard' : paymentFilters.has('paid') ? '🟢 Payés' : '🔵 À venir')
+                            : `☰ ${activeCount} filtres`
+                        return (
+                          <>
+                            <button
+                              onClick={() => setShowPaymentFilterMenu(v => !v)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                            >
+                              <span>{filterLabel}</span>
+                              <span className="text-gray-400">▾</span>
+                            </button>
+                            {showPaymentFilterMenu && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setShowPaymentFilterMenu(false)} />
+                                <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-52 py-2 overflow-hidden text-sm">
+                                  <button
+                                    onClick={toggleAll}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-100 ${allSelected ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}
+                                  >
+                                    <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${allSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                                      {allSelected ? '✓' : ''}
+                                    </span>
+                                    ☰ Tous ({upcomingPayments.length})
+                                  </button>
+                                  {([
+                                    { key: 'overdue', label: '🔴 En retard', count: upcomingPayments.filter(p => p.color_flag.color === 'red').length },
+                                    { key: 'upcoming', label: '🔵 À venir', count: upcomingPayments.filter(p => p.color_flag.color !== 'green' && p.color_flag.color !== 'red').length },
+                                    { key: 'paid', label: '🟢 Payés', count: upcomingPayments.filter(p => p.color_flag.color === 'green').length },
+                                  ]).map(opt => (
+                                    <button
+                                      key={opt.key}
+                                      onClick={() => toggleFilter(opt.key)}
+                                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${paymentFilters.has(opt.key) ? 'text-blue-700' : 'text-gray-600'}`}
+                                    >
+                                      <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs flex-shrink-0 ${paymentFilters.has(opt.key) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                                        {paymentFilters.has(opt.key) ? '✓' : ''}
+                                      </span>
+                                      <span className="flex-1 text-left">{opt.label}</span>
+                                      <span className="text-xs text-gray-400">{opt.count}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </h3>
 
@@ -901,10 +929,9 @@ export default function DashboardPage() {
 
                   <div className="space-y-3">
                     {upcomingPayments.filter(p => {
-                      if (paymentFilter === 'paid') return p.color_flag.color === 'green'
-                      if (paymentFilter === 'overdue') return p.color_flag.color === 'red'
-                      if (paymentFilter === 'upcoming') return p.color_flag.color !== 'green' && p.color_flag.color !== 'red'
-                      return true
+                      if (p.color_flag.color === 'red') return paymentFilters.has('overdue')
+                      if (p.color_flag.color === 'green') return paymentFilters.has('paid')
+                      return paymentFilters.has('upcoming')
                     }).map((payment) => {
                       const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
                                           payment.color_flag.color === 'orange' ? 'bg-orange-50 border-orange-200' :
