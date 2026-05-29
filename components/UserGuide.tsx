@@ -328,90 +328,173 @@ const SECTIONS: Section[] = [
     items: [
       {
         subtitle: 'T1135 — Biens étrangers (ARC Canada)',
-        description: 'Le formulaire T1135 est obligatoire pour les résidents canadiens possédant des biens étrangers dont le coût total dépasse 100 000 $ CAD. À remplir avec la déclaration T1 annuelle.',
+        description: 'Le formulaire T1135 est obligatoire pour les résidents canadiens possédant des biens étrangers dont le coût total dépasse 100 000 $ CAD. La plateforme détecte automatiquement la méthode requise.',
         steps: [
-          'Méthode simplifiée (< 250 000 $) : valeur approximative, revenu, gains',
-          'Méthode détaillée (≥ 250 000 $) : détail par propriété, catégorie ARC 1-7',
-          'Catégorie 1 : Fonds (dépôts, obligations)',
-          'Catégorie 4 : Actions de sociétés étrangères cotées',
-          'Catégorie 6 : Biens immobiliers étrangers (notre cas : RD, USA)',
-          'Catégorie 7 : Autres biens étrangers',
-          'Date limite : même que la déclaration T1 (30 avril ou 15 juin pour travailleurs autonomes)'
+          'Seuil de déclaration : coût total ≥ 100 000 $ CAD à tout moment de l\'année',
+          'Méthode simplifiée (Partie A) — coût total < 250 000 $ : valeur approximative, revenu brut, gains/pertes. Plus facile à remplir.',
+          'Méthode détaillée (Partie B) — coût total ≥ 250 000 $ : détail complet par propriété — coût, valeur marchande en fin d\'année, revenu brut, gain/perte en capital.',
+          'Catégorie 6 (notre cas) : Biens immobiliers étrangers (RD, USA)',
+          'La plateforme bascule automatiquement entre Partie A et Partie B selon le total calculé',
+          'Date limite : 30 avril (T1 standard) ou 15 juin (travailleurs autonomes)',
+          'Pénalité si omis : 2 500 $ minimum + 5% de la valeur maximale (pouvant atteindre 25 000 $)'
         ],
-        badge: 'ARC'
+        note: 'Si vous possédez des propriétés en RD ET aux USA, additionnez les coûts pour déterminer Partie A ou B. Le système le calcule depuis vos projets.',
+        badge: 'T1135 ARC'
       },
       {
-        subtitle: 'T2209 — Crédit d\'impôt pour revenus étrangers',
-        description: 'Évite la double imposition. Le crédit est plafonné à 15% du revenu étranger net. L\'excédent non utilisé peut être reporté (carryforward illimité) ou reporté en arrière 3 ans (carryback — formulaire T1-ADJ).',
+        subtitle: 'T2209 — Crédit d\'impôt étranger (double imposition)',
+        description: 'Le T2209 évite la double imposition sur vos revenus étrangers. Vous payez l\'impôt à l\'étranger (RD, USA), puis réclamez un crédit équivalent sur votre déclaration canadienne (ligne 40500). Le crédit est plafonné à 15% du revenu étranger net.',
         steps: [
-          'Base de calcul : impôts étrangers payés (retenues à la source)',
-          'Plafond : 15% × revenu étranger net (après déductions)',
-          'Carryforward : illimité — report aux années suivantes',
-          'Carryback 3 ans : remplir T1-ADJ pour modifier les 3 dernières déclarations',
-          'Report par pays : US, RD, MX doivent être calculés séparément',
-          'La table foreign_tax_credit_history (migration 199) suit l\'historique annuel'
+          'Étape 1 : Saisir l\'impôt payé à l\'étranger dans chaque transaction (champ "Impôt étranger payé")',
+          'Étape 2 : Dans TaxReports → T2209, saisir votre revenu imposable canadien total pour calculer le plafond 15%',
+          'Plafond = 15% × revenu étranger net (revenus locatifs après dépenses)',
+          'Si impôt étranger payé > plafond : l\'excédent devient un CARRYFORWARD (report aux années suivantes — illimité)',
+          'Si impôt étranger payé < plafond : vous n\'avez pas maximisé votre crédit (revoir les retenues)',
+          'Carryback 3 ans : si vous n\'avez pas pu utiliser le crédit cette année, remplir T1-ADJ pour modifier les 3 dernières déclarations',
+          'Bouton "Historique" → sauvegarde dans foreign_tax_credit_history pour chaque année',
+          'Rapport par pays : US, RD, MX calculés séparément (exiger votre CPA)'
         ],
+        note: 'Pour CERDIA : les retenues IRNR (RD) et FIRPTA/IRS (USA) constituent les principales sources de crédit T2209. Saisir ces montants dans foreign_tax_paid à chaque transaction.',
         badge: 'T2209'
       },
       {
-        subtitle: 'FIRPTA — Retenue USA à la vente',
-        description: 'Lors de la vente d\'un bien immobilier aux États-Unis par un non-résident, l\'acheteur doit retenir 15% du prix de vente brut et le transmettre à l\'IRS (Form 8288 dans les 20 jours suivant la clôture).',
+        subtitle: 'T2209 Carryback — Récupérer l\'impôt des 3 dernières années',
+        description: 'Si vous avez payé beaucoup d\'impôt étranger cette année mais peu les années précédentes (ex : première année avec des propriétés en RD), vous pouvez reporter le crédit en arrière sur les 3 dernières années via formulaire T1-ADJ.',
         steps: [
-          'Taux standard : 15% du prix de vente brut',
-          'Taux réduit possible : 10% si prix < 1 000 000 $ et acheteur occupe le bien',
-          'Form 8288 : à soumettre dans les 20 jours après la clôture',
-          'Remboursement partiel possible via déclaration NR (non-resident return)',
-          'Le système affiche la deadline automatiquement depuis la date de vente',
-          'Champs : firpta_withholding_amount, firpta_form_8288_submitted, firpta_withholding_refunded'
+          'Accéder : TaxReports → T2209 → panneau "Report T2209 — Carryforward / Carryback"',
+          'Vérifier le carryforward généré (crédit non utilisé cette année)',
+          'Sélectionner l\'année cible : N-1, N-2 ou N-3 (jusqu\'à 3 ans en arrière)',
+          'Saisir le montant à appliquer (max = carryforward disponible)',
+          'Cocher "T1-ADJ soumis" dès que vous envoyez le formulaire à l\'ARC',
+          'Ajouter la date de soumission et le numéro de référence ARC',
+          'Délai traitement ARC : 8 à 16 semaines. L\'ARC réémet un avis de cotisation.'
         ],
-        badge: 'FIRPTA'
+        note: 'Le T1-ADJ se soumet par courrier ou par Mon Dossier ARC. Avoir votre avis de cotisation original de l\'année en question. Un CPA peut faire cela pour vous.',
+        badge: 'T1-ADJ'
       },
       {
-        subtitle: 'CCA / FNACC — Amortissement fiscal Canada',
-        description: 'La Déduction pour Amortissement (DPA) réduit le revenu imposable canadien. Le calcul est basé sur la Fraction Non Amortie du Coût en Capital (FNACC). Méthode dégressante pour la plupart des classes.',
+        subtitle: 'W-8BEN — Certificat de statut étranger (USA)',
+        description: 'Le W-8BEN (Certificate of Foreign Status of Beneficial Owner) est le formulaire IRS qui certifie que vous êtes un NON-résident américain. Il est essentiel pour réduire ou éliminer la retenue automatique de 30% sur vos revenus de source américaine.',
         steps: [
-          'FNACC début = Coût du bâtiment (terrain exclu, défaut 20%)',
-          'Année 1 : DPA = FNACC × taux × 50% (règle de la demi-année)',
-          'Années suivantes : DPA = FNACC × taux',
-          'La DPA ne peut pas créer une perte locative dans certains cas',
-          'La table cca_schedule (migration 198) stocke l\'historique annuel',
-          'La fonction calculate_cca_estimate() fait le calcul via SQL'
+          'À soumettre à : votre gestionnaire de propriété, votre banque américaine, toute entité qui vous paie des revenus US',
+          'Effet : réduit la retenue à la source de 30% (taux NR standard) → 0% sous la convention Canada-USA pour les revenus d\'intérêts',
+          'Pour les LOYERS : le W-8BEN seul ne suffit pas — il faut combiner avec W-8ECI (voir ci-dessous)',
+          'Validité : 3 ans. À renouveler avant expiration.',
+          'Remplir : Nom, adresse canadienne, NAS ou ITIN, pays de résidence (Canada), article de convention (Article VI pour les loyers)',
+          'Signer et dater. Envoyer en version papier ou électronique selon les exigences du payeur.',
+          'Dans la plateforme : cocher "W-8BEN soumis" + date dans la fiche de la propriété (Gestion des Projets → Modifier)'
         ],
-        note: 'La DPA/CCA est facultative chaque année. Stratégie fiscale : déduire seulement si on a du revenu locatif positif à compenser.'
+        note: 'IMPORTANT : Le W-8BEN ne vous exempte PAS de la retenue sur les loyers. Pour les revenus locatifs, le W-8ECI est le formulaire clé. Le W-8BEN est utile surtout pour les intérêts et dividendes de source américaine.',
+        badge: 'W-8BEN IRS'
+      },
+      {
+        subtitle: 'W-8ECI — Élection ECI (revenus locatifs USA)',
+        description: 'Le W-8ECI (Effectively Connected Income) est le formulaire le plus important pour les propriétaires non-résidents en Floride. Il déclare que vos revenus locatifs sont "effectivement connectés" à un commerce américain, ce qui vous permet d\'être taxé sur le REVENU NET (avec déductions) plutôt que sur le brut.',
+        steps: [
+          'SANS W-8ECI : votre gestionnaire doit retenir 30% sur le LOYER BRUT → vous avez perdu sur les dépenses',
+          'AVEC W-8ECI : retenue ÉLIMINÉE → vous déclarez et payez l\'impôt US sur votre REVENU NET (loyers - dépenses - dépréciation)',
+          'Étape 1 : Obtenir un ITIN (Individual Taxpayer Identification Number) si vous n\'en avez pas — formulaire W-7, ~6-10 semaines de délai',
+          'Étape 2 : Remplir W-8ECI avec votre ITIN et le soumettre à votre gestionnaire immobilier',
+          'Étape 3 : Déposer Form 1040-NR (non-resident alien income tax return) chaque année — échéance 15 juin',
+          'Vous pouvez déduire : intérêts hypothécaires, dépréciation MACRS (27.5 ans résidentiel, 39 ans commercial), réparations, frais de gestion',
+          'Dans la plateforme : saisir la date W-8ECI dans la fiche propriété US',
+          'L\'impôt US net payé génère un crédit T2209 au Canada → pratiquement aucune double imposition'
+        ],
+        note: 'Pour CERDIA avec des propriétés en Floride : W-8ECI + 1040-NR est la stratégie optimale. Les économies sur les déductions (surtout dépréciation MACRS) dépassent largement le coût de préparation du 1040-NR. Consulter un comptable canadien-américain (Serbinski, Altro Associates, etc.).',
+        badge: 'W-8ECI IRS'
+      },
+      {
+        subtitle: 'FIRPTA — Retenue USA à la vente d\'un immeuble',
+        description: 'FIRPTA (Foreign Investment in Real Property Tax Act) impose une retenue obligatoire lors de la vente d\'un bien immobilier américain par un non-résident. C\'est l\'ACHETEUR qui retient et envoie l\'argent à l\'IRS.',
+        steps: [
+          'Taux standard : 15% du PRIX DE VENTE BRUT (pas du gain — du prix total)',
+          'Exemple : vente à 500 000 $ → 75 000 $ retenus par l\'acheteur vers l\'IRS',
+          'Taux réduit 10% : si prix de vente < 1 000 000 $ ET acheteur occupe le bien comme résidence principale',
+          'Form 8288 : l\'acheteur doit soumettre dans les 20 jours suivant la clôture',
+          'Récupération : en déposant Form 1040-NR, vous réclamez le net (retenue - impôt réel sur le gain)',
+          'Si le gain net est inférieur à 15% du prix, vous récupérez la différence (souvent plusieurs mois d\'attente)',
+          'Withholding Certificate (Form 8288-B) : à demander AVANT la clôture si vous prévoyez un remboursement important',
+          'Dans la plateforme TaxReports → T1135 → section FIRPTA : calcul automatique depuis la date de vente'
+        ],
+        note: 'Stratégie : si vous vendez à plus de 1 M$, demandez un Withholding Certificate (Form 8288-B) à l\'IRS avant la clôture pour réduire la retenue au montant réel de l\'impôt. Délai IRS : 90 jours.',
+        badge: 'FIRPTA 15%'
+      },
+      {
+        subtitle: 'IRNR RD — Retenue non-résidents République Dominicaine',
+        description: 'L\'IRNR (Impuesto sobre la Renta de No Residentes) est l\'équivalent dominicain de la retenue pour non-résidents. Taux : 27% sur les revenus locatifs bruts. Le locataire ou gestionnaire retient l\'impôt avant de vous remettre le loyer.',
+        steps: [
+          'Taux : 27% du revenu locatif BRUT pour les non-résidents (Canadiens inclus)',
+          'Retenu par : le locataire (paiement mensuel direct à la DGII) ou votre gestionnaire immobilier',
+          'Déclaration annuelle : IR-2 (déclaration de revenus RD) à déposer avant le 31 mars',
+          'Exonération Confotur : si votre propriété est certifiée Confotur (zone touristique agréée Loi 158-01), l\'IRNR peut être exonéré pendant la période de grâce',
+          'Dans la plateforme : le montant IRNR est estimé automatiquement à 27% pour chaque revenu locatif RD non-Confotur sans impôt étranger saisi',
+          'Saisir l\'IRNR réel retenu dans le champ "Impôt étranger payé" de la transaction → génère le crédit T2209',
+          'Colonne IRNR visible dans le tableau Multi-juridiction (TaxReports)',
+          'L\'IRNR retenu = crédit T2209 réclamable au Canada (ligne 40500)'
+        ],
+        note: 'Pratique CERDIA : votre gestionnaire RD (ex: Century21, réseau local) devrait vous remettre un reçu mensuel de la retenue IRNR. Conservez ces reçus pour appuyer votre T2209 au Canada.',
+        badge: 'IRNR RD 27%'
+      },
+      {
+        subtitle: 'ITBIS RD — TVA sur locations court terme',
+        description: 'L\'ITBIS (Impuesto sobre Transferencias de Bienes Industrializados y Servicios) est la TVA dominicaine à 18%. Elle s\'applique uniquement aux locations touristiques court terme (≤30 nuits). Les locations long terme (résidentielles) en sont exemptées.',
+        steps: [
+          'Taux : 18% sur le montant brut de la location court terme',
+          'Déclenché si : location ≤ 30 nuits ET propriété en RD',
+          'Exonération Confotur : propriétés certifiées Loi 158-01 sont exonérées d\'ITBIS',
+          'Déclaration mensuelle à la DGII (avant le 20 du mois suivant)',
+          'Dans la plateforme : saisir la durée en jours dans la transaction → le système affiche l\'ITBIS estimé',
+          'Champ is_confotur sur la transaction = exonération automatique',
+          'Les plateformes (Airbnb) collectent et versent l\'ITBIS automatiquement en RD depuis 2021'
+        ],
+        note: 'ITBIS ≠ IRNR : ce sont deux obligations distinctes. ITBIS = TVA sur le service (court terme seulement). IRNR = impôt sur le revenu du non-résident (long et court terme).',
+        badge: 'ITBIS 18%'
       },
       {
         subtitle: 'TDT Florida — Tourist Development Tax',
-        description: 'Taxe locale de la Floride sur les locations courtes (≤182 jours). S\'ajoute à la Sales Tax État 6%. Collectée par l\'opérateur et remise mensuellement.',
+        description: 'La TDT est une taxe de comté en Floride sur les locations courtes (≤182 jours). Elle s\'ajoute à la Sales Tax de l\'État de 6%. Les taux varient par comté. La plateforme calcule et sauvegarde automatiquement le montant TDT lors de la saisie d\'une transaction.',
         steps: [
-          'Miami-Dade : TDT 6% + Sales Tax 6% = 12% total',
-          'Orange/Osceola (Orlando/Disney) : TDT 6% + Sales Tax 6% = 12% total',
-          'Pinellas : TDT 6% + Sales Tax 6% = 12% total',
-          'Broward/Hillsborough/Collier/Keys : TDT 5% + Sales Tax 6% = 11% total',
-          'Déclaration mensuelle : Florida Dept. of Revenue + comté séparément',
-          'Les plateformes (Airbnb, VRBO) collectent parfois la taxe automatiquement'
+          'Miami-Dade : TDT 6% + Sales Tax 6% = 12% total sur le loyer brut',
+          'Orange / Osceola (Orlando, Disney) : TDT 6% + Sales Tax 6% = 12% total',
+          'Pinellas (St. Petersburg) : TDT 6% + Sales Tax 6% = 12% total',
+          'Broward / Hillsborough / Collier / Keys : TDT 5% + Sales Tax 6% = 11% total',
+          'Déclaration mensuelle : Florida Dept. of Revenue (DR-15) pour Sales Tax + déclaration comté séparée pour TDT',
+          'Auto-save : quand vous saisissez une transaction pour une propriété FL avec durée ≤182j, county_tdt_amount et county_tdt_rate sont sauvegardés automatiquement',
+          'Airbnb / VRBO collectent parfois la taxe directement (vérifier avec votre gestionnaire)'
         ],
-        badge: 'Florida TDT'
+        note: 'Les plateformes de location (Airbnb) sont "marketplace facilitators" en Floride — elles collectent et remettent Sales Tax + TDT directement depuis 2020. Si vous passez par un gestionnaire privé, c\'est votre responsabilité.',
+        badge: 'TDT Florida'
       },
       {
-        subtitle: 'ITBIS RD — TVA République Dominicaine',
-        description: 'L\'ITBIS (Impuesto sobre Transferencias de Bienes Industrializados y Servicios) est la TVA dominicaine à 18%. S\'applique aux locations touristiques court terme (≤30 nuits).',
+        subtitle: 'CCA / FNACC — Déduction pour amortissement (DPA)',
+        description: 'La CCA (Capital Cost Allowance) est la déduction fiscale canadienne pour l\'usure du bâtiment. Elle réduit votre revenu locatif imposable. Aux USA, l\'équivalent s\'appelle MACRS (Modified Accelerated Cost Recovery System).',
         steps: [
-          'Taux : 18% sur le montant brut de la location',
-          'Exonération Confotur : si la propriété est dans une zone touristique agréée',
-          'IRNR 27% : pour les non-résidents, retenue sur les revenus locatifs',
-          'Déclaration mensuelle à la DGII (Dirección General de Impuestos Internos)',
-          'Le champ is_confotur sur la transaction permet d\'appliquer l\'exonération'
+          'Classe 1 Canada (4%/an) : bâtiment résidentiel ou commercial (95% des propriétés)',
+          'Classe 8 Canada (20%/an) : mobilier, équipements, appareils électroménagers',
+          'Classe 13 Canada (20%/an) : améliorations locatives (renovations d\'un logement loué)',
+          'USA Résidentiel (MACRS 27.5 ans = 3.636%/an) : toute propriété résidentielle US',
+          'USA Commercial (MACRS 39 ans = 2.564%/an) : immeuble à usage commercial US',
+          'Règle de la demi-année (Canada) : l\'année d\'acquisition, seulement 50% du taux normal',
+          'Le terrain n\'est PAS amortissable — exclure 20% du coût total (défaut plateforme)',
+          'DPA optionnelle : vous choisissez chaque année combien déduire (max = calcul CCA)',
+          'Bouton "Sauvegarder en DB" dans TaxReports → T1135 → CCA pour archiver dans cca_schedule'
         ],
-        badge: 'ITBIS RD 18%'
+        note: 'Stratégie : ne déduire la DPA que si vous avez du revenu locatif NET positif. La DPA réduit le coût en capital → au moment de la vente, le gain imposable sera plus grand (récupération d\'amortissement — inclure cela dans votre planification de sortie).',
+        badge: 'CCA / MACRS'
       },
       {
-        subtitle: 'Multi-juridiction — Vue consolidée',
-        description: 'L\'onglet Multi-juridiction du rapport fiscal consolide les obligations par pays, avec les totaux d\'impôts retenus, les ITBIS/TDT estimés, et les crédits T2209 disponibles.',
+        subtitle: 'Multi-juridiction — Vue consolidée et piste d\'audit',
+        description: 'L\'onglet Multi-juridiction du rapport fiscal consolide toutes les obligations fiscales par pays pour l\'année sélectionnée. C\'est la vue de référence pour préparer votre rencontre avec le comptable.',
         steps: [
-          'La résolution du pays se fait depuis : tax_country sur la transaction, OU country_code de la propriété liée, OU devise source (USD→US, DOP→DO)',
-          'Les totaux incluent : impôts retenus, TDT estimée, ITBIS estimé',
-          'Exporter en PDF pour le comptable ou l\'ARC'
-        ]
+          'Colonnes : Pays | Revenu brut | Taxe vente | Impôt État | Retenue NR | IRNR RD | Total estimé | Déjà retenu | Remis | Solde dû | Statut',
+          'Résolution pays : depuis tax_country de la transaction → country_code de la propriété → devise source (USD→US, DOP→DO)',
+          'IRNR RD : colonne dédiée pour les estimations de retenue 27% République Dominicaine',
+          'Statut ✅ = tout est remis | 🟡 = partiel | 🔴 = solde dû',
+          'Pour enregistrer un paiement : créer une transaction DÉPENSE → catégorie fiscale "Remises Fiscales"',
+          'Exporter PDF multi-juridiction pour le comptable ou l\'ARC',
+          'Ajouter les remises dans les transactions pour que le "Solde dû" se mette à zéro'
+        ],
+        note: 'Ce rapport est votre outil principal de conformité fiscale internationale. Viser "Solde dû = 0 $" pour chaque pays avant le 30 avril.'
       }
     ]
   },
