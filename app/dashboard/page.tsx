@@ -54,6 +54,8 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'upcoming' | 'paid' | 'overdue'>('all')
+  const [showPaymentFilterMenu, setShowPaymentFilterMenu] = useState(false)
 
   // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
   const getColorFlag = (dueDate: string, status: string): { color: string; emoji: string; label: string } => {
@@ -812,9 +814,50 @@ export default function DashboardPage() {
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                     <Calendar size={18} className="text-blue-600" />
                     {t('dashboard.paymentCalendar')}
-                    <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">
-                      {upcomingPayments.filter(p => p.color_flag.color !== 'green').length} {t('dashboard.waitingCount')} • {upcomingPayments.filter(p => p.color_flag.color === 'green').length} {t('dashboard.paidCount')}
+                    <span className="text-xs sm:text-sm font-normal text-gray-500">
+                      {upcomingPayments.filter(p => p.color_flag.color === 'red').length > 0 && (
+                        <span className="text-red-600 font-semibold">{upcomingPayments.filter(p => p.color_flag.color === 'red').length} retard</span>
+                      )}
+                      {upcomingPayments.filter(p => p.color_flag.color === 'red').length > 0 && ' • '}
+                      {upcomingPayments.filter(p => p.color_flag.color !== 'green' && p.color_flag.color !== 'red').length} {language === 'fr' ? 'à venir' : 'upcoming'} • {upcomingPayments.filter(p => p.color_flag.color === 'green').length} {t('dashboard.paidCount')}
                     </span>
+                    {/* Filtre hamburger */}
+                    <div className="ml-auto relative">
+                      <button
+                        onClick={() => setShowPaymentFilterMenu(v => !v)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                        title={language === 'fr' ? 'Filtrer les paiements' : 'Filter payments'}
+                      >
+                        <span>
+                          {paymentFilter === 'all' ? '☰ Tous' :
+                           paymentFilter === 'upcoming' ? '🔵 À venir' :
+                           paymentFilter === 'paid' ? '🟢 Payés' : '🔴 En retard'}
+                        </span>
+                        <span className="text-gray-400">▾</span>
+                      </button>
+                      {showPaymentFilterMenu && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowPaymentFilterMenu(false)} />
+                          <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-44 py-1 overflow-hidden text-sm">
+                            {([
+                              { key: 'all', label: '☰ Tous', desc: `${upcomingPayments.length} total` },
+                              { key: 'upcoming', label: '🔵 À venir', desc: `${upcomingPayments.filter(p => p.color_flag.color !== 'green' && p.color_flag.color !== 'red').length} versements` },
+                              { key: 'paid', label: '🟢 Payés', desc: `${upcomingPayments.filter(p => p.color_flag.color === 'green').length} versements` },
+                              { key: 'overdue', label: '🔴 En retard', desc: `${upcomingPayments.filter(p => p.color_flag.color === 'red').length} versements` },
+                            ] as const).map(opt => (
+                              <button
+                                key={opt.key}
+                                onClick={() => { setPaymentFilter(opt.key); setShowPaymentFilterMenu(false) }}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-blue-50 transition-colors ${paymentFilter === opt.key ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'}`}
+                              >
+                                <span>{opt.label}</span>
+                                <span className="text-xs text-gray-400">{opt.desc}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </h3>
 
                   {/* Total des paiements à venir */}
@@ -857,7 +900,12 @@ export default function DashboardPage() {
                   })()}
 
                   <div className="space-y-3">
-                    {upcomingPayments.map((payment) => {
+                    {upcomingPayments.filter(p => {
+                      if (paymentFilter === 'paid') return p.color_flag.color === 'green'
+                      if (paymentFilter === 'overdue') return p.color_flag.color === 'red'
+                      if (paymentFilter === 'upcoming') return p.color_flag.color !== 'green' && p.color_flag.color !== 'red'
+                      return true
+                    }).map((payment) => {
                       const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
                                           payment.color_flag.color === 'orange' ? 'bg-orange-50 border-orange-200' :
                                           payment.color_flag.color === 'green' ? 'bg-green-50 border-green-200' :
