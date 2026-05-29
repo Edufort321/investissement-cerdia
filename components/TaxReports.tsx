@@ -109,6 +109,15 @@ export default function TaxReports() {
   const [canadianTaxableIncome, setCanadianTaxableIncome] = useState<number>(0)
   const [fiscalYearSettings, setFiscalYearSettings] = useState<any>(null)
   const [savingFiscalSettings, setSavingFiscalSettings] = useState(false)
+  // CCA persistence
+  const [savingCCA, setSavingCCA] = useState(false)
+  // T2209 carryback UI
+  const [t2209CarrybackYear, setT2209CarrybackYear] = useState<number>(0)
+  const [t2209CarrybackAmount, setT2209CarrybackAmount] = useState<number>(0)
+  const [t1AdjSubmitted, setT1AdjSubmitted] = useState(false)
+  const [t1AdjDate, setT1AdjDate] = useState('')
+  const [t1AdjRef, setT1AdjRef] = useState('')
+  const [savingCarryback, setSavingCarryback] = useState(false)
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -189,9 +198,19 @@ export default function TaxReports() {
       if (fiscalResult.data) {
         setFiscalYearSettings(fiscalResult.data)
         setCanadianTaxableIncome(fiscalResult.data.canadian_taxable_income || 0)
+        setT2209CarrybackYear(fiscalResult.data.t2209_carryback_year || 0)
+        setT2209CarrybackAmount(fiscalResult.data.t2209_carryback_amount || 0)
+        setT1AdjSubmitted(fiscalResult.data.t1_adj_submitted || false)
+        setT1AdjDate(fiscalResult.data.t1_adj_submission_date || '')
+        setT1AdjRef(fiscalResult.data.t1_adj_reference || '')
       } else {
         setFiscalYearSettings(null)
         setCanadianTaxableIncome(0)
+        setT2209CarrybackYear(0)
+        setT2209CarrybackAmount(0)
+        setT1AdjSubmitted(false)
+        setT1AdjDate('')
+        setT1AdjRef('')
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -348,6 +367,79 @@ export default function TaxReports() {
     }
   }
 
+  const saveCCAToDb = async () => {
+    if (!orgId) return
+    setSavingCCA(true)
+    try {
+      const rows = calculateCCAData()
+      for (const d of rows) {
+        const prop = properties.find(p => p.name === d.propertyName)
+        if (!prop) continue
+        await supabase.from('cca_schedule').upsert({
+          organization_id: orgId,
+          property_id: prop.id,
+          fiscal_year: selectedYear,
+          cca_class: d.ccaClass,
+          cca_rate: (() => {
+            const r: Record<string, number> = { Class1: 0.04, Class8: 0.20, Class13: 0.20, US_Res: 0.03636, US_Com: 0.02564 }
+            return r[d.ccaClass] ?? 0.04
+          })(),
+          ucc_open: Math.round(d.uccOpen * 100) / 100,
+          additions: 0,
+          disposals: 0,
+          half_year_rule_applied: d.isFirstYear,
+          cca_deducted: Math.round(d.ccaThisYear * 100) / 100,
+          ucc_close: Math.round(d.uccClose * 100) / 100,
+          land_allocation_pct: 20,
+          building_cost: Math.round(d.buildingCost * 100) / 100,
+          source: 'calculated',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'property_id,fiscal_year,cca_class' })
+      }
+      alert(`✅ CCA ${selectedYear} sauvegardée pour ${rows.length} propriété(s)`)
+    } catch (err: any) {
+      alert('Erreur: ' + err.message)
+    } finally {
+      setSavingCCA(false)
+    }
+  }
+
+  const saveT2209Carryback = async () => {
+    if (!orgId || !t2209CarrybackYear || !t2209CarrybackAmount) return
+    setSavingCarryback(true)
+    try {
+      const d = t2209Data as any
+      await supabase.from('fiscal_year_settings').upsert({
+        organization_id: orgId,
+        fiscal_year: selectedYear,
+        canadian_taxable_income: canadianTaxableIncome || null,
+        t2209_credit_eligible: d.usableCredit ?? 0,
+        t2209_credit_used: d.usableCredit ?? 0,
+        t2209_carryforward_remaining: d.carryforward ?? 0,
+        t2209_carryback_year: t2209CarrybackYear || null,
+        t2209_carryback_amount: t2209CarrybackAmount || null,
+        t1_adj_submitted: t1AdjSubmitted,
+        t1_adj_submission_date: t1AdjDate || null,
+        t1_adj_reference: t1AdjRef || null,
+        filing_status: t1AdjSubmitted ? 'filed' : 'draft',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'organization_id,fiscal_year' })
+      setFiscalYearSettings((prev: any) => ({
+        ...prev,
+        t2209_carryback_year: t2209CarrybackYear,
+        t2209_carryback_amount: t2209CarrybackAmount,
+        t1_adj_submitted: t1AdjSubmitted,
+        t1_adj_submission_date: t1AdjDate || null,
+        t1_adj_reference: t1AdjRef || null,
+      }))
+      alert('✅ Carryback T2209 sauvegardé')
+    } catch (err: any) {
+      alert('Erreur: ' + err.message)
+    } finally {
+      setSavingCarryback(false)
+    }
+  }
+
   const calculateT2209Data = (): T2209Data => {
     // Group transactions by foreign country (using tax_country or source_country)
     const byCountry = new Map<string, { income: number; taxPaid: number; taxCredit: number }>()
@@ -432,6 +524,7 @@ export default function TaxReports() {
       alreadyWithheld: number  // foreign_tax_paid on revenue transactions (withheld by payer)
       itbisEstimated: number   // ITBIS DR estimé (location court terme)
       tdtEstimated: number     // TDT Florida estimé
+      irnrEstimated: number    // IRNR RD 27% non-résidents (revenus locatifs)
     }>()
 
     filteredTransactions.forEach((t: any) => {
@@ -439,13 +532,16 @@ export default function TaxReports() {
       if (!key) return
       const cur = revenueByCountry.get(key) || {
         transactionCount: 0, totalSalesTax: 0, totalStateTax: 0, totalFederalWithholding: 0,
-        totalGross: 0, alreadyWithheld: 0, itbisEstimated: 0, tdtEstimated: 0,
+        totalGross: 0, alreadyWithheld: 0, itbisEstimated: 0, tdtEstimated: 0, irnrEstimated: 0,
       }
       // Estimer ITBIS DR (18%) pour locations court terme DR sans impôt saisi
       const isRentalIncome = ['loyer', 'loyer_locatif', 'revenu'].includes(t.type)
       const durDays: number = t.rental_duration_days ?? 0
       const itbisEstimate = (key === 'DO' && isRentalIncome && durDays > 0 && durDays <= 30 && !(t.is_confotur))
         ? (Number(t.amount) || 0) * 0.18 : 0
+      // Estimer IRNR RD 27% pour revenus locatifs non-résidents (long terme aussi)
+      const irnrEstimate = (key === 'DO' && isRentalIncome && !(t.is_confotur) && (Number(t.foreign_tax_paid) || 0) === 0)
+        ? (Number(t.amount) || 0) * 0.27 : 0
       // Estimer TDT Florida pour locations court terme
       const prop = t.property_id ? (properties.find(p => p.id === t.property_id) as any) : null
       const countyCode = prop?.county_code ?? null
@@ -465,6 +561,7 @@ export default function TaxReports() {
         alreadyWithheld: cur.alreadyWithheld + (Number(t.foreign_tax_paid) || 0),
         itbisEstimated: cur.itbisEstimated + itbisEstimate,
         tdtEstimated: cur.tdtEstimated + tdtEstimate,
+        irnrEstimated: cur.irnrEstimated + irnrEstimate,
       })
     })
 
@@ -478,9 +575,9 @@ export default function TaxReports() {
     })
 
     const rows = Array.from(revenueByCountry.entries()).map(([code, data]) => {
-      // Inclure ITBIS et TDT dans le total estimé
+      // Inclure ITBIS, TDT et IRNR dans le total estimé
       const totalTaxEstimated = data.totalSalesTax + data.totalStateTax + data.totalFederalWithholding
-        + data.itbisEstimated + data.tdtEstimated
+        + data.itbisEstimated + data.tdtEstimated + data.irnrEstimated
       const alreadyRemitted = remittedByCountry.get(code) || 0
       const netOwing = Math.max(0, totalTaxEstimated - data.alreadyWithheld - alreadyRemitted)
       const status: 'ok' | 'partial' | 'owing' =
@@ -494,6 +591,7 @@ export default function TaxReports() {
         netOwing,
         status,
         filingDeadline: jurisdictionRates.find(r => r.country_code === code)?.filing_deadline_note || null,
+        irnrEstimated: data.irnrEstimated,
       }
     }).sort((a, b) => b.netOwing - a.netOwing)
 
@@ -1694,6 +1792,30 @@ export default function TaxReports() {
             </div>
           )}
 
+          {/* T1135 — Méthode simplifiée vs détaillée */}
+          {(() => {
+            const isSimplified = t1135Data.totalForeignAssets < 250000
+            return (
+              <div className={`rounded-lg border p-3 flex items-center justify-between gap-3 ${isSimplified ? 'bg-teal-50 border-teal-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div>
+                  <p className={`text-sm font-semibold ${isSimplified ? 'text-teal-800' : 'text-amber-800'}`}>
+                    {isSimplified
+                      ? '✅ Méthode simplifiée (Partie A) — Coût total < 250 000 $'
+                      : '⚠️ Méthode détaillée requise (Partie B) — Coût total ≥ 250 000 $'}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${isSimplified ? 'text-teal-600' : 'text-amber-700'}`}>
+                    {isSimplified
+                      ? `Coût total estimé : ${formatCurrency(t1135Data.totalForeignAssets)} — Formulaire T1135 Partie A (simplifié). Valeur max en tout temps de l'année.`
+                      : `Coût total estimé : ${formatCurrency(t1135Data.totalForeignAssets)} — Formulaire T1135 Partie B obligatoire. Détail par propriété, par pays, revenus bruts et gains/pertes.`}
+                  </p>
+                </div>
+                <span className={`shrink-0 px-2 py-1 text-xs font-bold rounded-full ${isSimplified ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {isSimplified ? 'Partie A' : 'Partie B'}
+                </span>
+              </div>
+            )
+          })()}
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
@@ -1880,12 +2002,22 @@ export default function TaxReports() {
       {/* CCA / FNACC — Déduction pour amortissement (T1135) */}
       {activeReport === 'T1135' && ccaData.length > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
-          <h4 className="text-sm font-bold text-green-800 flex items-center gap-2 mb-3">
-            📊 CCA / FNACC — Déduction pour amortissement {selectedYear}
-            <span title="La DPA (déduction pour amortissement) réduit votre revenu locatif imposable. Bâtiment = Class 1 (4%/an), ameublement = Class 8 (20%/an). Règle de la demi-année en année d'acquisition.">
-              <Info size={13} className="text-green-400 cursor-help" />
-            </span>
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-green-800 flex items-center gap-2">
+              📊 CCA / FNACC — Déduction pour amortissement {selectedYear}
+              <span title="La DPA (déduction pour amortissement) réduit votre revenu locatif imposable. Bâtiment = Class 1 (4%/an), ameublement = Class 8 (20%/an). Règle de la demi-année en année d'acquisition.">
+                <Info size={13} className="text-green-400 cursor-help" />
+              </span>
+            </h4>
+            <button
+              onClick={saveCCAToDb}
+              disabled={savingCCA}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              title="Sauvegarder le tableau CCA dans la base de données (table cca_schedule)"
+            >
+              {savingCCA ? '⏳' : '💾'} {savingCCA ? 'Sauvegarde...' : 'Sauvegarder en DB'}
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -2030,6 +2162,125 @@ export default function TaxReports() {
               </p>
             </div>
           </div>
+
+          {/* T2209 Carryback / Carryforward Panel */}
+          {(() => {
+            const d = t2209Data as any
+            const carryforwardPrior = fiscalYearSettings?.t2209_carryforward_remaining ?? 0
+            const savedCarrybackYear = fiscalYearSettings?.t2209_carryback_year
+            const savedT1AdjSubmitted = fiscalYearSettings?.t1_adj_submitted
+            return (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-4">
+                <h4 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                  🔄 Report T2209 — Carryforward / Carryback
+                  <span title="Carryforward : crédits non utilisés reportés aux années suivantes (illimité). Carryback : crédits appliqués à des déclarations antérieures via formulaire T1-ADJ (3 ans max).">
+                    <Info size={13} className="text-indigo-400 cursor-help" />
+                  </span>
+                </h4>
+
+                {/* Résumé carryforward */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-white border border-indigo-100 rounded-lg p-3">
+                    <p className="text-xs text-indigo-600 mb-0.5">Crédit utilisable {selectedYear}</p>
+                    <p className="text-base font-bold text-indigo-900">{formatCurrency(d.usableCredit ?? 0)}</p>
+                  </div>
+                  <div className={`border rounded-lg p-3 ${(d.carryforward ?? 0) > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-indigo-100'}`}>
+                    <p className={`text-xs mb-0.5 ${(d.carryforward ?? 0) > 0 ? 'text-amber-600' : 'text-indigo-600'}`}>Carryforward généré {selectedYear}</p>
+                    <p className={`text-base font-bold ${(d.carryforward ?? 0) > 0 ? 'text-amber-800' : 'text-indigo-900'}`}>{formatCurrency(d.carryforward ?? 0)}</p>
+                    {(d.carryforward ?? 0) > 0 && <p className="text-xs text-amber-500">Reporté aux années suivantes</p>}
+                  </div>
+                  <div className="bg-white border border-indigo-100 rounded-lg p-3">
+                    <p className="text-xs text-indigo-600 mb-0.5">Carryforward d'années antérieures</p>
+                    <p className="text-base font-bold text-indigo-900">{formatCurrency(carryforwardPrior)}</p>
+                    {savedCarrybackYear && <p className="text-xs text-green-600">Carryback appliqué → {savedCarrybackYear}</p>}
+                  </div>
+                </div>
+
+                {/* Formulaire carryback */}
+                <div className="border-t border-indigo-200 pt-4">
+                  <p className="text-xs font-semibold text-indigo-800 mb-3">
+                    Appliquer un carryback (report rétrospectif — T1-ADJ)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Année cible du carryback (N-1 à N-3)</label>
+                      <select
+                        value={t2209CarrybackYear || ''}
+                        onChange={e => setT2209CarrybackYear(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg bg-white"
+                      >
+                        <option value="">— Sélectionner —</option>
+                        {[selectedYear - 1, selectedYear - 2, selectedYear - 3].map(y => (
+                          <option key={y} value={y}>{y} (N-{selectedYear - y})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Montant du carryback (CAD)</label>
+                      <input
+                        type="number"
+                        value={t2209CarrybackAmount || ''}
+                        onChange={e => setT2209CarrybackAmount(parseFloat(e.target.value) || 0)}
+                        placeholder={`Max : ${formatCurrency(d.carryforward ?? 0)}`}
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        min={0}
+                        max={d.carryforward ?? 0}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">T1-ADJ soumis ?</label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={t1AdjSubmitted}
+                          onChange={e => setT1AdjSubmitted(e.target.checked)}
+                          className="w-4 h-4 text-indigo-600"
+                        />
+                        <span className="text-sm text-gray-700">Formulaire T1-ADJ soumis à l'ARC</span>
+                      </label>
+                    </div>
+                    {t1AdjSubmitted && (
+                      <>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Date de soumission</label>
+                          <input
+                            type="date"
+                            value={t1AdjDate}
+                            onChange={e => setT1AdjDate(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Référence ARC (optionnel)</label>
+                          <input
+                            type="text"
+                            value={t1AdjRef}
+                            onChange={e => setT1AdjRef(e.target.value)}
+                            placeholder="Ex: XXXXX-XXXXXX"
+                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={saveT2209Carryback}
+                    disabled={savingCarryback || (!t2209CarrybackYear && !t1AdjSubmitted)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {savingCarryback ? '⏳ Sauvegarde...' : '💾 Sauvegarder le carryback T2209'}
+                  </button>
+                  {savedCarrybackYear && savedT1AdjSubmitted && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                      ✅ T1-ADJ soumis — Carryback {selectedYear} → {savedCarrybackYear} enregistré
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* By Country Table */}
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
