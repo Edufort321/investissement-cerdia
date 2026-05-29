@@ -118,6 +118,7 @@ export default function TaxReports() {
   const [t1AdjDate, setT1AdjDate] = useState('')
   const [t1AdjRef, setT1AdjRef] = useState('')
   const [savingCarryback, setSavingCarryback] = useState(false)
+  const [savingT2209History, setSavingT2209History] = useState(false)
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -437,6 +438,39 @@ export default function TaxReports() {
       alert('Erreur: ' + err.message)
     } finally {
       setSavingCarryback(false)
+    }
+  }
+
+  const saveT2209ToHistory = async () => {
+    if (!orgId) return
+    setSavingT2209History(true)
+    try {
+      const d = t2209Data as any
+      const breakdownJson = (t2209Data.byCountry || []).map((c: any) => ({
+        country: c.country,
+        income_cad: c.income,
+        tax_paid: c.taxPaid,
+        tax_credit: c.taxCredit,
+      }))
+      await supabase.from('foreign_tax_credit_history').upsert({
+        organization_id: orgId,
+        fiscal_year: selectedYear,
+        foreign_income_cad: t2209Data.totalForeignIncome ?? 0,
+        foreign_tax_paid_cad: t2209Data.totalForeignTaxPaid ?? 0,
+        t2209_credit_eligible: d.usableCredit ?? 0,
+        t2209_credit_used: d.usableCredit ?? 0,
+        t2209_credit_unused: d.carryforward ?? 0,
+        carryforward_remaining: d.carryforward ?? 0,
+        breakdown_by_country: breakdownJson.length > 0 ? breakdownJson : null,
+        source: 'calculated',
+        filing_status: t1AdjSubmitted ? 'filed' : 'draft',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'organization_id,fiscal_year' })
+      alert(`✅ Historique T2209 ${selectedYear} sauvegardé`)
+    } catch (err: any) {
+      alert('Erreur: ' + err.message)
+    } finally {
+      setSavingT2209History(false)
     }
   }
 
@@ -2096,13 +2130,23 @@ export default function TaxReports() {
                 </h4>
                 <p className="text-xs text-blue-600 mt-0.5">Requis pour calculer le plafond réel de crédit réclamable (ligne 40500 T2)</p>
               </div>
-              <button
-                onClick={saveFiscalYearSettings}
-                disabled={savingFiscalSettings}
-                className="text-xs px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
-              >
-                {savingFiscalSettings ? '⏳' : '💾 Sauver'}
-              </button>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={saveFiscalYearSettings}
+                  disabled={savingFiscalSettings}
+                  className="text-xs px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingFiscalSettings ? '⏳' : '💾 Sauver'}
+                </button>
+                <button
+                  onClick={saveT2209ToHistory}
+                  disabled={savingT2209History}
+                  className="text-xs px-2.5 py-1.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50"
+                  title="Sauvegarder l'historique annuel T2209 dans foreign_tax_credit_history"
+                >
+                  {savingT2209History ? '⏳' : '📋 Historique'}
+                </button>
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>

@@ -143,6 +143,14 @@ export default function TransactionsTab() {
       ? Math.round(formData.amount * _tdtRate / 100 * 100) / 100 : undefined
     const _autoTdtRate = _autoTdtAmount != null ? _tdtRate : undefined
 
+    // Auto-calcul IRNR RD 27% non-résidents
+    const _isDR = _linkedProp?.country_code === 'DO'
+    const _isConfotur = !!_linkedProp?.is_confotur
+    const _hasForeignTax = (formData.foreign_tax_paid ?? 0) > 0
+    const _autoIrnrAmount = (_isDR && _isRentalIncome && !_isConfotur && !_hasForeignTax && formData.amount > 0)
+      ? Math.round(formData.amount * 0.27 * 100) / 100 : undefined
+    const _autoIrnrRate = _autoIrnrAmount != null ? 27 : undefined
+
     const base = {
       date:                 formData.date,
       type:                 formData.type,
@@ -162,6 +170,8 @@ export default function TransactionsTab() {
       rental_duration_days: formData.rental_duration_days || undefined,
       county_tdt_amount:    _autoTdtAmount,
       county_tdt_rate:      _autoTdtRate,
+      irnr_amount:          _autoIrnrAmount,
+      irnr_rate:            _autoIrnrRate,
     }
 
     try {

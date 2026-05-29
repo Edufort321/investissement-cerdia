@@ -1631,6 +1631,24 @@ export default function ProjetTab() {
                         )
                       })()}
 
+                      {/* Badge W-8BEN (US) */}
+                      {(property as any).country_code === 'US' && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full border font-medium ${(property as any).w8ben_submitted ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}
+                          title={(property as any).w8ben_submitted ? `W-8BEN soumis le ${(property as any).w8ben_submission_date || '—'}` : 'W-8BEN non soumis (FIRPTA)'}
+                        >
+                          {(property as any).w8ben_submitted ? '✅ W-8' : '⚠️ W-8'}
+                        </span>
+                      )}
+
+                      {/* Badge CCA class */}
+                      {(property as any).cca_class && (
+                        <span className="text-xs bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full"
+                          title={`Classe CCA / FNACC : ${(property as any).cca_class}`}
+                        >
+                          {(property as any).cca_class}
+                        </span>
+                      )}
+
                       {/* Menu hamburger */}
                       <div className="relative">
                         <button
