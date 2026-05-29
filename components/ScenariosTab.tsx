@@ -13,7 +13,7 @@ import {
   FileUp, Trash2, Eye, ChevronDown, ChevronUp, AlertCircle, Plus, X, Save, Edit
 } from 'lucide-react'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceDot,
 } from 'recharts'
 import { DropZone } from './DropZone'
@@ -5242,27 +5242,22 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             return (
                               <div className="w-full" style={{ height: 280 }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
-                                    <defs>
-                                      <linearGradient id="roiGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
-                                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0.05} />
-                                      </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                    <XAxis dataKey="year" tick={{ fontSize: 11 }} stroke="#6B7280" />
+                                  <LineChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                                    <XAxis dataKey="year" tick={{ fontSize: 11 }} stroke="#6B7280" tickLine={false} axisLine={false} />
                                     <YAxis
                                       tick={{ fontSize: 11 }}
                                       stroke="#6B7280"
                                       tickFormatter={(v) => `${v}%`}
+                                      tickLine={false}
+                                      axisLine={false}
                                     />
                                     <RechartsTooltip content={<CustomTooltip />} />
-                                    <Area
+                                    <Line
                                       type="monotone"
                                       dataKey="roi"
                                       stroke="#2563EB"
                                       strokeWidth={2.5}
-                                      fill="url(#roiGradient)"
                                       dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#fff' }}
                                       activeDot={{ r: 6 }}
                                     />
@@ -5288,7 +5283,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                         label={{ value: t('scenarios.breakEvenMilestone'), position: 'top', fontSize: 11, fill: '#16A34A' }}
                                       />
                                     )}
-                                  </AreaChart>
+                                  </LineChart>
                                 </ResponsiveContainer>
                               </div>
                             )

@@ -201,6 +201,56 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const [capexReservePct, setCapexReservePct] = useState<number>(20)
   const [distributingDividends, setDistributingDividends] = useState<boolean>(false)
 
+  // Year-end election system
+  type DividendElection = 'cash' | 'reinvest'
+  interface DeclarationDraft {
+    fiscal_year: number
+    declaration_date: string
+    total_amount: number
+    nav_per_share: number
+    notes: string
+  }
+  interface InvestorElection {
+    investor_id: string
+    election: DividendElection
+  }
+  interface DividendDeclaration {
+    id: string
+    fiscal_year: number
+    declaration_date: string
+    total_amount: number
+    nav_per_share: number
+    total_shares: number
+    status: 'draft' | 'elected' | 'executed'
+    notes: string | null
+    executed_at: string | null
+    created_at: string
+    elections?: Array<{
+      id: string
+      investor_id: string
+      investor_shares: number
+      ownership_pct: number
+      dividend_amount: number
+      election: DividendElection
+      shares_issued: number | null
+      t5_issued: boolean
+    }>
+  }
+  const [showDeclarationForm, setShowDeclarationForm] = useState(false)
+  const [declarationDraft, setDeclarationDraft] = useState<DeclarationDraft>({
+    fiscal_year: new Date().getFullYear(),
+    declaration_date: new Date().toISOString().split('T')[0],
+    total_amount: 0,
+    nav_per_share: 0,
+    notes: '',
+  })
+  const [investorElections, setInvestorElections] = useState<Record<string, DividendElection>>({})
+  const [savingDeclaration, setSavingDeclaration] = useState(false)
+  const [executingDeclaration, setExecutingDeclaration] = useState<string | null>(null)
+  const [declarations, setDeclarations] = useState<DividendDeclaration[]>([])
+  const [loadingDeclarations, setLoadingDeclarations] = useState(false)
+  const [expandedDeclaration, setExpandedDeclaration] = useState<string | null>(null)
+
   useEffect(() => {
     if (!showAddTransactionForm) return
     supabase.from('gmail_invoices').select('id,vendor_name,document_date,amount,currency,category')
@@ -316,6 +366,29 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       .limit(1)
       .then(({ data }) => setMonthlyStatus(data && data.length > 0 ? 'ok' : 'late'))
   }, [])
+
+  const fetchDeclarations = async () => {
+    setLoadingDeclarations(true)
+    try {
+      const { data: decls } = await supabase
+        .from('dividend_declarations')
+        .select('*')
+        .order('declaration_date', { ascending: false })
+      if (!decls) return
+      const ids = decls.map((d: any) => d.id)
+      const { data: elecs } = ids.length > 0
+        ? await supabase.from('dividend_investor_elections').select('*').in('declaration_id', ids)
+        : { data: [] }
+      setDeclarations(decls.map((d: any) => ({
+        ...d,
+        elections: (elecs ?? []).filter((e: any) => e.declaration_id === d.id),
+      })))
+    } finally {
+      setLoadingDeclarations(false)
+    }
+  }
+
+  useEffect(() => { fetchDeclarations() }, [])
 
   const fetchDocuments = async (investorId: string) => {
     try {
@@ -4583,6 +4656,676 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     )
   }
 
+  // ── Save declaration draft ──────────────────────────────────────────────
+  const saveDeclaration = async () => {
+    if (declarationDraft.total_amount <= 0 || declarationDraft.nav_per_share <= 0) {
+      alert(fr ? 'Montant total et NAV/part requis.' : 'Total amount and NAV/share required.')
+      return
+    }
+    setSavingDeclaration(true)
+    try {
+      const sharesTotal = investorSummaries.reduce((sum: number, s: any) => sum + (s.total_shares || 0), 0)
+      const { data: decl, error } = await supabase
+        .from('dividend_declarations')
+        .insert({
+          fiscal_year: declarationDraft.fiscal_year,
+          declaration_date: declarationDraft.declaration_date,
+          total_amount: declarationDraft.total_amount,
+          nav_per_share: declarationDraft.nav_per_share,
+          total_shares: sharesTotal,
+          notes: declarationDraft.notes || null,
+          status: 'draft',
+        })
+        .select()
+        .single()
+      if (error) throw error
+
+      // Pre-create elections for all investors (default = cash)
+      const electionsToInsert = investorSummaries.map((s: any) => {
+        const pct = sharesTotal > 0 ? s.total_shares / sharesTotal : 0
+        const amount = Math.round(declarationDraft.total_amount * pct * 100) / 100
+        return {
+          declaration_id: decl.id,
+          investor_id: s.investor_id,
+          investor_shares: s.total_shares,
+          ownership_pct: pct,
+          dividend_amount: amount,
+          election: investorElections[s.investor_id] ?? 'cash',
+        }
+      })
+      if (electionsToInsert.length > 0) {
+        await supabase.from('dividend_investor_elections').insert(electionsToInsert)
+      }
+
+      await fetchDeclarations()
+      setShowDeclarationForm(false)
+      setDeclarationDraft({ fiscal_year: new Date().getFullYear(), declaration_date: new Date().toISOString().split('T')[0], total_amount: 0, nav_per_share: 0, notes: '' })
+      setInvestorElections({})
+      alert(fr ? '✅ Déclaration enregistrée. Les investisseurs peuvent maintenant élire.' : '✅ Declaration saved. Investors can now elect.')
+    } catch (err: any) {
+      alert((fr ? 'Erreur: ' : 'Error: ') + err.message)
+    } finally {
+      setSavingDeclaration(false)
+    }
+  }
+
+  // ── Execute declaration (create transactions + shares) ──────────────────
+  const executeDeclaration = async (decl: any) => {
+    if (!confirm(fr
+      ? `Exécuter la distribution "${decl.fiscal_year}" de ${decl.total_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} ? Cette action est irréversible.`
+      : `Execute "${decl.fiscal_year}" distribution of ${decl.total_amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}? This action is irreversible.`
+    )) return
+
+    setExecutingDeclaration(decl.id)
+    try {
+      const elections = decl.elections ?? []
+      for (const elec of elections) {
+        if (elec.dividend_amount <= 0) continue
+        const inv = investors.find((i: any) => i.id === elec.investor_id)
+        if (!inv) continue
+
+        if (elec.election === 'cash') {
+          const { data: tx } = await supabase.from('transactions').insert({
+            date: decl.declaration_date,
+            type: 'dividende',
+            amount: -Math.round(elec.dividend_amount * 100) / 100,
+            description: `Dividende ${decl.fiscal_year} — ${(elec.ownership_pct * 100).toFixed(2)}% (${elec.investor_shares} parts) — Encaissement`,
+            investor_id: elec.investor_id,
+            category: 'dividende',
+            payment_method: 'virement',
+            status: 'complete',
+            source_currency: 'CAD',
+            exchange_rate: 1.0,
+            fiscal_category: 'dividend_income',
+          }).select().single()
+          await supabase.from('dividend_investor_elections').update({
+            cash_transaction_id: tx?.id,
+            t5_issued: true,
+            elected_at: new Date().toISOString(),
+          }).eq('id', elec.id)
+        } else {
+          // Reinvest: create reinvestissement transaction + new investor_investments row
+          const sharesIssued = Math.round((elec.dividend_amount / decl.nav_per_share) * 1000000) / 1000000
+          const { data: tx } = await supabase.from('transactions').insert({
+            date: decl.declaration_date,
+            type: 'reinvestissement_dividende',
+            amount: -Math.round(elec.dividend_amount * 100) / 100,
+            description: `Réinvestissement dividende ${decl.fiscal_year} — ${sharesIssued.toFixed(4)} parts @ ${decl.nav_per_share.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}/part`,
+            investor_id: elec.investor_id,
+            category: 'reinvestissement',
+            payment_method: 'virement',
+            status: 'complete',
+            source_currency: 'CAD',
+            exchange_rate: 1.0,
+            fiscal_category: 'dividend_income',
+          }).select().single()
+          // Issue new shares
+          await supabase.from('investor_investments').insert({
+            investor_id: elec.investor_id,
+            number_of_shares: sharesIssued,
+            investment_date: decl.declaration_date,
+            amount_invested: elec.dividend_amount,
+            share_price: decl.nav_per_share,
+            notes: `Réinvestissement dividende ${decl.fiscal_year}`,
+            status: 'active',
+          })
+          await supabase.from('dividend_investor_elections').update({
+            shares_issued: sharesIssued,
+            reinvest_transaction_id: tx?.id,
+            t5_issued: true,
+            elected_at: new Date().toISOString(),
+          }).eq('id', elec.id)
+        }
+      }
+
+      // Mark declaration as executed
+      await supabase.from('dividend_declarations').update({
+        status: 'executed',
+        executed_at: new Date().toISOString(),
+      }).eq('id', decl.id)
+
+      await fetchDeclarations()
+      alert(fr ? '✅ Distribution exécutée! Transactions créées, parts émises, T5 marqués.' : '✅ Distribution executed! Transactions created, shares issued, T5 marked.')
+    } catch (err: any) {
+      alert((fr ? 'Erreur: ' : 'Error: ') + err.message)
+    } finally {
+      setExecutingDeclaration(null)
+    }
+  }
+
+  // ── Update single investor election ─────────────────────────────────────
+  const updateElectionInDb = async (declId: string, elecId: string, newElection: 'cash' | 'reinvest') => {
+    await supabase.from('dividend_investor_elections')
+      .update({ election: newElection, elected_at: new Date().toISOString() })
+      .eq('id', elecId)
+    setDeclarations(prev => prev.map(d => d.id !== declId ? d : {
+      ...d,
+      elections: (d.elections ?? []).map(e => e.id === elecId ? { ...e, election: newElection } : e),
+    }))
+  }
+
+  // ── Generate dividend receipt PDF ────────────────────────────────────────
+  const [generatingReceiptFor, setGeneratingReceiptFor] = useState<string | null>(null)
+  const [quarterlyYear, setQuarterlyYear] = useState<number>(new Date().getFullYear())
+  const [quarterlyQ, setQuarterlyQ] = useState<number>(Math.ceil((new Date().getMonth() + 1) / 3))
+  const [generatingQuarterly, setGeneratingQuarterly] = useState<string | null>(null)
+
+  const generateDividendReceipt = async (decl: any, elec: any) => {
+    const inv = investors.find((i: any) => i.id === elec.investor_id)
+    if (!inv) return
+    setGeneratingReceiptFor(elec.id)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      const fmtCAD = (n: number) => n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })
+      const fmtDate = (d: string) => new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      const loadBase64 = async (url: string) => {
+        try {
+          const blob = await (await fetch(url)).blob()
+          return await new Promise<string>((res, rej) => {
+            const r = new FileReader(); r.onloadend = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(blob)
+          })
+        } catch { return '' }
+      }
+
+      const logo = await loadBase64('/logo-cerdia3.png')
+      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+      const receiptNo = `DIV-${decl.fiscal_year}-${inv.last_name?.toUpperCase() ?? 'INV'}-${Date.now().toString().slice(-4)}`
+
+      // ── En-tête ──────────────────────────────────────────────────────────
+      if (logo) {
+        try {
+          const img = new Image()
+          img.src = logo
+          await new Promise(r => { img.onload = r; img.onerror = r })
+          const ratio = img.naturalHeight / (img.naturalWidth || 1)
+          const h = 12; const w = h / ratio
+          doc.addImage(logo, 'PNG', 15, 8, w, h)
+        } catch {}
+      }
+      doc.setFontSize(18); doc.setTextColor(180, 120, 0)
+      doc.text('REÇU DE DISTRIBUTION', 200, 13, { align: 'right' })
+      doc.setFontSize(9); doc.setTextColor(130, 130, 130)
+      doc.text(`N° ${receiptNo}`, 200, 20, { align: 'right' })
+      doc.text(`Émis le : ${today}`, 200, 25, { align: 'right' })
+      doc.setDrawColor(180, 120, 0); doc.setLineWidth(0.8)
+      doc.line(15, 30, 195, 30)
+
+      let y = 37
+
+      // ── Bloc investisseur ────────────────────────────────────────────────
+      doc.setFontSize(10); doc.setTextColor(60, 60, 60)
+      doc.text('Émis à :', 15, y)
+      doc.setFontSize(13); doc.setTextColor(20, 20, 20)
+      doc.text(`${inv.first_name} ${inv.last_name}`, 15, y + 6)
+      doc.setFontSize(9); doc.setTextColor(100, 100, 100)
+      if (inv.email) doc.text(inv.email, 15, y + 12)
+      if ((inv as any).address) doc.text((inv as any).address, 15, y + 17)
+
+      doc.setFontSize(10); doc.setTextColor(60, 60, 60)
+      doc.text('Émetteur :', 120, y)
+      doc.setFontSize(11); doc.setTextColor(20, 20, 20)
+      doc.text('CERDIA SEC', 120, y + 6)
+      doc.setFontSize(9); doc.setTextColor(100, 100, 100)
+      doc.text('eric.dufort@cerdia.ai', 120, y + 12)
+      doc.text('Québec, Canada', 120, y + 17)
+
+      y += 28
+      doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3)
+      doc.line(15, y, 195, y)
+      y += 7
+
+      // ── Détails de la distribution ───────────────────────────────────────
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Détails de la distribution', 15, y); y += 5
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Paramètre', 'Valeur']],
+        body: [
+          ['Année fiscale', String(decl.fiscal_year)],
+          ['Date de déclaration', fmtDate(decl.declaration_date)],
+          ['Montant total de la distribution', fmtCAD(decl.total_amount)],
+          ['NAV par part au moment de la déclaration', fmtCAD(decl.nav_per_share)],
+          ['Parts détenues', elec.investor_shares.toLocaleString('fr-CA', { maximumFractionDigits: 4 })],
+          ['Pourcentage de propriété', (elec.ownership_pct * 100).toFixed(4) + ' %'],
+          ['Montant attribué à cet investisseur', fmtCAD(elec.dividend_amount)],
+          ['Élection', elec.election === 'reinvest'
+            ? `Réinvestissement — ${Number(elec.shares_issued || 0).toFixed(6)} parts nouvelles émises`
+            : 'Encaissement (virement bancaire)'],
+        ],
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [180, 120, 0], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [255, 248, 230] },
+        margin: { left: 15, right: 15 },
+      })
+
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ── Bloc fiscal ──────────────────────────────────────────────────────
+      doc.setFontSize(11); doc.setTextColor(60, 60, 60)
+      doc.text('Obligations fiscales — À déclarer', 15, y); y += 5
+
+      const taxLines: [string, string][] = [
+        ['Formulaire T5 (Dividendes de sociétés canadiennes)',
+          `Oui — montant imposable : ${fmtCAD(elec.dividend_amount)}`],
+        ['Année d\'imposition', String(decl.fiscal_year)],
+        ['Nature du revenu', 'Dividende de société par actions (non déterminé)'],
+        ['Taux de majoration (2024+)', '15 % — montant majoré : ' + fmtCAD(elec.dividend_amount * 1.15)],
+        ['Crédit d\'impôt fédéral pour dividendes', (elec.dividend_amount * 1.15 * 0.090301).toFixed(2) + ' $ CAD'],
+        ['Déclaration requise', 'Annexe 4 (T1 canadien) + relevé provincial si applicable'],
+      ]
+
+      if (elec.election === 'reinvest' && elec.shares_issued) {
+        taxLines.push(
+          ['Prix de base rajusté (PBR) des parts réinvesties',
+            `${fmtCAD(decl.nav_per_share)} × ${Number(elec.shares_issued).toFixed(6)} parts`],
+          ['Rappel', 'Le réinvestissement NE reporte PAS l\'impôt — le T5 est émis dans tous les cas'],
+        )
+      }
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Élément fiscal', 'Détail']],
+        body: taxLines,
+        styles: { fontSize: 8.5, cellPadding: 2.5 },
+        headStyles: { fillColor: [60, 80, 140], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [240, 244, 255] },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 } },
+        margin: { left: 15, right: 15 },
+      })
+
+      y = (doc as any).lastAutoTable.finalY + 8
+
+      // ── Mention légale ───────────────────────────────────────────────────
+      if (y > 240) { doc.addPage(); y = 15 }
+
+      doc.setDrawColor(200, 50, 50); doc.setLineWidth(0.5)
+      doc.rect(15, y, 180, 42, 'S')
+      doc.setFontSize(9); doc.setTextColor(180, 30, 30)
+      doc.text('⚠  AVERTISSEMENT FISCAL ET LÉGAL', 20, y + 6)
+      doc.setFontSize(8); doc.setTextColor(80, 30, 30)
+      const legalText = doc.splitTextToSize([
+        '1. Ce reçu constitue une preuve de distribution et doit être conservé avec vos dossiers fiscaux (minimum 7 ans).',
+        '2. Le montant indiqué doit être déclaré dans votre déclaration de revenus canadienne (T1) pour l\'année fiscale indiquée.',
+        '3. CERDIA SEC émettra le feuillet T5 officiel au plus tard le 28 février de l\'année suivante.',
+        '4. Si vous avez des investissements dans des propriétés situées aux États-Unis ou en République Dominicaine, des obligations fiscales locales peuvent également s\'appliquer (T1135 si > 100 000 $, IRNR RD, etc.).',
+        '5. Consultez un fiscaliste ou comptable agréé (CPA) pour toute question relative à votre situation personnelle.',
+        '6. En cas de réinvestissement, le prix de base rajusté (PBR) de vos nouvelles parts correspond au NAV/part à la date de déclaration.',
+      ].join(' '), 170)
+      doc.text(legalText, 20, y + 13)
+
+      y += 50
+
+      // ── Signature ────────────────────────────────────────────────────────
+      if (y > 260) { doc.addPage(); y = 15 }
+      doc.setFontSize(9); doc.setTextColor(100, 100, 100)
+      doc.text('Signé électroniquement par CERDIA SEC', 15, y)
+      doc.text(`Généré le : ${today}`, 195, y, { align: 'right' })
+
+      doc.save(`CERDIA-Recu-Dividende-${decl.fiscal_year}-${inv.last_name}.pdf`)
+    } catch (err: any) {
+      alert((fr ? 'Erreur PDF: ' : 'PDF Error: ') + err.message)
+    } finally {
+      setGeneratingReceiptFor(null)
+    }
+  }
+
+  // ── Pending report requests (from cron) ─────────────────────────────────
+  const [pendingReportRequests, setPendingReportRequests] = useState<Array<{
+    id: string; investor_id: string; fiscal_year: number; quarter: number
+  }>>([])
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; current: string } | null>(null)
+  const [batchYear, setBatchYear] = useState<number>(new Date().getFullYear())
+
+  useEffect(() => {
+    supabase.from('investor_report_requests')
+      .select('id, investor_id, fiscal_year, quarter')
+      .eq('status', 'pending')
+      .then(({ data }) => setPendingReportRequests(data ?? []))
+  }, [])
+
+  // ── Internal: build one quarterly PDF → return ArrayBuffer ─────────────
+  const _buildQuarterlyPDFBuffer = async (inv: any, year: number, q: number): Promise<ArrayBuffer> => {
+    const jsPDF = (await import('jspdf')).default
+    const autoTable = (await import('jspdf-autotable')).default
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+    const qStart = new Date(year, (q - 1) * 3, 1)
+    const qEnd   = new Date(year, q * 3, 0)
+    const qLabel = `T${q} ${year}`
+    const fmtD   = (d: Date) => d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+    const fmtCAD = (n: number) => n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })
+    const today  = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+
+    const loadBase64 = async (url: string) => {
+      try {
+        const blob = await (await fetch(url)).blob()
+        return await new Promise<string>((res, rej) => {
+          const r = new FileReader(); r.onloadend = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(blob)
+        })
+      } catch { return '' }
+    }
+    const logo = await loadBase64('/logo-cerdia3.png')
+
+    const invTxs = transactions.filter((t: any) =>
+      t.investor_id === inv.id &&
+      new Date(t.date) >= qStart && new Date(t.date) <= qEnd
+    ).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const allTxs = transactions.filter((t: any) =>
+      new Date(t.date) >= qStart && new Date(t.date) <= qEnd
+    )
+
+    const summary = investorSummaries.find((s: any) => s.investor_id === inv.id)
+    const sharesTotal = investorSummaries.reduce((sum: number, s: any) => sum + (s.total_shares || 0), 0)
+    const ownershipPct = sharesTotal > 0 ? (summary?.total_shares ?? 0) / sharesTotal : 0
+
+    const qRevenue = allTxs.filter((t: any) => ['loyer', 'loyer_locatif', 'revenu', 'dividende_recu'].includes(t.type)).reduce((s: number, t: any) => s + Math.abs(t.amount), 0)
+    const qExpense = allTxs.filter((t: any) => ['depense', 'maintenance', 'admin', 'rnd', 'capex'].includes(t.type)).reduce((s: number, t: any) => s + Math.abs(t.amount), 0)
+    const qNet    = qRevenue - qExpense
+
+    const navPerShareCurrent = (navCurrent as any)?.nav_per_share ?? shareSettings?.nominal_share_value ?? 0
+    const investorPortfolioValue = (summary?.total_shares ?? 0) * navPerShareCurrent
+
+    if (logo) {
+      try {
+        const img = new Image(); img.src = logo
+        await new Promise(r => { img.onload = r; img.onerror = r })
+        const ratio = img.naturalHeight / (img.naturalWidth || 1)
+        const h = 12; doc.addImage(logo, 'PNG', 15, 8, h / ratio, h)
+      } catch {}
+    }
+    doc.setFontSize(18); doc.setTextColor(40, 70, 140)
+    doc.text(`RAPPORT TRIMESTRIEL ${qLabel}`, 200, 13, { align: 'right' })
+    doc.setFontSize(9); doc.setTextColor(130, 130, 130)
+    doc.text(`Émis le : ${today}`, 200, 20, { align: 'right' })
+    doc.text(`Période : ${fmtD(qStart)} — ${fmtD(qEnd)}`, 200, 25, { align: 'right' })
+    doc.setDrawColor(40, 70, 140); doc.setLineWidth(0.8); doc.line(15, 30, 195, 30)
+
+    let y = 38
+
+    doc.setFontSize(10); doc.setTextColor(80, 80, 80); doc.text('Investisseur :', 15, y)
+    doc.setFontSize(13); doc.setTextColor(20, 20, 20); doc.text(`${inv.first_name} ${inv.last_name}`, 15, y + 6)
+    doc.setFontSize(9); doc.setTextColor(100, 100, 100)
+    if (inv.email) doc.text(inv.email, 15, y + 12)
+    doc.setFontSize(10); doc.setTextColor(80, 80, 80); doc.text('CERDIA SEC', 120, y + 6)
+    doc.setFontSize(8); doc.setTextColor(100, 100, 100); doc.text('eric.dufort@cerdia.ai', 120, y + 12)
+    y += 24
+    doc.setDrawColor(220, 220, 220); doc.line(15, y, 195, y); y += 7
+
+    doc.setFontSize(11); doc.setTextColor(40, 70, 140); doc.text('Profil de portefeuille', 15, y); y += 5
+    autoTable(doc, {
+      startY: y,
+      head: [['Indicateur', 'Valeur']],
+      body: [
+        ['Parts détenues', (summary?.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 4 })],
+        ['Pourcentage de propriété', (ownershipPct * 100).toFixed(4) + ' %'],
+        ['NAV par part', fmtCAD(navPerShareCurrent)],
+        ['Valeur totale du portefeuille', fmtCAD(investorPortfolioValue)],
+      ],
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [40, 70, 140], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 244, 255] },
+      margin: { left: 15, right: 15 },
+    })
+    y = (doc as any).lastAutoTable.finalY + 8
+
+    doc.setFontSize(11); doc.setTextColor(40, 70, 140)
+    doc.text(`Performance ${qLabel} (portefeuille CERDIA)`, 15, y); y += 5
+    autoTable(doc, {
+      startY: y,
+      head: [['Élément', 'Portefeuille global', `Quote-part ${(ownershipPct * 100).toFixed(2)}%`]],
+      body: [
+        ['Revenus bruts', fmtCAD(qRevenue), fmtCAD(qRevenue * ownershipPct)],
+        ['Dépenses d\'exploitation', fmtCAD(qExpense), fmtCAD(qExpense * ownershipPct)],
+        ['Résultat net', fmtCAD(qNet), fmtCAD(qNet * ownershipPct)],
+      ],
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [40, 100, 60], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 255, 245] },
+      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right', fontStyle: 'bold' } },
+      margin: { left: 15, right: 15 },
+    })
+    y = (doc as any).lastAutoTable.finalY + 8
+
+    if (invTxs.length > 0) {
+      if (y > 200) { doc.addPage(); y = 15 }
+      doc.setFontSize(11); doc.setTextColor(40, 70, 140)
+      doc.text(`Vos transactions ${qLabel}`, 15, y); y += 5
+      autoTable(doc, {
+        startY: y,
+        head: [['Date', 'Description', 'Type', 'Montant (CAD)']],
+        body: invTxs.map((t: any) => [
+          new Date(t.date).toLocaleDateString('fr-CA'),
+          t.description || '—',
+          t.type || '—',
+          (t.amount < 0 ? '(' : '') + fmtCAD(Math.abs(t.amount)) + (t.amount < 0 ? ')' : ''),
+        ]),
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        headStyles: { fillColor: [40, 70, 140], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 255] },
+        columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } },
+        margin: { left: 15, right: 15 },
+      })
+      y = (doc as any).lastAutoTable.finalY + 8
+    }
+
+    if (y > 230) { doc.addPage(); y = 15 }
+    doc.setDrawColor(180, 100, 0); doc.setLineWidth(0.4); doc.rect(15, y, 180, 36, 'S')
+    doc.setFontSize(9); doc.setTextColor(140, 70, 0); doc.text('NOTE FISCALE TRIMESTRIELLE', 20, y + 6)
+    doc.setFontSize(8); doc.setTextColor(80, 50, 0)
+    const fiscalNote = doc.splitTextToSize([
+      'Ce rapport est fourni à titre informatif. Les revenus de source étrangère (RD, USA) peuvent être assujettis à une retenue à la source locale.',
+      'Si la juste valeur marchande de vos biens étrangers dépasse 100 000 $ CAD, le formulaire T1135 est requis.',
+      'Conservez ce rapport avec vos dossiers fiscaux. Consultez votre comptable (CPA) pour toute question fiscale.',
+    ].join(' '), 170)
+    doc.text(fiscalNote, 20, y + 13)
+    doc.setFontSize(8); doc.setTextColor(160, 160, 160)
+    doc.text('CERDIA SEC — Rapport confidentiel — À usage fiscal uniquement', 105, 287, { align: 'center' })
+
+    return doc.output('arraybuffer')
+  }
+
+  // ── Quarterly investor report PDF ───────────────────────────────────────
+  const generateQuarterlyReport = async (
+    investorId: string,
+    opts?: { year?: number; q?: number; requestId?: string; saveOnly?: boolean }
+  ): Promise<boolean> => {
+    const inv = investors.find((i: any) => i.id === investorId)
+    if (!inv) return false
+
+    const year = opts?.year ?? quarterlyYear
+    const q    = opts?.q    ?? quarterlyQ
+
+    if (!opts?.saveOnly) setGeneratingQuarterly(investorId + '-' + year + '-' + q)
+    try {
+      const qLabel = `T${q} ${year}`
+
+      // ── Build PDF via shared helper ──────────────────────────────────────
+      const pdfBuffer = await _buildQuarterlyPDFBuffer(inv, year, q)
+
+      // ── Sauvegarde dans Storage + historique investisseur ────────────────
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const formData = new FormData()
+      formData.append('pdf', pdfBlob, `CERDIA-Rapport-${qLabel}-${inv.last_name}.pdf`)
+      formData.append('investor_id', investorId)
+      formData.append('investor_name', `${inv.first_name} ${inv.last_name}`)
+      formData.append('fiscal_year', String(year))
+      formData.append('quarter', String(q))
+      if (opts?.requestId) formData.append('request_id', opts.requestId)
+
+      const res = await fetch('/api/investors/save-report', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(err.error)
+      }
+
+      // Télécharge aussi localement (sauf en mode batch silencieux)
+      if (!opts?.saveOnly) {
+        const url = URL.createObjectURL(pdfBlob)
+        const a = document.createElement('a')
+        a.href = url; a.download = `CERDIA-Rapport-${qLabel}-${inv.last_name}.pdf`; a.click()
+        URL.revokeObjectURL(url)
+      }
+
+      return true
+    } catch (err: any) {
+      if (!opts?.saveOnly) alert('Erreur PDF: ' + err.message)
+      return false
+    } finally {
+      if (!opts?.saveOnly) setGeneratingQuarterly(null)
+    }
+  }
+
+  // ── Batch: generate all 4 quarters for all investors in a year ──────────
+  const generateAllYearReports = async () => {
+    const activeInvestors = investors.filter((inv: any) =>
+      investorSummaries.some((s: any) => s.investor_id === inv.id && (s.total_shares || 0) > 0)
+    )
+    const total = activeInvestors.length * 4
+    setBatchProgress({ done: 0, total, current: '' })
+
+    let done = 0
+    for (const q of [1, 2, 3, 4]) {
+      for (const inv of activeInvestors) {
+        setBatchProgress({ done, total, current: `T${q} — ${inv.first_name} ${inv.last_name}` })
+        await generateQuarterlyReport(inv.id, { year: batchYear, q, saveOnly: true })
+        done++
+        setBatchProgress({ done, total, current: `T${q} — ${inv.first_name} ${inv.last_name}` })
+        // Small delay to avoid overwhelming the server
+        await new Promise(r => setTimeout(r, 300))
+      }
+    }
+    setBatchProgress(null)
+    alert(fr
+      ? `✅ ${total} rapports générés et sauvegardés dans l'historique des investisseurs.`
+      : `✅ ${total} reports generated and saved to investor history.`)
+  }
+
+  // ── Generate pending reports from cron ──────────────────────────────────
+  const generatePendingReports = async () => {
+    if (pendingReportRequests.length === 0) return
+    setBatchProgress({ done: 0, total: pendingReportRequests.length, current: '' })
+    let done = 0
+    for (const req of pendingReportRequests) {
+      const inv = investors.find((i: any) => i.id === req.investor_id)
+      setBatchProgress({ done, total: pendingReportRequests.length, current: inv ? `T${req.quarter} ${req.fiscal_year} — ${inv.first_name} ${inv.last_name}` : req.investor_id })
+      await generateQuarterlyReport(req.investor_id, {
+        year: req.fiscal_year,
+        q: req.quarter,
+        requestId: req.id,
+        saveOnly: true,
+      })
+      done++
+      await new Promise(r => setTimeout(r, 300))
+    }
+    setPendingReportRequests([])
+    setBatchProgress(null)
+    alert(fr ? `✅ ${done} rapports en attente générés.` : `✅ ${done} pending reports generated.`)
+  }
+
+  // ── Bundle annuel par investisseur (ZIP T1+T2+T3+T4) ────────────────────
+  const [generatingBundle, setGeneratingBundle] = useState<string | null>(null)
+  const [bundleAllYear, setBundleAllYear] = useState<number>(new Date().getFullYear())
+  const [generatingBundleAll, setGeneratingBundleAll] = useState(false)
+
+  const generateInvestorBundle = async (investorId: string, year: number) => {
+    const inv = investors.find((i: any) => i.id === investorId)
+    if (!inv) return
+    setGeneratingBundle(investorId)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      const lastName = (inv.last_name || 'INV').toUpperCase()
+
+      // Génère T1→T4 et les ajoute au ZIP + sauvegarde dans historique
+      for (const q of [1, 2, 3, 4] as const) {
+        const buffer = await _buildQuarterlyPDFBuffer(inv, year, q)
+        const filename = `CERDIA-T${q}-${year}-${lastName}.pdf`
+        zip.file(filename, buffer)
+
+        // Sauvegarde aussi dans l'historique investisseur
+        const blob = new Blob([buffer], { type: 'application/pdf' })
+        const fd = new FormData()
+        fd.append('pdf', blob, filename)
+        fd.append('investor_id', investorId)
+        fd.append('investor_name', `${inv.first_name} ${inv.last_name}`)
+        fd.append('fiscal_year', String(year))
+        fd.append('quarter', String(q))
+        await fetch('/api/investors/save-report', { method: 'POST', body: fd }).catch(() => {})
+      }
+
+      // Télécharge le ZIP
+      const zipBuffer = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } })
+      const url = URL.createObjectURL(new Blob([zipBuffer], { type: 'application/zip' }))
+      const a = document.createElement('a')
+      a.href = url; a.download = `CERDIA-Bundle-${year}-${lastName}.zip`; a.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert('Erreur bundle: ' + err.message)
+    } finally {
+      setGeneratingBundle(null)
+    }
+  }
+
+  const generateAllBundles = async () => {
+    const activeInvestors = investors.filter((inv: any) =>
+      investorSummaries.some((s: any) => s.investor_id === inv.id && (s.total_shares || 0) > 0)
+    ).sort((a: any, b: any) => {
+      const sA = investorSummaries.find((s: any) => s.investor_id === a.id)?.total_shares ?? 0
+      const sB = investorSummaries.find((s: any) => s.investor_id === b.id)?.total_shares ?? 0
+      return sB - sA
+    })
+
+    setGeneratingBundleAll(true)
+    const total = activeInvestors.length * 4
+    setBatchProgress({ done: 0, total, current: '' })
+    try {
+      const JSZip = (await import('jszip')).default
+
+      let done = 0
+      for (const inv of activeInvestors) {
+        const lastName = (inv.last_name || 'INV').toUpperCase()
+        const zip = new JSZip()
+
+        for (const q of [1, 2, 3, 4] as const) {
+          setBatchProgress({ done, total, current: `T${q} — ${inv.first_name} ${inv.last_name}` })
+          const bufferReal = await _buildQuarterlyPDFBuffer(inv, bundleAllYear, q)
+          const filename = `CERDIA-T${q}-${bundleAllYear}-${lastName}.pdf`
+          zip.file(filename, bufferReal)
+
+          const blob = new Blob([bufferReal], { type: 'application/pdf' })
+          const fd = new FormData()
+          fd.append('pdf', blob, filename)
+          fd.append('investor_id', inv.id)
+          fd.append('investor_name', `${inv.first_name} ${inv.last_name}`)
+          fd.append('fiscal_year', String(bundleAllYear))
+          fd.append('quarter', String(q))
+          await fetch('/api/investors/save-report', { method: 'POST', body: fd }).catch(() => {})
+
+          done++
+          setBatchProgress({ done, total, current: `T${q} — ${inv.first_name} ${inv.last_name}` })
+          await new Promise(r => setTimeout(r, 200))
+        }
+
+        // Download this investor's ZIP immediately
+        const zipBuffer = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } })
+        const url = URL.createObjectURL(new Blob([zipBuffer], { type: 'application/zip' }))
+        const a = document.createElement('a'); a.href = url
+        a.download = `CERDIA-Bundle-${bundleAllYear}-${lastName}.zip`; a.click()
+        URL.revokeObjectURL(url)
+        await new Promise(r => setTimeout(r, 500))
+      }
+    } finally {
+      setBatchProgress(null)
+      setGeneratingBundleAll(false)
+    }
+  }
+
   const renderRdDividendesTab = () => {
     // ── Données R&D ───────────────────────────────────────────────────────
     const totalInvestmentRnd = rndAccounts.reduce((sum, acc) => sum + (acc.investment_capex || 0), 0)
@@ -4680,8 +5423,336 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     const fmtCAD = (n: number) => n.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })
     const fmtPct = (n: number) => (n * 100).toFixed(2) + '%'
 
+    const navPerShare = (navCurrent as any)?.nav_per_share ?? shareSettings?.nominal_share_value ?? 0
+
     return (
       <div className="space-y-6">
+
+        {/* ── Fin d'année — Profil & Élection ─────────────────────────────── */}
+        <div className="bg-white rounded-xl shadow-md border border-amber-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🏦</span>
+                {fr ? 'Profil de fin d\'année — Distribution & Réinvestissement' : 'Year-end Profile — Distribution & Reinvestment'}
+              </h3>
+              <p className="text-amber-100 text-sm mt-1">
+                {fr ? 'Déclarez un dividende, recueillez les élections (encaissement ou réinvestissement), puis exécutez.' : 'Declare a dividend, collect elections (cash or reinvest), then execute.'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDeclarationForm(!showDeclarationForm)}
+              className="px-4 py-2 bg-white text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-50 transition-colors"
+            >
+              {showDeclarationForm ? (fr ? '✕ Fermer' : '✕ Close') : (fr ? '+ Nouvelle déclaration' : '+ New declaration')}
+            </button>
+          </div>
+
+          {/* ── Formulaire de déclaration ── */}
+          {showDeclarationForm && (
+            <div className="p-6 border-b border-amber-100 bg-amber-50 space-y-4">
+              <h4 className="text-sm font-semibold text-amber-900">{fr ? 'Paramètres de la déclaration' : 'Declaration parameters'}</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Année fiscale' : 'Fiscal year'}</label>
+                  <select
+                    value={declarationDraft.fiscal_year}
+                    onChange={e => setDeclarationDraft({ ...declarationDraft, fiscal_year: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Date de déclaration' : 'Declaration date'}</label>
+                  <input
+                    type="date"
+                    value={declarationDraft.declaration_date}
+                    onChange={e => setDeclarationDraft({ ...declarationDraft, declaration_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Montant total (CAD)' : 'Total amount (CAD)'}</label>
+                  <input
+                    type="number"
+                    value={declarationDraft.total_amount || ''}
+                    onChange={e => setDeclarationDraft({ ...declarationDraft, total_amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Ex: 30000"
+                    min={0} step={100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {fr ? 'NAV/part (CAD)' : 'NAV/share (CAD)'}
+                    {navPerShare > 0 && (
+                      <button
+                        onClick={() => setDeclarationDraft({ ...declarationDraft, nav_per_share: navPerShare })}
+                        className="ml-2 text-amber-600 underline text-xs"
+                      >
+                        {fr ? `Utiliser NAV actuel (${navPerShare.toFixed(2)})` : `Use current NAV (${navPerShare.toFixed(2)})`}
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    value={declarationDraft.nav_per_share || ''}
+                    onChange={e => setDeclarationDraft({ ...declarationDraft, nav_per_share: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Ex: 1250.00"
+                    min={0} step={0.01}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{fr ? 'Notes internes' : 'Internal notes'}</label>
+                <input
+                  type="text"
+                  value={declarationDraft.notes}
+                  onChange={e => setDeclarationDraft({ ...declarationDraft, notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder={fr ? 'Ex: Distribution fin 2025 — revenu net locatif DR+FL' : 'Ex: 2025 year-end — rental net income DR+FL'}
+                />
+              </div>
+
+              {/* Répartition prévisionnelle + élections initiales */}
+              {declarationDraft.total_amount > 0 && declarationDraft.nav_per_share > 0 && investorSummaries.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">{fr ? 'Élections par investisseur' : 'Per-investor elections'}</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-amber-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-amber-800">{fr ? 'Investisseur' : 'Investor'}</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-amber-800">{fr ? 'Parts' : 'Shares'}</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-amber-800">%</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-amber-800">{fr ? 'Dividende' : 'Dividend'}</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-amber-800">{fr ? 'Parts si rénv.' : 'Shares if reinv.'}</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-amber-800">{fr ? 'Élection' : 'Election'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {investorSummaries.filter(s => (s.total_shares || 0) > 0).map(s => {
+                          const inv = investors.find((i: any) => i.id === s.investor_id)
+                          const pct = totalShares > 0 ? s.total_shares / totalShares : 0
+                          const amount = Math.round(declarationDraft.total_amount * pct * 100) / 100
+                          const newShares = declarationDraft.nav_per_share > 0 ? amount / declarationDraft.nav_per_share : 0
+                          const election = investorElections[s.investor_id] ?? 'cash'
+                          return (
+                            <tr key={s.investor_id} className={`hover:bg-amber-50 ${election === 'reinvest' ? 'bg-green-50' : ''}`}>
+                              <td className="px-3 py-2 font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : s.investor_id}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{s.total_shares.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-right"><span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">{(pct * 100).toFixed(2)}%</span></td>
+                              <td className="px-3 py-2 text-right font-bold text-amber-700">{amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</td>
+                              <td className="px-3 py-2 text-right text-green-700">{election === 'reinvest' ? `+${newShares.toFixed(4)}` : '—'}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex gap-2 justify-center">
+                                  <button
+                                    onClick={() => setInvestorElections(prev => ({ ...prev, [s.investor_id]: 'cash' }))}
+                                    className={`px-2 py-1 text-xs rounded-lg border font-medium transition-colors ${election === 'cash' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
+                                  >
+                                    {fr ? 'Encaissement' : 'Cash'}
+                                  </button>
+                                  <button
+                                    onClick={() => setInvestorElections(prev => ({ ...prev, [s.investor_id]: 'reinvest' }))}
+                                    className={`px-2 py-1 text-xs rounded-lg border font-medium transition-colors ${election === 'reinvest' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}
+                                  >
+                                    {fr ? 'Réinvestir' : 'Reinvest'}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot className="bg-gray-50">
+                        <tr>
+                          <td className="px-3 py-2 text-xs font-bold text-gray-700" colSpan={3}>{fr ? 'Total' : 'Total'}</td>
+                          <td className="px-3 py-2 text-right text-xs font-bold text-amber-800">
+                            {declarationDraft.total_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}
+                          </td>
+                          <td colSpan={2} className="px-3 py-2 text-right text-xs text-gray-500">
+                            {fr ? '⚠️ T5 émis dans tous les cas (réinvestissement = report d\'impôt NON permis au Canada)' : '⚠️ T5 issued in all cases (reinvestment ≠ tax deferral under Canadian law)'}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={saveDeclaration}
+                  disabled={savingDeclaration || declarationDraft.total_amount <= 0 || declarationDraft.nav_per_share <= 0}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors flex items-center gap-2"
+                >
+                  {savingDeclaration ? <><span className="animate-spin">⟳</span> {fr ? 'Enregistrement...' : 'Saving...'}</> : <><span>💾</span> {fr ? 'Enregistrer la déclaration' : 'Save declaration'}</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Historique des déclarations ── */}
+          <div className="p-6 space-y-4">
+            {loadingDeclarations ? (
+              <div className="text-center py-6 text-gray-400 text-sm">{fr ? 'Chargement...' : 'Loading...'}</div>
+            ) : declarations.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <span className="text-4xl block mb-3">📋</span>
+                <p className="text-sm">{fr ? 'Aucune déclaration — utilisez le bouton + ci-dessus.' : 'No declarations yet — use the + button above.'}</p>
+              </div>
+            ) : (
+              declarations.map(decl => {
+                const cashAmt = (decl.elections ?? []).filter(e => e.election === 'cash').reduce((s, e) => s + e.dividend_amount, 0)
+                const reinvestAmt = (decl.elections ?? []).filter(e => e.election === 'reinvest').reduce((s, e) => s + e.dividend_amount, 0)
+                const isOpen = expandedDeclaration === decl.id
+                const statusColors: Record<string, string> = {
+                  draft: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                  elected: 'bg-blue-100 text-blue-800 border-blue-200',
+                  executed: 'bg-green-100 text-green-800 border-green-200',
+                }
+                const statusLabels: Record<string, string> = {
+                  draft: fr ? 'Brouillon' : 'Draft',
+                  elected: fr ? 'Élu' : 'Elected',
+                  executed: fr ? 'Exécuté' : 'Executed',
+                }
+                return (
+                  <div key={decl.id} className="border border-amber-200 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDeclaration(isOpen ? null : decl.id)}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-amber-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">
+                            {fr ? `Dividende ${decl.fiscal_year}` : `Dividend ${decl.fiscal_year}`}
+                            {' — '}
+                            {decl.total_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {new Date(decl.declaration_date).toLocaleDateString('fr-CA')}
+                            {' · '}
+                            {fr ? `NAV: ${decl.nav_per_share.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}/part` : `NAV: ${decl.nav_per_share.toFixed(2)}/share`}
+                            {' · '}
+                            {(decl.elections ?? []).length} {fr ? 'investisseur(s)' : 'investor(s)'}
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[decl.status]}`}>
+                          {statusLabels[decl.status]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-xs">
+                          <div className="text-blue-600 font-medium">{fr ? 'Encaissement' : 'Cash'}: {cashAmt.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}</div>
+                          <div className="text-green-600 font-medium">{fr ? 'Réinv.' : 'Reinv.'}: {reinvestAmt.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}</div>
+                        </div>
+                        <span className="text-gray-400">{isOpen ? '▲' : '▼'}</span>
+                      </div>
+                    </button>
+
+                    {isOpen && (
+                      <div className="border-t border-amber-100 p-5 bg-white space-y-4">
+                        {decl.notes && <p className="text-xs text-gray-500 italic">{decl.notes}</p>}
+
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-amber-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-amber-700">{fr ? 'Investisseur' : 'Investor'}</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-amber-700">{fr ? 'Parts' : 'Shares'}</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-amber-700">%</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-amber-700">{fr ? 'Dividende' : 'Dividend'}</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-amber-700">{fr ? 'Décision' : 'Decision'}</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-amber-700">{fr ? 'Parts émises' : 'Shares issued'}</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-amber-700">T5</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-amber-700">{fr ? 'Reçu' : 'Receipt'}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {(decl.elections ?? []).map(elec => {
+                                const inv = investors.find((i: any) => i.id === elec.investor_id)
+                                return (
+                                  <tr key={elec.id} className="hover:bg-amber-50">
+                                    <td className="px-3 py-2 font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : elec.investor_id}</td>
+                                    <td className="px-3 py-2 text-right text-gray-600">{elec.investor_shares.toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right"><span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">{(elec.ownership_pct * 100).toFixed(2)}%</span></td>
+                                    <td className="px-3 py-2 text-right font-bold text-amber-700">{elec.dividend_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</td>
+                                    <td className="px-3 py-2 text-center">
+                                      {decl.status === 'executed' ? (
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${elec.election === 'reinvest' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                                          {elec.election === 'reinvest' ? (fr ? 'Réinvesti' : 'Reinvested') : (fr ? 'Encaissé' : 'Cashed')}
+                                        </span>
+                                      ) : (
+                                        <div className="flex gap-1 justify-center">
+                                          <button
+                                            onClick={() => updateElectionInDb(decl.id, elec.id, 'cash')}
+                                            className={`px-2 py-0.5 text-xs rounded border font-medium ${elec.election === 'cash' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}`}
+                                          >{fr ? 'Encaissement' : 'Cash'}</button>
+                                          <button
+                                            onClick={() => updateElectionInDb(decl.id, elec.id, 'reinvest')}
+                                            className={`px-2 py-0.5 text-xs rounded border font-medium ${elec.election === 'reinvest' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-300'}`}
+                                          >{fr ? 'Réinvestir' : 'Reinvest'}</button>
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-green-700 text-xs">
+                                      {elec.shares_issued ? `+${Number(elec.shares_issued).toFixed(4)}` : '—'}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      {elec.t5_issued ? <span className="text-green-600 text-xs font-bold">✓</span> : <span className="text-gray-300 text-xs">—</span>}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <button
+                                        onClick={() => generateDividendReceipt(decl, elec)}
+                                        disabled={generatingReceiptFor === elec.id}
+                                        className="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 rounded font-medium transition-colors disabled:opacity-50"
+                                        title={fr ? 'Générer le reçu PDF' : 'Generate PDF receipt'}
+                                      >
+                                        {generatingReceiptFor === elec.id ? '⟳' : '📄 PDF'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {decl.status !== 'executed' && (
+                          <div className="flex justify-end gap-3">
+                            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 max-w-sm">
+                              {fr
+                                ? '⚠️ Le T5 est émis dans tous les cas — le réinvestissement n\'est PAS un report d\'impôt au Canada.'
+                                : '⚠️ T5 is issued in all cases — reinvestment is NOT a tax deferral under Canadian law.'}
+                            </div>
+                            <button
+                              onClick={() => executeDeclaration(decl)}
+                              disabled={executingDeclaration === decl.id}
+                              className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors flex items-center gap-2"
+                            >
+                              {executingDeclaration === decl.id
+                                ? <><span className="animate-spin">⟳</span> {fr ? 'Exécution...' : 'Executing...'}</>
+                                : <><span>▶</span> {fr ? 'Exécuter la distribution' : 'Execute distribution'}</>}
+                            </button>
+                          </div>
+                        )}
+
+                        {decl.status === 'executed' && decl.executed_at && (
+                          <p className="text-xs text-green-600 text-right">
+                            ✅ {fr ? `Exécuté le ${new Date(decl.executed_at).toLocaleDateString('fr-CA')}` : `Executed on ${new Date(decl.executed_at).toLocaleDateString('en-CA')}`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
 
         {/* ── Simulateur de distribution intelligente ── */}
         <div className="bg-white rounded-xl shadow-md border border-purple-100 overflow-hidden">
@@ -4995,6 +6066,316 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             </>
           )}
         </div>
+
+        {/* ── Rapport trimestriel PDF ────────────────────────────────────── */}
+        <div className="bg-white rounded-xl shadow-md border border-blue-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span>📊</span>
+              {fr ? 'Rapports trimestriels — Investisseurs' : 'Quarterly Reports — Investors'}
+            </h3>
+            <p className="text-blue-200 text-sm mt-1">
+              {fr
+                ? 'PDF sauvegardé dans l\'historique de chaque investisseur · KPIs · Performance · Transactions · Notes fiscales'
+                : 'PDF saved to each investor\'s history · KPIs · Performance · Transactions · Tax notes'}
+            </p>
+          </div>
+
+          <div className="p-5 space-y-5">
+
+            {/* ── Bannière rapports en attente (cron) ── */}
+            {pendingReportRequests.length > 0 && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-amber-900">
+                    🔔 {pendingReportRequests.length} {fr ? 'rapport(s) trimestriel(s) en attente de génération' : 'quarterly report(s) pending generation'}
+                  </div>
+                  <div className="text-xs text-amber-700 mt-0.5">
+                    {fr ? 'Créés automatiquement par le cron trimestriel Vercel' : 'Created automatically by Vercel quarterly cron'}
+                  </div>
+                </div>
+                <button
+                  onClick={generatePendingReports}
+                  disabled={!!batchProgress}
+                  className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  {fr ? 'Générer maintenant' : 'Generate now'}
+                </button>
+              </div>
+            )}
+
+            {/* ── Barre de progression batch ── */}
+            {batchProgress && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-xs text-blue-800 font-medium">
+                  <span>{fr ? 'Génération en cours...' : 'Generating...'} {batchProgress.done} / {batchProgress.total}</span>
+                  <span>{Math.round(batchProgress.done / batchProgress.total * 100)}%</span>
+                </div>
+                <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-2 bg-blue-600 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round(batchProgress.done / batchProgress.total * 100)}%` }}
+                  />
+                </div>
+                {batchProgress.current && (
+                  <div className="text-xs text-blue-600 truncate">📄 {batchProgress.current}</div>
+                )}
+              </div>
+            )}
+
+            {/* ── Mode : Année complète × tous (4 trimestres) ── */}
+            <div className="border border-indigo-200 rounded-xl bg-indigo-50/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🗓️</span>
+                <div>
+                  <div className="text-sm font-semibold text-indigo-900">
+                    {fr ? 'Générer l\'année complète — 4 trimestres × tous les investisseurs' : 'Generate full year — 4 quarters × all investors'}
+                  </div>
+                  <div className="text-xs text-indigo-600">
+                    {fr ? 'Rapports classés T1→T4, sauvegardés dans l\'historique de chaque investisseur. Aucun téléchargement local.' : 'Reports sorted T1→T4, saved to each investor\'s history. No local download.'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-indigo-700 mb-1">{fr ? 'Année fiscale' : 'Fiscal year'}</label>
+                  <select
+                    value={batchYear}
+                    onChange={e => setBatchYear(Number(e.target.value))}
+                    className="px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
+                    disabled={!!batchProgress}
+                  >
+                    {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="text-xs text-indigo-500 pb-2">
+                  {(() => {
+                    const activeCount = investors.filter((inv: any) =>
+                      investorSummaries.some((s: any) => s.investor_id === inv.id && (s.total_shares || 0) > 0)
+                    ).length
+                    return `${activeCount} ${fr ? 'investisseur(s)' : 'investor(s)'} × 4 = ${activeCount * 4} ${fr ? 'rapports' : 'reports'}`
+                  })()}
+                </div>
+                <button
+                  onClick={generateAllYearReports}
+                  disabled={!!batchProgress}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {batchProgress
+                    ? <><span className="animate-spin">⟳</span> {fr ? 'En cours...' : 'In progress...'}</>
+                    : <><span>🚀</span> {fr ? `Générer tous les rapports ${batchYear}` : `Generate all ${batchYear} reports`}</>}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Mode : Trimestre individuel ── */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{fr ? 'Année' : 'Year'}</label>
+                  <select
+                    value={quarterlyYear}
+                    onChange={e => setQuarterlyYear(Number(e.target.value))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    disabled={!!batchProgress}
+                  >
+                    {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{fr ? 'Trimestre' : 'Quarter'}</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map(q => (
+                      <button
+                        key={q}
+                        onClick={() => setQuarterlyQ(q)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          quarterlyQ === q
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                        }`}
+                        disabled={!!batchProgress}
+                      >
+                        T{q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="pb-0.5 text-xs text-gray-400">
+                  {fr ? '— PDF téléchargé localement + sauvegardé en historique' : '— PDF downloaded locally + saved to history'}
+                </div>
+              </div>
+
+              {/* Cartes investisseurs triées par % décroissant */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {investors
+                  .filter((inv: any) => investorSummaries.some((s: any) => s.investor_id === inv.id && (s.total_shares || 0) > 0))
+                  .map((inv: any) => {
+                    const s = investorSummaries.find((s: any) => s.investor_id === inv.id)
+                    const sharesTotal = investorSummaries.reduce((sum: number, s: any) => sum + (s.total_shares || 0), 0)
+                    const pct = sharesTotal > 0 ? (s?.total_shares ?? 0) / sharesTotal * 100 : 0
+                    const key = inv.id + '-' + quarterlyYear + '-' + quarterlyQ
+                    return (
+                      <div key={inv.id} className="border border-blue-100 rounded-lg p-3 flex items-center justify-between bg-blue-50/30 hover:bg-blue-50 transition-colors">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">{inv.first_name} {inv.last_name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {(s?.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 4 })} {fr ? 'parts' : 'shares'}
+                            <span className="mx-1">·</span>
+                            <span className="font-medium text-blue-600">{pct.toFixed(2)}%</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => generateQuarterlyReport(inv.id, { year: quarterlyYear, q: quarterlyQ })}
+                          disabled={!!batchProgress || generatingQuarterly === key}
+                          className="shrink-0 ml-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          {generatingQuarterly === key
+                            ? <><span className="animate-spin">⟳</span> PDF...</>
+                            : <>📄 T{quarterlyQ} {quarterlyYear}</>}
+                        </button>
+                      </div>
+                    )
+                  })
+                  .sort((a: any, b: any) => {
+                    const pctA = investorSummaries.find((s: any) => s.investor_id === a.key)?.total_shares ?? 0
+                    const pctB = investorSummaries.find((s: any) => s.investor_id === b.key)?.total_shares ?? 0
+                    return pctB - pctA
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bundle annuel par investisseur ────────────────────────────────── */}
+        <div className="bg-white rounded-xl shadow-md border border-violet-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-600 to-violet-800 px-6 py-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span>📦</span>
+              {fr ? 'Bundle annuel — ZIP prêt à partager par investisseur' : 'Annual Bundle — ZIP ready to share per investor'}
+            </h3>
+            <p className="text-violet-200 text-sm mt-1">
+              {fr
+                ? 'Génère un ZIP contenant les 4 rapports trimestriels (T1→T4). Chaque PDF est aussi sauvegardé dans l\'historique de l\'investisseur.'
+                : 'Generates a ZIP with all 4 quarterly reports (T1→T4). Each PDF is also saved to the investor\'s document history.'}
+            </p>
+          </div>
+          <div className="p-5 space-y-4">
+
+            {/* Mode "tous les investisseurs" */}
+            <div className="border border-violet-200 rounded-xl bg-violet-50/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚀</span>
+                <div>
+                  <div className="text-sm font-semibold text-violet-900">
+                    {fr ? 'Générer tous les bundles d\'un coup — un ZIP par investisseur' : 'Generate all bundles at once — one ZIP per investor'}
+                  </div>
+                  <div className="text-xs text-violet-600">
+                    {fr
+                      ? 'Chaque ZIP se télécharge automatiquement dès qu\'il est prêt. Classés par % de propriété décroissant.'
+                      : 'Each ZIP downloads automatically as soon as it\'s ready. Sorted by ownership % descending.'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-violet-700 mb-1">{fr ? 'Année fiscale' : 'Fiscal year'}</label>
+                  <select
+                    value={bundleAllYear}
+                    onChange={e => setBundleAllYear(Number(e.target.value))}
+                    className="px-3 py-2 border border-violet-200 rounded-lg text-sm bg-white"
+                    disabled={!!batchProgress || generatingBundleAll}
+                  >
+                    {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={generateAllBundles}
+                  disabled={!!batchProgress || generatingBundleAll}
+                  className="px-5 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {generatingBundleAll
+                    ? <><span className="animate-spin">⟳</span> {fr ? 'Génération...' : 'Generating...'}</>
+                    : <><span>📦</span> {fr ? `Bundle tous — ${bundleAllYear}` : `Bundle all — ${bundleAllYear}`}</>}
+                </button>
+              </div>
+            </div>
+
+            {/* Cartes individuelles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {investors
+                .filter((inv: any) => investorSummaries.some((s: any) => s.investor_id === inv.id && (s.total_shares || 0) > 0))
+                .sort((a: any, b: any) => {
+                  const sA = investorSummaries.find((s: any) => s.investor_id === a.id)?.total_shares ?? 0
+                  const sB = investorSummaries.find((s: any) => s.investor_id === b.id)?.total_shares ?? 0
+                  return sB - sA
+                })
+                .map((inv: any) => {
+                  const s = investorSummaries.find((s: any) => s.investor_id === inv.id)
+                  const sharesTotal = investorSummaries.reduce((sum: number, s: any) => sum + (s.total_shares || 0), 0)
+                  const pct = sharesTotal > 0 ? (s?.total_shares ?? 0) / sharesTotal * 100 : 0
+                  const isGenerating = generatingBundle === inv.id
+                  return (
+                    <div key={inv.id} className="border border-violet-100 rounded-xl p-4 bg-violet-50/30 hover:bg-violet-50 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{inv.first_name} {inv.last_name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {(s?.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 4 })} {fr ? 'parts' : 'shares'}
+                            <span className="mx-1">·</span>
+                            <span className="font-semibold text-violet-600">{pct.toFixed(2)}%</span>
+                          </div>
+                        </div>
+                        <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium border border-violet-200">
+                          #{Math.round(pct * 100) / 100 > 0 ? Math.round(pct) : '—'}%
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-400 mb-3 flex gap-1 flex-wrap">
+                        {[1, 2, 3, 4].map(q => (
+                          <span key={q} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">T{q}</span>
+                        ))}
+                        <span className="text-gray-300">→</span>
+                        <span className="text-violet-500 font-medium">.zip</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">{fr ? 'Année' : 'Year'}</label>
+                          <select
+                            className="px-2 py-1 border border-gray-200 rounded text-xs bg-white"
+                            defaultValue={bundleAllYear}
+                            id={`bundle-year-${inv.id}`}
+                            disabled={isGenerating || generatingBundleAll}
+                          >
+                            {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const sel = document.getElementById(`bundle-year-${inv.id}`) as HTMLSelectElement
+                            const yr = sel ? parseInt(sel.value) : bundleAllYear
+                            generateInvestorBundle(inv.id, yr)
+                          }}
+                          disabled={isGenerating || generatingBundleAll || !!batchProgress}
+                          className="mt-auto px-4 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-400 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                        >
+                          {isGenerating
+                            ? <><span className="animate-spin text-sm">⟳</span> ZIP...</>
+                            : <><span>📦</span> Bundle</>}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+
+            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
+              💡 {fr
+                ? 'Le ZIP se télécharge dans votre dossier Téléchargements. Chaque rapport PDF est aussi enregistré dans l\'onglet Documents de l\'investisseur (visible depuis Administration > Investisseurs > fiche).'
+                : 'The ZIP downloads to your Downloads folder. Each PDF is also saved under the investor\'s Documents tab (visible in Administration > Investors > profile).'}
+            </div>
+          </div>
+        </div>
+
       </div>
     )
   }

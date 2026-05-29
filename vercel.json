@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/billing/cron",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/investors/quarterly-cron",
+      "schedule": "0 8 2 1,4,7,10 *"
     }
   ]
 }

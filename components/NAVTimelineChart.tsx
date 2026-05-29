@@ -5,7 +5,7 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNAVTimeline } from '@/hooks/useNAVTimeline'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 
@@ -60,7 +60,6 @@ export default function NAVTimelineChart({ className = '' }: Props) {
     )
   }
 
-  // Silently hide if function not yet deployed or no data
   if (data.length === 0) return null
 
   const chartData = data.map(d => ({
@@ -104,14 +103,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-          <defs>
-            <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={color} stopOpacity={0.25} />
-              <stop offset="95%" stopColor={color} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-
+        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
           <XAxis
@@ -143,16 +135,15 @@ export default function NAVTimelineChart({ className = '' }: Props) {
             label={{ value: '1,00 $', position: 'insideTopRight', fontSize: 10, fill: '#94a3b8' }}
           />
 
-          <Area
+          <Line
             type="monotone"
             dataKey="nav"
             stroke={color}
             strokeWidth={2}
-            fill="url(#navGrad)"
-            dot={data.length <= 18 ? { r: 4, fill: color, strokeWidth: 0 } : false}
+            dot={data.length <= 18 ? { r: 4, fill: color, stroke: color, strokeWidth: 0 } : false}
             activeDot={{ r: 5, fill: color }}
           />
-        </AreaChart>
+        </LineChart>
       </ResponsiveContainer>
 
       {data.length <= 2 && (
