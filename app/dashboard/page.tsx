@@ -1123,8 +1123,21 @@ export default function DashboardPage() {
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBg}`}>
                             <DollarSign size={20} className={iconColor} />
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{transaction.description}</p>
+                          <div className="flex-1 min-w-0">
+                            {/* Description tronquée + tooltip complet au survol (même comportement que l'onglet Transactions) */}
+                            <div className="group relative">
+                              <p
+                                className="font-medium text-gray-900 truncate cursor-default"
+                                title={transaction.description}
+                              >
+                                {transaction.description}
+                              </p>
+                              {transaction.description && (
+                                <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
+                                  {transaction.description}
+                                </div>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-600">
                               {new Date(transaction.date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
                                 year: 'numeric', month: 'long', day: 'numeric'
