@@ -143,7 +143,7 @@ export default function Home() {
                 backgroundImage: `url(${slide.image})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                filter: 'brightness(0.38) saturate(1.1)',
+                filter: 'brightness(0.55) saturate(1.08)',
               }}
             />
           </div>
@@ -311,7 +311,7 @@ export default function Home() {
                   backgroundImage: `url(${url})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  filter: 'brightness(0.5) saturate(1.05)',
+                  filter: 'brightness(0.55) saturate(1.08)',
                 }} />
               </div>
             ))}
