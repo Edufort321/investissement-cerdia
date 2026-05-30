@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,8 +23,22 @@ function generateToken(): string {
 // POST — create a new accountant token
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { organization_id, label, tabs, selected_year, filter_period, expires_days } = body
+    // 🔒 Auth admin. Le token est TOUJOURS scopé à l'org du caller (anti-BOLA) :
+    // on ignore tout organization_id fourni par un org_admin et on force celui de
+    // son profil ; seul un super_admin peut viser une autre org explicitement.
+    let caller
+    try {
+      caller = await requireAdminToken(req)
+    } catch (e) {
+      return adminAuthError(e)
+    }
+
+    const body = await req.json().catch(() => ({} as any))
+    const { label, tabs, selected_year, filter_period, expires_days } = body
+
+    const organization_id = caller.profile.isSuperAdmin
+      ? (body.organization_id || caller.profile.organization_id)
+      : caller.profile.organization_id
 
     if (!organization_id) {
       return NextResponse.json({ error: 'organization_id required' }, { status: 400 })
@@ -85,13 +100,23 @@ export async function GET(req: NextRequest) {
 
 // DELETE — revoke a token
 export async function DELETE(req: NextRequest) {
+  // 🔒 Auth admin + scope org : on ne peut révoquer que les tokens de sa propre org.
+  let caller
+  try {
+    caller = await requireAdminToken(req)
+  } catch (e) {
+    return adminAuthError(e)
+  }
+
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-  const { error } = await supabase
-    .from('accountant_tokens')
-    .delete()
-    .eq('id', id)
+  let del = supabase.from('accountant_tokens').delete().eq('id', id)
+  // Un org_admin ne peut supprimer que dans son org ; super_admin partout.
+  if (!caller.profile.isSuperAdmin) {
+    del = del.eq('organization_id', caller.profile.organization_id as string)
+  }
+  const { error } = await del
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

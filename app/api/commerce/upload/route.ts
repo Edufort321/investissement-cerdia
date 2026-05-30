@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -12,12 +13,24 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 Auth admin : sans ça, n'importe qui uploadait/écrasait un fichier arbitraire.
+    try {
+      await requireAdminToken(request)
+    } catch (e) {
+      return adminAuthError(e)
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const path = formData.get('path') as string | null
 
     if (!file || !path) {
       return NextResponse.json({ error: 'Fichier ou chemin manquant' }, { status: 400 })
+    }
+
+    // Anti path-traversal : refuse les chemins absolus ou remontants.
+    if (path.includes('..') || path.startsWith('/') || path.includes('\\')) {
+      return NextResponse.json({ error: 'Chemin invalide' }, { status: 400 })
     }
 
     const supabase = getSupabaseAdmin()

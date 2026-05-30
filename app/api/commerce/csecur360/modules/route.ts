@@ -6,9 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
-
+// Fail-secure : pas de secret par défaut (voir csecur360/route.ts).
+const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET
 function auth(req: NextRequest) {
+  if (!SYNC_SECRET) return false
   return req.headers.get('authorization') === `Bearer ${SYNC_SECRET}`
 }
 

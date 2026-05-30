@@ -308,7 +308,13 @@ async function uploadViaApi(file: File, path: string): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
   fd.append('path', path)
-  const res = await fetch('/api/commerce/upload', { method: 'POST', body: fd })
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess.session?.access_token
+  const res = await fetch('/api/commerce/upload', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
   return json.url as string

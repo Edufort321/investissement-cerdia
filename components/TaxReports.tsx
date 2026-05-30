@@ -749,9 +749,11 @@ export default function TaxReports() {
     if (!orgId) return
     setGeneratingShare(true)
     try {
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess.session?.access_token
       const res = await fetch('/api/accountant-token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           organization_id: orgId,
           label: shareLabel || `Rapport ${selectedYear} — ${new Date().toLocaleDateString('fr-CA')}`,

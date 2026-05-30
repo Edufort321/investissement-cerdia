@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createInvestorSchema, formatZodErrors } from '@/lib/validation'
+import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
 // Vérifier que les variables d'environnement sont définies
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -26,6 +27,13 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 Auth obligatoire : seul un admin peut créer un compte.
+    try {
+      await requireAdminToken(request)
+    } catch (e) {
+      return adminAuthError(e)
+    }
+
     console.log('🔵 [create-auth] API called')
 
     const body = await request.json()

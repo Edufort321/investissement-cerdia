@@ -6,14 +6,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
+// Fail-secure : pas de secret par défaut (voir csecur360/route.ts).
+const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET
 const CSECUR360_API_URL = process.env.CSECUR360_API_URL || 'http://localhost:3000'
 
 // POST /api/commerce/csecur360/sync
 // Tire tous les tenants + vendeurs depuis C-Secur360 et upsert localement
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${SYNC_SECRET}`) {
+  if (!SYNC_SECRET || req.headers.get('authorization') !== `Bearer ${SYNC_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

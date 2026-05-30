@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { upsertInvestorSchema, formatZodErrors } from '@/lib/validation'
+import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
 // Vérifier que les variables d'environnement sont définies
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -25,6 +26,15 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 Auth obligatoire : seul un admin (super_admin ou org_admin) peut créer/
+    // modifier des comptes investisseurs. Sans ce contrôle, n'importe qui sur le
+    // web pouvait créer des utilisateurs via service_role.
+    try {
+      await requireAdminToken(request)
+    } catch (e) {
+      return adminAuthError(e)
+    }
+
     console.log('🔵 [upsert-auth] API called')
 
     const body = await request.json()

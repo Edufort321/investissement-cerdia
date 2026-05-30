@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -30,6 +31,13 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 Auth obligatoire : seul un admin peut uploader un rapport investisseur.
+    try {
+      await requireAdminToken(request)
+    } catch (e) {
+      return adminAuthError(e)
+    }
+
     const formData = await request.formData()
 
     const pdfBlob   = formData.get('pdf')           as File | null

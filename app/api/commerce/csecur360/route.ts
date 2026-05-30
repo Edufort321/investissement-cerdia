@@ -6,12 +6,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
+// Fail-secure : pas de secret par défaut. Si l'env var manque, toute requête est
+// rejetée (au lieu d'accepter un secret connu présent dans le code source public).
+const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET
+function isAuthorized(req: NextRequest): boolean {
+  if (!SYNC_SECRET) return false
+  return req.headers.get('authorization') === `Bearer ${SYNC_SECRET}`
+}
 
 // GET → liste tous les clients C-Secur360 avec totaux
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${SYNC_SECRET}`) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -31,8 +36,7 @@ export async function GET(req: NextRequest) {
 
 // POST → creer ou mettre a jour un client depuis C-Secur360
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${SYNC_SECRET}`) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -67,8 +71,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH → mettre a jour le statut (suspension, annulation)
 export async function PATCH(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${SYNC_SECRET}`) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

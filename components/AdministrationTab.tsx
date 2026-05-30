@@ -116,6 +116,13 @@ interface AdministrationTabProps {
   activeSubTab: SubTabType
 }
 
+// Header Authorization Bearer pour les routes API protégées (save-report, etc.).
+async function bearerAuthHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export default function AdministrationTab({ activeSubTab }: AdministrationTabProps) {
   const {
     investors,
@@ -5165,7 +5172,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       formData.append('quarter', String(q))
       if (opts?.requestId) formData.append('request_id', opts.requestId)
 
-      const res = await fetch('/api/investors/save-report', { method: 'POST', body: formData })
+      const res = await fetch('/api/investors/save-report', { method: 'POST', headers: await bearerAuthHeader(), body: formData })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Upload failed' }))
         throw new Error(err.error)
@@ -5263,7 +5270,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         fd.append('investor_name', `${inv.first_name} ${inv.last_name}`)
         fd.append('fiscal_year', String(year))
         fd.append('quarter', String(q))
-        await fetch('/api/investors/save-report', { method: 'POST', body: fd }).catch(() => {})
+        await fetch('/api/investors/save-report', { method: 'POST', headers: await bearerAuthHeader(), body: fd }).catch(() => {})
       }
 
       // Télécharge le ZIP
@@ -5312,7 +5319,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           fd.append('investor_name', `${inv.first_name} ${inv.last_name}`)
           fd.append('fiscal_year', String(bundleAllYear))
           fd.append('quarter', String(q))
-          await fetch('/api/investors/save-report', { method: 'POST', body: fd }).catch(() => {})
+          await fetch('/api/investors/save-report', { method: 'POST', headers: await bearerAuthHeader(), body: fd }).catch(() => {})
 
           done++
           setBatchProgress({ done, total, current: `T${q} — ${inv.first_name} ${inv.last_name}` })

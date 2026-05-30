@@ -6,6 +6,17 @@ import { useAuth } from './AuthContext'
 import { useOrganization } from './OrganizationContext'
 import type { InvestorInvestment, ShareSettings, InvestorSummary } from '@/types/shares'
 
+// Construit les headers d'une requête API authentifiée (token Bearer de la session
+// courante). Requis par les routes server-side protégées (upsert-auth, etc.).
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
 // Types
 interface Property {
   id: string
@@ -340,7 +351,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
         const response = await fetch('/api/investors/upsert-auth', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify(apiPayload)
         })
 
@@ -450,7 +461,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
         const response = await fetch('/api/investors/upsert-auth', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify(apiPayload)
         })
 
@@ -477,7 +488,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
 
         const response = await fetch('/api/investors/upsert-auth', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify(apiPayload)
         })
 
