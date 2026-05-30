@@ -896,22 +896,40 @@ export default function TaxReports() {
       const items = buildCPAReviewItems()
       const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
 
+      // jsPDF (Helvetica) ne supporte que Latin-1 : les emojis (🇺🇸 ❓ …) et certains
+      // symboles (→ ≥ ⚠) s'affichent en caractères parasites et cassent le retour
+      // à la ligne. On nettoie chaque chaîne avant insertion dans le PDF.
+      const pdfSafe = (s: string): string =>
+        (s || '')
+          // Ponctuation typographique -> ASCII (jsPDF Helvetica = Latin-1 seulement)
+          .replace(/[—–]/g, '-').replace(/[’‘]/g, "'")
+          .replace(/[“”]/g, '"').replace(/…/g, '...')
+          .replace(/→/g, '->').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/€/g, 'EUR')
+          .replace(/❓/g, '?')
+          // Emojis & symboles hors Latin-1 : paires de surrogates (plans astraux,
+          // inclut drapeaux régionaux 🇺🇸 et pictogrammes 🧾⚠✅) + flèches/symboles BMP.
+          .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+          .replace(/[←-⇿☀-➿⬀-⯿︀-️™‰]/g, '')
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/ *\n */g, '\n')
+          .trim()
+
       doc.setFontSize(17); doc.setTextColor(190, 18, 60)
-      doc.text(fr ? 'CONTRÔLE FISCAL — REVUE CPA' : 'TAX CONTROL — CPA REVIEW', 15, 18)
+      doc.text(fr ? 'CONTROLE FISCAL — REVUE CPA' : 'TAX CONTROL — CPA REVIEW', 15, 18)
       doc.setFontSize(9); doc.setTextColor(110, 110, 110)
-      doc.text(`CERDIA SEC — ${getPeriodLabel()} — ${fr ? 'Généré le' : 'Generated'} ${today}`, 15, 25)
+      doc.text(pdfSafe(`CERDIA SEC — ${getPeriodLabel()} — ${fr ? 'Genere le' : 'Generated'} ${today}`), 15, 25)
       doc.setDrawColor(190, 18, 60); doc.setLineWidth(0.6); doc.line(15, 29, 195, 29)
 
       doc.setFontSize(8); doc.setTextColor(80, 80, 80)
-      const intro = doc.splitTextToSize(
+      const intro = doc.splitTextToSize(pdfSafe(
         fr
-          ? 'Document destiné à votre comptable / fiscaliste (CPA). Les montants produits par l\'application CERDIA sont des ESTIMATIONS de planification, et non des déclarations fiscales officielles. Merci de valider chaque point ci-dessous avant toute production de déclaration. L\'outil n\'assume aucune responsabilité fiscale.'
-          : 'Document for your accountant (CPA). CERDIA figures are planning ESTIMATES, not official filings. Please validate each item below before filing. The tool assumes no tax liability.',
+          ? 'Document destine a votre comptable / fiscaliste (CPA). Les montants produits par l\'application CERDIA sont des ESTIMATIONS de planification, et non des declarations fiscales officielles. Merci de valider chaque point ci-dessous avant toute production de declaration. L\'outil n\'assume aucune responsabilite fiscale.'
+          : 'Document for your accountant (CPA). CERDIA figures are planning ESTIMATES, not official filings. Please validate each item below before filing. The tool assumes no tax liability.'),
         180)
       doc.text(intro, 15, 36)
 
       const sevLabel: Record<string, string> = {
-        action: fr ? 'À VALIDER' : 'VALIDATE',
+        action: fr ? 'A VALIDER' : 'VALIDATE',
         limite: fr ? 'LIMITE' : 'LIMITATION',
         info:   'INFO',
       }
@@ -921,20 +939,21 @@ export default function TaxReports() {
 
       autoTable(doc, {
         startY: 50,
-        head: [[fr ? 'Priorité' : 'Priority', fr ? 'Point à valider' : 'Item', fr ? 'Détail / Question' : 'Detail / Question']],
+        head: [[fr ? 'Priorite' : 'Priority', fr ? 'Point a valider' : 'Item', fr ? 'Detail / Question' : 'Detail / Question']],
         body: items.map(it => [
           sevLabel[it.severity],
-          it.title,
-          it.detail + (it.question ? `\n\n❓ ${it.question}` : ''),
+          pdfSafe(it.title),
+          pdfSafe(it.detail + (it.question ? `\n\n? ${it.question}` : '')),
         ]),
         theme: 'grid',
         margin: { left: 15, right: 15 },
+        tableWidth: 180,
         headStyles: { fillColor: [190, 18, 60], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 8, cellPadding: 3, valign: 'top' },
+        bodyStyles: { fontSize: 8, cellPadding: 2.5, valign: 'top', overflow: 'linebreak' },
         columnStyles: {
-          0: { cellWidth: 22, fontStyle: 'bold' },
-          1: { cellWidth: 58, fontStyle: 'bold' },
-          2: { cellWidth: 100 },
+          0: { cellWidth: 20, fontStyle: 'bold', overflow: 'linebreak' },
+          1: { cellWidth: 52, fontStyle: 'bold', overflow: 'linebreak' },
+          2: { cellWidth: 108, overflow: 'linebreak' },
         },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 0) {
@@ -948,13 +967,13 @@ export default function TaxReports() {
       if (y > 250) { doc.addPage(); y = 20 }
       doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3); doc.rect(15, y, 180, 28)
       doc.setFontSize(8); doc.setTextColor(90, 90, 90)
-      doc.text(fr ? 'Avis du fiscaliste :' : 'Tax professional notes:', 18, y + 6)
+      doc.text(pdfSafe(fr ? 'Avis du fiscaliste :' : 'Tax professional notes:'), 18, y + 6)
       doc.setFontSize(7); doc.setTextColor(150, 150, 150)
-      doc.text(fr ? '(espace réservé aux commentaires de votre CPA)' : '(space for your CPA comments)', 18, y + 12)
-      doc.text(fr ? 'Signature / Date : ____________________________' : 'Signature / Date: ____________________________', 18, y + 24)
+      doc.text(pdfSafe(fr ? '(espace reserve aux commentaires de votre CPA)' : '(space for your CPA comments)'), 18, y + 12)
+      doc.text(pdfSafe(fr ? 'Signature / Date : ____________________________' : 'Signature / Date: ____________________________'), 18, y + 24)
 
       doc.setFontSize(7); doc.setTextColor(160, 160, 160)
-      doc.text('CERDIA SEC — eric.dufort@cerdia.ai — ' + (fr ? 'Confidentiel' : 'Confidential'), 105, 287, { align: 'center' })
+      doc.text(pdfSafe('CERDIA SEC — eric.dufort@cerdia.ai — ' + (fr ? 'Confidentiel' : 'Confidential')), 105, 287, { align: 'center' })
 
       doc.save(`controle_fiscal_CPA_${selectedYear}_${filterPeriod}_CERDIA.pdf`)
     } catch (e: any) {

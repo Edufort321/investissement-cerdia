@@ -159,7 +159,8 @@ export default function PropertyValuationManager() {
         exchange_rate_used: formData.currency === 'USD' ? exchangeRate : null,
         appraiser_name: formData.appraiser_name || null,
         notes: formData.notes || null,
-        next_valuation_date: nextDate.toISOString().split('T')[0]
+        next_valuation_date: nextDate.toISOString().split('T')[0],
+        ...(orgId ? { organization_id: orgId } : {}),
       }
 
       const { error } = await supabase.from('property_valuations').insert([valuationData])

@@ -636,7 +636,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           storage_path: uploadData.path,
           file_size: file.size,
           investor_id: selectedInvestorId,
-          description: null
+          description: null,
+          ...(orgId ? { organization_id: orgId } : {}),
         }])
 
       if (dbError) throw dbError
@@ -762,7 +763,8 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               file_name: file.name,
               file_size: file.size,
               file_type: file.type || 'application/octet-stream',
-              storage_path: storagePath
+              storage_path: storagePath,
+              ...(orgId ? { organization_id: orgId } : {}),
             }])
           }
         }
@@ -4675,6 +4677,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           total_shares: sharesTotal,
           notes: declarationDraft.notes || null,
           status: 'draft',
+          ...(orgId ? { organization_id: orgId } : {}),
         })
         .select()
         .single()
@@ -4691,6 +4694,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           ownership_pct: pct,
           dividend_amount: amount,
           election: investorElections[s.investor_id] ?? 'cash',
+          ...(orgId ? { organization_id: orgId } : {}),
         }
       })
       if (electionsToInsert.length > 0) {
@@ -4737,6 +4741,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             source_currency: 'CAD',
             exchange_rate: 1.0,
             fiscal_category: 'dividend_income',
+            ...(orgId ? { organization_id: orgId } : {}),
           }).select().single()
           await supabase.from('dividend_investor_elections').update({
             cash_transaction_id: tx?.id,
@@ -4758,6 +4763,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             source_currency: 'CAD',
             exchange_rate: 1.0,
             fiscal_category: 'dividend_income',
+            ...(orgId ? { organization_id: orgId } : {}),
           }).select().single()
           // Issue new shares
           await supabase.from('investor_investments').insert({
@@ -4768,6 +4774,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             share_price: decl.nav_per_share,
             notes: `Réinvestissement dividende ${decl.fiscal_year}`,
             status: 'active',
+            ...(orgId ? { organization_id: orgId } : {}),
           })
           await supabase.from('dividend_investor_elections').update({
             shares_issued: sharesIssued,

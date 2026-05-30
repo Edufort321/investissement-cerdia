@@ -14,10 +14,18 @@ import {
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { computeCanadaTax, PROVINCE_OPTIONS, CANADA_TAX, type ProvinceCode } from '@/lib/canada-tax'
 
-// ─── Taux de taxes QC 2025 ───────────────────────────────────────────────────
-const TPS_RATE = 0.05       // GST fédérale 5%
-const TVQ_RATE = 0.09975    // QST provinciale QC 9.975%
+// Taux par défaut conservés pour rétrocompatibilité d'affichage (factures déjà
+// enregistrées avant le multi-province). Le calcul vif utilise lib/canada-tax.
+const TPS_RATE = 0.05
+const TVQ_RATE = 0.09975
+
+/** Déduit le libellé de la taxe provinciale d'une facture à partir du taux sauvegardé. */
+function provincialLabelForRate(rate: number): string {
+  const m = PROVINCE_OPTIONS.find(p => Math.abs(p.provincial - (rate || 0)) < 0.0001 && p.provincialLabel)
+  return m?.provincialLabel ?? 'TVQ'
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface InvoiceClient {
@@ -146,6 +154,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
   const [notes, setNotes] = useState('')
   const [applyTPS, setApplyTPS] = useState(true)
   const [applyTVQ, setApplyTVQ] = useState(true)
+  // Province de la facture (lieu de fourniture = province du client). Détermine
+  // quelle taxe provinciale s'applique (TVQ/PST/RST/TVH).
+  const [invoiceProvince, setInvoiceProvince] = useState<ProvinceCode>('QC')
   const [items, setItems] = useState<InvoiceItem[]>([{ ...EMPTY_ITEM }])
   const [invoiceNumberPreview, setInvoiceNumberPreview] = useState('')
 
@@ -173,11 +184,19 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
 
-  // ─── Computed taxes ─────────────────────────────────────────────────────────
+  // ─── Computed taxes (multi-province via lib/canada-tax) ──────────────────────
+  // Mapping vers le schéma DB existant :
+  //   tps_* = composante FÉDÉRALE (GST/TPS)
+  //   tvq_* = composante PROVINCIALE (TVQ / PST / RST / TVH selon la province)
   const taxableSubtotal = items.reduce((s, i) => i.taxable ? s + i.subtotal : s, 0)
   const totalSubtotal = items.reduce((s, i) => s + i.subtotal, 0)
-  const tpsAmount = applyTPS ? +(taxableSubtotal * TPS_RATE).toFixed(2) : 0
-  const tvqAmount = applyTVQ ? +(taxableSubtotal * TVQ_RATE).toFixed(2) : 0
+  const taxCalc = computeCanadaTax(taxableSubtotal, invoiceProvince, {
+    applyGst: applyTPS,
+    applyProvincial: applyTVQ,
+  })
+  const provinceInfo = CANADA_TAX[invoiceProvince]
+  const tpsAmount = taxCalc.gstAmount
+  const tvqAmount = taxCalc.provincialAmount
   const grandTotal = +(totalSubtotal + tpsAmount + tvqAmount).toFixed(2)
 
   // ─── Data loading ────────────────────────────────────────────────────────────
@@ -252,6 +271,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
     setNotes('')
     setApplyTPS(true)
     setApplyTVQ(true)
+    setInvoiceProvince('QC')
     setItems([{ ...EMPTY_ITEM }])
     const num = await generateInvoiceNumber()
     setInvoiceNumberPreview(num)
@@ -269,6 +289,15 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
     setNotes(inv.notes || '')
     setApplyTPS(inv.tps_amount > 0)
     setApplyTVQ(inv.tvq_amount > 0)
+    // Restaure la province : d'abord depuis le snapshot client, sinon par
+    // rapprochement du taux provincial sauvegardé avec la table de référence.
+    const snapProv = (inv.client_snapshot as any)?.province as ProvinceCode | undefined
+    if (snapProv && CANADA_TAX[snapProv]) {
+      setInvoiceProvince(snapProv)
+    } else {
+      const match = PROVINCE_OPTIONS.find(p => Math.abs(p.provincial - (inv.tvq_rate || 0)) < 0.0001)
+      setInvoiceProvince(match?.code ?? 'QC')
+    }
     setInvoiceNumberPreview(inv.invoice_number)
 
     const { data: itemsData } = await supabase
@@ -339,8 +368,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
         issue_date: invoiceDate,
         due_date: dueDate || null,
         subtotal: totalSubtotal,
-        tps_rate: TPS_RATE,
-        tvq_rate: TVQ_RATE,
+        // tps_* = taxe fédérale (GST), tvq_* = taxe provinciale (TVQ/PST/RST/TVH)
+        tps_rate: taxCalc.gstRate,
+        tvq_rate: taxCalc.provincialRate,
         tps_amount: tpsAmount,
         tvq_amount: tvqAmount,
         total: grandTotal,
@@ -375,6 +405,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           subtotal: item.subtotal,
           taxable: item.taxable,
           sort_order: idx,
+          ...(orgId ? { organization_id: orgId } : {}),
         }))
 
       if (itemsToInsert.length) {
@@ -595,8 +626,8 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
 
       const totalsRows: [string, string, boolean][] = [
         ['Sous-total', fmt(inv.subtotal), false],
-        ...(inv.tps_amount > 0 ? [[`TPS (${(inv.tps_rate * 100).toFixed(0)}%)`, fmt(inv.tps_amount), false] as [string, string, boolean]] : []),
-        ...(inv.tvq_amount > 0 ? [[`TVQ (${(inv.tvq_rate * 100).toFixed(3)}%)`, fmt(inv.tvq_amount), false] as [string, string, boolean]] : []),
+        ...(inv.tps_amount > 0 ? [[`TPS (${(inv.tps_rate * 100).toFixed(2).replace('.', ',')}%)`, fmt(inv.tps_amount), false] as [string, string, boolean]] : []),
+        ...(inv.tvq_amount > 0 ? [[`${provincialLabelForRate(inv.tvq_rate)} (${(inv.tvq_rate * 100).toFixed(3).replace('.', ',')}%)`, fmt(inv.tvq_amount), false] as [string, string, boolean]] : []),
         ['TOTAL', fmt(inv.total), true],
       ]
 
@@ -1132,13 +1163,13 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
               </div>
               {inv.tps_amount > 0 && (
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>TPS ({(inv.tps_rate * 100).toFixed(0)}%)</span>
+                  <span>{fr ? 'TPS' : 'GST'} ({(inv.tps_rate * 100).toFixed(2).replace('.', ',')}%)</span>
                   <span>{fmt(inv.tps_amount)}</span>
                 </div>
               )}
               {inv.tvq_amount > 0 && (
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>TVQ ({(inv.tvq_rate * 100).toFixed(3)}%)</span>
+                  <span>{provincialLabelForRate(inv.tvq_rate)} ({(inv.tvq_rate * 100).toFixed(3).replace('.', ',')}%)</span>
                   <span>{fmt(inv.tvq_amount)}</span>
                 </div>
               )}
@@ -1245,7 +1276,14 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                 <select
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={selectedClientId}
-                  onChange={e => setSelectedClientId(e.target.value)}
+                  onChange={e => {
+                    const id = e.target.value
+                    setSelectedClientId(id)
+                    // Auto-sélectionne la province selon le client choisi (place of supply)
+                    const c = clients.find(cl => cl.id === id)
+                    const prov = c?.province as ProvinceCode | undefined
+                    if (prov && CANADA_TAX[prov]) setInvoiceProvince(prov)
+                  }}
                 >
                   <option value="">{fr ? '— Selectionner un client —' : '— Select a client —'}</option>
                   {clients.map(c => (
@@ -1430,22 +1468,43 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             </h3>
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTPS} onChange={e => setApplyTPS(e.target.checked)} />
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{fr ? 'TPS (GST federale)' : 'TPS/GST (federal 5%)'}</span>
-                    <span className="ml-2 text-xs text-gray-500">5,00%</span>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTVQ} onChange={e => setApplyTVQ(e.target.checked)} />
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{fr ? 'TVQ (QST provinciale QC)' : 'TVQ/QST (Quebec 9.975%)'}</span>
-                    <span className="ml-2 text-xs text-gray-500">9,975%</span>
-                  </div>
-                </label>
-                {applyTPS && applyTVQ && (
-                  <p className="text-xs text-gray-400 ml-7">{fr ? 'Total combine: 14,975%' : 'Combined total: 14.975%'}</p>
+                {/* Province du client = lieu de fourniture → détermine la taxe provinciale */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {fr ? 'Province du client (lieu de fourniture)' : 'Client province (place of supply)'}
+                  </label>
+                  <select
+                    value={invoiceProvince}
+                    onChange={e => setInvoiceProvince(e.target.value as ProvinceCode)}
+                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500"
+                  >
+                    {PROVINCE_OPTIONS.map(p => (
+                      <option key={p.code} value={p.code}>{p.code} — {p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {provinceInfo.gst > 0 && (
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTPS} onChange={e => setApplyTPS(e.target.checked)} />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{fr ? 'TPS (GST fédérale)' : 'GST (federal)'}</span>
+                      <span className="ml-2 text-xs text-gray-500">{(provinceInfo.gst * 100).toFixed(2).replace('.', ',')}%</span>
+                    </div>
+                  </label>
+                )}
+                {provinceInfo.provincialLabel && (
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" checked={applyTVQ} onChange={e => setApplyTVQ(e.target.checked)} />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {provinceInfo.provincialLabel} {provinceInfo.harmonized ? (fr ? '(harmonisée)' : '(harmonized)') : (fr ? '(provinciale)' : '(provincial)')}
+                      </span>
+                      <span className="ml-2 text-xs text-gray-500">{(provinceInfo.provincial * 100).toFixed(3).replace('.', ',')}%</span>
+                    </div>
+                  </label>
+                )}
+                {!provinceInfo.provincialLabel && (
+                  <p className="text-xs text-gray-400">{fr ? 'Aucune taxe provinciale dans cette juridiction.' : 'No provincial tax in this jurisdiction.'}</p>
                 )}
               </div>
               <div className="flex-1 flex justify-end">
@@ -1460,15 +1519,15 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
                       <span>{fmt(taxableSubtotal)}</span>
                     </div>
                   )}
-                  {applyTPS && (
+                  {applyTPS && tpsAmount > 0 && (
                     <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                      <span>TPS (5%)</span>
+                      <span>{fr ? 'TPS' : 'GST'} ({(taxCalc.gstRate * 100).toFixed(2).replace('.', ',')}%)</span>
                       <span>{fmt(tpsAmount)}</span>
                     </div>
                   )}
-                  {applyTVQ && (
+                  {applyTVQ && tvqAmount > 0 && (
                     <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                      <span>TVQ (9,975%)</span>
+                      <span>{provinceInfo.provincialLabel} ({(taxCalc.provincialRate * 100).toFixed(3).replace('.', ',')}%)</span>
                       <span>{fmt(tvqAmount)}</span>
                     </div>
                   )}

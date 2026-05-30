@@ -347,6 +347,7 @@ export default function InvestorReservationsCalendar() {
         end_date: dateStr,
         status: 'confirmed',
         reserved_by: selectedInvestor,
+        ...(organization?.id ? { organization_id: organization.id } : {}),
       }
       if (isProperty) {
         insertPayload.property_id = selectedCell.scenarioId
@@ -431,6 +432,7 @@ export default function InvestorReservationsCalendar() {
         status: 'confirmed',
         notes: addForm.notes || null,
         reserved_by: addForm.investorId,
+        ...(organization?.id ? { organization_id: organization.id } : {}),
       }
       if (isProperty) {
         insertPayload.property_id = addForm.scenarioId

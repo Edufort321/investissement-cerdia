@@ -97,6 +97,35 @@ auto-sync sur add/edit/delete de booking. Fonctionnel.
 - **TDT Floride** : montant saisi (`county_tdt_amount`) prime ; sinon taux saisi
   (`county_tdt_rate`) ou table par comté. Plus de hardcodé prioritaire.
 
+### 🔐 SÉCURITÉ MULTI-TENANT — contamination entre tenants (2026-05-29)
+**Symptôme :** des données créées en « View as DEMO » (super-admin) atterrissaient
+dans le tenant CERDIA. **Cause racine :** `organization_id` avait un `DEFAULT = CERDIA`
+sur ~56 tables (mig. 146) → tout INSERT sans org explicite tombait silencieusement
+dans CERDIA. Aggravé par : « View as » purement client (la DB voit l'org réelle) +
+bypass total super-admin dans la RLS (`OR is_super_admin()`).
+
+**Corrigé :**
+- **Migration 208** (à exécuter) : retire le `DEFAULT organization_id` sur toutes les
+  tables tenant. Un INSERT sans org échoue désormais (NOT NULL) au lieu de contaminer.
+- **Code** : `organization_id` ajouté sur tous les inserts à risque — dividendes ×3,
+  documents, transaction_attachments, invoice_items, budget_lines, property_valuations,
+  investor_reservations ×2 (les autres l'avaient déjà : transactions, commerce,
+  contractors, liabilities, invoice_clients).
+
+**RESTE À FAIRE (sécurité, important) :**
+- [ ] **Resserrer le bypass super-admin RLS** : transmettre l'org « View-as » au serveur
+  (claim JWT ou header validé) pour que la RLS impose au super-admin d'écrire UNIQUEMENT
+  dans l'org ciblée. Chantier auth séparé. **Tant que ce n'est pas fait, rester vigilant
+  en View-as.**
+- [ ] **Réactiver RLS sur invoices/invoice_clients/invoice_items** (désactivées par
+  mig. 132) avec policies filtrées par organization_id.
+- [ ] **dividend_declarations / dividend_investor_elections** : policy filtre par
+  `action_class`, PAS par organization_id (mig. 202) → ajouter le filtre tenant.
+- [ ] Remplacer `auth.jwt() ->> organization_id` par `auth_get_org_id()` (portfolio, mig. 172).
+- [ ] **Nettoyer les données démo dans CERDIA** : scénarios « Projet Démo 1/2 »,
+  « Secret Garden H212 » (created_by=courtier@demo.cerdia.ai) importés par mig. 166/169.
+  Migration de suppression ciblée à créer.
+
 ---
 
 ## 🟡 RESTE À FAIRE — non bloquant

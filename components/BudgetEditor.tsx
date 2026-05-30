@@ -219,7 +219,8 @@ export default function BudgetEditor() {
     setIsLoading(true)
     const lineData = {
       ...lineForm,
-      budget_id: selectedBudget
+      budget_id: selectedBudget,
+      ...(orgId ? { organization_id: orgId } : {}),
     }
 
     const { error } = editingLine
