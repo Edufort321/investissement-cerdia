@@ -6,7 +6,7 @@ import { Providers } from '../components/Providers'
 import CookieConsent from '../components/CookieConsent'
 import ConsentedAds from '../components/ConsentedAds'
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.cerdia.ai'
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cerdia.ai'
 const SITE_DESCRIPTION =
   'CERDIA — Plateforme d\'investissement immobilier international alliant intelligence artificielle, ' +
   'gestion de portefeuille et formation haut de gamme. Investissez au Canada, en République Dominicaine et en Floride.'

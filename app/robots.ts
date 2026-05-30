@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 // Référencement : autorise l'indexation des pages publiques (marketing, vision,
 // investir…) et BLOQUE les zones privées/applicatives des moteurs de recherche.
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.cerdia.ai'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cerdia.ai'
 
 export default function robots(): MetadataRoute.Robots {
   return {
