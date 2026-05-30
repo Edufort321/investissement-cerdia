@@ -11,6 +11,7 @@ import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, T
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import SupportMenu from '@/components/SupportMenu'
+import AssistantWidget from '@/components/AssistantWidget'
 import ScenariosTab from '@/components/ScenariosTab'
 import InvestorReservationsCalendar from '@/components/InvestorReservationsCalendar'
 import TreasuryDashboard from '@/components/TreasuryDashboard'
@@ -1252,6 +1253,9 @@ export default function DashboardPage() {
 
       {/* PWA Install Prompt */}
       <InstallPWAPrompt />
+
+      {/* Assistant conseiller CERDIA (Claude) — informatif, zéro donnée tenant */}
+      <AssistantWidget />
     </div>
   )
 }
