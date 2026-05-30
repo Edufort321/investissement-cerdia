@@ -77,15 +77,30 @@ export default function Home() {
         const hero = data.filter((d: any) => d.type === 'hero' || !d.type)
         const platform = data.filter((d: any) => d.type === 'platform')
         if (hero.length > 0) {
-          // Si les slides ont du texte, on les utilise entièrement
-          // Sinon on garde le contenu du fallback et on remplace seulement les images
           const hasContent = hero.some((d: any) => d.location?.trim())
-          setDbSlides(SLIDES_FALLBACK.map((s, i) => {
-            const db = hero[i % hero.length]
-            return hasContent
-              ? { image: db.image_url, flag: db.flag || '', location: db.location || s.location, sub: db.sub || s.sub, stat: db.stat || s.stat, label_fr: db.label_fr || s.label_fr, label_en: db.label_en || s.label_en }
-              : { ...s, image: db.image_url }
-          }))
+          if (hasContent) {
+            // La DB porte le contenu → on affiche TOUS les slides de la DB
+            // (le fallback ne sert que de valeurs par défaut champ par champ).
+            setDbSlides(hero.map((db: any, i: number) => {
+              const s = SLIDES_FALLBACK[i % SLIDES_FALLBACK.length]
+              return {
+                image: db.image_url,
+                flag: db.flag || '',
+                location: db.location || s.location,
+                sub: db.sub || s.sub,
+                stat: db.stat || s.stat,
+                label_fr: db.label_fr || s.label_fr,
+                label_en: db.label_en || s.label_en,
+              }
+            }))
+          } else {
+            // Pas de contenu en DB → on garde le texte du fallback et on remplace
+            // seulement les images, dans l'ordre, pour TOUS les slides DB fournis.
+            setDbSlides(hero.map((db: any, i: number) => ({
+              ...SLIDES_FALLBACK[i % SLIDES_FALLBACK.length],
+              image: db.image_url,
+            })))
+          }
         }
         if (platform.length > 0) {
           setPlatformImages(platform.map((d: any) => d.image_url))
