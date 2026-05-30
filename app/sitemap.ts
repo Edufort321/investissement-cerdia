@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 
 // Plan du site pour les moteurs de recherche : uniquement les pages PUBLIQUES.
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cerdia.ai'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.cerdia.ai'
 
 // Pages publiques indexables (pas de pages privées dashboard/admin).
 const PUBLIC_PATHS: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [
