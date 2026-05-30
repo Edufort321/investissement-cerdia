@@ -63,7 +63,8 @@ export default function Home() {
       .select('annual_amount_cad, currency')
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.annual_amount_cad > 0) setPlatformPrice({ annual: Number(data.annual_amount_cad), currency: data.currency || 'CAD' })
+        const amt = Number(data?.annual_amount_cad)
+        if (data && amt > 0) setPlatformPrice({ annual: amt, currency: data.currency || 'CAD' })
       })
 
     supabase
