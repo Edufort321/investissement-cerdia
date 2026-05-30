@@ -89,6 +89,43 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      // ── Abonnements tenants (app investissement + C-Secur360) ───────────
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription
+        const orgId = sub.metadata?.organization_id
+        if (orgId) {
+          const status = event.type === 'customer.subscription.deleted' ? 'canceled' : sub.status
+          const periodEnd = (sub as any).current_period_end
+            ? new Date((sub as any).current_period_end * 1000).toISOString()
+            : null
+          await supabase.from('organizations').update({
+            stripe_subscription_id: sub.id,
+            subscription_status: status,
+            current_period_end: periodEnd,
+            // Aligne la date de renouvellement affichée dans l'admin sur Stripe.
+            ...(periodEnd ? { next_renewal_date: periodEnd.split('T')[0] } : {}),
+          }).eq('id', orgId)
+          console.log(`[webhook] org ${orgId} subscription → ${status}`)
+        }
+        break
+      }
+
+      // Échec/succès de paiement de facture récurrente
+      case 'invoice.payment_failed':
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        const orgId = (invoice as any).subscription_details?.metadata?.organization_id
+          || invoice.metadata?.organization_id
+        if (orgId) {
+          await supabase.from('organizations').update({
+            subscription_status: event.type === 'invoice.paid' ? 'active' : 'past_due',
+          }).eq('id', orgId)
+        }
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }

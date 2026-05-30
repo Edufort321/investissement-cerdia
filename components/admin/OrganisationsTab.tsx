@@ -14,7 +14,7 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
   Plus, Eye, Shield, Building2, Copy, Check, AlertCircle, X, RefreshCw, ExternalLink,
-  Pause, Play, Archive, Trash2, MoreVertical, TrendingUp, UserCheck, Percent,
+  Pause, Play, Archive, Trash2, MoreVertical, TrendingUp, UserCheck, Percent, CreditCard,
 } from 'lucide-react'
 
 interface Org {
@@ -237,6 +237,31 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
           : `${org.name} renewed until ${json.next_renewal}${json.reactivated ? ' (reactivated)' : ''}.`,
         type: 'success',
       })
+    } catch (e: any) {
+      toast({ msg: e.message || (fr ? 'Erreur reseau' : 'Network error'), type: 'error' })
+    }
+  }
+
+  // Active l'abonnement Stripe annuel du tenant (ouvre le Checkout Stripe).
+  const handleStripeSubscription = async (org: Org) => {
+    const withSite = confirm(fr
+      ? `Activer l'abonnement Stripe annuel pour "${org.name}" ?\n\nOK = abonnement + module Site\nAnnuler = abonnement de base seulement`
+      : `Activate annual Stripe subscription for "${org.name}"?\n\nOK = subscription + Site add-on\nCancel = base subscription only`)
+    // Note : confirm renvoie true/false ; ici true = avec add-on site.
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) { toast({ msg: fr ? 'Non authentifie.' : 'Not authenticated.', type: 'error' }); return }
+      const res = await fetch(`/api/admin/organizations/${org.id}/subscription`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ with_site_addon: withSite }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast({ msg: `${fr ? 'Erreur' : 'Error'}: ${json.error}`, type: 'error' }); return }
+      // Redirige vers le Checkout Stripe (le tenant/admin paie).
+      if (json.url) window.open(json.url, '_blank')
+      toast({ msg: fr ? 'Checkout Stripe ouvert.' : 'Stripe Checkout opened.', type: 'success' })
     } catch (e: any) {
       toast({ msg: e.message || (fr ? 'Erreur reseau' : 'Network error'), type: 'error' })
     }
@@ -874,7 +899,15 @@ export default function OrganisationsTab({ toast }: { toast: (t: { msg: string; 
                 onClick={() => { closeMenu(); handleRenew(org) }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <RefreshCw size={12} /> {fr ? 'Renouveler' : 'Renew'}
+                <RefreshCw size={12} /> {fr ? 'Renouveler (manuel)' : 'Renew (manual)'}
+              </button>
+              <button
+                onClick={() => { closeMenu(); handleStripeSubscription(org) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              >
+                <CreditCard size={12} /> {(org as any).stripe_subscription_id
+                  ? (fr ? 'Gérer abonnement Stripe' : 'Manage Stripe sub')
+                  : (fr ? 'Activer abonnement Stripe' : 'Activate Stripe sub')}
               </button>
               {!isReal && (
                 <button
