@@ -112,19 +112,29 @@ bypass total super-admin dans la RLS (`OR is_super_admin()`).
   investor_reservations ×2 (les autres l'avaient déjà : transactions, commerce,
   contractors, liabilities, invoice_clients).
 
-**RESTE À FAIRE (sécurité, important) :**
+**Couverture RLS confirmée (2026-05-30) :** les ~56 tables Investissement (mig.147) +
+6 tables Commerce/gmail (mig.148/149) ont la policy RESTRICTIVE `tenant_isolation`
+(`organization_id = auth_get_org_id() OR is_super_admin()`). Les policies permissives
+`USING(true)` de la mig.99 ne sont PAS des failles : la RESTRICTIVE filtre en AND.
+
+**✅ TRAITÉ — migration 209 (durcissement RLS) :**
+- invoices / invoice_clients / invoice_items : RLS RÉACTIVÉE (était OFF depuis mig.132)
+  + tenant_isolation. 
+- dividend_declarations / dividend_investor_elections : tenant_isolation ajouté
+  (filtraient par action_class sans org).
+- fiscal_year_settings : tenant_isolation ajouté (était USING(true), mig.196).
+- investor_report_requests : tenant_isolation ajouté (filtrait is_cerdia_admin sans org).
+
+**RESTE À FAIRE (sécurité) :**
 - [ ] **Resserrer le bypass super-admin RLS** : transmettre l'org « View-as » au serveur
   (claim JWT ou header validé) pour que la RLS impose au super-admin d'écrire UNIQUEMENT
   dans l'org ciblée. Chantier auth séparé. **Tant que ce n'est pas fait, rester vigilant
-  en View-as.**
-- [ ] **Réactiver RLS sur invoices/invoice_clients/invoice_items** (désactivées par
-  mig. 132) avec policies filtrées par organization_id.
-- [ ] **dividend_declarations / dividend_investor_elections** : policy filtre par
-  `action_class`, PAS par organization_id (mig. 202) → ajouter le filtre tenant.
+  en View-as.** (Note : le retrait du DEFAULT en mig.208 + org explicite dans le code
+  ont déjà éliminé la contamination ACCIDENTELLE.)
 - [ ] Remplacer `auth.jwt() ->> organization_id` par `auth_get_org_id()` (portfolio, mig. 172).
-- [ ] **Nettoyer les données démo dans CERDIA** : scénarios « Projet Démo 1/2 »,
-  « Secret Garden H212 » (created_by=courtier@demo.cerdia.ai) importés par mig. 166/169.
-  Migration de suppression ciblée à créer.
+- [x] ~~Nettoyer données démo CERDIA~~ — FAUX POSITIF : c'était une transaction saisie
+  en devise US au lieu de CAD, pas une contamination. Les scénarios démo (mig.166) sont
+  des projets CERDIA légitimes recréés.
 
 ---
 
