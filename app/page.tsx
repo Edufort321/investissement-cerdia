@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight, MapPin, TrendingUp, Shield, Globe, Sparkles } from 'lucide-react'
+import PublicChatWidget from '@/components/PublicChatWidget'
 
 const SLIDES_FALLBACK = [
   {
@@ -445,6 +446,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Chatbot public marketing — info plateforme + orientation démo/courriel */}
+      <PublicChatWidget />
     </div>
   )
 }
