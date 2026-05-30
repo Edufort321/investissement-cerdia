@@ -105,7 +105,7 @@ export default function AssistantWidget() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
-                  m.role === 'user' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'
+                  m.role === 'user' ? 'bg-gray-900 !text-white' : 'bg-gray-100 !text-gray-800'
                 }`}>
                   {m.content}
                 </div>
@@ -125,7 +125,7 @@ export default function AssistantWidget() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') send(input) }}
               placeholder="Posez une question…"
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-gray-400 outline-none"
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-gray-400 outline-none !bg-white !text-gray-900 placeholder:!text-gray-400"
             />
             <button
               onClick={() => send(input)}
