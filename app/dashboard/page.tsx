@@ -10,6 +10,7 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
+import SupportMenu from '@/components/SupportMenu'
 import ScenariosTab from '@/components/ScenariosTab'
 import InvestorReservationsCalendar from '@/components/InvestorReservationsCalendar'
 import TreasuryDashboard from '@/components/TreasuryDashboard'
@@ -36,7 +37,7 @@ import NAVTimelineChart from '@/components/NAVTimelineChart'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'factures_gmail' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes' | 'factures'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'factures_gmail' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes' | 'factures' | 'support'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -580,6 +581,19 @@ export default function DashboardPage() {
                         }`}
                       >
                         {t('admin.subtab.userGuide')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdminSubTab('support')
+                          if (isMobile) setSidebarOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
+                          adminSubTab === 'support'
+                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        🛟 Support
                       </button>
                       <button
                         onClick={() => {
@@ -1205,6 +1219,11 @@ export default function DashboardPage() {
                 </div>
               )}
               {adminSubTab === 'mode_emploi' && <UserGuide />}
+              {adminSubTab === 'support' && (
+                <div className="p-6">
+                  <SupportMenu />
+                </div>
+              )}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
               {adminSubTab === 'factures' && <InvoiceGenerator module="investor" />}
               {adminSubTab === 'factures_gmail' && (
@@ -1215,7 +1234,7 @@ export default function DashboardPage() {
                   />
                 </div>
               )}
-              {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes', 'factures', 'factures_gmail'].includes(adminSubTab) && (
+              {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes', 'factures', 'factures_gmail', 'support'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab as 'investisseurs' | 'transactions' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'} />
               )}
             </>
