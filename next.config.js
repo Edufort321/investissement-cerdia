@@ -54,25 +54,47 @@ const nextConfig = {
     },
   }),
   images: {
+    // ⚠️ SÉCURITÉ : liste blanche stricte. Un wildcard '**' transforme l'optimiseur
+    // d'images Next en proxy SSRF (fetch de n'importe quelle URL). On n'autorise que
+    // les domaines réellement utilisés.
     remotePatterns: [
-      // Domaines Amazon officiels
       { protocol: 'https', hostname: 'm.media-amazon.com' },
       { protocol: 'https', hostname: 'a.co' },
       { protocol: 'https', hostname: '**.amazonaws.com' },
       { protocol: 'https', hostname: '**.amazon.ca' },
       { protocol: 'https', hostname: '**.amazon.com' },
-
-      // Ajouts recommandés
-      { protocol: 'https', hostname: 'p16-sign-va.tiktokcdn.com' }, // TikTok
-      { protocol: 'https', hostname: 'cdn.cerdia.ai' },             // Ton CDN futur
-      { protocol: 'http', hostname: 'localhost' },                  // Tests locaux
-
-      // Fallback généraux (attention : large ouverture)
-      { protocol: 'https', hostname: '**' },
-      { protocol: 'http', hostname: '**' }
+      { protocol: 'https', hostname: 'p16-sign-va.tiktokcdn.com' },
+      { protocol: 'https', hostname: 'cdn.cerdia.ai' },
+      { protocol: 'https', hostname: 'svwolnvknfmakgmjhoml.supabase.co' }, // Storage Supabase
+      ...(isDev ? [{ protocol: 'http', hostname: 'localhost' }] : []),
     ],
     unoptimized: isDev || isCapacitor, // Désactivé en dev et pour Capacitor
   },
+  // ⚠️ SÉCURITÉ : en-têtes HTTP appliqués à toutes les routes (sauf export Capacitor,
+  // qui n'a pas de serveur). Protège contre clickjacking, sniffing, fuite de referrer.
+  ...(!isCapacitor && {
+    async headers() {
+      return [
+        {
+          source: '/:path*',
+          headers: [
+            // HSTS : force HTTPS (2 ans, sous-domaines, preload-ready)
+            { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+            // Anti-clickjacking (l'app ne doit pas être embarquée en iframe tierce)
+            { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+            // Anti MIME-sniffing
+            { key: 'X-Content-Type-Options', value: 'nosniff' },
+            // Ne fuit pas l'URL complète en referrer cross-origin
+            { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+            // Réduit les APIs navigateur accessibles
+            { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
+            // Empêche le navigateur de traiter le site comme un domaine de confiance FLoC
+            { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          ],
+        },
+      ]
+    },
+  }),
 };
 
 module.exports = withPWA(nextConfig);

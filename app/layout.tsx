@@ -3,12 +3,51 @@ import NavbarWrapper from '../components/NavbarWrapper'
 import PWAWarning from '../components/PWAWarning'
 import SuperAdminViewBanner from '../components/SuperAdminViewBanner'
 import { Providers } from '../components/Providers'
-import Script from 'next/script'
+import CookieConsent from '../components/CookieConsent'
+import ConsentedAds from '../components/ConsentedAds'
+
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cerdia.ai'
+const SITE_DESCRIPTION =
+  'CERDIA — Plateforme d\'investissement immobilier international alliant intelligence artificielle, ' +
+  'gestion de portefeuille et formation haut de gamme. Investissez au Canada, en République Dominicaine et en Floride.'
 
 export const metadata = {
-  title: 'CERDIA',
-  description: 'Une vision d\'envergure alliant IA, immobilier et formation haut de gamme.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'CERDIA — Investissement immobilier international & IA',
+    template: '%s | CERDIA',
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'CERDIA', 'investissement immobilier', 'immobilier international', 'République Dominicaine',
+    'Floride', 'Canada', 'NAV', 'gestion de portefeuille', 'intelligence artificielle',
+    'investisseur', 'rendement immobilier',
+  ],
+  authors: [{ name: 'CERDIA' }],
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_CA',
+    url: SITE_URL,
+    siteName: 'CERDIA',
+    title: 'CERDIA — Investissement immobilier international & IA',
+    description: SITE_DESCRIPTION,
+    images: [{ url: '/logo-cerdia3.png', width: 1200, height: 630, alt: 'CERDIA' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CERDIA — Investissement immobilier international & IA',
+    description: SITE_DESCRIPTION,
+    images: ['/logo-cerdia3.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -37,12 +76,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="CERDIA" />
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7698570045125787"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
       </head>
       <body className="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
         <Providers>
@@ -52,6 +85,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main>
             {children}
           </main>
+          <CookieConsent />
+          <ConsentedAds />
         </Providers>
       </body>
     </html>
