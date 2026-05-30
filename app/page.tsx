@@ -42,6 +42,8 @@ export default function Home() {
   const [idx, setIdx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [saasProducts, setSaasProducts] = useState<{ title: string; price: number | null; currency: string; description?: string }[]>([])
+  // Prix annuel de la plateforme (organizations.settings.saas_pricing) — affiché en public.
+  const [platformPrice, setPlatformPrice] = useState<{ annual: number; currency: string } | null>(null)
   const [dbSlides, setDbSlides] = useState<typeof SLIDES_FALLBACK | null>(null)
   const [platformImages, setPlatformImages] = useState<string[]>([])
   const [platformIdx, setPlatformIdx] = useState(0)
@@ -54,6 +56,15 @@ export default function Home() {
       .eq('active', true)
       .order('price', { ascending: true })
       .then(({ data }) => { if (data) setSaasProducts(data) })
+
+    // Prix annuel de la plateforme via la vue publique dédiée (n'expose que le prix).
+    supabase
+      .from('platform_public_pricing')
+      .select('annual_amount_cad, currency')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.annual_amount_cad > 0) setPlatformPrice({ annual: Number(data.annual_amount_cad), currency: data.currency || 'CAD' })
+      })
 
     supabase
       .from('home_slides')
@@ -299,11 +310,11 @@ export default function Home() {
                   backgroundImage: `url(${url})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  filter: 'brightness(0.18) saturate(0.8)',
+                  filter: 'brightness(0.5) saturate(1.05)',
                 }} />
               </div>
             ))}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e] via-[#0c0c0e]/80 to-[#0c0c0e]/60" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e]/85 via-[#0c0c0e]/55 to-[#0c0c0e]/30" />
           </div>
         )}
 
@@ -341,43 +352,41 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Prix dynamique depuis commerce_products */}
-          <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-6 ${saasProducts.length > 0 ? 'border-amber-400/25 bg-[#111115]' : 'border-white/5 bg-[#0f0f12] opacity-60'}`}>
-            {saasProducts.length > 0 ? (
-              <>
+          {/* Prix d'abonnement plateforme (organizations.settings) ou produit SaaS commerce */}
+          {(() => {
+            // Priorité au prix annuel de la plateforme ; sinon premier produit SaaS commerce.
+            const annual = platformPrice?.annual ?? null
+            const curr = platformPrice?.currency || saasProducts[0]?.currency || 'CAD'
+            const hasPrice = annual !== null || (saasProducts.length > 0 && saasProducts[0].price != null)
+            const amount = annual !== null ? annual : (saasProducts[0]?.price ?? null)
+            const period = annual !== null ? (fr ? 'an' : 'yr') : (fr ? 'mois' : 'mo')
+            return (
+              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-6 ${hasPrice ? 'border-amber-400/25 bg-[#111115]' : 'border-white/5 bg-[#0f0f12] opacity-60'}`}>
                 <div>
-                  <p className="text-white text-xs uppercase tracking-widest mb-1">Revenus SaaS</p>
-                  <p className="text-white/50 text-xs mb-4">{saasProducts[0].title}</p>
-                  <p className="text-4xl font-bold text-white leading-none">
-                    {saasProducts[0].price !== null && saasProducts[0].price !== undefined
-                      ? saasProducts[0].price.toLocaleString(fr ? 'fr-CA' : 'en-CA', {
-                          style: 'currency', currency: saasProducts[0].currency || 'CAD', minimumFractionDigits: 0,
-                        })
-                      : '—'}
-                    <span className="text-gray-500 text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
+                  <p className="text-amber-400 text-xs uppercase tracking-widest mb-1">{fr ? 'Abonnement plateforme' : 'Platform subscription'}</p>
+                  <p className="text-white/50 text-xs mb-4">
+                    {fr ? 'Plateforme Multi-Tenant — Organisation' : 'Multi-Tenant Platform — Organization'}
                   </p>
-                  {saasProducts[0].description && (
-                    <p className="text-gray-400 text-xs leading-relaxed mt-3">{saasProducts[0].description}</p>
-                  )}
+                  <p className="text-4xl font-bold text-white leading-none">
+                    {amount != null
+                      ? amount.toLocaleString(fr ? 'fr-CA' : 'en-CA', { style: 'currency', currency: curr, minimumFractionDigits: 0 })
+                      : '—'}
+                    <span className="text-gray-500 text-sm font-normal ml-1">/ {period}</span>
+                  </p>
+                  <p className="text-gray-400 text-xs leading-relaxed mt-3">
+                    {fr
+                      ? 'Portefeuilles, locataires, rendements, rapports fiscaux et IA — tout inclus, par organisation.'
+                      : 'Portfolios, tenants, yields, tax reports and AI — all included, per organization.'}
+                  </p>
                 </div>
                 <Link href="/investir" className="block">
                   <button className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-full text-xs tracking-wide transition-all">
                     {fr ? 'Nous contacter' : 'Contact us'}
                   </button>
                 </Link>
-              </>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-white font-semibold text-sm">Revenus SaaS</p>
-                <p className="text-white text-sm">
-                  {fr ? 'Plateforme Multi-Tenant — Organisation' : 'Multi-Tenant Platform — Organization'}
-                </p>
-                <p className="text-4xl font-bold text-white pt-2">
-                  —<span className="text-white text-sm font-normal ml-1">/ {fr ? 'mois' : 'mo'}</span>
-                </p>
               </div>
-            )}
-          </div>
+            )
+          })()}
         </div>
         </div>
       </section>
