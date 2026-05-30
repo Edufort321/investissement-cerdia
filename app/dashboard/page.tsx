@@ -101,7 +101,9 @@ export default function DashboardPage() {
   // Gérer la vue mobile/desktop
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024
+      // Bascule en mode hamburger plus tôt (< 1280px) pour libérer de la largeur
+      // au contenu (tableaux, formulaires) sur les écrans moyens/laptops.
+      const mobile = window.innerWidth < 1280
       setIsMobile(mobile)
       setSidebarOpen(!mobile)
     }

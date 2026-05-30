@@ -4112,7 +4112,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.amount')}</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactions.status')}</th>
                   <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.tx.attachmentCol')}</th>
-                  <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
+                  <th className="sticky right-0 z-10 bg-gray-50 px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider shadow-[-8px_0_8px_-6px_rgba(0,0,0,0.1)]">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -4121,7 +4121,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   const property = properties.find(p => p.id === transaction.property_id)
 
                   return (
-                    <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={transaction.id} className="group hover:bg-gray-50 transition-colors">
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-900">
                           <Calendar size={14} className="text-gray-400 hidden sm:inline" />
@@ -4203,7 +4203,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           )
                         })()}
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium shadow-[-8px_0_8px_-6px_rgba(0,0,0,0.08)]">
                         <div className="flex items-center justify-end gap-1 sm:gap-2">
                           <button
                             onClick={() => handleEditTransaction(transaction)}
