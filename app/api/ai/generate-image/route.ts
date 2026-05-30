@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { requireAIUser } from '@/lib/auth/ai-guard'
 
 let _openai: OpenAI | null = null
 function getOpenAI(): OpenAI {
@@ -8,6 +9,10 @@ function getOpenAI(): OpenAI {
 }
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 OWASP API4 : auth + quota strict (DALL-E coûteux → anti-explosion de facture)
+    const guard = await requireAIUser(request, 'image')
+    if (guard.error) return guard.error
+
     const { titre, language = 'fr' } = await request.json()
 
     if (!titre) {

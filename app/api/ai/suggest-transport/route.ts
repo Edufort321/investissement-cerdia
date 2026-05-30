@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { requireAIUser } from '@/lib/auth/ai-guard'
 
 let _openai: OpenAI | null = null
 function getOpenAI(): OpenAI {
