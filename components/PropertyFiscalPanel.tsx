@@ -21,8 +21,6 @@ interface PropertyFiscal {
   foreign_account_number?: string | null
   confotur_certification_date?: string | null
   confotur_expiry_date?: string | null
-  nr6_election_active?: boolean | null
-  nr6_election_date?: string | null
 }
 
 interface Props {

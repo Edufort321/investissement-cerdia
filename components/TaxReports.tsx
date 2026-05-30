@@ -85,7 +85,8 @@ export default function TaxReports() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeReport, setActiveReport] = useState<'T1135' | 'T2209' | 'comptable' | 'multi_juridiction'>('T1135')
+  const [activeReport, setActiveReport] = useState<'T1135' | 'T2209' | 'comptable' | 'multi_juridiction' | 'controle_cpa'>('T1135')
+  const [generatingCPAReview, setGeneratingCPAReview] = useState(false)
   const [jurisdictionRates, setJurisdictionRates] = useState<any[]>([])
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [filterPeriod, setFilterPeriod] = useState<string>('annual')
@@ -600,12 +601,23 @@ export default function TaxReports() {
         : (countyCode && FL_TDT[countyCode] ? FL_TDT[countyCode] : 0)
       const tdtEstimate = !tdtApplies ? 0
         : (Number.isFinite(tdtSaved) && tdtSaved > 0 ? tdtSaved : (Number(t.amount) || 0) * tdtRate)
+      // Mexique : IVA 16% (locations meublées) → colonne Taxe vente/TVA ;
+      // ISR 25% retenue non-résident → colonne Retenue NR. Valeur saisie prime.
+      const isMXrental = key === 'MX' && isRentalIncome
+      const ivaEstimate = (isMXrental && t.is_furnished === true) ? (Number(t.amount) || 0) * 0.16 : 0
+      const isrEstimate = (isMXrental && (Number(t.foreign_tax_paid) || 0) === 0) ? (Number(t.amount) || 0) * 0.25 : 0
+      // Contribution finale : valeur saisie (sales_tax_amount / federal_withholding) si > 0,
+      // sinon estimation Mexique (0 pour les autres pays → comportement inchangé).
+      const savedSalesTax = Number(t.sales_tax_amount) || 0
+      const salesTaxContribution = savedSalesTax > 0 ? savedSalesTax : ivaEstimate
+      const savedFedWithholding = Number(t.federal_withholding) || 0
+      const fedWithholdingContribution = savedFedWithholding > 0 ? savedFedWithholding : isrEstimate
 
       revenueByCountry.set(key, {
         transactionCount: cur.transactionCount + 1,
-        totalSalesTax: cur.totalSalesTax + (Number(t.sales_tax_amount) || 0),
+        totalSalesTax: cur.totalSalesTax + salesTaxContribution,
         totalStateTax: cur.totalStateTax + (Number(t.state_income_tax_amt) || 0),
-        totalFederalWithholding: cur.totalFederalWithholding + (Number(t.federal_withholding) || 0),
+        totalFederalWithholding: cur.totalFederalWithholding + fedWithholdingContribution,
         totalGross: cur.totalGross + (Number(t.amount) || 0),
         alreadyWithheld: cur.alreadyWithheld + (Number(t.foreign_tax_paid) || 0),
         itbisEstimated: cur.itbisEstimated + itbisEstimate,
@@ -756,6 +768,199 @@ export default function TaxReports() {
       }
     } finally {
       setGeneratingShare(false)
+    }
+  }
+
+  // ── Contrôle CPA : construit la liste des points à faire valider ──────────
+  // Combine des limites STRUCTURELLES connues (toujours présentes) + des points
+  // contextuels selon les juridictions réellement présentes dans les données.
+  type CPAItem = { severity: 'action' | 'limite' | 'info'; title: string; detail: string; question?: string }
+  const buildCPAReviewItems = (): CPAItem[] => {
+    const mj = calculateMultiJurisdictionData()
+    const countries = new Set(mj.rows.map(r => r.country_code))
+    const items: CPAItem[] = []
+
+    // 1) Nature de l'outil — toujours
+    items.push({
+      severity: 'limite',
+      title: fr ? 'Montants = estimations de planification, pas des déclarations' : 'Amounts = planning estimates, not filings',
+      detail: fr
+        ? 'L\'app calcule des montants indicatifs (retenues, taxes de vente, crédits). Les déductions, arrondis et cas particuliers d\'une déclaration officielle ne sont pas tous reproduits.'
+        : 'The app computes indicative amounts. Deductions, rounding and edge cases of an official filing are not all reproduced.',
+    })
+
+    // 2) Taux à confirmer à la date de déclaration — toujours
+    items.push({
+      severity: 'action',
+      title: fr ? 'Confirmer les taux fiscaux à la date de déclaration' : 'Confirm tax rates as of filing date',
+      detail: fr
+        ? 'Taux préchargés : IRNR RD 27 %, ITBIS RD 18 %, FIRPTA US 15 %, retenue fédérale US 30 %, TDT Floride 5-6 %/comté, plafond T2209 15 %, seuil T1135 100 000 $ CAD. À valider (ils changent dans le temps).'
+        : 'Preloaded rates must be validated (they change over time).',
+      question: fr ? 'Ces taux sont-ils à jour pour l\'année visée ?' : 'Are these rates current for the target year?',
+    })
+
+    // 3) T1135 — si actifs étrangers
+    const t1135 = calculateT1135Data()
+    if (t1135.totalForeignAssets > 0) {
+      items.push({
+        severity: t1135.totalForeignAssets > 100000 ? 'action' : 'info',
+        title: `T1135 — ${fr ? 'Avoirs étrangers' : 'Foreign assets'} : ${formatCurrency(t1135.totalForeignAssets)}`,
+        detail: t1135.totalForeignAssets > 100000
+          ? (fr ? 'Seuil de 100 000 $ CAD dépassé → déclaration T1135 OBLIGATOIRE. Méthode détaillée si ≥ 250 000 $.' : 'Over $100K CAD → T1135 REQUIRED.')
+          : (fr ? 'Sous le seuil de 100 000 $ — pas d\'obligation T1135 cette année, à reconfirmer.' : 'Under $100K — no T1135 obligation, to reconfirm.'),
+        question: fr ? 'La juste valeur marchande des biens étrangers est-elle à jour au 31 déc. ?' : 'Is foreign FMV current as of Dec 31?',
+      })
+    }
+
+    // 4) Confotur — si DR
+    if (countries.has('DO')) {
+      items.push({
+        severity: 'action',
+        title: fr ? '🇩🇴 Confotur (RD) — exonération à confirmer' : '🇩🇴 Confotur (DR) — exemption to confirm',
+        detail: fr
+          ? 'Les transactions RD marquées Confotur sont exonérées d\'IRNR/ITBIS dans l\'estimation. Valider la certification (Loi 158-01) et sa durée (10-15 ans).'
+          : 'DR transactions flagged Confotur are exempted in the estimate. Validate certification and duration.',
+        question: fr ? 'La certification Confotur est-elle valide et non expirée ?' : 'Is Confotur certification valid and not expired?',
+      })
+      items.push({
+        severity: 'limite',
+        title: fr ? '🇩🇴 ITBIS long terme RD' : '🇩🇴 DR long-term ITBIS',
+        detail: fr
+          ? 'L\'ITBIS est estimé pour les locations meublées ou ≤30 j. La frontière exacte court/long terme en RD doit être confirmée auprès de la DGII.'
+          : 'ITBIS estimated for furnished or ≤30-day rentals. Confirm short/long-term boundary with DGII.',
+      })
+    }
+
+    // 5) US — 871(d) / FIRPTA / net basis
+    if (countries.has('US')) {
+      items.push({
+        severity: 'action',
+        title: fr ? '🇺🇸 Élection 871(d) / Net Basis' : '🇺🇸 871(d) / Net Basis election',
+        detail: fr
+          ? 'Sans élection 871(d), retenue de 30 % sur le loyer BRUT. Avec élection, imposition sur le NET. Vérifier que l\'élection est faite et documentée (ITIN/EIN requis).'
+          : 'Without 871(d), 30% on GROSS rent. With election, taxed on NET.',
+        question: fr ? 'L\'élection 871(d) est-elle faite pour chaque propriété US louée ?' : 'Is 871(d) elected for each rented US property?',
+      })
+      items.push({
+        severity: 'info',
+        title: fr ? '🇺🇸 FIRPTA à la vente' : '🇺🇸 FIRPTA on sale',
+        detail: fr
+          ? '15 % du prix de vente brut retenu par l\'acheteur (non-résident). Récupérable via 1040-NR si l\'impôt réel est inférieur. Form 8288 sous 20 jours.'
+          : '15% of gross sale price withheld. Recoverable via 1040-NR.',
+      })
+    }
+
+    // 6) Mexique — implémenté mais à valider
+    if (countries.has('MX')) {
+      items.push({
+        severity: 'limite',
+        title: fr ? '🇲🇽 Mexique — estimation récente' : '🇲🇽 Mexico — recent estimate',
+        detail: fr
+          ? 'ISR 25 % NR + IVA 16 % (meublé) viennent d\'être ajoutés. Valider l\'option société étrangère (30 %), la zone frontalière (IVA 8 %) et les paiements provisionnels ISR.'
+          : 'ISR 25% NR + IVA 16% (furnished) recently added. Validate foreign-entity option and provisional payments.',
+        question: fr ? 'Le statut fiscal mexicain (particulier vs société) est-il confirmé ?' : 'Is the Mexican tax status confirmed?',
+      })
+    }
+
+    // 7) Transactions étrangères sans juridiction
+    if (mj.uncovered.length > 0) {
+      items.push({
+        severity: 'action',
+        title: fr ? `${mj.uncovered.length} transaction(s) en devise étrangère sans pays` : `${mj.uncovered.length} foreign-currency tx without country`,
+        detail: fr
+          ? 'Ces transactions ne sont pas rattachées à une juridiction → obligations non tracées. Ouvrir chaque transaction et sélectionner le pays.'
+          : 'These transactions are not linked to a jurisdiction → obligations not tracked.',
+      })
+    }
+
+    // 8) Solde estimé dû
+    if (mj.totalNetOwing > 0) {
+      items.push({
+        severity: 'info',
+        title: `${fr ? 'Solde fiscal estimé dû' : 'Estimated tax owing'} : ${formatCurrency(mj.totalNetOwing)}`,
+        detail: fr
+          ? 'Somme des obligations estimées non encore retenues/remises, toutes juridictions confondues. À rapprocher des remises réelles.'
+          : 'Sum of estimated obligations not yet withheld/remitted.',
+      })
+    }
+
+    return items
+  }
+
+  const exportCPAReviewPDF = async () => {
+    setGeneratingCPAReview(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const items = buildCPAReviewItems()
+      const today = new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      doc.setFontSize(17); doc.setTextColor(190, 18, 60)
+      doc.text(fr ? 'CONTRÔLE FISCAL — REVUE CPA' : 'TAX CONTROL — CPA REVIEW', 15, 18)
+      doc.setFontSize(9); doc.setTextColor(110, 110, 110)
+      doc.text(`CERDIA SEC — ${getPeriodLabel()} — ${fr ? 'Généré le' : 'Generated'} ${today}`, 15, 25)
+      doc.setDrawColor(190, 18, 60); doc.setLineWidth(0.6); doc.line(15, 29, 195, 29)
+
+      doc.setFontSize(8); doc.setTextColor(80, 80, 80)
+      const intro = doc.splitTextToSize(
+        fr
+          ? 'Document destiné à votre comptable / fiscaliste (CPA). Les montants produits par l\'application CERDIA sont des ESTIMATIONS de planification, et non des déclarations fiscales officielles. Merci de valider chaque point ci-dessous avant toute production de déclaration. L\'outil n\'assume aucune responsabilité fiscale.'
+          : 'Document for your accountant (CPA). CERDIA figures are planning ESTIMATES, not official filings. Please validate each item below before filing. The tool assumes no tax liability.',
+        180)
+      doc.text(intro, 15, 36)
+
+      const sevLabel: Record<string, string> = {
+        action: fr ? 'À VALIDER' : 'VALIDATE',
+        limite: fr ? 'LIMITE' : 'LIMITATION',
+        info:   'INFO',
+      }
+      const sevColor: Record<string, [number, number, number]> = {
+        action: [220, 38, 38], limite: [217, 119, 6], info: [37, 99, 235],
+      }
+
+      autoTable(doc, {
+        startY: 50,
+        head: [[fr ? 'Priorité' : 'Priority', fr ? 'Point à valider' : 'Item', fr ? 'Détail / Question' : 'Detail / Question']],
+        body: items.map(it => [
+          sevLabel[it.severity],
+          it.title,
+          it.detail + (it.question ? `\n\n❓ ${it.question}` : ''),
+        ]),
+        theme: 'grid',
+        margin: { left: 15, right: 15 },
+        headStyles: { fillColor: [190, 18, 60], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8, cellPadding: 3, valign: 'top' },
+        columnStyles: {
+          0: { cellWidth: 22, fontStyle: 'bold' },
+          1: { cellWidth: 58, fontStyle: 'bold' },
+          2: { cellWidth: 100 },
+        },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 0) {
+            const sev = items[data.row.index]?.severity
+            if (sev) data.cell.styles.textColor = sevColor[sev]
+          }
+        },
+      })
+
+      let y = (doc as any).lastAutoTable.finalY + 8
+      if (y > 250) { doc.addPage(); y = 20 }
+      doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3); doc.rect(15, y, 180, 28)
+      doc.setFontSize(8); doc.setTextColor(90, 90, 90)
+      doc.text(fr ? 'Avis du fiscaliste :' : 'Tax professional notes:', 18, y + 6)
+      doc.setFontSize(7); doc.setTextColor(150, 150, 150)
+      doc.text(fr ? '(espace réservé aux commentaires de votre CPA)' : '(space for your CPA comments)', 18, y + 12)
+      doc.text(fr ? 'Signature / Date : ____________________________' : 'Signature / Date: ____________________________', 18, y + 24)
+
+      doc.setFontSize(7); doc.setTextColor(160, 160, 160)
+      doc.text('CERDIA SEC — eric.dufort@cerdia.ai — ' + (fr ? 'Confidentiel' : 'Confidential'), 105, 287, { align: 'center' })
+
+      doc.save(`controle_fiscal_CPA_${selectedYear}_${filterPeriod}_CERDIA.pdf`)
+    } catch (e: any) {
+      alert((fr ? 'Erreur PDF : ' : 'PDF error: ') + e.message)
+    } finally {
+      setGeneratingCPAReview(false)
     }
   }
 
@@ -1826,6 +2031,16 @@ export default function TaxReports() {
           >
             🌎 Multi-Juridiction
           </button>
+          <button
+            onClick={() => setActiveReport('controle_cpa')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
+              activeReport === 'controle_cpa'
+                ? 'border-rose-600 text-rose-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🧾 {fr ? 'Contrôle CPA' : 'CPA Review'}
+          </button>
         </div>
       </div>
 
@@ -2842,6 +3057,67 @@ export default function TaxReports() {
             <p className="text-xs text-gray-400 italic text-center">
               ⚠️ {fr ? 'Estimation à titre indicatif — faire valider par un CPA avant toute déclaration fiscale.' : 'Indicative estimates — validate with a CPA before filing.'}
             </p>
+          </div>
+        )
+      })()}
+
+      {activeReport === 'controle_cpa' && (() => {
+        const items = buildCPAReviewItems()
+        const bySeverity = (sev: string) => items.filter(i => i.severity === sev)
+        const sevStyle: Record<string, { bg: string; border: string; text: string; label: string }> = {
+          action:  { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    label: fr ? 'À valider — action' : 'To validate — action' },
+          limite:  { bg: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-800',  label: fr ? 'Limite connue' : 'Known limitation' },
+          info:    { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-800',   label: 'Information' },
+        }
+        return (
+          <div className="space-y-5">
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0">🧾</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-rose-900">
+                  {fr ? 'Contrôle fiscal — Document de revue pour votre comptable (CPA)' : 'Tax control — Review document for your accountant (CPA)'}
+                </h3>
+                <p className="text-xs text-rose-700 mt-1">
+                  {fr
+                    ? 'Cette page liste les points à faire VALIDER par un fiscaliste avant toute déclaration. Les montants de l\'app sont des ESTIMATIONS de planification, pas des déclarations officielles. Exportez le PDF et transmettez-le à votre CPA.'
+                    : 'This page lists items to be VALIDATED by a tax professional before filing. The app figures are planning ESTIMATES, not official filings. Export the PDF and send it to your CPA.'}
+                </p>
+              </div>
+              <button
+                onClick={exportCPAReviewPDF}
+                disabled={generatingCPAReview}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                <Download size={13} />
+                {generatingCPAReview ? '⏳' : (fr ? 'Exporter PDF CPA' : 'Export CPA PDF')}
+              </button>
+            </div>
+
+            {(['action', 'limite', 'info'] as const).map(sev => {
+              const list = bySeverity(sev)
+              if (list.length === 0) return null
+              const st = sevStyle[sev]
+              return (
+                <div key={sev} className="space-y-2">
+                  <h4 className={`text-xs font-bold uppercase tracking-wide ${st.text}`}>{st.label} ({list.length})</h4>
+                  {list.map((it, idx) => (
+                    <div key={idx} className={`${st.bg} ${st.border} border rounded-xl p-3`}>
+                      <p className={`text-sm font-semibold ${st.text}`}>{it.title}</p>
+                      <p className="text-xs text-gray-600 mt-1">{it.detail}</p>
+                      {it.question && (
+                        <p className="text-xs text-gray-800 mt-1.5 italic">❓ {it.question}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs text-gray-500">
+              {fr
+                ? 'CERDIA SEC — Document généré automatiquement. Les taux fiscaux (IRNR 27 %, ITBIS 18 %, FIRPTA 15 %, TDT 5-6 %, T2209 15 %, seuil T1135 100 000 $) sont préchargés et doivent être confirmés à la date de la déclaration. Aucune responsabilité fiscale n\'est assumée par l\'outil.'
+                : 'CERDIA SEC — Auto-generated document. Tax rates are preloaded and must be confirmed as of filing date. The tool assumes no tax liability.'}
+            </div>
           </div>
         )
       })()}
