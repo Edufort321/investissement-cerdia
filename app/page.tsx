@@ -169,20 +169,25 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/10 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e]/70 via-transparent to-transparent pointer-events-none" />
 
-        {/* Sélecteur d'intention — cible le but de la visite dès l'arrivée */}
-        <div className="absolute top-20 sm:top-24 inset-x-0 z-20 px-4 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto bg-black/45 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3 flex flex-col sm:flex-row items-center gap-3 max-w-3xl w-full">
-            <span className="text-white text-sm font-medium text-center sm:text-left flex-shrink-0">
-              {fr ? 'Vous cherchez à…' : 'You are looking to…'}
-            </span>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <a href="#plateforme" className="flex-1 text-center bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full border border-white/20 transition-colors whitespace-nowrap">
-                {fr ? '🏢 Gérer mon parc immobilier' : '🏢 Manage my real estate'}
-              </a>
-              <a href="#investisseur" className="flex-1 text-center bg-amber-400 hover:bg-amber-300 text-black text-xs sm:text-sm font-semibold px-4 py-2 rounded-full transition-colors whitespace-nowrap">
-                {fr ? '📈 Devenir investisseur' : '📈 Become an investor'}
-              </a>
-            </div>
+        {/* Sélecteur d'intention — style épuré sans bulle, à la manière du hero */}
+        <div className="absolute top-24 sm:top-28 inset-x-0 z-20 px-6 flex flex-col items-center gap-4 text-center pointer-events-none">
+          <p className="pointer-events-auto text-amber-400 text-[11px] sm:text-xs font-medium tracking-[0.3em] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+            {fr ? 'Vous cherchez à…' : 'You are looking to…'}
+          </p>
+          <div className="pointer-events-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+            <a href="#plateforme" className="group flex items-center gap-2 text-white text-sm sm:text-base font-semibold tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] hover:text-amber-300 transition-colors">
+              <span>🏢</span>
+              <span className="border-b border-white/30 group-hover:border-amber-300 pb-0.5 transition-colors">
+                {fr ? 'Gérer mon parc immobilier' : 'Manage my real estate'}
+              </span>
+            </a>
+            <span className="hidden sm:block text-white/30">•</span>
+            <a href="#investisseur" className="group flex items-center gap-2 text-white text-sm sm:text-base font-semibold tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] hover:text-amber-300 transition-colors">
+              <span>📈</span>
+              <span className="border-b border-white/30 group-hover:border-amber-300 pb-0.5 transition-colors">
+                {fr ? 'Devenir investisseur' : 'Become an investor'}
+              </span>
+            </a>
           </div>
         </div>
 
