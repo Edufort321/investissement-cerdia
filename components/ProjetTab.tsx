@@ -946,7 +946,7 @@ export default function ProjetTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('projects.title')}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t('projects.title')}</h2>
           <p className="text-sm sm:text-base text-gray-600 mt-1">{t('projects.convertedFromScenarios')}</p>
         </div>
       </div>
@@ -960,12 +960,12 @@ export default function ProjetTab() {
         >
         <div className="flex min-h-full items-start justify-center p-3 sm:p-4">
         <div
-          className="bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-3xl my-4 sm:my-8"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-3xl my-4 sm:my-8"
           onClick={(e) => e.stopPropagation()}
         >
           {/* En-tête collant : reste visible pendant le défilement du formulaire */}
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3 bg-white border-b border-gray-200 rounded-t-lg">
-            <h3 className="text-base sm:text-lg font-semibold">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">
+            <h3 className="text-base sm:text-lg font-semibold dark:text-gray-100">
               {editingId ? t('projects.edit') : t('projects.new')}
             </h3>
             <button type="button" onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -976,41 +976,41 @@ export default function ProjetTab() {
             {/* Basic Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.propertyName')} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: Oasis Bay A301' : 'E.g.: Oasis Bay A301'}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.location')} *
                 </label>
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: Punta Cana, République Dominicaine' : 'E.g.: Punta Cana, Dominican Republic'}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.status')} *
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="reservation">{t('projects.statusReservation')}</option>
@@ -1023,13 +1023,13 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {fr ? 'Type de propriété' : 'Property type'}
                 </label>
                 <select
                   value={formData.property_type}
                   onChange={(e) => setFormData({ ...formData, property_type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="condo">{fr ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
                   <option value="maison">{fr ? 'Maison / Villa' : 'House / Villa'}</option>
@@ -1043,13 +1043,13 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {fr ? 'Pays (juridiction fiscale)' : 'Country (tax jurisdiction)'}
                 </label>
                 <select
                   value={formData.country_code}
                   onChange={(e) => setFormData({ ...formData, country_code: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">{fr ? '— Non défini —' : '— Not defined —'}</option>
                   <option value="CA">🇨🇦 Canada</option>
@@ -1061,13 +1061,13 @@ export default function ProjetTab() {
 
               {formData.country_code === 'US' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {fr ? 'État (pour TDT Florida / Sales Tax)' : 'State (for Florida TDT / Sales Tax)'}
                   </label>
                   <select
                     value={formData.state_province}
                     onChange={(e) => setFormData({ ...formData, state_province: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
                     <option value="FL">Florida</option>
@@ -1081,13 +1081,13 @@ export default function ProjetTab() {
 
               {formData.country_code === 'US' && formData.state_province === 'FL' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {fr ? 'Comté Florida (TDT Tourist Development Tax)' : 'Florida County (TDT Tourist Development Tax)'}
                   </label>
                   <select
                     value={formData.county_code}
                     onChange={(e) => setFormData({ ...formData, county_code: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
                     <option value="FL-MIAMI">Miami-Dade County (TDT 6%)</option>
@@ -1107,13 +1107,13 @@ export default function ProjetTab() {
 
               {formData.country_code === 'CA' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {fr ? 'Province' : 'Province'}
                   </label>
                   <select
                     value={formData.state_province}
                     onChange={(e) => setFormData({ ...formData, state_province: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
                     <option value="QC">Québec (QST 9.975% + GST 5%)</option>
@@ -1126,13 +1126,13 @@ export default function ProjetTab() {
 
               {(formData.country_code === 'CA' || formData.country_code === 'US' || !formData.country_code) && formData.property_type !== 'terrain' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {fr ? 'Classe CCA / FNACC (amortissement fiscal)' : 'CCA Class / UCC (tax depreciation)'}
                   </label>
                   <select
                     value={formData.cca_class}
                     onChange={(e) => setFormData({ ...formData, cca_class: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">— {fr ? 'Auto selon type' : 'Auto by type'} —</option>
                     <option value="Class1">{fr ? 'Classe 1 — Bâtiment résidentiel (4%/an)' : 'Class 1 — Residential building (4%/yr)'}</option>
@@ -1192,39 +1192,39 @@ export default function ProjetTab() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.reservationDate')} *
                 </label>
                 <input
                   type="date"
                   value={formData.reservation_date}
                   onChange={(e) => setFormData({ ...formData, reservation_date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.completionDate')}
                 </label>
                 <input
                   type="date"
                   value={formData.completion_date}
                   onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">{t('projects.completionDateHint')}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.currency')} *
                 </label>
                 <select
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="USD">USD ($)</option>
@@ -1233,14 +1233,14 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.totalCost')} *
                 </label>
                 <input
                   type="number"
                   value={formData.total_cost}
                   onChange={(e) => setFormData({ ...formData, total_cost: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: 150000' : 'E.g.: 150000'}
                   min="0"
                   step="0.01"
@@ -1249,13 +1249,13 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.paidAmountAuto')}
                 </label>
                 <input
                   type="number"
                   value={formData.paid_amount}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
                   placeholder={t('projects.paidAmountHint')}
                   disabled
                   readOnly
@@ -1266,14 +1266,14 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.expectedROI')} (%) *
                 </label>
                 <input
                   type="number"
                   value={formData.expected_roi}
                   onChange={(e) => setFormData({ ...formData, expected_roi: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: 10.2' : 'E.g.: 10.2'}
                   min="0"
                   step="0.1"
@@ -1282,14 +1282,14 @@ export default function ProjetTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('projects.ownerDays')}
                 </label>
                 <input
                   type="number"
                   value={formData.owner_occupation_days}
                   onChange={(e) => setFormData({ ...formData, owner_occupation_days: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder={language === 'fr' ? 'Ex: 60' : 'E.g.: 60'}
                   min="0"
                   max="365"
@@ -1304,30 +1304,30 @@ export default function ProjetTab() {
             {/* Section Vente (si statut = vendu) */}
             {formData.status === 'vendu' && (
               <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">{language === 'fr' ? 'Informations de Vente' : 'Sale Information'}</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{language === 'fr' ? 'Informations de Vente' : 'Sale Information'}</h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('projects.saleDate')}
                     </label>
                     <input
                       type="date"
                       value={formData.sale_date}
                       onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('projects.salePrice')}
                     </label>
                     <input
                       type="number"
                       value={formData.sale_price}
                       onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                       placeholder={language === 'fr' ? 'Ex: 300000' : 'E.g.: 300000'}
                       min="0"
                       step="0.01"
@@ -1335,13 +1335,13 @@ export default function ProjetTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('projects.saleCurrency')}
                     </label>
                     <select
                       value={formData.sale_currency}
                       onChange={(e) => setFormData({ ...formData, sale_currency: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                     >
                       <option value="USD">USD ($)</option>
                       <option value="CAD">CAD ($)</option>
@@ -1349,26 +1349,26 @@ export default function ProjetTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('projects.buyerName')} ({language === 'fr' ? 'optionnel' : 'optional'})
                     </label>
                     <input
                       type="text"
                       value={formData.buyer_name}
                       onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                       placeholder={language === 'fr' ? 'Ex: Jean Dupont' : 'E.g.: John Doe'}
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('projects.saleNotes')} ({language === 'fr' ? 'optionnel' : 'optional'})
                     </label>
                     <textarea
                       value={formData.sale_notes}
                       onChange={(e) => setFormData({ ...formData, sale_notes: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                       placeholder={language === 'fr' ? 'Ex: Vendu via agent immobilier ABC, commission 5%' : 'E.g.: Sold via real estate agent ABC, 5% commission'}
                       rows={2}
                     />
@@ -1379,18 +1379,18 @@ export default function ProjetTab() {
 
             {/* Payment Schedule Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">{language === 'fr' ? 'Configuration des Paiements' : 'Payment Configuration'}</h4>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">{language === 'fr' ? 'Configuration des Paiements' : 'Payment Configuration'}</h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('projects.reservationDeposit')} ({formData.currency})
                   </label>
                   <input
                     type="number"
                     value={formData.reservation_deposit}
                     onChange={(e) => setFormData({ ...formData, reservation_deposit: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="Ex: 10000"
                     min="0"
                     step="0.01"
@@ -1399,14 +1399,14 @@ export default function ProjetTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('projects.depositPaidCAD')}
                   </label>
                   <input
                     type="number"
                     value={formData.reservation_deposit_cad}
                     onChange={(e) => setFormData({ ...formData, reservation_deposit_cad: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="Ex: 13500"
                     min="0"
                     step="0.01"
@@ -1415,13 +1415,13 @@ export default function ProjetTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('projects.paymentCalendarType')}
                   </label>
                   <select
                     value={formData.payment_schedule_type}
                     onChange={(e) => setFormData({ ...formData, payment_schedule_type: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="one_time">{t('projects.paymentOneTime')}</option>
                     <option value="fixed_terms">{t('projects.paymentFixedTerms')}</option>
@@ -1430,23 +1430,23 @@ export default function ProjetTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('projects.paymentStartDate')}
                   </label>
                   <input
                     type="date"
                     value={formData.payment_start_date}
                     onChange={(e) => setFormData({ ...formData, payment_start_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Fixed Terms Configuration */}
               {formData.payment_schedule_type === 'fixed_terms' && (
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-semibold text-gray-900">{t('projects.paymentTerms')}</h5>
+                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('projects.paymentTerms')}</h5>
                     <button
                       type="button"
                       onClick={addPaymentTerm}
@@ -1513,7 +1513,7 @@ export default function ProjetTab() {
                               step="100"
                             />
                           )}
-                          <div className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-right font-medium text-gray-700">
+                          <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-right font-medium text-gray-700 dark:text-gray-300">
                             {calculatedAmount.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </div>
                           <input
@@ -1604,7 +1604,7 @@ export default function ProjetTab() {
       {properties.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('projects.noActiveProjects')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('projects.noActiveProjects')}</h3>
           <p className="text-gray-600 mb-2">{t('projects.createdViaEvaluator')} <strong>{t('nav.evaluator')}</strong></p>
           <p className="text-sm text-gray-500">{t('projects.workflow')}</p>
         </div>
@@ -1633,7 +1633,7 @@ export default function ProjetTab() {
             const moderateScenario = scenarioData.find(r => r.scenario_type === 'moderate')
 
             return (
-              <div key={property.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+              <div key={property.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex items-start justify-between mb-3">
@@ -1641,7 +1641,7 @@ export default function ProjetTab() {
                       {/* Nom/localisation affichés ici seulement si pas de bandeau hero */}
                       {!property.main_photo_url && (
                         <>
-                          <h3 className="text-lg font-bold text-gray-900 mb-1">{property.name}</h3>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{property.name}</h3>
                           <div className="flex items-center text-sm text-gray-600 gap-1">
                             <MapPin size={14} />
                             {property.location}
@@ -1710,7 +1710,7 @@ export default function ProjetTab() {
                               <button
                                 onClick={() => { exportProjectPDF(property); setOpenMenuPropertyId(null) }}
                                 disabled={exportingProjectId === property.id}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <FileDown size={15} className="text-gray-500" />
                                 {exportingProjectId === property.id ? t('projects.generatingPDF') : t('projects.exportPDF')}
@@ -1823,7 +1823,7 @@ export default function ProjetTab() {
                       {isFullyPaid ? (
                         <span className="font-bold text-green-700 flex items-center gap-1">✓ {fr ? 'Payé' : 'Paid'} (100%)</span>
                       ) : (
-                        <span className="font-bold text-gray-900">{progress.toFixed(1)}%</span>
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{progress.toFixed(1)}%</span>
                       )}
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -1938,7 +1938,7 @@ export default function ProjetTab() {
                         {/* Planned cost from scenario */}
                         <div className="bg-white p-2 rounded border border-blue-200">
                           <div className="text-xs text-gray-600 mb-1">{t('projects.plannedPrice')}</div>
-                          <div className="text-base font-bold text-gray-900">
+                          <div className="text-base font-bold text-gray-900 dark:text-gray-100">
                             {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">{t('projects.perOriginScenario')}</div>
@@ -1947,7 +1947,7 @@ export default function ProjetTab() {
                         {/* Actual cost from transactions */}
                         <div className="bg-white p-2 rounded border border-blue-200">
                           <div className="text-xs text-gray-600 mb-1">{t('projects.actualPricePaid')}</div>
-                          <div className="text-base font-bold text-gray-900">
+                          <div className="text-base font-bold text-gray-900 dark:text-gray-100">
                             {totalPaidUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
@@ -2149,7 +2149,7 @@ export default function ProjetTab() {
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                       <span className="text-2xl">🏦</span>
-                                      <span className="text-sm font-medium text-gray-900">{payment.term_label}</span>
+                                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{payment.term_label}</span>
                                     </div>
                                     {renewalDays !== null && (
                                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -2171,7 +2171,7 @@ export default function ProjetTab() {
                                     </div>
                                     <div className="bg-white p-2 rounded border border-indigo-200">
                                       <div className="text-xs text-gray-500">{t('dashboard.paymentsMade')}</div>
-                                      <div className="text-base font-bold text-gray-900">{payment.payments_made ?? 0}</div>
+                                      <div className="text-base font-bold text-gray-900 dark:text-gray-100">{payment.payments_made ?? 0}</div>
                                     </div>
                                   </div>
                                   <div className="flex items-center justify-between text-xs text-gray-600">
@@ -2189,7 +2189,7 @@ export default function ProjetTab() {
                                   <div className="flex items-center gap-2">
                                     <span className="text-2xl">{statusFlag.emoji}</span>
                                     <div>
-                                      <span className="text-sm font-medium text-gray-900">
+                                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {payment.term_label}
                                       </span>
                                       <div className={`text-xs font-medium ${statusFlag.textClass}`}>
@@ -2219,7 +2219,7 @@ export default function ProjetTab() {
                                         <div className={`text-xs font-medium ${actualPaidCAD > 0 ? 'text-green-700' : 'text-gray-700'}`}>
                                           {actualPaidCAD > 0 ? t('projects.paidToBankCAD') : t('projects.toPayCADEstimated')}
                                         </div>
-                                        <div className={`text-base font-bold ${actualPaidCAD > 0 ? 'text-green-900' : 'text-gray-900'}`}>
+                                        <div className={`text-base font-bold ${actualPaidCAD > 0 ? 'text-green-900' : 'text-gray-900 dark:text-gray-100'}`}>
                                           {amountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                         </div>
                                       </div>
@@ -2242,7 +2242,7 @@ export default function ProjetTab() {
                                   <div className="bg-gray-50 p-2 rounded border border-gray-200 mb-2">
                                     <div className="flex items-center justify-between">
                                       <div className="text-xs text-gray-700 font-medium">{t('projects.amountCADLabel')}</div>
-                                      <div className="text-base font-bold text-gray-900">
+                                      <div className="text-base font-bold text-gray-900 dark:text-gray-100">
                                         {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                       </div>
                                     </div>
@@ -2301,7 +2301,7 @@ export default function ProjetTab() {
                       </div>
                       <div className="space-y-2 mt-2">
                         {transactions.filter(tx => tx.property_id === property.id).length === 0 ? (
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                          <div className="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
                             <p className="text-sm text-gray-600">{t('projects.noTransactionForProject')}</p>
                             <p className="text-xs text-gray-500 mt-1">{t('projects.transactionsAppearAuto')}</p>
                           </div>
@@ -2313,7 +2313,7 @@ export default function ProjetTab() {
                               <div key={tx.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex-1">
-                                    <div className="text-sm font-medium text-gray-900">{tx.description}</div>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{tx.description}</div>
                                     <div className="text-xs text-gray-600 mt-1">
                                       {new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA')}
                                       {tx.reference_number && ` • ${t('projects.refShort')} ${tx.reference_number}`}
@@ -2361,7 +2361,7 @@ export default function ProjetTab() {
                         <DollarSign size={12} />
                         {t('projects.totalCost')}
                       </div>
-                      <div className="font-bold text-gray-900">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">
                         {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })}
                       </div>
                     </div>
@@ -2382,7 +2382,7 @@ export default function ProjetTab() {
                   <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
                     <button
                       onClick={() => setShowScenarioDataPropertyId(showScenarioDataPropertyId === property.id ? null : property.id)}
-                      className="w-full text-left flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900"
+                      className="w-full text-left flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-100"
                     >
                       <span className="flex items-center gap-2">
                         <Calculator size={16} />
@@ -2396,12 +2396,12 @@ export default function ProjetTab() {
                         {/* Promoter Data */}
                         {originScenario.promoter_data && Object.keys(originScenario.promoter_data).length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">📊 {t('projects.promoterData')}</h4>
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-2">📊 {t('projects.promoterData')}</h4>
                             <div className="grid grid-cols-2 gap-2 min-w-0">
                               {originScenario.promoter_data.monthly_rent && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.monthlyRent')}</div>
-                                  <div className="text-xs font-bold text-gray-900 truncate">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                     {originScenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                   </div>
                                 </div>
@@ -2409,7 +2409,7 @@ export default function ProjetTab() {
                               {originScenario.promoter_data.annual_appreciation && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.annualAppreciation')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.promoter_data.annual_appreciation}%
                                   </div>
                                 </div>
@@ -2417,7 +2417,7 @@ export default function ProjetTab() {
                               {originScenario.promoter_data.occupancy_rate && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.occupancyRate')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.promoter_data.occupancy_rate}%
                                   </div>
                                 </div>
@@ -2425,7 +2425,7 @@ export default function ProjetTab() {
                               {originScenario.promoter_data.management_fees && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.managementFees')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.promoter_data.management_fees}%
                                   </div>
                                 </div>
@@ -2433,7 +2433,7 @@ export default function ProjetTab() {
                               {originScenario.promoter_data.project_duration && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.projectDuration')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.promoter_data.project_duration} {t('common.years')}
                                   </div>
                                 </div>
@@ -2445,7 +2445,7 @@ export default function ProjetTab() {
                         {/* Three Scenarios */}
                         {scenarioData && scenarioData.length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">📈 {t('projects.projectionScenarios')}</h4>
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-2">📈 {t('projects.projectionScenarios')}</h4>
                             <div className="space-y-2">
                               {['conservative', 'moderate', 'optimistic'].map(type => {
                                 const scenario = scenarioData.find(s => s.scenario_type === type)
@@ -2465,25 +2465,25 @@ export default function ProjetTab() {
                                     <div className="grid grid-cols-2 gap-1.5 min-w-0">
                                       <div className="bg-white p-1.5 rounded min-w-0">
                                         <div className="text-xs text-gray-500">{t('projects.avgROI')}</div>
-                                        <div className="text-xs font-bold text-gray-900">
+                                        <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                           {scenario.summary.avg_annual_return?.toFixed(1)}%
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
                                         <div className="text-xs text-gray-500">{t('projects.breakEvenLabel')}</div>
-                                        <div className="text-xs font-bold text-gray-900">
+                                        <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                           {t('projects.yearShort')} {scenario.summary.break_even_year || 'N/A'}
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
                                         <div className="text-xs text-gray-500">{t('projects.finalValue')}</div>
-                                        <div className="text-xs font-bold text-gray-900 truncate">
+                                        <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                           {scenario.summary.final_property_value?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                         </div>
                                       </div>
                                       <div className="bg-white p-1.5 rounded min-w-0">
                                         <div className="text-xs text-gray-500">{t('projects.netIncome')}</div>
-                                        <div className="text-xs font-bold text-gray-900 truncate">
+                                        <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                           {scenario.summary.total_net_income?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                         </div>
                                       </div>
@@ -2498,12 +2498,12 @@ export default function ProjetTab() {
                         {/* Payment Terms */}
                         {originScenario.payment_terms && originScenario.payment_terms.length > 0 && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">💰 {t('projects.paymentTerms')}</h4>
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-2">💰 {t('projects.paymentTerms')}</h4>
                             <div className="space-y-1.5">
                               {originScenario.payment_terms.map((term: any, index: number) => (
                                 <div key={index} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between gap-2 min-w-0">
                                   <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-medium text-gray-900 truncate">{term.label}</div>
+                                    <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{term.label}</div>
                                     <div className="text-xs text-gray-500">
                                       {term.amount_type === 'percentage'
                                         ? `${term.percentage}% ${t('projects.ofPrice')}`
@@ -2511,7 +2511,7 @@ export default function ProjetTab() {
                                     </div>
                                   </div>
                                   <div className="text-right flex-shrink-0">
-                                    <div className="text-xs font-bold text-gray-900">
+                                    <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                       {term.amount_type === 'percentage'
                                         ? ((originScenario.purchase_price * term.percentage) / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
                                         : term.fixed_amount?.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
@@ -2529,16 +2529,16 @@ export default function ProjetTab() {
                         {/* Financing Data */}
                         {originScenario.payment_type === 'financed' && (
                           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-900 mb-2">🏦 {t('projects.financing')}</h4>
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-2">🏦 {t('projects.financing')}</h4>
                             <div className="grid grid-cols-2 gap-2 min-w-0">
                               <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                 <div className="text-xs text-gray-500">{t('projects.typeLabel')}</div>
-                                <div className="text-xs font-bold text-gray-900">{t('projects.financed')}</div>
+                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100">{t('projects.financed')}</div>
                               </div>
                               {originScenario.down_payment && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.downPayment')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.down_payment}%
                                   </div>
                                 </div>
@@ -2546,7 +2546,7 @@ export default function ProjetTab() {
                               {originScenario.interest_rate && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.interestRate')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.interest_rate}%
                                   </div>
                                 </div>
@@ -2554,7 +2554,7 @@ export default function ProjetTab() {
                               {originScenario.loan_duration && (
                                 <div className="bg-white p-2 rounded border border-gray-200 min-w-0">
                                   <div className="text-xs text-gray-500">{t('projects.loanDuration')}</div>
-                                  <div className="text-xs font-bold text-gray-900">
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {originScenario.loan_duration} {t('common.years')}
                                   </div>
                                 </div>
@@ -2579,7 +2579,7 @@ export default function ProjetTab() {
           <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-5xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">{t('projects.attachments')}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('projects.attachments')}</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {properties.find(p => p.id === showAttachmentsPropertyId)?.name}
                 </p>
@@ -2615,7 +2615,7 @@ export default function ProjetTab() {
             <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-7xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{t('projects.performanceROI')}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('projects.performanceROI')}</h3>
                   <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
                 </div>
                 <button
@@ -2654,7 +2654,7 @@ export default function ProjetTab() {
             <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{t('projects.financialSummary')}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('projects.financialSummary')}</h3>
                   <p className="text-sm text-gray-600 mt-1">{property?.name}</p>
                 </div>
                 <button
