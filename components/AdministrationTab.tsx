@@ -151,7 +151,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
   const orgId = organization?.id ?? null
   const { current: navCurrent } = useNAVTimeline(orgId)
   const { summary: financialSummary } = useFinancialSummary(null, orgId)
-  const { entitledDays, remainingDays, totalProjectDays } = useOwnerDays()
+  const { entitledDays, remainingDays, totalProjectDays } = useOwnerDays(orgId)
 
   // Refs
   const investorFormRef = useRef<HTMLDivElement>(null)

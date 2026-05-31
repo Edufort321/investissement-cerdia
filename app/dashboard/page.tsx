@@ -49,14 +49,16 @@ export default function DashboardPage() {
   // Combined admin check : super_admin / org_admin (post mig 145) OU legacy access_level === 'admin'
   const isOrgAdmin = profile?.role === 'org_admin' || profile?.role === 'super_admin'
   const hasAdminAccess = isSuperAdmin || isOrgAdmin || currentUser?.investorData?.access_level === 'admin'
-  const { entitledDays: ownerEntitled, remainingDays: ownerRemaining, totalProjectDays } = useOwnerDays()
+  const { entitledDays: ownerEntitled, remainingDays: ownerRemaining, totalProjectDays } = useOwnerDays(organization?.id ?? null)
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [adminSubTab, setAdminSubTab] = useState<AdminSubTabType>('investisseurs')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
-  const [paymentFilters, setPaymentFilters] = useState<Set<string>>(new Set(['upcoming', 'overdue', 'paid']))
+  // Vue par défaut du calendrier des paiements : en retard + à venir (les payés
+  // sont masqués par défaut, l'utilisateur peut les réafficher via le filtre).
+  const [paymentFilters, setPaymentFilters] = useState<Set<string>>(new Set(['upcoming', 'overdue']))
   const [showPaymentFilterMenu, setShowPaymentFilterMenu] = useState(false)
 
   // Fonction helper pour calculer le flag de couleur selon statut et proximité échéance
