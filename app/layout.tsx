@@ -56,6 +56,9 @@ export const metadata = {
   formatDetection: {
     telephone: false,
   },
+  verification: {
+    google: 'pWwyEugD5bpeKCinvM_UOz8_G-VCftzDXyRaZZOTH20',
+  },
 }
 
 export const viewport = {
