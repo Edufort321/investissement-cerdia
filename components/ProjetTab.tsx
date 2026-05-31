@@ -11,7 +11,6 @@ import PropertyFinancialSummary from './PropertyFinancialSummary'
 import PaymentScheduleManager from './PaymentScheduleManager'
 import { getCurrentExchangeRate } from '@/lib/exchangeRate'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
 
 interface PropertyFormData {
   name: string
@@ -65,8 +64,6 @@ export default function ProjetTab() {
     loading
   } = useInvestment()
   const { t, language } = useLanguage()
-  const { currentUser } = useAuth()
-  const isAdmin = currentUser?.role === 'admin'
   const fr = language === 'fr'
 
   const [showAddForm, setShowAddForm] = useState(false)
@@ -78,7 +75,6 @@ export default function ProjetTab() {
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
   const [showFinancialSummaryPropertyId, setShowFinancialSummaryPropertyId] = useState<string | null>(null)
-  const [showLinksPropertyId, setShowLinksPropertyId] = useState<string | null>(null)
   const [openMenuPropertyId, setOpenMenuPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
@@ -955,12 +951,25 @@ export default function ProjetTab() {
         </div>
       </div>
 
-      {/* Edit Form (modification uniquement) */}
+      {/* Edit Form (modification uniquement) — affiché en MODAL centré, par-dessus
+          la vue courante, pour ne plus renvoyer l'utilisateur en haut de page. */}
       {showAddForm && editingId && (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold mb-4">
-            {editingId ? t('projects.edit') : t('projects.new')}
-          </h3>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={resetForm}
+        >
+        <div
+          className="bg-white p-4 sm:p-6 rounded-lg shadow-xl border border-gray-200 w-full max-w-3xl my-4 sm:my-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-semibold">
+              {editingId ? t('projects.edit') : t('projects.new')}
+            </h3>
+            <button type="button" onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <X size={20} />
+            </button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1553,6 +1562,20 @@ export default function ProjetTab() {
               )}
             </div>
 
+            {/* Hyperliens du projet — gérés uniquement ici, en mode modification.
+                Ajout + suppression disponibles. */}
+            {editingId && (
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-1 px-1">
+                  <Link2 size={15} className="text-sky-500" />
+                  {t('projects.hyperlinks')}
+                </h4>
+                <div className="border border-gray-100 rounded-lg">
+                  <PropertyLinksManager propertyId={editingId} isAdmin={true} />
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
@@ -1570,6 +1593,7 @@ export default function ProjetTab() {
               </button>
             </div>
           </form>
+        </div>
         </div>
       )}
 
@@ -1723,14 +1747,6 @@ export default function ProjetTab() {
                               >
                                 <FileImage size={15} className="text-purple-500" />
                                 {t('projects.attachments')}
-                              </button>
-
-                              <button
-                                onClick={() => { setShowLinksPropertyId(property.id); setOpenMenuPropertyId(null) }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors"
-                              >
-                                <Link2 size={15} className="text-sky-500" />
-                                {t('projects.hyperlinks')}
                               </button>
 
                               <button
@@ -2551,28 +2567,6 @@ export default function ProjetTab() {
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* Liens Modal */}
-      {showLinksPropertyId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{t('projects.hyperlinks')}</h3>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {properties.find(p => p.id === showLinksPropertyId)?.name}
-                </p>
-              </div>
-              <button onClick={() => setShowLinksPropertyId(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-              <PropertyLinksManager propertyId={showLinksPropertyId} isAdmin={isAdmin} />
-            </div>
-          </div>
         </div>
       )}
 
