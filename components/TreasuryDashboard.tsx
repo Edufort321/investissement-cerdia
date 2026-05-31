@@ -249,68 +249,68 @@ export default function TreasuryDashboard() {
       {/* KPIs Principaux */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Solde Total */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">{t('treasury.totalBalance')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('treasury.totalBalance')}</span>
             <DollarSign className="text-blue-600" size={20} />
           </div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {formatCurrency(getTotalBalance())}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {accounts.length} {t('treasury.activeAccounts')}
           </div>
         </div>
 
         {/* Obligations 30 jours */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">{t('treasury.obligations30d')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('treasury.obligations30d')}</span>
             <Calendar className="text-orange-600" size={20} />
           </div>
           <div className="text-2xl font-bold text-orange-600">
             {formatCurrency(getTotalObligations())}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {upcomingPayments.length} {t('treasury.payments')}
           </div>
         </div>
 
         {/* Trésorerie Disponible */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">{t('treasury.netAvailable')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('treasury.netAvailable')}</span>
             <CreditCard className="text-green-600" size={20} />
           </div>
           <div className={`text-2xl font-bold ${getNetAvailable() < 25000 ? 'text-red-600' : 'text-green-600'}`}>
             {formatCurrency(getNetAvailable())}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {t('treasury.afterObligations')}
           </div>
         </div>
 
         {/* Retards */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">{t('treasury.overdueKPI')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('treasury.overdueKPI')}</span>
             <AlertTriangle className="text-red-600" size={20} />
           </div>
           <div className="text-2xl font-bold text-red-600">
             {formatCurrency(getTotalOverdue())}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {positions.reduce((sum, pos) => sum + pos.overdue_count, 0)} {t('treasury.payments')}
           </div>
         </div>
       </div>
 
       {/* Détail par Compte */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">{t('treasury.bankAccountsTitle')}</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('treasury.bankAccountsTitle')}</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {positions.map(position => {
             const account = accounts.find(a => a.id === position.bank_account_id)
             if (!account) return null
@@ -319,11 +319,11 @@ export default function TreasuryDashboard() {
               <div key={position.bank_account_id} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900">{position.account_name}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">{position.account_name}</h3>
                     <p className="text-sm text-gray-600">{account.bank_name}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {formatCurrency(position.current_balance, account.currency)}
                     </div>
                     <div className="text-sm text-gray-500">{account.currency}</div>
@@ -345,7 +345,7 @@ export default function TreasuryDashboard() {
                   </div>
                   <div>
                     <span className="text-gray-600">{t('treasury.daysOfCashLabel')}:</span>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
                       {position.days_of_cash ? `${position.days_of_cash} ${t('treasury.days')}` : 'N/A'}
                     </div>
                   </div>
@@ -373,9 +373,9 @@ export default function TreasuryDashboard() {
       </div>
 
       {/* Paiements à Venir */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">{t('treasury.upcomingTitle')}</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('treasury.upcomingTitle')}</h2>
         </div>
         {upcomingPayments.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
@@ -383,7 +383,7 @@ export default function TreasuryDashboard() {
             <p>{t('treasury.noUpcoming')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {upcomingPayments.map(payment => {
               const daysUntilDue = Math.ceil((new Date(payment.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
               const isUrgent = daysUntilDue <= 7
@@ -396,7 +396,7 @@ export default function TreasuryDashboard() {
                       <span className="text-xl">{getPriorityIcon(payment.priority)}</span>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900">{payment.vendor_name || t('treasury.unspecified')}</h3>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">{payment.vendor_name || t('treasury.unspecified')}</h3>
                           <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(payment.status)}`}>
                             {payment.status === 'pending' ? t('treasury.pending') : payment.status === 'overdue' ? t('treasury.overdueStatus') : payment.status}
                           </span>
@@ -425,7 +425,7 @@ export default function TreasuryDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-gray-900">
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                         {formatCurrency(payment.amount, payment.currency)}
                       </div>
                       <div className="text-xs text-gray-500">{payment.currency}</div>
@@ -440,11 +440,11 @@ export default function TreasuryDashboard() {
 
       {/* Toutes les Alertes */}
       {alerts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">{t('treasury.allAlertsTitle')}</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('treasury.allAlertsTitle')}</h2>
           </div>
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {alerts.map(alert => (
               <div key={alert.id} className={`p-4 border-l-4 ${alert.severity === 'critical' ? 'border-red-500' : alert.severity === 'warning' ? 'border-yellow-500' : 'border-blue-500'}`}>
                 <div className="flex items-start justify-between">
@@ -453,7 +453,7 @@ export default function TreasuryDashboard() {
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getAlertColor(alert.severity)}`}>
                         {alert.severity === 'critical' ? t('treasury.critical') : alert.severity === 'warning' ? t('treasury.warningAlert') : 'Info'}
                       </span>
-                      <h3 className="font-medium text-gray-900">{alert.title}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{alert.title}</h3>
                     </div>
                     <p className="text-sm text-gray-600">{alert.message}</p>
                     <div className="text-xs text-gray-500 mt-2">

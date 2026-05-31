@@ -145,7 +145,7 @@ export default function PerformanceTracker() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
             {language === 'fr' ? 'Suivi de Performance ROI' : 'ROI Performance Tracking'}
           </h3>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
@@ -165,29 +165,29 @@ export default function PerformanceTracker() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
-        <div className="bg-white p-3 sm:p-4 rounded-lg border-2 border-gray-200">
-          <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Total' : 'Total'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{stats.total}</div>
+        <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Total' : 'Total'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 dark:text-gray-100">{stats.total}</div>
         </div>
-        <div className="bg-green-50 p-3 sm:p-4 rounded-lg border-2 border-green-300">
-          <div className="text-[10px] sm:text-xs text-green-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Excellents' : 'Excellent'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-800">{stats.excellent}</div>
+        <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg border-2 border-green-300 dark:border-green-800/50">
+          <div className="text-[10px] sm:text-xs text-green-700 dark:text-green-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Excellents' : 'Excellent'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-800 dark:text-green-300">{stats.excellent}</div>
         </div>
-        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border-2 border-blue-300">
-          <div className="text-[10px] sm:text-xs text-blue-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Bons' : 'Good'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">{stats.good}</div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border-2 border-blue-300 dark:border-blue-800/50">
+          <div className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Bons' : 'Good'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 dark:text-blue-300">{stats.good}</div>
         </div>
-        <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
-          <div className="text-[10px] sm:text-xs text-yellow-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Attention' : 'Warning'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-800">{stats.warning}</div>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 sm:p-4 rounded-lg border-2 border-yellow-300 dark:border-yellow-800/50">
+          <div className="text-[10px] sm:text-xs text-yellow-700 dark:text-yellow-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Attention' : 'Warning'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-800 dark:text-yellow-300">{stats.warning}</div>
         </div>
-        <div className="bg-red-50 p-3 sm:p-4 rounded-lg border-2 border-red-300">
-          <div className="text-[10px] sm:text-xs text-red-700 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Critiques' : 'Critical'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-800">{stats.critical}</div>
+        <div className="bg-red-50 dark:bg-red-900/20 p-3 sm:p-4 rounded-lg border-2 border-red-300 dark:border-red-800/50">
+          <div className="text-[10px] sm:text-xs text-red-700 dark:text-red-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'Critiques' : 'Critical'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-800 dark:text-red-300">{stats.critical}</div>
         </div>
-        <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-gray-300">
-          <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'En attente' : 'Pending'}</div>
-          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{stats.pending}</div>
+        <div className="bg-gray-50 dark:bg-gray-700/40 p-3 sm:p-4 rounded-lg border-2 border-gray-300 dark:border-gray-600">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-0.5 sm:mb-1 truncate">{language === 'fr' ? 'En attente' : 'Pending'}</div>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-300">{stats.pending}</div>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ export default function PerformanceTracker() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               filter === f
                 ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             {f === 'all' ? (language === 'fr' ? 'Tous' : 'All') : getStatusConfig(f).label}
@@ -210,8 +210,8 @@ export default function PerformanceTracker() {
 
       {/* Performance Cards */}
       {filteredPerformances.length === 0 ? (
-        <div className="bg-white p-8 sm:p-12 rounded-lg border border-gray-200 text-center">
-          <p className="text-sm sm:text-base text-gray-600">
+        <div className="bg-white dark:bg-gray-800 p-8 sm:p-12 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {language === 'fr' ? 'Aucun projet trouvé' : 'No projects found'}
           </p>
         </div>
@@ -224,13 +224,13 @@ export default function PerformanceTracker() {
             return (
               <div
                 key={perf.property_id}
-                className={`bg-white rounded-lg border-2 ${statusConfig.border} overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full`}
+                className={`bg-white dark:bg-gray-800 rounded-lg border-2 ${statusConfig.border} overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full`}
               >
                 {/* Header */}
                 <div className={`p-3 sm:p-4 ${statusConfig.bg} border-b-2 ${statusConfig.border}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-sm sm:text-base md:text-lg mb-0.5 sm:mb-1 truncate">{perf.property_name}</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base md:text-lg mb-0.5 sm:mb-1 truncate">{perf.property_name}</h4>
                       <p className="text-xs sm:text-sm text-gray-600 truncate">{perf.location}</p>
                     </div>
                     <div className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border} flex-shrink-0`}>
@@ -248,7 +248,7 @@ export default function PerformanceTracker() {
                       <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'ROI Attendu' : 'Expected ROI'}
                       </div>
-                      <div className="text-sm sm:text-base md:text-lg font-bold text-gray-900">{perf.expected_roi}%</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100">{perf.expected_roi}%</div>
                     </div>
                     <div className="text-center min-w-0">
                       <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
@@ -313,7 +313,7 @@ export default function PerformanceTracker() {
                       <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate">
                         {language === 'fr' ? 'Coût total' : 'Total Cost'}
                       </div>
-                      <div className="text-xs sm:text-sm md:text-base font-bold text-gray-900 truncate">
+                      <div className="text-xs sm:text-sm md:text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                         {formatCurrency(perf.total_cost, perf.currency)}
                       </div>
                     </div>

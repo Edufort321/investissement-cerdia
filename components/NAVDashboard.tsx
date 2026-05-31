@@ -744,7 +744,7 @@ export default function NAVDashboard() {
       {/* En-tête avec boutons */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{t('nav.title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('nav.title')}</h2>
           <p className="text-sm text-gray-600 mt-1">
             {t('nav.realtimeRate')} <strong>1 USD = {exchangeRate?.toFixed(4) ?? '...'} CAD</strong>
           </p>
@@ -796,7 +796,7 @@ export default function NAVDashboard() {
       {/* KPIs principaux — source: get_nav_timeline() */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NAV par action actuel */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="text-sm text-gray-600 mb-1">{t('nav.perShare')}</div>
           <div className="text-3xl font-bold text-blue-600">
             {tlCurrent ? `${tlCurrent.nav_per_share.toFixed(4)} $` : '—'}
@@ -807,7 +807,7 @@ export default function NAVDashboard() {
         </div>
 
         {/* Performance totale */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="text-sm text-gray-600 mb-1">{t('nav.totalPerformance')}</div>
           <div className={`text-3xl font-bold ${getPerformanceColor(tlPct)}`}>
             {tlPct >= 0 ? '+' : ''}{tlPct.toFixed(2)}%
@@ -818,9 +818,9 @@ export default function NAVDashboard() {
         </div>
 
         {/* NAV total */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="text-sm text-gray-600 mb-1">{t('nav.totalNav')}</div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {formatCurrency(tlCurrent?.net_asset_value ?? null)}
           </div>
           <div className="text-sm text-gray-600 mt-2">
@@ -829,9 +829,9 @@ export default function NAVDashboard() {
         </div>
 
         {/* Valeur des propriétés */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="text-sm text-gray-600 mb-1">{t('nav.propertyValue')}</div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {formatCurrency(summary.properties_current_value)}
           </div>
           <div className="text-sm text-gray-600 mt-2">
@@ -842,8 +842,8 @@ export default function NAVDashboard() {
 
       {/* Section détaillée: Calcul NAV — utilise get_nav_timeline() */}
       {tlCurrent && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🧮 {t('nav.detailedCalc')}</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🧮 {t('nav.detailedCalc')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Actifs — NAV total = actifs nets (get_nav_timeline: cash + prop appreciation) */}
@@ -855,7 +855,7 @@ export default function NAVDashboard() {
                   <span className="text-sm font-medium text-gray-900">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalAssets')}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('nav.totalAssets')}</span>
                   <span className="text-sm font-bold text-green-600">{formatCurrency(tlCurrent.net_asset_value)}</span>
                 </div>
               </div>
@@ -870,7 +870,7 @@ export default function NAVDashboard() {
                   <span className="text-sm font-medium text-red-700">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalLiabilities')}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('nav.totalLiabilities')}</span>
                   <span className="text-sm font-bold text-red-600">{formatCurrency(detailedNavData?.total_liabilities ?? 0)}</span>
                 </div>
               </div>
@@ -888,7 +888,7 @@ export default function NAVDashboard() {
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">{t('nav.totalShares')}</div>
-                  <div className="text-2xl font-bold text-gray-900">{tlCurrent.total_shares.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tlCurrent.total_shares.toFixed(2)}</div>
                   <div className="text-xs text-gray-500 mt-1">{t('nav.sharesCirculating')}</div>
                 </div>
                 <div className="text-center">
@@ -904,13 +904,13 @@ export default function NAVDashboard() {
 
       {/* Section: Propriétés et Appréciation */}
       {detailedNavData && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🏢 {t('nav.buildingsTitle')}</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🏢 {t('nav.buildingsTitle')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">{t('nav.purchaseValue')}</div>
-              <div className="text-xl font-bold text-gray-900">{formatCurrency(detailedNavData.properties_initial_value)}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(detailedNavData.properties_initial_value)}</div>
               <div className="text-xs text-gray-500 mt-1">{t('nav.pricePaidLabel')}</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
@@ -959,9 +959,9 @@ export default function NAVDashboard() {
 
       {/* Section: Portfolio détaillé par propriété */}
       {properties.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">🏘️ {t('nav.portfolioTitle')} ({properties.length})</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🏘️ {t('nav.portfolioTitle')} ({properties.length})</h3>
             <div className="text-sm text-gray-600">
               {t('nav.portfolioDetails')}
             </div>
@@ -1006,7 +1006,7 @@ export default function NAVDashboard() {
                   {/* En-tête propriété */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h4 className="text-base font-semibold text-gray-900">{property.property_name}</h4>
+                      <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">{property.property_name}</h4>
                       <div className="flex flex-wrap items-center gap-3 mt-1">
                         <span className="text-xs text-gray-500">
                           {t('nav.acquiredOn')} {formatDate(property.acquisition_date)}
@@ -1035,7 +1035,7 @@ export default function NAVDashboard() {
                     {/* 1. Prix contractuel */}
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div className="text-xs font-medium text-gray-500 mb-1">{t('nav.contractPrice')}</div>
-                      <div className="text-sm font-bold text-gray-900">{fmtVal(purchaseCost)}</div>
+                      <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{fmtVal(purchaseCost)}</div>
                       {property.currency === 'USD' && (
                         <div className="text-xs text-gray-400 mt-1">{fmtCad(purchaseCost)}</div>
                       )}
@@ -1110,8 +1110,8 @@ export default function NAVDashboard() {
 
       {/* Section: Flux de trésorerie */}
       {detailedNavData && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">💸 {t('nav.cashflowTitle')}</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">💸 {t('nav.cashflowTitle')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Entrées */}
@@ -1127,7 +1127,7 @@ export default function NAVDashboard() {
                   <span className="text-sm font-medium text-green-600">{formatCurrency(detailedNavData.rental_income)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalInflows')}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('nav.totalInflows')}</span>
                   <span className="text-sm font-bold text-green-600">
                     {formatCurrency((detailedNavData.total_investments ?? 0) + (detailedNavData.rental_income ?? 0))}
                   </span>
@@ -1156,7 +1156,7 @@ export default function NAVDashboard() {
                   <span className="text-sm font-medium text-red-600">{formatCurrency(detailedNavData.admin_expenses)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">{t('nav.totalOutflows')}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('nav.totalOutflows')}</span>
                   <span className="text-sm font-bold text-red-600">
                     {formatCurrency(
                       (detailedNavData.property_purchases ?? 0) +
@@ -1201,9 +1201,9 @@ export default function NAVDashboard() {
         const maxNav = filtered.length > 0 ? Math.max(...filtered.map(p => p.nav_per_share)) : 1
 
         return (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">{t('nav.evolutionTitle')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('nav.evolutionTitle')}</h3>
               <div className="flex gap-2">
                 {(['1m', '3m', '6m', 'all'] as const).map(period => (
                   <button
@@ -1269,19 +1269,19 @@ export default function NAVDashboard() {
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">{t('nav.low')}</div>
-                    <div className="text-base font-semibold text-gray-900">
+                    <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
                       {Math.min(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">{t('nav.average')}</div>
-                    <div className="text-base font-semibold text-gray-900">
+                    <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
                       {(filtered.reduce((s, p) => s + p.nav_per_share, 0) / filtered.length).toFixed(4)} $
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">{t('nav.high')}</div>
-                    <div className="text-base font-semibold text-gray-900">
+                    <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
                       {Math.max(...filtered.map(p => p.nav_per_share)).toFixed(4)} $
                     </div>
                   </div>
@@ -1293,8 +1293,8 @@ export default function NAVDashboard() {
       })()}
 
       {/* Tableau détaillé — source: get_nav_timeline() */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('nav.monthlyHistory')}</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('nav.monthlyHistory')}</h3>
 
         {tlData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -1303,7 +1303,7 @@ export default function NAVDashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('nav.month')}</th>
@@ -1314,7 +1314,7 @@ export default function NAVDashboard() {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.shares')}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 dark:divide-gray-700">
                 {[...tlData].reverse().map((point, idx, arr) => {
                   const prevPoint = arr[idx + 1]
                   const firstPoint = tlData[0]
@@ -1359,12 +1359,12 @@ export default function NAVDashboard() {
       </div>
 
       {/* Section: Passifs (Liabilities Manager) */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <button
           onClick={() => setShowLiabilities(v => !v)}
           className="w-full flex items-center justify-between text-left"
         >
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             💳 {t('nav.liabilitiesTitle')}
             {detailedNavData?.total_liabilities != null && detailedNavData.total_liabilities > 0 && (
               <span className="ml-2 text-sm font-normal text-red-600">
@@ -1384,12 +1384,12 @@ export default function NAVDashboard() {
       </div>
 
       {/* Section: Métriques LP (MOIC, DPI, RVPI) */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <button
           onClick={() => setShowMetrics(v => !v)}
           className="w-full flex items-center justify-between text-left"
         >
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             📊 {t('nav.metricsTitle')}
           </h3>
           {showMetrics ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
@@ -1409,7 +1409,7 @@ export default function NAVDashboard() {
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{fr ? 'Investisseur' : 'Investor'}</th>
@@ -1422,7 +1422,7 @@ export default function NAVDashboard() {
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('nav.annualReturn')}</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200 dark:divide-gray-700">
                     {investorMetrics.map(m => (
                       <tr key={m.investor_id} className="hover:bg-gray-50">
                         <td className="px-3 py-2 font-medium text-gray-900">{m.investor_name}</td>
