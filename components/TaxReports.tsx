@@ -1846,7 +1846,7 @@ export default function TaxReports() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
             {t('taxReports.title')}
           </h3>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
@@ -1861,7 +1861,7 @@ export default function TaxReports() {
             <select
               value={selectedYear}
               onChange={(e) => { setSelectedYear(Number(e.target.value)); setFilterPeriod('annual') }}
-              className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             >
               {years.map(year => <option key={year} value={year}>{year}</option>)}
             </select>
@@ -1872,7 +1872,7 @@ export default function TaxReports() {
             <select
               value={filterPeriod}
               onChange={(e) => setFilterPeriod(e.target.value)}
-              className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="annual">{fr ? 'Annuel' : 'Annual'}</option>
               <optgroup label={fr ? '── Trimestre ──' : '── Quarter ──'}>
@@ -1913,7 +1913,7 @@ export default function TaxReports() {
       {/* Share with accountant modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
             <div className="bg-blue-600 text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Share2 size={18} />
@@ -1930,7 +1930,7 @@ export default function TaxReports() {
                     value={shareLabel}
                     onChange={e => setShareLabel(e.target.value)}
                     placeholder={fr ? `Ex: Pour CPA Martin — T1 ${selectedYear}` : `E.g. For CPA Martin — T1 ${selectedYear}`}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -1976,7 +1976,7 @@ export default function TaxReports() {
                         type="text"
                         readOnly
                         value={shareLink}
-                        className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-lg bg-gray-50 font-mono"
+                        className="flex-1 px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 font-mono"
                       />
                       <button
                         onClick={() => { navigator.clipboard.writeText(shareLink); alert(fr ? 'Lien copié !' : 'Link copied!') }}
@@ -1989,7 +1989,7 @@ export default function TaxReports() {
                   <p className="text-xs text-gray-500">
                     {fr ? `Expire dans ${shareExpiry} jours · Lecture seule · Onglets : ${shareTabs.join(', ')}` : `Expires in ${shareExpiry} days · Read-only · Tabs: ${shareTabs.join(', ')}`}
                   </p>
-                  <button onClick={() => { setShowShareModal(false); setShareLink('') }} className="w-full py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  <button onClick={() => { setShowShareModal(false); setShareLink('') }} className="w-full py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/40">
                     {fr ? 'Fermer' : 'Close'}
                   </button>
                 </div>
@@ -2010,14 +2010,14 @@ export default function TaxReports() {
       )}
 
       {/* Report Tabs */}
-      <div className="border-b border-gray-200 -mx-1 sm:mx-0 overflow-x-auto">
+      <div className="border-b border-gray-200 dark:border-gray-700 -mx-1 sm:mx-0 overflow-x-auto">
         <div className="flex gap-2 sm:gap-4 min-w-max px-1 sm:px-0">
           <button
             onClick={() => setActiveReport('T1135')}
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeReport === 'T1135'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-100'
             }`}
           >
             T1135 - {t('taxReports.foreignAssets')}
@@ -2027,7 +2027,7 @@ export default function TaxReports() {
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeReport === 'T2209'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-100'
             }`}
           >
             T2209 - {t('taxReports.foreignTaxCredits')}
@@ -2037,7 +2037,7 @@ export default function TaxReports() {
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeReport === 'comptable'
                 ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-100'
             }`}
           >
             📊 Rapport Comptable
@@ -2047,7 +2047,7 @@ export default function TaxReports() {
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeReport === 'multi_juridiction'
                 ? 'border-amber-600 text-amber-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-100'
             }`}
           >
             🌎 Multi-Juridiction
@@ -2057,7 +2057,7 @@ export default function TaxReports() {
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeReport === 'controle_cpa'
                 ? 'border-rose-600 text-rose-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-100'
             }`}
           >
             🧾 {fr ? 'Contrôle CPA' : 'CPA Review'}
@@ -2138,9 +2138,9 @@ export default function TaxReports() {
           </div>
 
           {/* Properties Table */}
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{t('taxReports.foreignPropertiesDetail')}</h4>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{t('taxReports.foreignPropertiesDetail')}</h4>
               <button
                 onClick={exportT1135ToPDF}
                 disabled={generatingPDF}
@@ -2160,16 +2160,16 @@ export default function TaxReports() {
               ) : (
                 t1135Data.properties.map((prop, index) => (
                   <div key={index} className="p-3 space-y-2">
-                    <div className="font-medium text-sm text-gray-900 break-words">{prop.name}</div>
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 break-words">{prop.name}</div>
                     <div className="text-xs text-gray-600 break-words">{prop.location}</div>
                     <div className="text-xs text-gray-500">{prop.country}</div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                       <span className="text-xs text-gray-600">{t('taxReports.originalCost')}:</span>
-                      <span className="text-xs font-medium text-gray-900">{formatCurrency(prop.cost, prop.currency)}</span>
+                      <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{formatCurrency(prop.cost, prop.currency)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">{t('taxReports.costCAD')}:</span>
-                      <span className="text-xs font-bold text-gray-900">{formatCurrency(prop.costCAD)}</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{formatCurrency(prop.costCAD)}</span>
                     </div>
                   </div>
                 ))
@@ -2179,7 +2179,7 @@ export default function TaxReports() {
             {/* Desktop View: Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.name')}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('projects.location')}</th>
@@ -2194,13 +2194,13 @@ export default function TaxReports() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {t1135Data.properties.map((prop: any, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{prop.name}</td>
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{prop.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{prop.location}</td>
                       <td className="px-4 py-3 text-sm text-gray-500 text-center">
                         <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded">Cat. {prop.t1135Category}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
                         {formatCurrency(prop.cost, prop.currency)}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
@@ -2243,7 +2243,7 @@ export default function TaxReports() {
               <div key={i} className="bg-white border border-red-100 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">{f.propertyName}</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{f.propertyName}</p>
                     <p className="text-xs text-gray-500">
                       Vendu le {f.saleDate ? new Date(f.saleDate).toLocaleDateString('fr-CA') : '—'}
                       {f.stateProvince ? ` · ${f.stateProvince}` : ''}
@@ -2262,7 +2262,7 @@ export default function TaxReports() {
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="bg-gray-50 rounded p-2">
                     <p className="text-gray-500">Prix de vente</p>
-                    <p className="font-bold text-gray-900">{formatCurrency(f.salePriceUSD)} USD</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{formatCurrency(f.salePriceUSD)} USD</p>
                   </div>
                   <div className="bg-red-50 rounded p-2">
                     <p className="text-gray-500">Retenue FIRPTA 15%</p>
@@ -2319,7 +2319,7 @@ export default function TaxReports() {
                 {ccaData.map((d, i) => (
                   <tr key={i} className="hover:bg-green-50">
                     <td className="px-3 py-2">
-                      <p className="font-medium text-gray-900">{d.propertyName}</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{d.propertyName}</p>
                       <p className="text-gray-500">{d.location}</p>
                     </td>
                     <td className="px-3 py-2 text-gray-700">
@@ -2328,7 +2328,7 @@ export default function TaxReports() {
                         : <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" title="Classe estimée — à confirmer avec votre CPA">⚠️ {d.ccaLabel}</span>
                       }
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(d.uccOpen)}</td>
+                    <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatCurrency(d.uccOpen)}</td>
                     <td className="px-3 py-2 text-right font-semibold text-green-700">
                       − {formatCurrency(d.ccaThisYear)}
                       {d.isFirstYear && <span className="block text-gray-400 font-normal text-[10px]">½ année d'acquisition</span>}
@@ -2408,7 +2408,7 @@ export default function TaxReports() {
                   onChange={e => setCanadianTaxableIncome(e.target.value ? parseFloat(e.target.value) : 0)}
                   onBlur={saveFiscalYearSettings}
                   placeholder="Ex : 180 000"
-                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               {canadianTaxableIncome > 0 && (() => {
@@ -2502,7 +2502,7 @@ export default function TaxReports() {
                       <select
                         value={t2209CarrybackYear || ''}
                         onChange={e => setT2209CarrybackYear(Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg bg-white"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-white"
                       >
                         <option value="">— Sélectionner —</option>
                         {[selectedYear - 1, selectedYear - 2, selectedYear - 3].map(y => (
@@ -2517,7 +2517,7 @@ export default function TaxReports() {
                         value={t2209CarrybackAmount || ''}
                         onChange={e => setT2209CarrybackAmount(parseFloat(e.target.value) || 0)}
                         placeholder={`Max : ${formatCurrency(d.carryforward ?? 0)}`}
-                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                         min={0}
                         max={d.carryforward ?? 0}
                       />
@@ -2544,7 +2544,7 @@ export default function TaxReports() {
                             type="date"
                             value={t1AdjDate}
                             onChange={e => setT1AdjDate(e.target.value)}
-                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                           />
                         </div>
                         <div>
@@ -2554,7 +2554,7 @@ export default function TaxReports() {
                             value={t1AdjRef}
                             onChange={e => setT1AdjRef(e.target.value)}
                             placeholder="Ex: XXXXX-XXXXXX"
-                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg"
+                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                           />
                         </div>
                       </>
@@ -2578,9 +2578,9 @@ export default function TaxReports() {
           })()}
 
           {/* By Country Table */}
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{t('taxReports.byCountry')}</h4>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{t('taxReports.byCountry')}</h4>
               <button
                 onClick={exportT2209ToPDF}
                 disabled={generatingPDF}
@@ -2600,14 +2600,14 @@ export default function TaxReports() {
               ) : (
                 t2209Data.byCountry.map((country, index) => (
                   <div key={index} className="p-3 space-y-2">
-                    <div className="font-medium text-sm text-gray-900 mb-2">{country.country}</div>
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 mb-2">{country.country}</div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">{t('taxReports.foreignIncome')}:</span>
-                      <span className="text-xs font-medium text-gray-900">{formatCurrency(country.income)}</span>
+                      <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{formatCurrency(country.income)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">{t('taxReports.taxPaid')}:</span>
-                      <span className="text-xs font-medium text-gray-900">{formatCurrency(country.taxPaid)}</span>
+                      <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{formatCurrency(country.taxPaid)}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                       <span className="text-xs text-gray-600">{t('taxReports.taxCredit')}:</span>
@@ -2621,7 +2621,7 @@ export default function TaxReports() {
             {/* Desktop View: Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <th className="px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('taxReports.country')}</th>
                     <th className="px-4 md:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('taxReports.foreignIncome')}</th>
@@ -2631,12 +2631,12 @@ export default function TaxReports() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {t2209Data.byCountry.map((country, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900">{country.country}</td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{country.country}</td>
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
                         {formatCurrency(country.income)}
                       </td>
-                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 text-right whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 sm:py-4 text-sm text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
                         {formatCurrency(country.taxPaid)}
                       </td>
                       <td className="px-4 md:px-6 py-3 sm:py-4 text-sm font-medium text-green-600 text-right whitespace-nowrap">
@@ -2663,18 +2663,18 @@ export default function TaxReports() {
           {/* Header + Export */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <h4 className="text-base font-semibold text-gray-900">Rapport Comptable</h4>
+              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">Rapport Comptable</h4>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
               >
                 {years.map(year => <option key={year} value={year}>{year}</option>)}
               </select>
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/40 disabled:opacity-50"
                 title={language === 'fr' ? 'Recharger les donnees' : 'Reload data'}
               >
                 <Calendar size={14} className={loading ? 'animate-spin' : ''} />
@@ -2693,7 +2693,7 @@ export default function TaxReports() {
               <button
                 onClick={generateComptableCSV}
                 disabled={loading}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-white text-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors disabled:opacity-50"
                 title={language === 'fr' ? 'Export CSV brut pour import comptable' : 'Raw CSV export for accounting import'}
               >
                 <FileText size={14} />
@@ -2744,11 +2744,11 @@ export default function TaxReports() {
               <div key={group.label} className={`border ${borderColor} rounded-lg overflow-hidden`}>
                 <div className={`${headerBg} px-4 py-3 flex items-center justify-between`}>
                   <h5 className="text-sm font-semibold text-gray-800">{group.label}</h5>
-                  <span className="text-sm font-bold text-gray-900">{formatCurrency(groupTotal)}</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{formatCurrency(groupTotal)}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Date</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wide">Catégorie</th>
@@ -2763,13 +2763,13 @@ export default function TaxReports() {
                       {txs.map(tx => {
                         const prop = properties.find(p => p.id === tx.property_id)
                         return (
-                          <tr key={tx.id} className="hover:bg-gray-50">
+                          <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
                             <td className="px-3 py-2 whitespace-nowrap text-gray-700">{tx.date}</td>
                             <td className="px-3 py-2 text-gray-600">{FISCAL_LABELS[tx.fiscal_category || ''] || '—'}</td>
                             <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{prop?.name || '—'}</td>
                             <td className="px-3 py-2 text-gray-800 max-w-[200px] truncate" title={tx.description}>{tx.description}</td>
                             <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{tx.vendor_name || '—'}</td>
-                            <td className="px-3 py-2 text-right font-medium text-gray-900 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
                             <td className="px-3 py-2">
                               {tx.attachment_url ? (
                                 <a
@@ -2800,14 +2800,14 @@ export default function TaxReports() {
             const uncategorized = filteredTransactions.filter(t => !allCategorized.includes(t.fiscal_category || ''))
             if (uncategorized.length === 0) return null
             return (
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
                   <h5 className="text-sm font-semibold text-gray-600">⚠️ Sans catégorie fiscale ({uncategorized.length})</h5>
                   <span className="text-xs text-gray-400">À catégoriser avant envoi au comptable</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Date</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">Type</th>
@@ -2822,7 +2822,7 @@ export default function TaxReports() {
                           <td className="px-3 py-2 whitespace-nowrap text-gray-700">{tx.date}</td>
                           <td className="px-3 py-2 text-gray-600">{tx.type}</td>
                           <td className="px-3 py-2 text-gray-800 max-w-[200px] truncate">{tx.description}</td>
-                          <td className="px-3 py-2 text-right font-medium text-gray-900 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
+                          <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatCurrency(tx.amount)}</td>
                           <td className="px-3 py-2">
                             {tx.attachment_url ? (
                               <a href={tx.attachment_url} target="_blank" rel="noopener noreferrer"
@@ -2869,7 +2869,7 @@ export default function TaxReports() {
               </div>
               <div className="bg-gray-100 border border-gray-300 rounded-xl p-3">
                 <p className="text-xs text-gray-600 mb-1">{fr ? 'Total estimé dû' : 'Total estimated due'}</p>
-                <p className="text-base font-bold text-gray-900">{formatCurrency(mjData.totalTax)}</p>
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">{formatCurrency(mjData.totalTax)}</p>
               </div>
               <div className={`rounded-xl p-3 border ${mjData.totalNetOwing > 0 ? 'bg-red-50 border-red-300' : 'bg-green-50 border-green-300'}`}>
                 <p className={`text-xs mb-1 ${mjData.totalNetOwing > 0 ? 'text-red-700' : 'text-green-700'}`}>{fr ? '⚠️ Solde à payer' : '⚠️ Balance owing'}</p>
@@ -2924,7 +2924,7 @@ export default function TaxReports() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200 text-xs">
+                    <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 text-xs">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">{fr ? 'Pays' : 'Country'}</th>
                         <th className="px-3 py-2 text-right font-medium text-gray-500 uppercase">{fr ? 'Revenu brut' : 'Gross'}</th>
@@ -2941,8 +2941,8 @@ export default function TaxReports() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {mjData.rows.map(row => (
-                        <tr key={row.country_code} className="hover:bg-gray-50">
-                          <td className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap">{row.flag} {row.name}</td>
+                        <tr key={row.country_code} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                          <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{row.flag} {row.name}</td>
                           <td className="px-3 py-3 text-right text-gray-600 whitespace-nowrap">{formatCurrency(row.totalGross)}</td>
                           <td className="px-3 py-3 text-right text-amber-700 whitespace-nowrap">{row.totalSalesTax > 0 ? formatCurrency(row.totalSalesTax) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right text-blue-700 whitespace-nowrap">{row.totalStateTax > 0 ? formatCurrency(row.totalStateTax) : <span className="text-gray-300">—</span>}</td>
@@ -2952,7 +2952,7 @@ export default function TaxReports() {
                               <span title="IRNR 27% — Impuesto sobre la Renta No Residentes (RD)">{formatCurrency((row as any).irnrEstimated)}</span>
                             ) : <span className="text-gray-300">—</span>}
                           </td>
-                          <td className="px-3 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(row.totalTax)}</td>
+                          <td className="px-3 py-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatCurrency(row.totalTax)}</td>
                           <td className="px-3 py-3 text-right text-green-700 whitespace-nowrap">{row.alreadyWithheld > 0 ? formatCurrency(row.alreadyWithheld) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right text-teal-700 whitespace-nowrap">{row.alreadyRemitted > 0 ? formatCurrency(row.alreadyRemitted) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-3 text-right font-bold whitespace-nowrap" style={{ color: row.netOwing > 0 ? '#dc2626' : '#16a34a' }}>
@@ -2964,13 +2964,13 @@ export default function TaxReports() {
                         </tr>
                       ))}
                       <tr className="bg-gray-100 font-bold text-xs">
-                        <td className="px-3 py-2 text-gray-900">TOTAL</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">TOTAL</td>
                         <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(mjData.rows.reduce((s, r) => s + r.totalGross, 0))}</td>
                         <td className="px-3 py-2 text-right text-amber-800">{formatCurrency(mjData.totalSalesTax)}</td>
                         <td className="px-3 py-2 text-right text-blue-800">{formatCurrency(mjData.totalStateTax)}</td>
                         <td className="px-3 py-2 text-right text-purple-800">{formatCurrency(mjData.totalFederalWithholding)}</td>
                         <td className="px-3 py-2 text-right text-rose-800">{formatCurrency(mjData.rows.reduce((s, r) => s + ((r as any).irnrEstimated ?? 0), 0))}</td>
-                        <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(mjData.totalTax)}</td>
+                        <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatCurrency(mjData.totalTax)}</td>
                         <td className="px-3 py-2 text-right text-green-800">{formatCurrency(mjData.totalAlreadyWithheld)}</td>
                         <td className="px-3 py-2 text-right text-teal-800">{formatCurrency(mjData.totalAlreadyRemitted)}</td>
                         <td className="px-3 py-2 text-right" style={{ color: mjData.totalNetOwing > 0 ? '#dc2626' : '#16a34a' }}>{formatCurrency(mjData.totalNetOwing)}</td>
@@ -3018,7 +3018,7 @@ export default function TaxReports() {
                       <div key={row.country_code} className="px-4 py-3 flex items-start gap-3">
                         <span className="text-2xl flex-shrink-0">{row.flag}</span>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{row.name}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{row.name}</p>
                           <p className="text-xs text-gray-600 mt-0.5">{rate.filing_deadline_note}</p>
                         </div>
                         <span className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${row.status === 'ok' ? 'bg-green-100 text-green-700' : row.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
@@ -3040,12 +3040,12 @@ export default function TaxReports() {
                 </div>
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="border border-gray-200 rounded-lg p-3 space-y-1">
-                    <p className="font-semibold text-gray-900">📋 T1135 — Bilan des avoirs étrangers</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">📋 T1135 — Bilan des avoirs étrangers</p>
                     <p className="text-gray-600">{fr ? 'Obligatoire si actifs étrangers > 100 000 $ CAD' : 'Required if foreign assets > $100K CAD'}</p>
                     <p className="text-gray-500">{fr ? 'Échéance : 30 avril (ou 15 juin si T1 prolongé)' : 'Deadline: April 30 (or June 15 if T1 extended)'}</p>
                   </div>
                   <div className="border border-gray-200 rounded-lg p-3 space-y-1">
-                    <p className="font-semibold text-gray-900">📋 T2209 — Crédit impôt étranger fédéral</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">📋 T2209 — Crédit impôt étranger fédéral</p>
                     <p className="text-gray-600">{fr ? 'Réclamez l\'impôt payé à l\'étranger pour éviter la double imposition' : 'Claim foreign tax paid to avoid double taxation'}</p>
                     <p className="text-gray-500">{fr ? 'Annexe T2209 jointe à votre T1' : 'Schedule T2209 attached to your T1'}</p>
                   </div>
