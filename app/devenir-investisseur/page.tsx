@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
+import BackToHome from '@/components/BackToHome'
 
 export default function DevenirInvestisseurPage() {
   const { language } = useLanguage()
@@ -10,6 +11,7 @@ export default function DevenirInvestisseurPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 pt-24 pb-16 text-gray-800">
+      <BackToHome className="mb-6" />
       <h1 className="text-4xl font-bold text-center text-blue-900 mb-6 flex items-center justify-center gap-2">
         <span>💼</span> {fr ? 'Rejoindre CERDIA' : 'Join CERDIA'}
       </h1>

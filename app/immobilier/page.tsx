@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Navigation } from 'swiper/modules'
 import { useLanguage } from '@/contexts/LanguageContext'
+import BackToHome from '@/components/BackToHome'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
@@ -48,6 +49,7 @@ export default function ImmobilierPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-6 pt-32 pb-12">
+      <BackToHome className="mb-6" />
       {/* Header Section */}
       <div className="mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-[#2a2a2a] mb-4">{tr.titre}</h1>
