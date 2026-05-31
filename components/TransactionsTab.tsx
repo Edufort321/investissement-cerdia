@@ -750,7 +750,7 @@ export default function TransactionsTab() {
                         {isShortTermFL && tdtRate ? (
                           <div className="space-y-1">
                             <p className="font-semibold text-amber-800">⚠️ Florida — Taxes applicables (location court terme)</p>
-                            <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                               <div className="bg-white rounded p-2 text-center">
                                 <p className="text-gray-500">State Sales Tax</p>
                                 <p className="font-bold text-orange-700">{flStateTax != null ? `${flStateTax.toFixed(2)} $` : '—'}</p>
@@ -817,7 +817,7 @@ export default function TransactionsTab() {
                             {!hasForeignTax && irnrEstimate ? (
                               <div className="space-y-1">
                                 <p className="font-semibold text-rose-800">🏛️ IRNR — Retenue non-résidents (27%) estimée</p>
-                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                                   <div className="bg-white rounded p-2 text-center">
                                     <p className="text-gray-500">Revenu brut</p>
                                     <p className="font-bold text-gray-800">{formData.amount.toFixed(2)} $</p>

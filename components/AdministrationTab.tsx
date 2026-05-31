@@ -1825,7 +1825,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 max-w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 max-w-full">
           {investors.map((investor) => {
             // Trouver les données calculées pour cet investisseur
             const summary = investorSummaries.find(s => s.investor_id === investor.id)

@@ -794,7 +794,7 @@ export default function NAVDashboard() {
       )}
 
       {/* KPIs principaux — source: get_nav_timeline() */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NAV par action actuel */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-sm text-gray-600 mb-1">{t('nav.perShare')}</div>
@@ -1030,7 +1030,7 @@ export default function NAVDashboard() {
                   </div>
 
                   {/* 5 cartes de valeurs */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
 
                     {/* 1. Prix contractuel */}
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">

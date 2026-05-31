@@ -60,7 +60,7 @@ export default function CAPEXDashboard() {
       </div>
 
       {/* KPIs Résumé */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-gray-700">{t('capex.totalBalance')}</p>

@@ -1271,7 +1271,7 @@ export default function MonVoyageV2() {
             {t('voyage.selectMode')}
           </h2>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Mode Investisseur */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-indigo-600 dark:border-indigo-400 overflow-hidden relative">
               {currentUser && isInvestor && (
@@ -1476,7 +1476,7 @@ export default function MonVoyageV2() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {/* Nouveau voyage */}
             <button
               onClick={() => setShowCreateModal(true)}
