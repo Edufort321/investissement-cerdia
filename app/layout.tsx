@@ -76,6 +76,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="CERDIA" />
+        {/* Données structurées Schema.org — aide Google à comprendre l'organisation
+            et le service (peut activer des résultats enrichis). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': `${SITE_URL}/#organization`,
+                  name: 'CERDIA',
+                  url: SITE_URL,
+                  logo: `${SITE_URL}/logo-cerdia3.png`,
+                  email: 'eric.dufort@cerdia.ai',
+                  description: SITE_DESCRIPTION,
+                  areaServed: ['CA', 'DO', 'US', 'MX'],
+                  sameAs: [],
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': `${SITE_URL}/#website`,
+                  url: SITE_URL,
+                  name: 'CERDIA',
+                  inLanguage: 'fr-CA',
+                  publisher: { '@id': `${SITE_URL}/#organization` },
+                },
+                {
+                  '@type': 'Service',
+                  name: 'Plateforme de gestion et d\'investissement immobilier international',
+                  provider: { '@id': `${SITE_URL}/#organization` },
+                  serviceType: 'Gestion de portefeuille immobilier et investissement',
+                  areaServed: ['Canada', 'République Dominicaine', 'États-Unis', 'Mexique'],
+                  description:
+                    'Plateforme multi-tenant de gestion immobilière internationale : suivi de portefeuille, NAV, conformité fiscale et investissement.',
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
         <Providers>

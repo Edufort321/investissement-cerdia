@@ -458,7 +458,7 @@ export default function Home() {
 
       {/* ── CTA FINAL ────────────────────────────────────────────────── */}
       <section id="investisseur" className="py-28 px-6 text-center scroll-mt-24">
-        <div className="max-w-xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-5">
             {fr ? 'Accès investisseur' : 'Investor access'}
           </p>
@@ -467,11 +467,37 @@ export default function Home() {
               ? "Construisez votre patrimoine à l'international"
               : 'Build your international wealth'}
           </h2>
-          <p className="text-gray-500 mb-10 leading-relaxed text-sm">
+          <p className="text-gray-300 mb-4 leading-relaxed text-base">
             {fr
-              ? "Rejoignez un réseau sélect d'investisseurs. Accédez à des opportunités immobilières exclusives en République Dominicaine, Mexique et Floride — sélectionnées et optimisées par CERDIA."
-              : "Join a select network of investors. Access exclusive real estate opportunities in the Dominican Republic, Mexico and Florida — selected and optimized by CERDIA."}
+              ? "Rejoignez un réseau sélect d'investisseurs et accédez à des opportunités immobilières exclusives en République Dominicaine, au Mexique et en Floride — des marchés à fort potentiel locatif et d'appréciation, sélectionnés et optimisés par CERDIA."
+              : "Join a select network of investors and access exclusive real estate opportunities in the Dominican Republic, Mexico and Florida — high-potential rental and appreciation markets, selected and optimized by CERDIA."}
           </p>
+          <p className="text-gray-400 mb-10 leading-relaxed text-sm">
+            {fr
+              ? "Vous investissez dans des projets concrets, suivez la valeur de vos parts en temps réel, recevez des rapports transparents et bénéficiez d'une structure fiscale conforme — sans gérer les opérations vous-même."
+              : "You invest in concrete projects, track the value of your shares in real time, receive transparent reports and benefit from a compliant tax structure — without managing operations yourself."}
+          </p>
+
+          {/* Arguments investisseur */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 text-left">
+            {(fr ? [
+              { t: 'Opportunités sélectionnées', d: 'Projets analysés et optimisés avant d\'être proposés — qualité avant quantité.' },
+              { t: 'Transparence totale', d: 'Valeur de vos parts (NAV), rapports et performance accessibles en continu.' },
+              { t: 'Gestion clé en main', d: 'Acquisition, location et revente prises en charge. Vous restez passif.' },
+            ] : [
+              { t: 'Curated opportunities', d: 'Projects analyzed and optimized before being offered — quality over quantity.' },
+              { t: 'Full transparency', d: 'Your share value (NAV), reports and performance available continuously.' },
+              { t: 'Turnkey management', d: 'Acquisition, rental and resale handled for you. You stay passive.' },
+            ]).map((b) => (
+              <div key={b.t} className="rounded-xl border border-white/10 bg-[#111115] p-4">
+                <p className="text-white text-sm font-semibold mb-1.5 flex items-center gap-2">
+                  <span className="text-amber-400">✓</span> {b.t}
+                </p>
+                <p className="text-gray-400 text-xs leading-relaxed">{b.d}</p>
+              </div>
+            ))}
+          </div>
+
           <Link href="/investir">
             <button className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-12 py-4 rounded-full text-sm tracking-wide transition-all hover:shadow-xl hover:shadow-amber-400/20">
               {fr ? 'Devenir investisseur' : 'Become an investor'}
