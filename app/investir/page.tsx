@@ -3,10 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { TrendingUp, Shield, Users, ArrowRight, Clock, DollarSign } from 'lucide-react'
+import { TrendingUp, Shield, Users, ArrowRight, ArrowLeft, Clock, DollarSign } from 'lucide-react'
 
 export default function PageInvestir() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const fr = language === 'fr'
 
   const features = [
     {
@@ -33,6 +34,11 @@ export default function PageInvestir() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-6 pt-32 pb-12">
+        {/* Retour à l'accueil */}
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors mb-6">
+          <ArrowLeft size={16} />
+          {fr ? "Retour à l'accueil" : 'Back to home'}
+        </Link>
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium mb-6">
