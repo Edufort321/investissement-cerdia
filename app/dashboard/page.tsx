@@ -7,7 +7,7 @@ import { useInvestment } from '@/contexts/InvestmentContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useExchangeRate } from '@/contexts/ExchangeRateContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, LogOut, Menu, X, TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertCircle, Clock, Calendar, Calculator, Wallet, Briefcase, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import ProjetTab from '@/components/ProjetTab'
 import AdministrationTab from '@/components/AdministrationTab'
 import SupportMenu from '@/components/SupportMenu'
@@ -282,7 +282,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex transition-colors duration-300">
       {/* Sidebar gauche */}
       <aside
-        className={`fixed left-0 top-20 h-[calc(100vh-5rem)] bg-[#c7c7c7] dark:bg-gray-800 text-black dark:text-gray-100 transition-all duration-300 z-40 ${
+        className={`fixed left-0 top-20 h-[calc(100vh-5rem)] bg-[#c7c7c7] dark:bg-gray-800 text-black dark:text-gray-100 transition-all duration-300 z-50 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden overflow-y-auto`}
       >
@@ -648,14 +648,31 @@ export default function DashboardPage() {
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Menu"
           className="fixed top-28 left-4 z-30 p-2 bg-[#5e5e5e] text-white rounded-full shadow-lg hover:bg-[#3e3e3e] transition"
         >
           <Menu size={20} />
         </button>
       )}
 
-      {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} ${sidebarOpen && isMobile ? 'pt-[calc(100vh-4rem)]' : 'pt-32'} overflow-x-hidden`}>
+      {/* Bouton « Retour au tableau de bord » — présent sur tous les onglets SAUF
+          l'aperçu (dashboard). Positionné à côté du hamburger en mobile, et à
+          droite de la sidebar en desktop, pour ne jamais chevaucher la navigation.
+          Masqué quand le drawer mobile est ouvert. */}
+      {activeTab !== 'dashboard' && !(isMobile && sidebarOpen) && (
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          aria-label={t('nav.dashboard')}
+          className="fixed top-28 left-16 xl:top-24 xl:left-[16.5rem] z-30 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-700 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          <span className="hidden sm:inline">{t('nav.dashboard')}</span>
+        </button>
+      )}
+
+      {/* Main Content — le drawer mobile glisse PAR-DESSUS le contenu (overlay),
+          on ne pousse plus le contenu vers le bas. */}
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'} pt-32 overflow-x-hidden`}>
         {/* Content Area */}
         <div className="p-4 sm:p-6 max-w-7xl mx-auto overflow-x-hidden">
           {activeTab === 'dashboard' && (
@@ -1259,10 +1276,11 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay — backdrop du drawer (sous la sidebar z-50, au-dessus du
+          contenu et des boutons flottants z-30) */}
       {sidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black/50 z-30"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
