@@ -301,7 +301,7 @@ export default function EditEventModal({
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                 {t('event.transportMode')}
               </label>
-              <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                 {transportModes.map((mode) => {
                   const Icon = mode.icon
                   const isSelected = transportMode === mode.id

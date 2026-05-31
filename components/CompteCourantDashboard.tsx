@@ -125,7 +125,7 @@ export default function CompteCourantDashboard() {
               {t('compteCourant.cumulativeDesc')}
             </p>
           </div>
-          <div className={`text-4xl font-bold ${(globalBalance ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+          <div className={`text-2xl sm:text-4xl font-bold ${(globalBalance ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
             {globalBalance !== null ? fmt(globalBalance) : '—'}
           </div>
         </div>
