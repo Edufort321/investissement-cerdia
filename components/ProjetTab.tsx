@@ -955,14 +955,16 @@ export default function ProjetTab() {
           la vue courante, pour ne plus renvoyer l'utilisateur en haut de page. */}
       {showAddForm && editingId && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/50 overflow-y-auto"
           onClick={resetForm}
         >
+        <div className="flex min-h-full items-start justify-center p-3 sm:p-4">
         <div
-          className="bg-white p-4 sm:p-6 rounded-lg shadow-xl border border-gray-200 w-full max-w-3xl my-4 sm:my-8"
+          className="bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-3xl my-4 sm:my-8"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between mb-4">
+          {/* En-tête collant : reste visible pendant le défilement du formulaire */}
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3 bg-white border-b border-gray-200 rounded-t-lg">
             <h3 className="text-base sm:text-lg font-semibold">
               {editingId ? t('projects.edit') : t('projects.new')}
             </h3>
@@ -970,7 +972,7 @@ export default function ProjetTab() {
               <X size={20} />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
             {/* Basic Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1593,6 +1595,7 @@ export default function ProjetTab() {
               </button>
             </div>
           </form>
+        </div>
         </div>
         </div>
       )}
