@@ -29,9 +29,11 @@ export default function PublicChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Ouverture automatique à l'arrivée (une seule fois par session, après 2,5 s)
-  // pour engager le visiteur. Ne se rouvre pas s'il l'a déjà fermé.
+  // pour engager le visiteur — UNIQUEMENT sur desktop. Sur mobile, le panneau
+  // couvrirait tout l'écran : on laisse l'utilisateur l'ouvrir lui-même via la bulle.
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (window.innerWidth < 640) return // mobile : pas d'ouverture auto
     if (sessionStorage.getItem('cerdia_chat_seen') === '1') return
     const t = setTimeout(() => {
       setOpen(true)
@@ -71,10 +73,10 @@ export default function PublicChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-[95] flex items-center gap-2 rounded-full bg-amber-400 text-black shadow-xl px-4 py-3 hover:bg-amber-300 transition-colors font-semibold text-sm"
+          className="fixed bottom-5 right-5 z-[95] w-14 h-14 rounded-full bg-amber-400 text-black shadow-xl flex items-center justify-center hover:bg-amber-300 transition-colors"
           aria-label="Discuter avec CERDIA"
         >
-          <MessageCircle size={20} /> Des questions ?
+          <MessageCircle size={24} />
         </button>
       )}
 
