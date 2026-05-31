@@ -359,11 +359,42 @@ export default function Home() {
         <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3 text-white">
           {fr ? 'Plateforme de gestion immobilière' : 'Real estate management platform'}
         </h2>
-        <p className="text-gray-500 text-sm mb-12 max-w-lg leading-relaxed">
+        <p className="text-gray-300 text-base mb-4 max-w-2xl leading-relaxed">
           {fr
-            ? "Solution multi-tenant complète : portefeuilles, locataires, rendements, IA — tout en un. Déployée pour organisations et investisseurs."
-            : "Complete multi-tenant solution: portfolios, tenants, yields, AI — all in one. Deployed for organizations and investors."}
+            ? "Pilotez l'ensemble de votre parc immobilier international depuis un seul tableau de bord. CERDIA réunit la gestion des propriétés, le suivi des investisseurs, la valeur nette par part (NAV), la trésorerie et la conformité fiscale multi-juridiction — le tout automatisé et assisté par intelligence artificielle."
+            : "Manage your entire international real estate portfolio from a single dashboard. CERDIA brings together property management, investor tracking, net asset value (NAV), treasury and multi-jurisdiction tax compliance — all automated and AI-assisted."}
         </p>
+        <p className="text-gray-400 text-sm mb-10 max-w-2xl leading-relaxed">
+          {fr
+            ? "Conçue pour les sociétés de gestion, family offices et groupes d'investisseurs qui détiennent des actifs au Canada, en République Dominicaine, aux États-Unis et au Mexique. Architecture multi-tenant sécurisée : chaque organisation est totalement isolée."
+            : "Built for management companies, family offices and investor groups holding assets in Canada, the Dominican Republic, the United States and Mexico. Secure multi-tenant architecture: every organization is fully isolated."}
+        </p>
+
+        {/* Bénéfices clés */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 max-w-4xl">
+          {(fr ? [
+            { t: 'Suivi de portefeuille en temps réel', d: 'Valeur des propriétés, NAV par part, rendements et appréciation — actualisés en continu.' },
+            { t: 'Multi-devise automatique', d: 'CAD, USD, DOP, MXN, EUR convertis aux taux de la Banque du Canada en direct.' },
+            { t: 'Conformité fiscale intégrée', d: 'T1135, T2209, IRNR, ITBIS, FIRPTA, TDT — calculés et révisés selon chaque juridiction.' },
+            { t: 'Gestion des investisseurs', d: 'Parts, classes d\'actions, votes sur scénarios, dividendes et relevés T5.' },
+            { t: 'Trésorerie & rapports', d: 'Compte courant, flux, échéanciers de paiement et rapports comptables exportables.' },
+            { t: 'Assistant IA intégré', d: 'Un agent vous guide dans la plateforme et la saisie, en toute confidentialité.' },
+          ] : [
+            { t: 'Real-time portfolio tracking', d: 'Property values, NAV per share, yields and appreciation — continuously updated.' },
+            { t: 'Automatic multi-currency', d: 'CAD, USD, DOP, MXN, EUR converted at live Bank of Canada rates.' },
+            { t: 'Built-in tax compliance', d: 'T1135, T2209, IRNR, ITBIS, FIRPTA, TDT — computed and reviewed per jurisdiction.' },
+            { t: 'Investor management', d: 'Shares, share classes, scenario voting, dividends and T5 slips.' },
+            { t: 'Treasury & reports', d: 'Current account, cash flow, payment schedules and exportable accounting reports.' },
+            { t: 'Built-in AI assistant', d: 'An agent guides you through the platform and data entry, fully privately.' },
+          ]).map((b) => (
+            <div key={b.t} className="rounded-xl border border-white/10 bg-[#111115] p-4">
+              <p className="text-white text-sm font-semibold mb-1.5 flex items-center gap-2">
+                <span className="text-amber-400">✓</span> {b.t}
+              </p>
+              <p className="text-gray-400 text-xs leading-relaxed">{b.d}</p>
+            </div>
+          ))}
+        </div>
 
         <div className="grid sm:grid-cols-2 gap-5 max-w-2xl">
           {/* Demo CTA */}
