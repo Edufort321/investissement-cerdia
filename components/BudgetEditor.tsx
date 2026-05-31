@@ -494,13 +494,13 @@ export default function BudgetEditor() {
 
       {/* New Budget Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('budget.createTitle')}</DialogTitle>
             <DialogDescription>{t('budget.createDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>{t('budget.projectScenario')} *</Label>
                 <Select value={budgetForm.scenario_id} onValueChange={(v) => setBudgetForm({ ...budgetForm, scenario_id: v })}>
@@ -569,7 +569,7 @@ export default function BudgetEditor() {
 
       {/* Budget Line Dialog */}
       <Dialog open={isLineDialogOpen} onOpenChange={setIsLineDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingLine ? t('budget.update') : t('budget.create')} — {t('budget.lineDetails')}
@@ -577,7 +577,7 @@ export default function BudgetEditor() {
             <DialogDescription>{t('budget.lineDetails')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label>{t('budget.budgetCategory')} *</Label>
                 <Select value={lineForm.category_id} onValueChange={(v) => setLineForm({ ...lineForm, category_id: v })}>

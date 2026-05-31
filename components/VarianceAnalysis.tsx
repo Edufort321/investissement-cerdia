@@ -222,7 +222,7 @@ export default function VarianceAnalysis() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>{fr ? 'Total Lignes' : 'Total Lines'}</CardDescription>

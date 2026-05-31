@@ -21,22 +21,22 @@ export default function BudgetDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            {t('budget.tabOverview')}
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="overview" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+            <Activity className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{t('budget.tabOverview')}</span>
           </TabsTrigger>
-          <TabsTrigger value="editor" className="flex items-center gap-2">
-            <Edit className="h-4 w-4" />
-            {t('budget.tabEditor')}
+          <TabsTrigger value="editor" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+            <Edit className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{t('budget.tabEditor')}</span>
           </TabsTrigger>
-          <TabsTrigger value="variance" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            {t('budget.tabVariance')}
+          <TabsTrigger value="variance" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+            <BarChart3 className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{t('budget.tabVariance')}</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            {t('budget.tabAlerts')}
+          <TabsTrigger value="alerts" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+            <Bell className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{t('budget.tabAlerts')}</span>
           </TabsTrigger>
         </TabsList>
 
