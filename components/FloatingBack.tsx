@@ -23,9 +23,20 @@ export default function FloatingBack() {
   const hidden = HIDDEN.some(r => pathname === r || (r !== '/' && pathname.startsWith(r)))
   if (hidden) return null
 
+  // Retour intelligent : on revient en arrière s'il y a un historique dans
+  // l'onglet, sinon on retombe sur l'accueil (évite de rester bloqué sur une
+  // page ouverte en accès direct, où router.back() ne ferait rien).
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
+  }
+
   return (
     <button
-      onClick={() => router.back()}
+      onClick={handleBack}
       aria-label={fr ? "Retour" : 'Back'}
       className="fixed top-[4.5rem] left-3 z-40 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-700 transition-colors"
     >

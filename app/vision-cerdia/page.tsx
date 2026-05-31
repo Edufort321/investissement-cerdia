@@ -2,7 +2,6 @@
 
 import { useLanguage } from '@/contexts/LanguageContext'
 import { MapPin, Rocket, Brain, ShoppingCart, Coins, PieChart, TrendingUp, Target } from 'lucide-react'
-import BackToHome from '@/components/BackToHome'
 
 export default function VisionCerdia() {
   const { t } = useLanguage()
@@ -62,7 +61,6 @@ export default function VisionCerdia() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-850 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-6 pt-32 pb-16">
-        <BackToHome className="mb-6" />
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium mb-6">
