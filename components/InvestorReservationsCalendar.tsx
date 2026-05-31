@@ -713,8 +713,67 @@ export default function InvestorReservationsCalendar() {
         </div>
       </div>
 
-      {/* Calendrier multi-lignes */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Vue LISTE — mobile uniquement (la grille mensuelle est illisible sur petit écran) */}
+      <div className="sm:hidden space-y-3">
+        {filteredScenarios.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-500">
+            {fr ? 'Aucun projet trouvé' : 'No projects found'}
+          </div>
+        ) : (
+          filteredScenarios.map(scenario => {
+            // Collecte les jours réservés du mois pour ce projet, regroupés par occupant.
+            const segments: { who: string; type: 'owner' | 'commercial'; investorId: string | null; days: number[] }[] = []
+            for (let day = 1; day <= daysInMonth; day++) {
+              const r = getReservationForDate(scenario.id, new Date(currentYear, currentMonth, day))
+              if (!r) continue
+              const who = r.type === 'owner' ? (r.data.investor_name || '?') : (r.data.guest_name || (fr ? 'Commercial' : 'Commercial'))
+              const type = r.type === 'owner' ? 'owner' : 'commercial'
+              const investorId = r.type === 'owner' ? (r.data.investor_id ?? null) : null
+              const last = segments[segments.length - 1]
+              if (last && last.who === who && last.type === type && last.days[last.days.length - 1] === day - 1) {
+                last.days.push(day)
+              } else {
+                segments.push({ who, type, investorId, days: [day] })
+              }
+            }
+            return (
+              <div key={scenario.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                    {scenario.name}{scenario.unit_number ? ` · ${fr ? 'Unité' : 'Unit'} ${scenario.unit_number}` : ''}
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{scenario.status}</span>
+                </div>
+                {segments.length === 0 ? (
+                  <button onClick={() => handleCellClick(scenario.id, 1)} className="text-xs text-blue-600 hover:underline">
+                    {fr ? '+ Aucune réservation ce mois — ajouter' : '+ No reservation this month — add'}
+                  </button>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {segments.map((seg, idx) => {
+                      const d1 = seg.days[0], d2 = seg.days[seg.days.length - 1]
+                      const range = d1 === d2 ? `${d1}` : `${d1}–${d2}`
+                      return (
+                        <li key={idx} className="flex items-center gap-2 text-xs">
+                          <span className={`w-3 h-3 rounded-full flex-shrink-0 ${seg.type === 'owner' && seg.investorId ? getInvestorColor(seg.investorId) : 'bg-green-400'}`} />
+                          <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">{range} {fr ? '' : ''}</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200 truncate">
+                            {seg.who}{seg.type === 'commercial' ? ` (${fr ? 'commercial' : 'commercial'})` : ''}
+                          </span>
+                          <span className="text-gray-400 ml-auto flex-shrink-0">{seg.days.length} {fr ? 'j' : 'd'}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Calendrier multi-lignes (grille mensuelle) — desktop/tablette */}
+      <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead>
