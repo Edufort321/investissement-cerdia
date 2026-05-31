@@ -76,11 +76,11 @@ export default function ExchangeRateWidget() {
 
   if (loading && !data) {
     return (
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
+          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
         </div>
       </div>
     )
@@ -115,12 +115,12 @@ export default function ExchangeRateWidget() {
   }).join(' ')
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.exchangeRate')}</h3>
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{t('dashboard.exchangeRate')}</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               {current.rate.toFixed(4)}
             </span>
             <div className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
@@ -130,7 +130,7 @@ export default function ExchangeRateWidget() {
               </span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {fr ? 'Mis à jour:' : 'Updated:'}{' '}
             {new Date(current.date).toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
               day: 'numeric',
@@ -142,7 +142,7 @@ export default function ExchangeRateWidget() {
         <button
           onClick={() => fetchExchangeRate()}
           disabled={loading}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           title={fr ? 'Rafraîchir' : 'Refresh'}
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -158,7 +158,7 @@ export default function ExchangeRateWidget() {
             className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
               selectedPeriod === period
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {getPeriodLabel(period)}
@@ -169,7 +169,7 @@ export default function ExchangeRateWidget() {
       {/* Graphique */}
       {history.length > 1 && (
         <div className="mt-4">
-          <p className="text-xs font-medium text-gray-600 mb-2">
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
             {fr ? `Évolution sur ${getPeriodLabel(selectedPeriod)}` : `Trend over ${getPeriodLabel(selectedPeriod)}`}
           </p>
           <div className="relative">
@@ -207,7 +207,7 @@ export default function ExchangeRateWidget() {
             </svg>
 
             {/* Légendes */}
-            <div className="flex justify-between mt-1 text-xs text-gray-500">
+            <div className="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
               <span>{history[0].date.split('-').slice(1).join('/')}</span>
               <span>
                 Min: {minRate.toFixed(4)} | Max: {maxRate.toFixed(4)}
@@ -219,8 +219,8 @@ export default function ExchangeRateWidget() {
       )}
 
       {/* Source */}
-      <div className="mt-4 pt-3 border-t border-gray-100">
-        <p className="text-xs text-gray-500">
+      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Source: <span className="font-medium">{data.source}</span>
           {data.error && <span className="text-orange-600 ml-2">({data.error})</span>}
         </p>

@@ -251,7 +251,7 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('common.loading')}</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -308,7 +308,7 @@ export default function DashboardPage() {
               <div className="min-w-0">
                 <p className="font-semibold text-sm truncate">{organization?.name || 'CERDIA'}</p>
                 {organization?.plan && organization.plan !== 'internal' && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{organization.plan}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 capitalize">{organization.plan}</p>
                 )}
               </div>
             </div>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{hasAdminAccess ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{hasAdminAccess ? t('accessLevel.admin') : t('accessLevel.investor')}</p>
               </div>
             </div>
           </div>
@@ -372,7 +372,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'investisseurs'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.investors')}
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'transactions'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.transactions')}
@@ -398,7 +398,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'factures_gmail'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.facturesEmail')}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'capex'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.capex')}
@@ -424,7 +424,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'compte_courant'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.currentAccount')}
@@ -437,7 +437,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'nav'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.nav')}
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'rd_dividendes'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.rdDividends')}
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'rapports_fiscaux'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.taxReports')}
@@ -476,7 +476,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'performance'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.performance')}
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'sync_revenues'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.syncRevenues')}
@@ -502,7 +502,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'tresorerie'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.treasury')}
@@ -515,7 +515,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'gestion_projet'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.projectManagement')}
@@ -528,7 +528,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'budgetisation'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.budgeting')}
@@ -541,7 +541,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'evaluations'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.valuations')}
@@ -554,7 +554,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'prix_parts'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.sharePrice')}
@@ -567,7 +567,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'livre_entreprise'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.corporateBook')}
@@ -580,7 +580,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'mode_emploi'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.userGuide')}
@@ -593,7 +593,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'support'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         🛟 Support
@@ -606,7 +606,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'bloc_notes'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.notes')}
@@ -619,7 +619,7 @@ export default function DashboardPage() {
                         className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                           adminSubTab === 'factures'
                             ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {t('admin.subtab.invoices')}
@@ -663,7 +663,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('dashboard')}
           aria-label={t('nav.dashboard')}
-          className="fixed top-28 left-16 xl:top-24 xl:left-[16.5rem] z-30 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-700 transition-colors"
+          className="fixed top-28 left-16 xl:top-24 xl:left-[16.5rem] z-30 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-700 transition-colors"
         >
           <ArrowLeft size={16} />
           <span className="hidden sm:inline">{t('nav.dashboard')}</span>
@@ -680,7 +680,7 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 mt-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard.overview')}</h2>
                 {loading && (
-                  <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin"></div>
                     {t('common.loading')}
                   </div>
@@ -707,7 +707,7 @@ export default function DashboardPage() {
                     {t('dashboard.realEstatePortfolio')}
                   </h3>
                   {properties.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">{t('dashboard.noProperties')}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">{t('dashboard.noProperties')}</p>
                   ) : (
                     <div className="space-y-4">
                       {properties.map((property) => {
@@ -737,7 +737,7 @@ export default function DashboardPage() {
                             <div className="flex items-start justify-between mb-2">
                               <div>
                                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">{property.name}</h4>
-                                <p className="text-sm text-gray-600">{property.location}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{property.location}</p>
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 property.status === 'en_construction' ? 'bg-yellow-100 text-yellow-800' :
@@ -750,7 +750,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="mt-3">
                               <div className="flex justify-between items-center text-sm mb-1">
-                                <span className="text-gray-600">{t('dashboard.progress')}</span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('dashboard.progress')}</span>
                                 {isFullyPaid ? (
                                   <span className="font-semibold text-green-700 flex items-center gap-1">
                                     ✓ {language === 'fr' ? 'Payé' : 'Paid'} (100%)
@@ -765,7 +765,7 @@ export default function DashboardPage() {
                                   style={{ width: `${barWidth}%` }}
                                 ></div>
                               </div>
-                              <div className="flex justify-between text-xs mt-2 text-gray-600">
+                              <div className="flex justify-between text-xs mt-2 text-gray-600 dark:text-gray-400">
                                 <span>
                                   {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })} {t('dashboard.paid')}
                                 </span>
@@ -773,7 +773,7 @@ export default function DashboardPage() {
                                   / {totalCostCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                 </span>
                               </div>
-                              <div className="text-xs text-gray-500 mt-1">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 ({paidFromTransactions.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} / {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD)
                               </div>
                               {isFullyPaid && surplusCAD > 1 && (
@@ -784,7 +784,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-100">
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">{t('dashboard.expectedROI')}</span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('dashboard.expectedROI')}</span>
                                 <span className="font-semibold text-green-600">{property.expected_roi}%</span>
                               </div>
                             </div>
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                     {t('dashboard.investorBreakdown')}
                   </h3>
                   {investorStats.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">{t('dashboard.noInvestors')}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">{t('dashboard.noInvestors')}</p>
                   ) : (
                     <div className="space-y-3">
                       {investorStats
@@ -817,7 +817,7 @@ export default function DashboardPage() {
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</p>
-                                <p className="text-sm text-gray-600">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{investor.calculated_percentage.toFixed(2)}% {t('dashboard.ownership')}</p>
                                 <p className="text-xs text-gray-400">
                                   {t('dashboard.invested')}: {investor.calculated_total_invested.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                                 </p>
@@ -827,7 +827,7 @@ export default function DashboardPage() {
                               <p className="font-semibold text-green-700">
                                 {investor.calculated_current_value.toLocaleString(language === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </p>
-                              <p className="text-xs text-gray-500">{investor.calculated_total_shares.toLocaleString()} {t('dashboard.shares')}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{investor.calculated_total_shares.toLocaleString()} {t('dashboard.shares')}</p>
                               <p className="text-xs text-gray-400">{(shareSettings?.nominal_share_value ?? 1).toFixed(4)} {t('dashboard.perShare')}</p>
                             </div>
                           </div>
@@ -860,11 +860,11 @@ export default function DashboardPage() {
 
               {/* Calendrier des paiements */}
               {upcomingPayments.length > 0 && (
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                     <Calendar size={18} className="text-blue-600" />
                     {t('dashboard.paymentCalendar')}
-                    <span className="text-xs sm:text-sm font-normal text-gray-500">
+                    <span className="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">
                       {upcomingPayments.filter(p => p.color_flag.color === 'red').length > 0 && (
                         <span className="text-red-600 font-semibold">{upcomingPayments.filter(p => p.color_flag.color === 'red').length} retard</span>
                       )}
@@ -894,7 +894,7 @@ export default function DashboardPage() {
                           <>
                             <button
                               onClick={() => setShowPaymentFilterMenu(v => !v)}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 dark:text-gray-200"
                             >
                               <span>{filterLabel}</span>
                               <span className="text-gray-400">▾</span>
@@ -902,10 +902,10 @@ export default function DashboardPage() {
                             {showPaymentFilterMenu && (
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setShowPaymentFilterMenu(false)} />
-                                <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-52 py-2 overflow-hidden text-sm">
+                                <div className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg w-52 py-2 overflow-hidden text-sm">
                                   <button
                                     onClick={toggleAll}
-                                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-100 ${allSelected ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors border-b border-gray-100 ${allSelected ? 'text-blue-700 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
                                   >
                                     <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${allSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
                                       {allSelected ? '✓' : ''}
@@ -920,7 +920,7 @@ export default function DashboardPage() {
                                     <button
                                       key={opt.key}
                                       onClick={() => toggleFilter(opt.key)}
-                                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${paymentFilters.has(opt.key) ? 'text-blue-700' : 'text-gray-600'}`}
+                                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors ${paymentFilters.has(opt.key) ? 'text-blue-700' : 'text-gray-600 dark:text-gray-400'}`}
                                     >
                                       <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs flex-shrink-0 ${paymentFilters.has(opt.key) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
                                         {paymentFilters.has(opt.key) ? '✓' : ''}
@@ -953,21 +953,21 @@ export default function DashboardPage() {
                       <div className="mb-4 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <div>
-                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">{t('dashboard.upcomingPaymentsTotal')}</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400">{t('dashboard.upcomingPaymentsTotal')}</p>
                             {totalUSD > 0 && (
-                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1">
+                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 dark:text-gray-300 mt-1">
                                 {totalUSD.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                                 {totalCAD > 0 && ` + ${totalCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}`}
                               </p>
                             )}
                             {totalUSD === 0 && totalCAD > 0 && (
-                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1">
+                              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 dark:text-gray-300 mt-1">
                                 {totalCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </p>
                             )}
                           </div>
                           <div className="text-left sm:text-right">
-                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">{t('dashboard.cadEquivalent')}</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400">{t('dashboard.cadEquivalent')}</p>
                             <p className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-400">
                               {totalCADConverted.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                             </p>
@@ -983,10 +983,10 @@ export default function DashboardPage() {
                       if (p.color_flag.color === 'green') return paymentFilters.has('paid')
                       return paymentFilters.has('upcoming')
                     }).map((payment) => {
-                      const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 border-red-200' :
-                                          payment.color_flag.color === 'orange' ? 'bg-orange-50 border-orange-200' :
-                                          payment.color_flag.color === 'green' ? 'bg-green-50 border-green-200' :
-                                          'bg-gray-50 border-gray-200'
+                      const bgColorClass = payment.color_flag.color === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' :
+                                          payment.color_flag.color === 'orange' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50' :
+                                          payment.color_flag.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50' :
+                                          'bg-gray-50 dark:bg-gray-700/40 border-gray-200 dark:border-gray-700'
 
                       return (
                         <div key={payment.id} className={`border rounded-lg p-3 sm:p-4 ${bgColorClass}`}>
@@ -998,8 +998,8 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-xl sm:text-2xl">{payment.color_flag.emoji}</span>
                               <div>
-                                <p className="text-xs sm:text-sm font-medium text-gray-700">{payment.color_flag.label}</p>
-                                <p className="text-xs text-gray-600">
+                                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{payment.color_flag.label}</p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                   {payment.color_flag.color === 'green' && payment.actual_payment_date
                                     ? `${t('dashboard.paidOn')} ${new Date(payment.actual_payment_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'short', year: 'numeric' })}`
                                     : payment.days_until_due < 0
@@ -1016,7 +1016,7 @@ export default function DashboardPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{payment.property_name}</p>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-xs sm:text-sm text-gray-600">{payment.term_label}</p>
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{payment.term_label}</p>
                                 {payment.is_mortgage && payment.renewal_flag && (
                                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                     payment.renewal_flag.color === 'red' ? 'bg-red-100 text-red-700' :
@@ -1030,11 +1030,11 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Date d'échéance */}
-                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
-                              <Calendar size={14} className="text-gray-500" />
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                              <Calendar size={14} className="text-gray-500 dark:text-gray-400" />
                               <span>
                                 {payment.is_mortgage && (
-                                  <span className="text-gray-500 mr-1">{t('dashboard.nextPayment')}:</span>
+                                  <span className="text-gray-500 dark:text-gray-400 mr-1">{t('dashboard.nextPayment')}:</span>
                                 )}
                                 {new Date(payment.due_date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
                                   day: 'numeric',
@@ -1055,7 +1055,7 @@ export default function DashboardPage() {
                                   })}
                                 </p>
                                 {payment.currency === 'USD' && (
-                                  <p className="text-xs text-gray-600">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
                                     ≈ {payment.amount_in_cad.toLocaleString('fr-CA', {
                                       style: 'currency',
                                       currency: 'CAD',
@@ -1065,9 +1065,9 @@ export default function DashboardPage() {
                                 )}
                               </div>
                               {expandedPaymentId === payment.id ? (
-                                <ChevronUp size={20} className="text-gray-500 flex-shrink-0" />
+                                <ChevronUp size={20} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
                               ) : (
-                                <ChevronDown size={20} className="text-gray-500 flex-shrink-0" />
+                                <ChevronDown size={20} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
                               )}
                             </div>
                           </div>
@@ -1101,17 +1101,17 @@ export default function DashboardPage() {
                             // Échéance hypothécaire récurrente : afficher le solde décroissant
                             if (payment.is_mortgage) {
                               return (
-                                <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
+                                <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600 animate-fadeIn">
                                   <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
-                                      <div className="text-xs text-gray-500">{t('dashboard.remainingBalance')}</div>
-                                      <div className="font-bold text-gray-900">
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.remainingBalance')}</div>
+                                      <div className="font-bold text-gray-900 dark:text-gray-100">
                                         {(payment.remaining_balance ?? 0).toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 0 })}
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="text-xs text-gray-500">{t('dashboard.paymentsMade')}</div>
-                                      <div className="font-bold text-gray-900">{payment.payments_made ?? 0}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.paymentsMade')}</div>
+                                      <div className="font-bold text-gray-900 dark:text-gray-100">{payment.payments_made ?? 0}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1119,18 +1119,18 @@ export default function DashboardPage() {
                             }
 
                             return (
-                              <div className="mt-3 pt-3 border-t border-gray-300 animate-fadeIn">
-                                <div className="flex justify-between text-xs text-gray-600 mb-1">
+                              <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600 animate-fadeIn">
+                                <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
                                   <span>{t('dashboard.paidAmount')}: {paidAmountCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</span>
                                   <span>{t('dashboard.remaining')}: {remainingAmountUSD.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency, minimumFractionDigits: 2 })}</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                   <div
                                     className={`h-2 rounded-full transition-all ${progressPercentage === 100 ? 'bg-green-600' : 'bg-blue-600'}`}
                                     style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                                   />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1 text-center">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
                                   {progressPercentage.toFixed(1)}% {t('dashboard.paid')}
                                   {progressPercentage === 0 && ` - ${t('dashboard.noPaymentMade')}`}
                                   {progressPercentage === 100 && ' ✅'}
@@ -1145,7 +1145,7 @@ export default function DashboardPage() {
 
                   {/* Note sur le taux de change */}
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-600 flex items-center gap-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                       <Clock size={12} />
                       {t('dashboard.exchangeRate')}: {exchangeRate.toFixed(4)} ({t('dashboard.updatedDaily')})
                     </p>
@@ -1154,10 +1154,10 @@ export default function DashboardPage() {
               )}
 
               {/* Transactions Récentes */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                 <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('dashboard.recentActivity')}</h3>
                 {recentTransactions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">{t('dashboard.noRecentTransactions')}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">{t('dashboard.noRecentTransactions')}</p>
                 ) : (
                   <div className="space-y-4">
                     {recentTransactions.map((transaction) => {
@@ -1165,11 +1165,11 @@ export default function DashboardPage() {
                       const isOutflow = OUTFLOW_TYPES.includes(transaction.type)
                       const displayAmt = Math.abs(transaction.amount)
                       const sign = isInflow ? '+' : isOutflow ? '-' : (transaction.amount >= 0 ? '+' : '-')
-                      const amtColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600'
+                      const amtColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
                       const iconBg = isInflow ? 'bg-green-100' : isOutflow ? 'bg-red-100' : 'bg-gray-100'
-                      const iconColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600'
+                      const iconColor = isInflow ? 'text-green-600' : isOutflow ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
                       return (
-                        <div key={transaction.id} className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0">
+                        <div key={transaction.id} className="flex items-center gap-4 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBg}`}>
                             <DollarSign size={20} className={iconColor} />
                           </div>
@@ -1177,7 +1177,7 @@ export default function DashboardPage() {
                             {/* Description tronquée + tooltip complet au survol (même comportement que l'onglet Transactions) */}
                             <div className="group relative">
                               <p
-                                className="font-medium text-gray-900 truncate cursor-default"
+                                className="font-medium text-gray-900 dark:text-gray-100 truncate cursor-default"
                                 title={transaction.description}
                               >
                                 {transaction.description}
@@ -1188,7 +1188,7 @@ export default function DashboardPage() {
                                 </div>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
                               {new Date(transaction.date).toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
                                 year: 'numeric', month: 'long', day: 'numeric'
                               })}
