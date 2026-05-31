@@ -1452,7 +1452,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   min="0.01"
                   value={nominalValueInput}
                   onChange={(e) => setNominalValueInput(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white rounded-lg text-gray-900 focus:ring-2 focus:ring-white/50 focus:outline-none"
+                  className="flex-1 px-3 py-2 bg-white rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-white/50 focus:outline-none"
                   placeholder="1.00"
                   disabled={savingNominalValue}
                 />
@@ -1496,7 +1496,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">{t('investors.title')}</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{t('investors.title')}</h2>
           <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 break-words">{t('investors.subtitle')}</p>
         </div>
         <button
@@ -1518,62 +1518,62 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-full">
               {/* Informations personnelles */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.firstName')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.firstName')} *</label>
                 <input
                   type="text"
                   value={investorFormData.first_name}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, first_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.lastName')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.lastName')} *</label>
                 <input
                   type="text"
                   value={investorFormData.last_name}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, last_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.email')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.email')} *</label>
                 <input
                   type="email"
                   value={investorFormData.email}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.phone')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.phone')}</label>
                 <input
                   type="tel"
                   value={investorFormData.phone}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.username')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.username')} *</label>
                 <input
                   type="text"
                   value={investorFormData.username}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, username: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               {/* Mot de passe généré automatiquement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investors.password')} {!editingInvestorId && '*'}
                   <span className="text-xs text-gray-500 ml-2">
                     ({t('investors.passwordFormat')})
@@ -1610,7 +1610,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Informations d'investissement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investors.totalShares')}
                   <span className="text-xs text-gray-500 ml-2">({t('investors.calculatedFromTx')})</span>
                 </label>
@@ -1618,7 +1618,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="number"
                   value={investorFormData.total_shares}
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="1"
                 />
@@ -1628,7 +1628,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investors.shareValue')} (CAD $)
                   <span className="text-xs text-gray-500 ml-2">({t('investors.calculatedFromNominal')})</span>
                 </label>
@@ -1636,7 +1636,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="number"
                   value={shareSettings?.nominal_share_value || investorFormData.share_value}
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="0.01"
                 />
@@ -1646,7 +1646,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investors.totalInvested')} (CAD $)
                   <span className="text-xs text-gray-500 ml-2">({t('investors.calculatedFromTx')})</span>
                 </label>
@@ -1654,7 +1654,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="number"
                   value={investorFormData.total_invested}
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   step="0.01"
                 />
@@ -1664,7 +1664,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investors.percentOwnership')}
                   <span className="text-xs text-gray-500 ml-2">({t('investors.calculatedAuto')})</span>
                 </label>
@@ -1672,7 +1672,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="number"
                   value={calculateOwnershipPercentage(investorFormData.total_shares).toFixed(2)}
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   min="0"
                   max="100"
                   step="0.01"
@@ -1683,11 +1683,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.investmentType')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.investmentType')} *</label>
                 <select
                   value={investorFormData.investment_type}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, investment_type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="part">{t('investors.investmentTypeShare')}</option>
@@ -1698,11 +1698,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.status')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.status')} *</label>
                 <select
                   value={investorFormData.status}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, status: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="actif">{t('status.active')}</option>
@@ -1712,22 +1712,22 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.joinDate')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.joinDate')} *</label>
                 <input
                   type="date"
                   value={investorFormData.join_date}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, join_date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('investors.accessLevel')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('investors.accessLevel')} *</label>
                 <select
                   value={investorFormData.access_level}
                   onChange={(e) => setInvestorFormData({ ...investorFormData, access_level: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="investisseur">{t('investors.accessLevelInvestor')}</option>
@@ -1815,7 +1815,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {investors.length === 0 ? (
         <div className="bg-white p-8 sm:p-12 rounded-lg shadow-md text-center">
           <Users size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Aucun investisseur</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Aucun investisseur</h3>
           <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Commencez par ajouter votre premier investisseur</p>
           <button
             onClick={handleToggleAddInvestor}
@@ -1836,7 +1836,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             const roiPercentage = summary?.roi_percentage || 0
 
             return (
-            <div key={investor.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full flex flex-col">
+            <div key={investor.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow min-w-0 max-w-full flex flex-col">
               {/* Header */}
               <div className="p-3 sm:p-4 md:p-5 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
@@ -1845,7 +1845,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       {investor.first_name.charAt(0)}{investor.last_name.charAt(0)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 truncate">{investor.first_name} {investor.last_name}</h3>
+                      <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 truncate">{investor.first_name} {investor.last_name}</h3>
                       <p className="text-xs text-gray-600 truncate">@{investor.username}</p>
                     </div>
                   </div>
@@ -1881,7 +1881,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       <DollarSign size={11} className="sm:w-3 sm:h-3 flex-shrink-0" />
                       <span className="truncate">Total investi</span>
                     </div>
-                    <div className="font-bold text-gray-900 text-xs sm:text-sm md:text-base truncate">
+                    <div className="font-bold text-gray-900 dark:text-gray-100 text-xs sm:text-sm md:text-base truncate">
                       {totalInvested.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
@@ -1896,7 +1896,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </div>
                   <div className="min-w-0">
                     <div className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 truncate">Parts</div>
-                    <div className="font-bold text-gray-900 text-xs sm:text-sm md:text-base truncate">{totalShares.toLocaleString()}</div>
+                    <div className="font-bold text-gray-900 dark:text-gray-100 text-xs sm:text-sm md:text-base truncate">{totalShares.toLocaleString()}</div>
                   </div>
                   <div className="min-w-0">
                     <div className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 truncate">ROI</div>
@@ -1945,7 +1945,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <div className="pt-2 sm:pt-3 border-t border-gray-100 mt-2 sm:mt-3">
                   <button
                     onClick={() => setExpandedInvestorHistory(expandedInvestorHistory === investor.id ? null : investor.id)}
-                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-100 transition-colors"
                   >
                     <span>Historique des investissements ({investorInvestments.filter(inv => inv.investor_id === investor.id).length})</span>
                     {expandedInvestorHistory === investor.id ? (
@@ -2016,7 +2016,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <div className="pt-2 sm:pt-3 border-t border-gray-100 mt-2 sm:mt-3">
                   <button
                     onClick={() => setExpandedOccupationStats(expandedOccupationStats === investor.id ? null : investor.id)}
-                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    className="w-full flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-100 transition-colors"
                   >
                     <span>{fr ? "Taux d'occupation personnel" : 'Personal occupancy rate'}</span>
                     {expandedOccupationStats === investor.id ? (
@@ -2093,7 +2093,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           <div className="bg-white rounded-lg shadow-xl max-w-[98vw] sm:max-w-[95vw] md:max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
             <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 truncate">Documents</h3>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">Documents</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
                   {investors.find(i => i.id === selectedInvestorId)?.first_name} {investors.find(i => i.id === selectedInvestorId)?.last_name}
                 </p>
@@ -2142,7 +2142,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           <FileText size={16} className="sm:w-5 sm:h-5 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 text-xs sm:text-sm md:text-base truncate">{doc.name}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100 text-xs sm:text-sm md:text-base truncate">{doc.name}</p>
                           <p className="text-[10px] sm:text-xs text-gray-600 truncate">
                             {(doc.file_size / 1024).toFixed(2)} KB • {new Date(doc.uploaded_at).toLocaleDateString('fr-CA')}
                           </p>
@@ -2771,7 +2771,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   </button>
                   <button
                     onClick={() => { setTxInnerTab(txInnerTab === 'guide' ? 'liste' : 'guide'); setShowTxMenu(false) }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-700'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${txInnerTab === 'guide' ? 'text-gray-900 dark:text-gray-100 font-semibold bg-gray-50' : 'text-gray-700'}`}
                   >
                     📖 {t('admin.tx.dataEntryGuide')}
                   </button>
@@ -2936,19 +2936,19 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1: INFORMATIONS DE BASE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">📅 Date *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📅 Date *</label>
                 <input
                   type="date"
                   value={transactionFormData.date}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   required
                 />
               </div>
 
               {/* Type — filtré par direction */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📋 Type *" : '📋 Type *'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? "📋 Type *" : '📋 Type *'}</label>
                 <select
                   value={transactionFormData.type}
                   onChange={(e) => setTransactionFormData({
@@ -2961,7 +2961,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     recurrence_end_date: null,
                     recurrence_no_end: false
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   {txDirection === 'revenu' && <>
@@ -2988,11 +2988,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               {/* Catégorie fiscale — filtrée par direction */}
               {txDirection !== 'neutre' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🧾 Catégorie fiscale' : '🧾 Fiscal category'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '🧾 Catégorie fiscale' : '🧾 Fiscal category'}</label>
                   <select
                     value={transactionFormData.fiscal_category || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, fiscal_category: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   >
                     <option value="">{fr ? '— Aucune —' : '— None —'}</option>
                     {txDirection === 'revenu' && <>
@@ -3046,7 +3046,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1b: REVENU LOCATIF — compte destination */}
             {transactionFormData.type === 'loyer_locatif' && (
               <div className="border-2 border-teal-300 rounded-lg p-4 bg-teal-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '🏦 Compte de destination *' : '🏦 Destination account *'}</label>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{fr ? '🏦 Compte de destination *' : '🏦 Destination account *'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -3082,7 +3082,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1c: PAIEMENT RÉCURRENT */}
             {transactionFormData.type === 'paiement' && (
               <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '🔁 Occurrence du paiement' : '🔁 Payment occurrence'}</label>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{fr ? '🔁 Occurrence du paiement' : '🔁 Payment occurrence'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <button
                     type="button"
@@ -3112,11 +3112,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 {transactionFormData.occurrence_type === 'récurrent' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Fréquence' : 'Frequency'}</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Fréquence' : 'Frequency'}</label>
                       <select
                         value={transactionFormData.recurrence_frequency || 'mensuel'}
                         onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_frequency: e.target.value as any })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                       >
                         <option value="quotidien">{fr ? 'Quotidien' : 'Daily'}</option>
                         <option value="hebdomadaire">{fr ? 'Hebdomadaire' : 'Weekly'}</option>
@@ -3126,13 +3126,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Date de fin' : 'End date'}</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Date de fin' : 'End date'}</label>
                       <input
                         type="date"
                         value={transactionFormData.recurrence_end_date || ''}
                         onChange={(e) => setTransactionFormData({ ...transactionFormData, recurrence_end_date: e.target.value || null, recurrence_no_end: false })}
                         disabled={!!transactionFormData.recurrence_no_end}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] text-sm disabled:bg-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] text-sm disabled:bg-gray-100"
                       />
                       <label className="flex items-center gap-2 mt-1 text-xs text-gray-600">
                         <input
@@ -3151,7 +3151,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 1d: TRANSFERT entre courant et CAPEX */}
             {transactionFormData.type === 'transfert' && (
               <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
-                <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? '↔️ Compte source du transfert *' : '↔️ Transfer source account *'}</label>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{fr ? '↔️ Compte source du transfert *' : '↔️ Transfer source account *'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -3186,7 +3186,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* SECTION 2: SOURCE DE L'ARGENT - NOUVEAU! */}
             <div className="border-2 border-indigo-300 rounded-lg p-4 bg-indigo-50">
-              <label className="block text-sm font-medium text-gray-900 mb-3">{fr ? "💰 D'où vient l'argent? *" : '💰 Where does the money come from? *'}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{fr ? "💰 D'où vient l'argent? *" : '💰 Where does the money come from? *'}</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
@@ -3257,11 +3257,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 3: DEVISE + MONTANT + CATÉGORIE */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💱 Devise *' : '💱 Currency *'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '💱 Devise *' : '💱 Currency *'}</label>
                 <select
                   value={transactionFormData.source_currency}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, source_currency: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="CAD">CAD — Dollar canadien</option>
                   <option value="USD">USD — Dollar américain</option>
@@ -3272,7 +3272,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {fr ? `💵 Montant (${transactionFormData.source_currency}) *` : `💵 Amount (${transactionFormData.source_currency}) *`}
                 </label>
                 <input
@@ -3290,14 +3290,14 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     const numValue = parseFloat(e.target.value) || 0
                     setTransactionFormData({ ...transactionFormData, amount: numValue })
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="0.00"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "📂 Catégorie (Où va l'argent) *" : '📂 Category (Where does money go) *'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? "📂 Catégorie (Où va l'argent) *" : '📂 Category (Where does money go) *'}</label>
                 <select
                   value={transactionFormData.category}
                   onChange={(e) => setTransactionFormData({
@@ -3306,7 +3306,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     // Reset property si on quitte la catégorie Projet
                     property_id: e.target.value === 'projet' ? transactionFormData.property_id : null
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="projet">{fr ? '🏠 Projet (Propriété)' : '🏠 Project (Property)'}</option>
@@ -3321,7 +3321,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 4: SÉLECTEUR PROPRIÉTÉ (Visible seulement si catégorie = Projet) */}
             {transactionFormData.category === 'projet' && (
               <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
-                <label className="block text-sm font-medium text-gray-900 mb-2">{fr ? '🏠 Propriété associée *' : '🏠 Associated property *'}</label>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{fr ? '🏠 Propriété associée *' : '🏠 Associated property *'}</label>
                 <select
                   value={transactionFormData.property_id || ''}
                   onChange={(e) => setTransactionFormData({
@@ -3329,7 +3329,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     property_id: e.target.value || null,
                     payment_schedule_id: null
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="">{fr ? '-- Sélectionner une propriété --' : '-- Select a property --'}</option>
@@ -3345,11 +3345,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 5: DÉTAILS TRANSACTION */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '💳 Méthode de paiement *' : '💳 Payment method *'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '💳 Méthode de paiement *' : '💳 Payment method *'}</label>
                 <select
                   value={transactionFormData.payment_method}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_method: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="virement">{fr ? 'Virement' : 'Wire transfer'}</option>
@@ -3360,11 +3360,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '✅ Statut *' : '✅ Status *'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '✅ Statut *' : '✅ Status *'}</label>
                 <select
                   value={transactionFormData.status}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, status: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                   required
                 >
                   <option value="complete">{fr ? 'Complété' : 'Completed'}</option>
@@ -3374,7 +3374,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '👤 Investisseur (optionnel)' : '👤 Investor (optional)'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '👤 Investisseur (optionnel)' : '👤 Investor (optional)'}</label>
                 <select
                   value={transactionFormData.investor_id || ''}
                   onChange={(e) => {
@@ -3387,7 +3387,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       affects_compte_courant: !investorId
                     })
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                 >
                   <option value="">{fr ? 'Aucun' : 'None'}</option>
                   {investors.map(inv => (
@@ -3402,7 +3402,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 6: SI INVESTISSEUR SÉLECTIONNÉ - Type de paiement */}
             {transactionFormData.investor_id && (
               <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">{fr ? '💰 Type de paiement investisseur' : '💰 Investor payment type'}</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{fr ? '💰 Type de paiement investisseur' : '💰 Investor payment type'}</h4>
                 <p className="text-xs text-gray-600 mb-3">{fr ? "L'investisseur paie directement - précisez le type:" : 'The investor pays directly — specify the type:'}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
@@ -3452,13 +3452,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {transactionFormData.property_id && (
               <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {fr ? 'Paiement lié (optionnel)' : 'Linked payment (optional)'}
                     </label>
                     <select
                       value={transactionFormData.payment_schedule_id || ''}
                       onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_schedule_id: e.target.value || null, payment_completion_status: e.target.value ? 'full' : null })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                     >
                       <option value="">{fr ? 'Aucun paiement lié' : 'No linked payment'}</option>
                       {paymentSchedules
@@ -3483,13 +3483,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   {/* Statut du paiement lié */}
                   {transactionFormData.payment_schedule_id && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {fr ? 'Statut du paiement' : 'Payment status'}
                       </label>
                       <select
                         value={transactionFormData.payment_completion_status || 'full'}
                         onChange={(e) => setTransactionFormData({ ...transactionFormData, payment_completion_status: e.target.value as 'full' | 'partial' })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
                       >
                         <option value="full">{fr ? '✅ Paiement complet - Le paiement sera marqué comme "payé"' : '✅ Full payment - The payment will be marked as "paid"'}</option>
                         <option value="partial">{fr ? '⚠️ Paiement partiel - Le paiement restera "en attente"' : '⚠️ Partial payment - The payment will remain "pending"'}</option>
@@ -3512,23 +3512,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             {/* SECTION 8: DESCRIPTION ET RÉFÉRENCE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">📝 Description *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📝 Description *</label>
                 <textarea
                   value={transactionFormData.description}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   rows={3}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? '🔢 Numéro de référence' : '🔢 Reference number'}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? '🔢 Numéro de référence' : '🔢 Reference number'}</label>
                 <input
                   type="text"
                   value={transactionFormData.reference_number}
                   onChange={(e) => setTransactionFormData({ ...transactionFormData, reference_number: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                   placeholder="Ex: TRX-2025-001"
                 />
               </div>
@@ -3536,13 +3536,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* Section Fiscalité Internationale */}
             <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">{fr ? 'Fiscalité Internationale (Optionnel)' : 'International Taxation (Optional)'}</h4>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">{fr ? 'Fiscalité Internationale (Optionnel)' : 'International Taxation (Optional)'}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Conversion de devise — visible seulement si non-CAD */}
                 {transactionFormData.source_currency !== 'CAD' && (<>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {fr ? `Montant en ${transactionFormData.source_currency} (original)` : `Amount in ${transactionFormData.source_currency} (original)`}
                     </label>
                     <input
@@ -3565,13 +3565,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                       placeholder={fr ? 'Montant original' : 'Original amount'}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Frais bancaires/conversion (CAD $)' : 'Bank/conversion fees (CAD $)'}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Frais bancaires/conversion (CAD $)' : 'Bank/conversion fees (CAD $)'}</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -3594,13 +3594,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           setTransactionFormData(prev => ({ ...prev, exchange_rate: parseFloat(rate.toFixed(4)) }))
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                       placeholder="0.00"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux de change (calculé auto)' : 'Exchange rate (auto-calculated)'}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Taux de change (calculé auto)' : 'Exchange rate (auto-calculated)'}</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -3615,7 +3615,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         const numValue = parseFloat(e.target.value) || 1
                         setTransactionFormData({ ...transactionFormData, exchange_rate: numValue })
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-gray-50"
                       placeholder="1.0000"
                     />
                     <p className="text-xs text-gray-500 mt-1">{fr ? 'Se calcule automatiquement ou modifiable manuellement' : 'Auto-calculated or manually editable'}</p>
@@ -3631,7 +3631,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Pays */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Pays' : 'Country'}</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Pays' : 'Country'}</label>
                       <select
                         value={transactionFormData.tax_country || ''}
                         onChange={e => setTransactionFormData(f => ({
@@ -3639,7 +3639,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           tax_state_province: null,
                           source_country: e.target.value === 'CA' ? 'Canada' : e.target.value === 'US' ? 'États-Unis' : e.target.value === 'DO' ? 'République Dominicaine' : e.target.value === 'MX' ? 'Mexique' : f.source_country
                         }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                       >
                         <option value="">— {fr ? 'Sélectionner' : 'Select'} —</option>
                         <option value="CA">🇨🇦 Canada</option>
@@ -3653,11 +3653,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     {/* État / Province (conditionnel) */}
                     {transactionFormData.tax_country === 'US' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'État' : 'State'}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'État' : 'State'}</label>
                         <select
                           value={transactionFormData.tax_state_province || ''}
                           onChange={e => setTransactionFormData(f => ({ ...f, tax_state_province: e.target.value || null }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                         >
                           <option value="">— {fr ? 'État' : 'State'} —</option>
                           <option value="FL">Floride (FL) — 6% sales tax, pas d'impôt revenu</option>
@@ -3672,11 +3672,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     )}
                     {transactionFormData.tax_country === 'CA' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Province' : 'Province'}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Province' : 'Province'}</label>
                         <select
                           value={transactionFormData.tax_state_province || ''}
                           onChange={e => setTransactionFormData(f => ({ ...f, tax_state_province: e.target.value || null }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                         >
                           <option value="">— Province —</option>
                           <option value="QC">Québec (QC) — 14.5% NR + QST</option>
@@ -3690,11 +3690,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     {/* Type de location (si revenu) */}
                     {txDirection === 'revenu' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Type de location' : 'Rental type'}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Type de location' : 'Rental type'}</label>
                         <select
                           value={transactionFormData.rental_type || ''}
                           onChange={e => setTransactionFormData(f => ({ ...f, rental_type: (e.target.value || null) as any }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                         >
                           <option value="">—</option>
                           <option value="short_term">
@@ -3709,11 +3709,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
                     {/* Statut fiscal propriétaire */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{fr ? 'Statut fiscal propriétaire' : 'Owner fiscal status'}</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fr ? 'Statut fiscal propriétaire' : 'Owner fiscal status'}</label>
                       <select
                         value={transactionFormData.owner_fiscal_status || ''}
                         onChange={e => setTransactionFormData(f => ({ ...f, owner_fiscal_status: (e.target.value || null) as any }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white text-sm"
                       >
                         <option value="">—</option>
                         <option value="resident">{fr ? 'Résident' : 'Resident'}</option>
@@ -3840,7 +3840,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 })()}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Impôt étranger payé (CAD $)' : 'Foreign tax paid (CAD $)'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Impôt étranger payé (CAD $)' : 'Foreign tax paid (CAD $)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3855,13 +3855,13 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       const numValue = parseFloat(e.target.value) || 0
                       setTransactionFormData({ ...transactionFormData, foreign_tax_paid: numValue })
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Taux impôt étranger (%)' : 'Foreign tax rate (%)'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Taux impôt étranger (%)' : 'Foreign tax rate (%)'}</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -3876,7 +3876,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       const numValue = parseFloat(e.target.value) || 0
                       setTransactionFormData({ ...transactionFormData, foreign_tax_rate: numValue })
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder="0.00"
                   />
                 </div>
@@ -3934,23 +3934,23 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Nom du vendeur/compagnie' : 'Vendor/company name'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Nom du vendeur/compagnie' : 'Vendor/company name'}</label>
                   <input
                     type="text"
                     value={transactionFormData.vendor_name || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, vendor_name: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     placeholder={fr ? 'Nom du fournisseur' : 'Supplier name'}
                   />
                 </div>
 
                 {/* Crédit impôt calculé automatiquement (read-only) */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? "Crédit d'impôt réclamable (calculé auto)" : 'Claimable tax credit (auto-calculated)'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? "Crédit d'impôt réclamable (calculé auto)" : 'Claimable tax credit (auto-calculated)'}</label>
                   <input
                     type="number"
                     value={transactionFormData.tax_credit_claimable}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg bg-gray-100 cursor-not-allowed"
                     readOnly
                     disabled
                   />
@@ -3958,11 +3958,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{fr ? 'Notes comptable' : 'Accounting notes'}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{fr ? 'Notes comptable' : 'Accounting notes'}</label>
                   <textarea
                     value={transactionFormData.accountant_notes || ''}
                     onChange={(e) => setTransactionFormData({ ...transactionFormData, accountant_notes: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
                     rows={2}
                     placeholder={fr ? 'Notes pour le comptable...' : 'Notes for accountant...'}
                   />
@@ -3972,7 +3972,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* Section Pièces Jointes */}
             <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                 <Paperclip size={18} />
                 {fr ? 'Pièces Jointes' : 'Attachments'}
               </h4>
@@ -3987,7 +3987,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <div className="flex items-center gap-3">
                           <FileText size={18} className="text-yellow-600 flex-shrink-0" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{transactionFormData.attachment_name}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{transactionFormData.attachment_name}</p>
                             <p className="text-xs text-gray-500">
                               {transactionFormData.attachment_size
                                 ? `${(transactionFormData.attachment_size / 1024).toFixed(1)} KB`
@@ -4044,7 +4044,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       setPendingFiles(prev => [...prev, ...valid])
                       e.target.value = ''
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#5e5e5e] file:text-white hover:file:bg-[#3e3e3e] file:cursor-pointer"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#5e5e5e] file:text-white hover:file:bg-[#3e3e3e] file:cursor-pointer"
                   />
                   {pendingFiles.length > 0 && (
                     <div className="space-y-1.5">
@@ -4052,7 +4052,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                         <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg text-sm">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <FileText size={14} className="text-gray-400 flex-shrink-0" />
-                            <span className="truncate text-gray-900">{file.name}</span>
+                            <span className="truncate text-gray-900 dark:text-gray-100">{file.name}</span>
                             <span className="text-xs text-gray-400 flex-shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
                           </div>
                           <button
@@ -4102,7 +4102,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       {filteredTransactions.length === 0 ? (
         <div className="bg-white p-12 rounded-lg shadow-md text-center">
           <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('transactions.noTransactions')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('transactions.noTransactions')}</h3>
           <p className="text-gray-600 mb-4">
             {isFiltered
               ? t('transactions.noMatch')
@@ -4110,7 +4110,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -4132,7 +4132,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   return (
                     <tr key={transaction.id} className="group hover:bg-gray-50 transition-colors">
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-900">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-900 dark:text-gray-100">
                           <Calendar size={14} className="text-gray-400 hidden sm:inline" />
                           {new Date(transaction.date).toLocaleDateString('fr-CA')}
                         </div>
@@ -4161,7 +4161,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       </td>
                       <td className="px-3 sm:px-6 py-4 max-w-[220px]">
                         <div className="group relative">
-                          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate cursor-default" title={transaction.description}>
                             {transaction.description}
                           </div>
                           <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
@@ -4313,7 +4313,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         {/* Header avec sélection période */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Compte Courant</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Compte Courant</h2>
             <p className="text-gray-600 mt-1">Vue agrégée des transactions par catégorie</p>
           </div>
           <div className="flex items-center gap-3">
@@ -4341,7 +4341,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
         {!compteCourant ? (
           <div className="bg-white p-12 rounded-lg shadow-md text-center">
             <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{fr ? 'Aucune donnee' : 'No data'}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{fr ? 'Aucune donnee' : 'No data'}</h3>
             <p className="text-gray-600">{fr ? `Aucune transaction pour ${monthNames[selectedMonth - 1]} ${selectedYear}` : `No transactions for ${monthNames[selectedMonth - 1]} ${selectedYear}`}</p>
           </div>
         ) : (
@@ -4398,20 +4398,20 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Détails Revenus */}
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   {fr ? 'Details Revenus' : 'Revenue Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Revenus locatifs' : 'Rental income'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.rental_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Autres revenus' : 'Other income'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.other_income || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
@@ -4420,38 +4420,38 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Détails Coûts Opération */}
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   {fr ? 'Details Couts Operation' : 'Operation Cost Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Frais gestion' : 'Management fees'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.management_fees || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Services publics' : 'Utilities'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.utilities || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Assurances</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.insurance || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Maintenance</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.maintenance || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Taxes foncieres' : 'Property taxes'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.property_taxes || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
@@ -4460,26 +4460,26 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
               {/* Détails Dépenses Projet */}
               <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                   {fr ? 'Details Depenses Projet' : 'Project Expense Details'}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Renovations' : 'Renovations'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.renovation_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Ameublement' : 'Furnishing'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.furnishing_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">{fr ? 'Autres projets' : 'Other projects'}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {(compteCourant.other_project_costs || 0).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </span>
                   </div>
@@ -4489,9 +4489,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* Vue par projet */}
             {byProject.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-900">{fr ? 'Details par Projet' : 'Details by Project'}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{fr ? 'Details par Projet' : 'Details by Project'}</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -4509,7 +4509,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       {byProject.map((project) => (
                         <tr key={project.property_id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{project.property_name}</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.property_name}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-600">{project.location}</div>
@@ -4631,11 +4631,11 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       .map((transaction) => (
                       <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">{new Date(transaction.date).toLocaleDateString('fr-CA')}</div>
                         </td>
                         <td className="px-6 py-4 max-w-[220px]">
                           <div className="group relative">
-                            <div className="text-sm font-medium text-gray-900 truncate cursor-default" title={transaction.description}>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate cursor-default" title={transaction.description}>
                               {transaction.description}
                             </div>
                             <div className="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-72 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block whitespace-normal break-words">
@@ -4649,7 +4649,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {Math.abs(transaction.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </span>
                         </td>
@@ -5472,7 +5472,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <select
                     value={declarationDraft.fiscal_year}
                     onChange={e => setDeclarationDraft({ ...declarationDraft, fiscal_year: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm bg-white"
                   >
                     {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
@@ -5483,7 +5483,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     type="date"
                     value={declarationDraft.declaration_date}
                     onChange={e => setDeclarationDraft({ ...declarationDraft, declaration_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm"
                   />
                 </div>
                 <div>
@@ -5492,7 +5492,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     type="number"
                     value={declarationDraft.total_amount || ''}
                     onChange={e => setDeclarationDraft({ ...declarationDraft, total_amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm"
                     placeholder="Ex: 30000"
                     min={0} step={100}
                   />
@@ -5513,7 +5513,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     type="number"
                     value={declarationDraft.nav_per_share || ''}
                     onChange={e => setDeclarationDraft({ ...declarationDraft, nav_per_share: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm"
                     placeholder="Ex: 1250.00"
                     min={0} step={0.01}
                   />
@@ -5526,7 +5526,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="text"
                   value={declarationDraft.notes}
                   onChange={e => setDeclarationDraft({ ...declarationDraft, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm"
                   placeholder={fr ? 'Ex: Distribution fin 2025 — revenu net locatif DR+FL' : 'Ex: 2025 year-end — rental net income DR+FL'}
                 />
               </div>
@@ -5556,7 +5556,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                           const election = investorElections[s.investor_id] ?? 'cash'
                           return (
                             <tr key={s.investor_id} className={`hover:bg-amber-50 ${election === 'reinvest' ? 'bg-green-50' : ''}`}>
-                              <td className="px-3 py-2 font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : s.investor_id}</td>
+                              <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">{inv ? `${inv.first_name} ${inv.last_name}` : s.investor_id}</td>
                               <td className="px-3 py-2 text-right text-gray-700">{s.total_shares.toLocaleString()}</td>
                               <td className="px-3 py-2 text-right"><span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">{(pct * 100).toFixed(2)}%</span></td>
                               <td className="px-3 py-2 text-right font-bold text-amber-700">{amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</td>
@@ -5641,7 +5641,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     >
                       <div className="flex items-center gap-4">
                         <div>
-                          <div className="text-sm font-bold text-gray-900">
+                          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
                             {fr ? `Dividende ${decl.fiscal_year}` : `Dividend ${decl.fiscal_year}`}
                             {' — '}
                             {decl.total_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
@@ -5690,7 +5690,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                                 const inv = investors.find((i: any) => i.id === elec.investor_id)
                                 return (
                                   <tr key={elec.id} className="hover:bg-amber-50">
-                                    <td className="px-3 py-2 font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : elec.investor_id}</td>
+                                    <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">{inv ? `${inv.first_name} ${inv.last_name}` : elec.investor_id}</td>
                                     <td className="px-3 py-2 text-right text-gray-600">{elec.investor_shares.toLocaleString()}</td>
                                     <td className="px-3 py-2 text-right"><span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">{(elec.ownership_pct * 100).toFixed(2)}%</span></td>
                                     <td className="px-3 py-2 text-right font-bold text-amber-700">{elec.dividend_amount.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2 })}</td>
@@ -5788,7 +5788,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                 <select
                   value={dividendYear}
                   onChange={e => setDividendYear(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm bg-white"
                 >
                   {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -5809,7 +5809,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   type="date"
                   value={dividendDate}
                   onChange={e => setDividendDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm"
                 />
               </div>
             </div>
@@ -5859,7 +5859,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
 
             {/* Montant personnalisé */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {fr ? 'Montant total à distribuer (CAD)' : 'Total amount to distribute (CAD)'}
               </label>
               <div className="flex gap-3">
@@ -5905,7 +5905,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       {investorAllocations.map(({ investor, summary, pct, amount }) => (
                         <tr key={summary.investor_id} className="hover:bg-purple-50/50">
                           <td className="px-4 py-2.5">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {investor?.first_name} {investor?.last_name}
                             </div>
                             <div className="text-xs text-gray-500">{(investor as any)?.action_class || 'A'}</div>
@@ -6006,12 +6006,12 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <tbody className="bg-white divide-y divide-gray-200">
                     {rndTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => (
                       <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
-                        <td className="px-6 py-4 max-w-[220px] text-sm font-medium text-gray-900 truncate" title={tx.description}>{tx.description}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
+                        <td className="px-6 py-4 max-w-[220px] text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={tx.description}>{tx.description}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800">{tx.category || 'R&D'}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{fmtCAD(Math.abs(tx.amount))}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{fmtCAD(Math.abs(tx.amount))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -6044,7 +6044,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {dividendsByInvestor.map(({ investor, totalReceived, transactionCount }) => (
                       <div key={investor.id} className="bg-white p-3 rounded-lg border border-purple-100">
-                        <div className="text-sm font-medium text-gray-900">{investor.first_name} {investor.last_name}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{investor.first_name} {investor.last_name}</div>
                         <div className="text-xs text-gray-500 mt-1">{transactionCount} {fr ? 'paiement(s)' : 'payment(s)'}</div>
                         <div className="text-lg font-bold text-purple-600 mt-2">{fmtCAD(totalReceived)}</div>
                       </div>
@@ -6067,9 +6067,9 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                       const inv = investors.find(i => i.id === tx.investor_id)
                       return (
                         <tr key={tx.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{inv ? `${inv.first_name} ${inv.last_name}` : 'Non assigné'}</td>
-                          <td className="px-6 py-4 max-w-[220px] text-sm text-gray-900 truncate" title={tx.description}>{tx.description}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{new Date(tx.date).toLocaleDateString('fr-CA')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{inv ? `${inv.first_name} ${inv.last_name}` : 'Non assigné'}</td>
+                          <td className="px-6 py-4 max-w-[220px] text-sm text-gray-900 dark:text-gray-100 truncate" title={tx.description}>{tx.description}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-purple-600">{fmtCAD(Math.abs(tx.amount))}</td>
                         </tr>
                       )
@@ -6232,7 +6232,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     return (
                       <div key={inv.id} className="border border-blue-100 rounded-lg p-3 flex items-center justify-between bg-blue-50/30 hover:bg-blue-50 transition-colors">
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 truncate">{inv.first_name} {inv.last_name}</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{inv.first_name} {inv.last_name}</div>
                           <div className="text-xs text-gray-500 mt-0.5">
                             {(s?.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 4 })} {fr ? 'parts' : 'shares'}
                             <span className="mx-1">·</span>
@@ -6333,7 +6333,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     <div key={inv.id} className="border border-violet-100 rounded-xl p-4 bg-violet-50/30 hover:bg-violet-50 transition-colors">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">{inv.first_name} {inv.last_name}</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{inv.first_name} {inv.last_name}</div>
                           <div className="text-xs text-gray-500 mt-0.5">
                             {(s?.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 4 })} {fr ? 'parts' : 'shares'}
                             <span className="mx-1">·</span>
