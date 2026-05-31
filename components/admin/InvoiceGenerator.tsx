@@ -157,6 +157,9 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
   // Province de la facture (lieu de fourniture = province du client). Détermine
   // quelle taxe provinciale s'applique (TVQ/PST/RST/TVH).
   const [invoiceProvince, setInvoiceProvince] = useState<ProvinceCode>('QC')
+  // Marque (logo) affichée sur la facture : CERDIA, C-Secur360, ou les deux.
+  // En mode C-Secur360, une note référant à Commerce CERDIA est ajoutée au bas.
+  const [invoiceBrand, setInvoiceBrand] = useState<'cerdia' | 'csecur360' | 'both'>('cerdia')
   const [items, setItems] = useState<InvoiceItem[]>([{ ...EMPTY_ITEM }])
   const [invoiceNumberPreview, setInvoiceNumberPreview] = useState('')
 
@@ -509,15 +512,30 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       const client = (inv.client_snapshot || {}) as any
       const pageW = doc.internal.pageSize.getWidth()
 
-      // ── En-tête entreprise ──
+      // ── En-tête entreprise : logo(s) selon la marque choisie ──
+      const loadLogo = async (path: string): Promise<string | null> => {
+        try {
+          const resp = await fetch(path)
+          const blob = await resp.blob()
+          return await new Promise(r => {
+            const fr = new FileReader(); fr.onloadend = () => r(fr.result as string); fr.readAsDataURL(blob)
+          })
+        } catch { return null }
+      }
       try {
-        const logoResp = await fetch('/logo-cerdia3.png')
-        const blob = await logoResp.blob()
-        const base64: string = await new Promise(r => {
-          const fr = new FileReader(); fr.onloadend = () => r(fr.result as string); fr.readAsDataURL(blob)
-        })
-        // Logo carré (1024x1024) — width = height pour éviter l'écrasement
-        doc.addImage(base64, 'PNG', 15, 8, 16, 16)
+        if (invoiceBrand === 'cerdia') {
+          const l = await loadLogo('/logo-cerdia3.png')
+          if (l) doc.addImage(l, 'PNG', 15, 8, 16, 16)
+        } else if (invoiceBrand === 'csecur360') {
+          const l = await loadLogo('/logo-csecur360.png')
+          if (l) doc.addImage(l, 'PNG', 15, 8, 40, 16) // logo C-Secur360 (format paysage)
+        } else {
+          // Les deux : CERDIA carré + C-Secur360 paysage à sa droite
+          const a = await loadLogo('/logo-cerdia3.png')
+          if (a) doc.addImage(a, 'PNG', 15, 8, 16, 16)
+          const b = await loadLogo('/logo-csecur360.png')
+          if (b) doc.addImage(b, 'PNG', 34, 9, 35, 14)
+        }
       } catch {}
 
       doc.setFontSize(22)
@@ -703,7 +721,12 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       doc.setFontSize(7)
       doc.setTextColor(150, 150, 150)
       doc.text(`${company.name} — Facture générée le ${new Date().toLocaleDateString('fr-CA')}`, pageW / 2, pageH - 12, { align: 'center' })
-      doc.text(`Merci de votre confiance !`, pageW / 2, pageH - 7, { align: 'center' })
+      // En mode C-Secur360 : note de référence à Commerce CERDIA.
+      if (invoiceBrand === 'csecur360' || invoiceBrand === 'both') {
+        doc.text('C-Secur360 est un produit de Commerce CERDIA inc.', pageW / 2, pageH - 7, { align: 'center' })
+      } else {
+        doc.text(`Merci de votre confiance !`, pageW / 2, pageH - 7, { align: 'center' })
+      }
 
       if (download) {
         doc.save(`Facture_${inv.invoice_number}.pdf`)
@@ -1058,13 +1081,17 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
           {/* Header */}
           <div className="flex justify-between items-start mb-8">
             <div>
-              {/* Logo CERDIA */}
-              <img
-                src="/logo-cerdia3.png"
-                alt="CERDIA"
-                className="h-10 w-auto mb-2 object-contain"
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
+              {/* Logo(s) selon la marque choisie */}
+              <div className="flex items-center gap-3 mb-2">
+                {(invoiceBrand === 'cerdia' || invoiceBrand === 'both') && (
+                  <img src="/logo-cerdia3.png" alt="CERDIA" className="h-10 w-auto object-contain"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
+                {(invoiceBrand === 'csecur360' || invoiceBrand === 'both') && (
+                  <img src="/logo-csecur360.png" alt="C-Secur360" className="h-10 w-auto object-contain"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
+              </div>
               <h3 className="text-2xl font-bold text-[#5e5e5e] dark:text-gray-200">{company.name}</h3>
               {company.address && <p className="text-sm text-gray-600 mt-1">{company.address}</p>}
               {company.city && <p className="text-sm text-gray-600">{company.city}, {company.province} {company.postal_code}</p>}
@@ -1468,6 +1495,26 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
             </h3>
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="space-y-3">
+                {/* Marque (logo) de la facture */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {fr ? 'Logo / marque de la facture' : 'Invoice logo / brand'}
+                  </label>
+                  <select
+                    value={invoiceBrand}
+                    onChange={e => setInvoiceBrand(e.target.value as 'cerdia' | 'csecur360' | 'both')}
+                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="cerdia">CERDIA</option>
+                    <option value="csecur360">C-Secur360</option>
+                    <option value="both">{fr ? 'Les deux logos' : 'Both logos'}</option>
+                  </select>
+                  {(invoiceBrand === 'csecur360' || invoiceBrand === 'both') && (
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      {fr ? 'Note ajoutée : « C-Secur360 est un produit de Commerce CERDIA inc. »' : 'Note added: "C-Secur360 is a product of Commerce CERDIA inc."'}
+                    </p>
+                  )}
+                </div>
                 {/* Province du client = lieu de fourniture → détermine la taxe provinciale */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
