@@ -169,6 +169,23 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/10 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c0e]/70 via-transparent to-transparent pointer-events-none" />
 
+        {/* Sélecteur d'intention — cible le but de la visite dès l'arrivée */}
+        <div className="absolute top-20 sm:top-24 inset-x-0 z-20 px-4 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto bg-black/45 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3 flex flex-col sm:flex-row items-center gap-3 max-w-3xl w-full">
+            <span className="text-white text-sm font-medium text-center sm:text-left flex-shrink-0">
+              {fr ? 'Vous cherchez à…' : 'You are looking to…'}
+            </span>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <a href="#plateforme" className="flex-1 text-center bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full border border-white/20 transition-colors whitespace-nowrap">
+                {fr ? '🏢 Gérer mon parc immobilier' : '🏢 Manage my real estate'}
+              </a>
+              <a href="#investisseur" className="flex-1 text-center bg-amber-400 hover:bg-amber-300 text-black text-xs sm:text-sm font-semibold px-4 py-2 rounded-full transition-colors whitespace-nowrap">
+                {fr ? '📈 Devenir investisseur' : '📈 Become an investor'}
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* Slide content */}
         <div className="relative z-10 h-full flex flex-col justify-end pb-20 px-8 md:px-16 max-w-7xl mx-auto">
           <div key={idx} className="flex flex-col gap-5">
@@ -316,7 +333,7 @@ export default function Home() {
       </section>
 
       {/* ── PLATEFORME MULTI-TENANT ──────────────────────────────────── */}
-      <section className="relative overflow-hidden py-20">
+      <section id="plateforme" className="relative overflow-hidden py-20 scroll-mt-24">
 
         {/* Carrousel de fond — section plateforme */}
         {platformImages.length > 0 && (
@@ -409,7 +426,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA FINAL ────────────────────────────────────────────────── */}
-      <section className="py-28 px-6 text-center">
+      <section id="investisseur" className="py-28 px-6 text-center scroll-mt-24">
         <div className="max-w-xl mx-auto">
           <p className="text-amber-400 text-xs tracking-[0.25em] uppercase mb-5">
             {fr ? 'Accès investisseur' : 'Investor access'}
