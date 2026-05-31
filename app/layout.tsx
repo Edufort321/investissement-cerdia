@@ -5,6 +5,7 @@ import SuperAdminViewBanner from '../components/SuperAdminViewBanner'
 import { Providers } from '../components/Providers'
 import CookieConsent from '../components/CookieConsent'
 import ConsentedAds from '../components/ConsentedAds'
+import FloatingBack from '../components/FloatingBack'
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cerdia.ai'
 const SITE_DESCRIPTION =
@@ -125,6 +126,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SuperAdminViewBanner />
           <PWAWarning />
           <NavbarWrapper />
+          <FloatingBack />
           <main>
             {children}
           </main>

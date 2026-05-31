@@ -39,14 +39,25 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   )
 }
 
+type Range = '3M' | '6M' | '1A' | 'ALL'
+
 export default function NAVTimelineChart({ className = '' }: Props) {
   const { organization } = useOrganization()
   const { t, language } = useLanguage()
   const fr = language === 'fr'
   const { data, loading } = useNAVTimeline(organization?.id ?? null)
   const [mounted, setMounted] = useState(false)
+  const [range, setRange] = useState<Range>('ALL')
+  // Détection mobile pour adapter le graphique (hauteur, ticks, dots).
+  const [isMobile, setIsMobile] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   if (!mounted || loading) {
     return (
@@ -62,7 +73,21 @@ export default function NAVTimelineChart({ className = '' }: Props) {
 
   if (data.length === 0) return null
 
-  const chartData = data.map(d => ({
+  // Filtre la plage de temps selon le bouton sélectionné.
+  const monthsBack: Record<Range, number | null> = { '3M': 3, '6M': 6, '1A': 12, 'ALL': null }
+  const cutoff = (() => {
+    const m = monthsBack[range]
+    if (m === null) return null
+    const d = new Date(); d.setMonth(d.getMonth() - m)
+    return d
+  })()
+  const filtered = cutoff
+    ? data.filter(d => new Date(d.point_date + 'T00:00:00') >= cutoff)
+    : data
+  // Garde au moins 2 points pour un graphique lisible (sinon on retombe sur tout).
+  const source = filtered.length >= 2 ? filtered : data
+
+  const chartData = source.map(d => ({
     date:  d.point_date,
     nav:   Math.round(d.nav_per_share * 10000) / 10000,
     label: new Date(d.point_date + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', {
@@ -83,7 +108,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 ${className}`}>
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4">
         <div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
             {t('nav.evolutionTitle')} / {fr ? 'part' : 'share'}
@@ -92,7 +117,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
             {fr ? 'Depuis les premières transactions' : 'Since the first transactions'}
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {current.toFixed(4)} $
           </p>
@@ -102,28 +127,46 @@ export default function NAVTimelineChart({ className = '' }: Props) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+      {/* Filtre de période (comme le taux de change) */}
+      <div className="flex gap-1.5 mb-3">
+        {(['3M', '6M', '1A', 'ALL'] as Range[]).map(r => (
+          <button
+            key={r}
+            onClick={() => setRange(r)}
+            className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
+              range === r
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            {r === 'ALL' ? (fr ? 'Tout' : 'All') : r === '1A' ? (fr ? '1 an' : '1Y') : r}
+          </button>
+        ))}
+      </div>
+
+      <ResponsiveContainer width="100%" height={isMobile ? 180 : 220}>
+        <LineChart data={chartData} margin={{ top: 5, right: isMobile ? 4 : 10, left: isMobile ? -8 : 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
+            tick={{ fontSize: isMobile ? 9 : 11, fill: '#9ca3af' }}
             tickFormatter={(v) =>
               new Date(v + 'T00:00:00').toLocaleDateString(fr ? 'fr-CA' : 'en-CA', { month: 'short' })
             }
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
+            minTickGap={isMobile ? 24 : 12}
           />
 
           <YAxis
             domain={[minVal, maxVal]}
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
+            tick={{ fontSize: isMobile ? 9 : 11, fill: '#9ca3af' }}
             tickFormatter={(v) => v.toFixed(2)}
             tickLine={false}
             axisLine={false}
-            width={48}
+            width={isMobile ? 38 : 48}
           />
 
           <Tooltip content={<CustomTooltip />} />
@@ -140,7 +183,7 @@ export default function NAVTimelineChart({ className = '' }: Props) {
             dataKey="nav"
             stroke={color}
             strokeWidth={2}
-            dot={data.length <= 18 ? { r: 4, fill: color, stroke: color, strokeWidth: 0 } : false}
+            dot={chartData.length <= (isMobile ? 10 : 18) ? { r: isMobile ? 3 : 4, fill: color, stroke: color, strokeWidth: 0 } : false}
             activeDot={{ r: 5, fill: color }}
           />
         </LineChart>
