@@ -702,7 +702,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 {/* Liste des Propriétés */}
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
                     <Building2 size={18} className="text-purple-600" />
                     {t('dashboard.realEstatePortfolio')}
                   </h3>
@@ -797,7 +797,7 @@ export default function DashboardPage() {
 
                 {/* Répartition des Investisseurs */}
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
                     <Users size={18} className="text-blue-600" />
                     {t('dashboard.investorBreakdown')}
                   </h3>
@@ -861,7 +861,7 @@ export default function DashboardPage() {
               {/* Calendrier des paiements */}
               {upcomingPayments.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
-                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
                     <Calendar size={18} className="text-blue-600" />
                     {t('dashboard.paymentCalendar')}
                     <span className="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -1155,7 +1155,7 @@ export default function DashboardPage() {
 
               {/* Transactions Récentes */}
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('dashboard.recentActivity')}</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">{t('dashboard.recentActivity')}</h3>
                 {recentTransactions.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-center py-8">{t('dashboard.noRecentTransactions')}</p>
                 ) : (
