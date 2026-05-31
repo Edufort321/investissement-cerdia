@@ -171,20 +171,20 @@ export default function Home() {
 
         {/* Sélecteur d'intention — style épuré sans bulle, à la manière du hero */}
         <div className="absolute top-24 sm:top-28 inset-x-0 z-20 px-6 flex flex-col items-center gap-4 text-center pointer-events-none">
-          <p className="pointer-events-auto text-amber-400 text-[11px] sm:text-xs font-medium tracking-[0.3em] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+          <p className="pointer-events-auto text-amber-400 text-xs tracking-[0.25em] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
             {fr ? 'Vous cherchez à…' : 'You are looking to…'}
           </p>
-          <div className="pointer-events-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-            <a href="#plateforme" className="group flex items-center gap-2 text-white text-sm sm:text-base font-semibold tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] hover:text-amber-300 transition-colors">
-              <span>🏢</span>
-              <span className="border-b border-white/30 group-hover:border-amber-300 pb-0.5 transition-colors">
+          <div className="pointer-events-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-8">
+            <a href="#plateforme" className="group flex items-center gap-2.5 text-white text-lg sm:text-xl font-serif font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] hover:text-amber-300 transition-colors">
+              <span className="text-base">🏢</span>
+              <span className="border-b border-white/25 group-hover:border-amber-300 pb-1 transition-colors">
                 {fr ? 'Gérer mon parc immobilier' : 'Manage my real estate'}
               </span>
             </a>
-            <span className="hidden sm:block text-white/30">•</span>
-            <a href="#investisseur" className="group flex items-center gap-2 text-white text-sm sm:text-base font-semibold tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] hover:text-amber-300 transition-colors">
-              <span>📈</span>
-              <span className="border-b border-white/30 group-hover:border-amber-300 pb-0.5 transition-colors">
+            <span className="hidden sm:block text-amber-400/50 text-xl">·</span>
+            <a href="#investisseur" className="group flex items-center gap-2.5 text-white text-lg sm:text-xl font-serif font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] hover:text-amber-300 transition-colors">
+              <span className="text-base">📈</span>
+              <span className="border-b border-white/25 group-hover:border-amber-300 pb-1 transition-colors">
                 {fr ? 'Devenir investisseur' : 'Become an investor'}
               </span>
             </a>
