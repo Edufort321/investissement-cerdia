@@ -117,7 +117,9 @@ export default function Home() {
 
   const SLIDES = dbSlides ?? SLIDES_FALLBACK
 
-  const advance = useCallback(() => setIdx(i => (i + 1) % SLIDES.length), [])
+  // Dépend de SLIDES.length : quand les slides DB arrivent (3 fallback → 8),
+  // le timer doit reboucler sur le bon nombre (sinon l'auto-défilement reste à 3).
+  const advance = useCallback(() => setIdx(i => (i + 1) % SLIDES.length), [SLIDES.length])
 
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
