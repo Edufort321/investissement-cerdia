@@ -191,10 +191,10 @@ export default function PropertyPerformanceAnalysis({
   }
 
   const getVarianceColor = (variance: number) => {
-    if (variance > 10) return 'text-green-600 bg-green-50'
-    if (variance > 0) return 'text-green-600 bg-green-50'
-    if (variance > -10) return 'text-orange-600 bg-orange-50'
-    return 'text-red-600 bg-red-50'
+    if (variance > 10) return 'text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-900/20'
+    if (variance > 0) return 'text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-900/20'
+    if (variance > -10) return 'text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20'
+    return 'text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20'
   }
 
   const exportToCSV = () => {
@@ -281,7 +281,7 @@ export default function PropertyPerformanceAnalysis({
     return (
       <div className="p-6 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="text-sm text-gray-600 mt-2">{fr ? 'Calcul de la performance...' : 'Calculating performance...'}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{fr ? 'Calcul de la performance...' : 'Calculating performance...'}</p>
       </div>
     )
   }
@@ -290,8 +290,8 @@ export default function PropertyPerformanceAnalysis({
     return (
       <div className="p-6 text-center">
         <AlertCircle size={48} className="mx-auto text-gray-400 mb-3" />
-        <p className="text-gray-600">{fr ? 'Aucune transaction enregistrée pour ce projet' : 'No transactions recorded for this project'}</p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-gray-600 dark:text-gray-300">{fr ? 'Aucune transaction enregistrée pour ce projet' : 'No transactions recorded for this project'}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {fr
             ? "Ajoutez des transactions (revenus locatifs, dépenses) pour voir l'analyse de performance"
             : 'Add transactions (rental income, expenses) to see the performance analysis'}
@@ -309,10 +309,10 @@ export default function PropertyPerformanceAnalysis({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {fr ? '📊 Performance Réelle vs Projections' : '📊 Actual Performance vs Projections'}
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {fr ? 'Analyse comptable basée sur transactions réelles' : 'Accounting analysis based on actual transactions'}
           </p>
         </div>
@@ -326,38 +326,38 @@ export default function PropertyPerformanceAnalysis({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="text-xs text-blue-700 font-medium mb-1">{fr ? 'Revenus totaux' : 'Total revenue'}</div>
-          <div className="text-xl font-bold text-blue-900">{formatCurrency(totalIncome)}</div>
-          <div className="text-xs text-blue-600 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800/50">
+          <div className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">{fr ? 'Revenus totaux' : 'Total revenue'}</div>
+          <div className="text-xl font-bold text-blue-900 dark:text-blue-300">{formatCurrency(totalIncome)}</div>
+          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
         </div>
 
-        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-          <div className="text-xs text-red-700 font-medium mb-1">{fr ? 'Dépenses totales' : 'Total expenses'}</div>
-          <div className="text-xl font-bold text-red-900">{formatCurrency(totalExpenses)}</div>
-          <div className="text-xs text-red-600 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800/50">
+          <div className="text-xs text-red-700 dark:text-red-300 font-medium mb-1">{fr ? 'Dépenses totales' : 'Total expenses'}</div>
+          <div className="text-xl font-bold text-red-900 dark:text-red-300">{formatCurrency(totalExpenses)}</div>
+          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{yearlyData.length} {fr ? 'année(s)' : 'year(s)'}</div>
         </div>
 
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <div className="text-xs text-green-700 font-medium mb-1">{fr ? 'Revenu net total' : 'Total net income'}</div>
-          <div className="text-xl font-bold text-green-900">{formatCurrency(totalNetIncome)}</div>
-          <div className="text-xs text-green-600 mt-1">{fr ? 'Cumulatif' : 'Cumulative'}</div>
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800/50">
+          <div className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">{fr ? 'Revenu net total' : 'Total net income'}</div>
+          <div className="text-xl font-bold text-green-900 dark:text-green-300">{formatCurrency(totalNetIncome)}</div>
+          <div className="text-xs text-green-600 dark:text-green-400 mt-1">{fr ? 'Cumulatif' : 'Cumulative'}</div>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-          <div className="text-xs text-purple-700 font-medium mb-1">{fr ? 'ROI moyen' : 'Average ROI'}</div>
-          <div className="text-xl font-bold text-purple-900">{avgROI.toFixed(1)}%</div>
-          <div className="text-xs text-purple-600 mt-1">{fr ? 'Annuel' : 'Annual'}</div>
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800/50">
+          <div className="text-xs text-purple-700 dark:text-purple-300 font-medium mb-1">{fr ? 'ROI moyen' : 'Average ROI'}</div>
+          <div className="text-xl font-bold text-purple-900 dark:text-purple-300">{avgROI.toFixed(1)}%</div>
+          <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">{fr ? 'Annuel' : 'Annual'}</div>
         </div>
       </div>
 
       {yearlyData.length > 1 && (
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h4 className="text-sm font-bold text-gray-900 mb-4">
+        <div className="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">
             {fr ? '📈 Évolution Réel vs Projeté' : '📈 Actual vs Projected Evolution'}
           </h4>
 
-          <div className="relative h-64 bg-white rounded-lg border border-gray-300 p-4">
+          <div className="relative h-64 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
             <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="none">
               <line x1="0" y1="12.5" x2="100" y2="12.5" stroke="#e5e7eb" strokeWidth="0.2" />
               <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" strokeWidth="0.2" />
@@ -391,7 +391,7 @@ export default function PropertyPerformanceAnalysis({
               )}
             </svg>
 
-            <div className="absolute top-2 right-2 bg-white/90 p-2 rounded border border-gray-200 text-xs space-y-1">
+            <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-800/90 p-2 rounded border border-gray-200 dark:border-gray-700 text-xs space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-0.5 bg-green-500"></div>
                 <span>{fr ? 'Réel' : 'Actual'}</span>
@@ -405,29 +405,29 @@ export default function PropertyPerformanceAnalysis({
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-700">{fr ? 'Année' : 'Year'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Revenus Réels' : 'Actual Revenue'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Dépenses Réelles' : 'Actual Expenses'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'Net Réel' : 'Actual Net'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'ROI Réel' : 'Actual ROI'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">{fr ? 'ROI Projeté' : 'Projected ROI'}</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Variance</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-700">{fr ? 'Actions' : 'Actions'}</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">{fr ? 'Année' : 'Year'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{fr ? 'Revenus Réels' : 'Actual Revenue'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{fr ? 'Dépenses Réelles' : 'Actual Expenses'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{fr ? 'Net Réel' : 'Actual Net'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{fr ? 'ROI Réel' : 'Actual ROI'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{fr ? 'ROI Projeté' : 'Projected ROI'}</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300">Variance</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">{fr ? 'Actions' : 'Actions'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {yearlyData.map(year => (
                 <>
-                  <tr key={year.year} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{year.year}</td>
-                    <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(year.total_income_actual)}</td>
+                  <tr key={year.year} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{year.year}</td>
+                    <td className="px-4 py-3 text-right text-gray-900 dark:text-gray-100">{formatCurrency(year.total_income_actual)}</td>
                     <td className="px-4 py-3 text-right text-red-600">{formatCurrency(year.total_expenses_actual)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatCurrency(year.net_income_actual)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-gray-100">{formatCurrency(year.net_income_actual)}</td>
                     <td className="px-4 py-3 text-right font-bold text-green-600">{year.roi_actual.toFixed(1)}%</td>
                     <td className="px-4 py-3 text-right text-blue-600">{year.roi_projected?.toFixed(1) || '-'}%</td>
                     <td className="px-4 py-3 text-right">
@@ -446,22 +446,22 @@ export default function PropertyPerformanceAnalysis({
                   </tr>
                   {selectedYear === year.year && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-4 bg-gray-50">
+                      <td colSpan={8} className="px-4 py-4 bg-gray-50 dark:bg-gray-700/40">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <h5 className="text-xs font-bold text-gray-700 mb-2">
+                            <h5 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                               {fr ? '💰 Détail des revenus' : '💰 Revenue breakdown'}
                             </h5>
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Revenus locatifs' : 'Rental income'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Revenus locatifs' : 'Rental income'}</span>
                                 <span className="font-medium">{formatCurrency(year.rental_income_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Autres revenus' : 'Other income'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Autres revenus' : 'Other income'}</span>
                                 <span className="font-medium">{formatCurrency(year.other_income_actual)}</span>
                               </div>
-                              <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
+                              <div className="flex justify-between border-t border-gray-300 dark:border-gray-600 pt-1 font-bold">
                                 <span>Total</span>
                                 <span>{formatCurrency(year.total_income_actual)}</span>
                               </div>
@@ -469,31 +469,31 @@ export default function PropertyPerformanceAnalysis({
                           </div>
 
                           <div>
-                            <h5 className="text-xs font-bold text-gray-700 mb-2">
+                            <h5 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                               {fr ? '💸 Détail des dépenses' : '💸 Expense breakdown'}
                             </h5>
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Maintenance' : 'Maintenance'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Maintenance' : 'Maintenance'}</span>
                                 <span className="font-medium">{formatCurrency(year.maintenance_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Frais de gestion' : 'Management fees'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Frais de gestion' : 'Management fees'}</span>
                                 <span className="font-medium">{formatCurrency(year.management_fees_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Taxes' : 'Taxes'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Taxes' : 'Taxes'}</span>
                                 <span className="font-medium">{formatCurrency(year.taxes_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Assurance' : 'Insurance'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Assurance' : 'Insurance'}</span>
                                 <span className="font-medium">{formatCurrency(year.insurance_actual)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">{fr ? 'Autres' : 'Other'}</span>
+                                <span className="text-gray-600 dark:text-gray-300">{fr ? 'Autres' : 'Other'}</span>
                                 <span className="font-medium">{formatCurrency(year.other_expenses_actual)}</span>
                               </div>
-                              <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
+                              <div className="flex justify-between border-t border-gray-300 dark:border-gray-600 pt-1 font-bold">
                                 <span>Total</span>
                                 <span>{formatCurrency(year.total_expenses_actual)}</span>
                               </div>
@@ -510,9 +510,9 @@ export default function PropertyPerformanceAnalysis({
         </div>
       </div>
 
-      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 flex gap-3">
-        <FileText size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-800">
+      <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800/50 flex gap-3">
+        <FileText size={20} className="text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-800 dark:text-amber-300">
           <div className="font-bold mb-1">
             {fr ? '📋 Note pour audit et due diligence' : '📋 Note for audit and due diligence'}
           </div>

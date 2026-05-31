@@ -396,9 +396,9 @@ export default function BudgetOverview() {
           )}
 
           {budgetDetails.near_threshold_lines > 0 && budgetDetails.over_budget_lines === 0 && (
-            <Alert className="border-orange-200 bg-orange-50">
+            <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800/50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-900">
+              <AlertDescription className="text-orange-900 dark:text-orange-300">
                 <strong>{fr ? 'Surveillance:' : 'Watch:'}</strong>{' '}
                 {fr
                   ? `${budgetDetails.near_threshold_lines} ligne(s) proche(s) du seuil d'alerte.`
@@ -408,9 +408,9 @@ export default function BudgetOverview() {
           )}
 
           {health.score >= 80 && (
-            <Alert className="border-green-200 bg-green-50">
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800/50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-900">
+              <AlertDescription className="text-green-900 dark:text-green-300">
                 {fr
                   ? 'Budget en bonne santé. La performance financière est conforme aux prévisions.'
                   : 'Budget is healthy. Financial performance is in line with forecasts.'}

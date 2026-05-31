@@ -1870,8 +1870,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('scenarios.title')}</h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">{t('scenarios.subtitle')}</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t('scenarios.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">{t('scenarios.subtitle')}</p>
           </div>
           <button
             onClick={() => setActiveView('create')}
@@ -1885,13 +1885,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         {loading ? (
           <div className="text-center py-12">
             <Clock className="animate-spin mx-auto text-gray-400" size={48} />
-            <p className="text-gray-600 mt-4">{t('common.loading')}</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-4">{t('common.loading')}</p>
           </div>
         ) : scenarios.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-12 text-center">
             <Calculator className="mx-auto text-gray-400" size={64} />
-            <h3 className="text-lg font-bold text-gray-900 mt-4">{t('scenarios.noScenarios')}</h3>
-            <p className="text-gray-600 mt-2">{t('scenarios.createFirst')}</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-4">{t('scenarios.noScenarios')}</h3>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">{t('scenarios.createFirst')}</p>
             <button
               onClick={() => setActiveView('create')}
               className="mt-4 px-4 py-2 bg-[#5e5e5e] hover:bg-[#3e3e3e] text-white rounded-lg font-medium transition-colors"
@@ -1902,19 +1902,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         ) : (
           <div className="space-y-4">
             {scenarios.map(scenario => (
-              <div key={scenario.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <div key={scenario.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-900">{getFullName(scenario.name, scenario.unit_number)}</h3>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{getFullName(scenario.name, scenario.unit_number)}</h3>
                       {getStatusBadge(scenario.status)}
                       {/* Afficher le taux d'acceptation si en vote ou en attente de transfert */}
                       {(scenario.status === 'pending_vote' || scenario.status === 'pending_transfer') && scenario.total_votes !== undefined && (
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 dark:text-purple-300 rounded-full font-medium">
                             {scenario.approval_percentage?.toFixed(0)}% acceptation
                           </span>
-                          <span className="text-gray-600">
+                          <span className="text-gray-600 dark:text-gray-300">
                             ({scenario.total_votes} votes)
                           </span>
                         </div>
@@ -1922,33 +1922,33 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       <div>
-                        <p className="text-xs text-gray-600">{t('scenarios.purchasePrice').replace(' ($)', '')}</p>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-xs text-gray-600 dark:text-gray-300">{t('scenarios.purchasePrice').replace(' ($)', '')}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                           {scenario.purchase_price.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">{t('projects.totalCost')}</p>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-xs text-gray-600 dark:text-gray-300">{t('projects.totalCost')}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                           {calculateTotalCost(scenario).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                         {calculateTransactionFeesAmount(scenario) > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             (dont {calculateTransactionFeesAmount(scenario).toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })} frais)
                           </p>
                         )}
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-600 dark:text-gray-300">
                           {scenario.promoter_data.rent_type === 'nightly' ? t('scenarios.nightly') : t('scenarios.monthly')} revenu
                         </p>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                           {scenario.promoter_data.monthly_rent.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600">{t('projects.duration')}</p>
-                        <p className="text-sm font-bold text-gray-900">{scenario.promoter_data.project_duration} {t('common.years')}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">{t('projects.duration')}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{scenario.promoter_data.project_duration} {t('common.years')}</p>
                       </div>
                     </div>
                   </div>
@@ -1977,20 +1977,20 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('scenarios.newScenario')}</h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">{t('scenarios.subtitle')}</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t('scenarios.newScenario')}</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">{t('scenarios.subtitle')}</p>
           </div>
           <button
             onClick={() => setActiveView('list')}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
           >
             {t('scenarios.back')}
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 space-y-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.basicInfo')}</h3>
 
             {/* Photo principale et nom du projet */}
             <div className="flex flex-col md:flex-row gap-6 mb-6">
@@ -2029,12 +2029,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               {/* Nom du projet à droite */}
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.name')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.name')} *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Villa Punta Cana - Phase 2' : 'E.g.: Villa Punta Cana - Phase 2'}
                 />
               </div>
@@ -2044,57 +2044,57 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.unitNumber')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.unitNumber')}</label>
                 <input
                   type="text"
                   value={formData.unit_number}
                   onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: 305' : 'E.g.: 305'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.address')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.address')}</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Avenida Barceló, Bávaro' : 'E.g.: Avenida Barceló, Bávaro'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.country')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.country')}</label>
                 <input
                   type="text"
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: République Dominicaine' : 'E.g.: Dominican Republic'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.stateRegion')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.stateRegion')}</label>
                 <input
                   type="text"
                   value={formData.state_region}
                   onChange={(e) => setFormData({...formData, state_region: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: La Altagracia' : 'E.g.: La Altagracia'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {language === 'fr' ? 'Type de propriété' : 'Property type'}
                 </label>
                 <select
                   value={formData.property_type}
                   onChange={(e) => setFormData({...formData, property_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="condo">{language === 'fr' ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
                   <option value="maison">{language === 'fr' ? 'Maison / Villa' : 'House / Villa'}</option>
@@ -2105,7 +2105,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   <option value="chalet">{language === 'fr' ? 'Chalet / Maison de vacances' : 'Chalet / Vacation home'}</option>
                   <option value="preconstruction">{language === 'fr' ? 'Préconstruction (unité à livrer)' : 'Preconstruction (unit to be delivered)'}</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {language === 'fr'
                     ? 'Affecte la fiscalité (CCA, T1135, Florida TDT, Confotur...)'
                     : 'Affects taxation (CCA, T1135, Florida TDT, Confotur...)'}
@@ -2113,76 +2113,76 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.promoterName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.promoterName')}</label>
                 <input
                   type="text"
                   value={formData.promoter_name}
                   onChange={(e) => setFormData({...formData, promoter_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Juan Pérez' : 'E.g.: Juan Pérez'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.companyName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.companyName')}</label>
                 <input
                   type="text"
                   value={formData.company_name}
                   onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Caribbean Real Estate Inc.' : 'E.g.: Caribbean Real Estate Inc.'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.brokerName')}</label>
                 <input
                   type="text"
                   value={formData.broker_name}
                   onChange={(e) => setFormData({...formData, broker_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Maria Rodriguez' : 'E.g.: Maria Rodriguez'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerEmail')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.brokerEmail')}</label>
                 <input
                   type="email"
                   value={formData.broker_email}
                   onChange={(e) => setFormData({...formData, broker_email: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: maria.rodriguez@realestate.com' : 'E.g.: maria.rodriguez@realestate.com'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.purchasePrice')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.purchasePrice')} *</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
                     value={formData.purchase_price || ''}
                     onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                     placeholder="250000"
                   />
                   <select
                     value={formData.purchase_currency}
                     onChange={(e) => setFormData({...formData, purchase_currency: e.target.value as 'USD' | 'CAD'})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   >
                     <option value="USD">USD $</option>
                     <option value="CAD">CAD $</option>
                   </select>
                 </div>
                 {formData.purchase_price > 0 && formData.purchase_currency === 'USD' && (
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                     ≈ {(formData.purchase_price * exchangeRate).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
                     <span className="text-xs ml-1">(taux: {exchangeRate.toFixed(4)})</span>
                   </p>
                 )}
                 {formData.purchase_price > 0 && formData.purchase_currency === 'CAD' && (
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                     ≈ {(formData.purchase_price / exchangeRate).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                     <span className="text-xs ml-1">(taux: {exchangeRate.toFixed(4)})</span>
                   </p>
@@ -2191,11 +2191,11 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               {/* Type d'achat + structure hypothécaire (migration 161) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.purchaseType')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.purchaseType')}</label>
                 <select
                   value={formData.purchase_type}
                   onChange={(e) => setFormData({...formData, purchase_type: e.target.value as 'cash' | 'preconstruction' | 'mortgage'})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="cash">{t('scenarios.purchaseTypeCash')}</option>
                   <option value="preconstruction">{t('scenarios.purchaseTypePreconstruction')}</option>
@@ -2219,17 +2219,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 }
                 const cur = formData.purchase_currency
                 return (
-                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-4">
+                  <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-lg space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.downPayment')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.downPayment')}</label>
                         <div className="flex gap-2">
                           <div className="flex-1 relative">
                             <input
                               type="number"
                               value={formData.down_payment || ''}
                               onChange={(e) => setFormData({...formData, down_payment: parseFloat(e.target.value) || 0})}
-                              className="w-full px-4 py-2 pr-7 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                              className="w-full px-4 py-2 pr-7 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                               placeholder="20"
                               min="0"
                               max="100"
@@ -2247,7 +2247,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 const pct = formData.purchase_price > 0 ? (amount / formData.purchase_price) * 100 : 0
                                 setFormData({...formData, down_payment: Math.round(pct * 10000) / 10000})
                               }}
-                              className="w-full px-4 py-2 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                              className="w-full px-4 py-2 pr-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                               placeholder="50000"
                               min="0"
                             />
@@ -2256,97 +2256,97 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.interestRate')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.interestRate')}</label>
                         <input
                           type="number"
                           value={formData.interest_rate || ''}
                           onChange={(e) => setFormData({...formData, interest_rate: parseFloat(e.target.value) || 0})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder="5.25"
                           min="0"
                           step="0.01"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rateType')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.rateType')}</label>
                         <select
                           value={formData.mortgage_rate_type}
                           onChange={(e) => setFormData({...formData, mortgage_rate_type: e.target.value as 'fixed' | 'variable'})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         >
                           <option value="fixed">{t('scenarios.rateTypeFixed')}</option>
                           <option value="variable">{t('scenarios.rateTypeVariable')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.paymentFrequency')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.paymentFrequency')}</label>
                         <select
                           value={formData.mortgage_payment_frequency}
                           onChange={(e) => setFormData({...formData, mortgage_payment_frequency: e.target.value as 'biweekly' | 'monthly'})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         >
                           <option value="monthly">{t('scenarios.frequencyMonthly')}</option>
                           <option value="biweekly">{t('scenarios.frequencyBiweekly')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.amortization')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.amortization')}</label>
                         <input
                           type="number"
                           value={formData.loan_duration || ''}
                           onChange={(e) => setFormData({...formData, loan_duration: parseInt(e.target.value) || 0})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder="25"
                           min="1"
                           max="40"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mortgageTerm')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.mortgageTerm')}</label>
                         <input
                           type="number"
                           value={formData.mortgage_term_years || ''}
                           onChange={(e) => setFormData({...formData, mortgage_term_years: parseInt(e.target.value) || 0})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder="5"
                           min="1"
                           max="10"
                         />
-                        <p className="text-xs text-gray-500 mt-1">{t('scenarios.mortgageTermHint')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('scenarios.mortgageTermHint')}</p>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mortgageStartDate')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.mortgageStartDate')}</label>
                         <input
                           type="date"
                           value={formData.mortgage_start_date}
                           onChange={(e) => setFormData({...formData, mortgage_start_date: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         />
                       </div>
                     </div>
 
                     {/* Résumé calculé */}
-                    <div className="bg-white p-3 rounded-lg border border-indigo-200">
-                      <div className="text-xs font-bold text-indigo-900 mb-2">{t('scenarios.mortgageSummary')}</div>
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800/50">
+                      <div className="text-xs font-bold text-indigo-900 dark:text-indigo-300 mb-2">{t('scenarios.mortgageSummary')}</div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                         <div>
-                          <div className="text-xs text-gray-500">{t('scenarios.loanAmount')}</div>
-                          <div className="font-bold text-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{t('scenarios.loanAmount')}</div>
+                          <div className="font-bold text-gray-900 dark:text-gray-100">
                             {loanAmount.toLocaleString('fr-CA', { style: 'currency', currency: cur, minimumFractionDigits: 0 })}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">{t('scenarios.calculatedPayment')}</div>
-                          <div className="font-bold text-indigo-700">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{t('scenarios.calculatedPayment')}</div>
+                          <div className="font-bold text-indigo-700 dark:text-indigo-300">
                             {payment.toLocaleString('fr-CA', { style: 'currency', currency: cur })}
-                            <span className="text-xs text-gray-500 ml-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
                               / {formData.mortgage_payment_frequency === 'biweekly' ? t('scenarios.frequencyBiweekly') : t('scenarios.frequencyMonthly')}
                             </span>
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">{t('scenarios.renewalDate')}</div>
-                          <div className="font-bold text-gray-900">{renewalDate || '—'}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{t('scenarios.renewalDate')}</div>
+                          <div className="font-bold text-gray-900 dark:text-gray-100">{renewalDate || '—'}</div>
                         </div>
                       </div>
                     </div>
@@ -2355,47 +2355,47 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               })()}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.initialFees')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.initialFees')}</label>
                 <input
                   type="number"
                   value={formData.initial_fees || ''}
                   onChange={(e) => setFormData({...formData, initial_fees: parseFloat(e.target.value) || 0})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="15000"
                 />
                 {formData.initial_fees > 0 && (
                   <div className="mt-3 space-y-2">
-                    <p className="text-sm font-medium text-gray-700">{t('scenarios.initialFeesDistribution')}</p>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('scenarios.initialFeesDistribution')}</p>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <input
                         type="radio"
                         name="initial_fees_distribution"
                         value="first_payment"
                         checked={formData.initial_fees_distribution === 'first_payment'}
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
-                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                       />
                       <span>{t('scenarios.deductFromFirst')}</span>
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <input
                         type="radio"
                         name="initial_fees_distribution"
                         value="equal"
                         checked={formData.initial_fees_distribution === 'equal'}
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
-                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                       />
                       <span>{t('scenarios.spreadEqually')}</span>
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <input
                         type="radio"
                         name="initial_fees_distribution"
                         value="add_to_total"
                         checked={formData.initial_fees_distribution === 'add_to_total'}
                         onChange={(e) => setFormData({...formData, initial_fees_distribution: e.target.value as 'equal' | 'first_payment' | 'add_to_total'})}
-                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e]"
+                        className="border-gray-300 text-[#5e5e5e] focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                       />
                       <span>{t('scenarios.addToTotal')}</span>
                     </label>
@@ -2407,7 +2407,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             {/* Frais de Transaction */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.transactionFeesType')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.transactionFeesType')}</label>
                 <select
                   value={formData.transaction_fees.type}
                   onChange={(e) => setFormData({
@@ -2417,7 +2417,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       type: e.target.value as 'percentage' | 'fixed_amount'
                     }
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="percentage">{t('scenarios.percentage')}</option>
                   <option value="fixed_amount">{t('scenarios.fixedAmount')}</option>
@@ -2425,7 +2425,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {formData.transaction_fees.type === 'percentage' ? t('scenarios.percentageValue') : t('scenarios.amountValue')}
                 </label>
                 <input
@@ -2446,7 +2446,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       }
                     })
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={formData.transaction_fees.type === 'percentage' ? '2.5' : '5000'}
                   step={formData.transaction_fees.type === 'percentage' ? '0.1' : '100'}
                 />
@@ -2454,7 +2454,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               {formData.transaction_fees.type === 'fixed_amount' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.currency')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.currency')}</label>
                   <select
                     value={formData.transaction_fees.currency}
                     onChange={(e) => setFormData({
@@ -2464,7 +2464,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         currency: e.target.value as 'CAD' | 'USD'
                       }
                     })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   >
                     <option value="CAD">CAD $</option>
                     <option value="USD">USD $</option>
@@ -2486,18 +2486,18 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               const feesCAD = feesUSD * exchangeRate
 
               return (feesUSD > 0 || (formData.transaction_fees.type === 'percentage' && (formData.transaction_fees.percentage || 0) > 0) || (formData.transaction_fees.type === 'fixed_amount' && (formData.transaction_fees.fixed_amount || 0) > 0)) && (
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="text-sm font-medium text-blue-900 mb-2">💰 {t('scenarios.transactionFeesEstimate')}</div>
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+                  <div className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">💰 {t('scenarios.transactionFeesEstimate')}</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-blue-700">{t('scenarios.inUSD')}</span>
-                      <span className="ml-2 font-bold text-blue-900">
+                      <span className="text-blue-700 dark:text-blue-300">{t('scenarios.inUSD')}</span>
+                      <span className="ml-2 font-bold text-blue-900 dark:text-blue-300">
                         {feesUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                       </span>
                     </div>
                     <div>
-                      <span className="text-blue-700">{t('scenarios.inCAD')}</span>
-                      <span className="ml-2 font-bold text-blue-900">
+                      <span className="text-blue-700 dark:text-blue-300">{t('scenarios.inCAD')}</span>
+                      <span className="ml-2 font-bold text-blue-900 dark:text-blue-300">
                         {feesCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                       </span>
                     </div>
@@ -2512,17 +2512,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
           {/* Statut de Construction */}
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.constructionStatus')}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.constructionStatus')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.constructionStatusLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.constructionStatusLabel')}</label>
                 <select
                   value={formData.construction_status}
                   onChange={(e) => setFormData({
                     ...formData,
                     construction_status: e.target.value as 'in_progress' | 'completed'
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="in_progress">{t('scenarios.inProgress')}</option>
                   <option value="completed">{t('scenarios.completed')}</option>
@@ -2531,22 +2531,22 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               {formData.construction_status === 'in_progress' ? (
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.deliveryDate')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.deliveryDate')}</label>
                   <input
                     type="date"
                     value={formData.delivery_date}
                     onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   />
                 </div>
               ) : (
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.completionYear')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.completionYear')}</label>
                   <input
                     type="number"
                     value={formData.completion_year || ''}
                     onChange={(e) => setFormData({...formData, completion_year: parseInt(e.target.value) || new Date().getFullYear()})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                     placeholder="2024"
                     min="1900"
                     max="2100"
@@ -2557,10 +2557,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterData')}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.promoterData')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentAmount')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.rentAmount')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.monthly_rent || ''}
@@ -2568,20 +2568,20 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, monthly_rent: parseFloat(e.target.value) || 0}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="1500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentType')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.rentType')}</label>
                 <select
                   value={formData.promoter_data.rent_type}
                   onChange={(e) => setFormData({
                     ...formData,
                     promoter_data: {...formData.promoter_data, rent_type: e.target.value as 'monthly' | 'nightly'}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="monthly">{t('scenarios.monthly')}</option>
                   <option value="nightly">{t('scenarios.nightly')}</option>
@@ -2589,14 +2589,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.rentCurrency')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.rentCurrency')}</label>
                 <select
                   value={formData.promoter_data.rent_currency}
                   onChange={(e) => setFormData({
                     ...formData,
                     promoter_data: {...formData.promoter_data, rent_currency: e.target.value as 'CAD' | 'USD'}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="CAD">CAD $</option>
                   <option value="USD">USD $</option>
@@ -2604,7 +2604,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.annualAppreciation')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.annualAppreciation')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.annual_appreciation || ''}
@@ -2612,14 +2612,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, annual_appreciation: parseFloat(e.target.value) || 0}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="5"
                   step="0.1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.occupancyRate')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.occupancyRate')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.occupancy_rate || ''}
@@ -2627,13 +2627,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, occupancy_rate: parseFloat(e.target.value) || 0}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="80"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.managementFees')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.managementFees')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.management_fees || ''}
@@ -2641,14 +2641,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, management_fees: parseFloat(e.target.value) || 0}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="10"
                   step="0.1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.projectDuration')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.projectDuration')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.project_duration || ''}
@@ -2656,13 +2656,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, project_duration: parseInt(e.target.value) || 10}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="10"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.taxRate')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.taxRate')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.tax_rate || ''}
@@ -2670,14 +2670,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, tax_rate: parseFloat(e.target.value) || 27}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="27"
                   step="0.1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.annualRentIncrease')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.annualRentIncrease')}</label>
                 <input
                   type="number"
                   value={formData.promoter_data.annual_rent_increase || ''}
@@ -2685,7 +2685,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     ...formData,
                     promoter_data: {...formData.promoter_data, annual_rent_increase: parseFloat(e.target.value) || 2}
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="2"
                   step="0.1"
                 />
@@ -2696,7 +2696,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           {/* Section Termes de Paiement */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">{t('scenarios.paymentTerms')}</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('scenarios.paymentTerms')}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -2722,15 +2722,15 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             </div>
 
             {formData.payment_terms.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">{t('scenarios.noPaymentTerms')}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('scenarios.noPaymentTerms')}</p>
             ) : (
               <div className="space-y-3">
                 {formData.payment_terms.map((term, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/40">
                     {/* Layout optimisé: mobile 1 col, tablet 2 cols, desktop 4 cols */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.termLabel')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.termLabel')}</label>
                         <input
                           type="text"
                           value={term.label}
@@ -2739,13 +2739,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             newTerms[index].label = e.target.value
                             setFormData({...formData, payment_terms: newTerms})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder={t('scenarios.termLabelPlaceholder')}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.amountType')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.amountType')}</label>
                         <select
                           value={term.amount_type}
                           onChange={(e) => {
@@ -2753,7 +2753,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             newTerms[index].amount_type = e.target.value as 'percentage' | 'fixed_amount'
                             setFormData({...formData, payment_terms: newTerms})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         >
                           <option value="percentage">{t('scenarios.percentage')}</option>
                           <option value="fixed_amount">{t('scenarios.fixedAmount')}</option>
@@ -2761,7 +2761,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                           {term.amount_type === 'percentage' ? t('scenarios.percentageValue') : t('scenarios.amountUSD')}
                         </label>
                         <input
@@ -2776,7 +2776,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             }
                             setFormData({...formData, payment_terms: newTerms})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder={term.amount_type === 'percentage' ? '10' : '25000'}
                           step={term.amount_type === 'percentage' ? '0.1' : '100'}
                         />
@@ -2784,7 +2784,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                       {/* Date + Bouton supprimer sur toute la largeur en mobile, 1 col en desktop */}
                       <div className="sm:col-span-2 lg:col-span-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.dueDate')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.dueDate')}</label>
                         <div className="flex gap-2">
                           <input
                             type="date"
@@ -2794,7 +2794,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               newTerms[index].due_date = e.target.value
                               setFormData({...formData, payment_terms: newTerms})
                             }}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           />
                           <button
                             type="button"
@@ -2834,7 +2834,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                       return (
                         <div className="mt-2 text-xs space-y-1">
-                          <div className="text-gray-600">
+                          <div className="text-gray-600 dark:text-gray-300">
                             {t('scenarios.calculatedAmount')}: {baseAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                           </div>
                           {deduction > 0 && (
@@ -2842,7 +2842,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               <div className="text-orange-600">
                                 − {deductionLabel}: {deduction.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               </div>
-                              <div className="font-semibold text-green-700">
+                              <div className="font-semibold text-green-700 dark:text-green-300">
                                 = {t('scenarios.netAmount')}: {netAmount.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                               </div>
                             </>
@@ -2853,7 +2853,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                     {/* Champ Notes particulières */}
                     <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {t('scenarios.contractNotes')}
                       </label>
                       <textarea
@@ -2863,7 +2863,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           newTerms[index].notes = e.target.value
                           setFormData({...formData, payment_terms: newTerms})
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent resize-y"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent resize-y dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         placeholder={t('scenarios.contractNotesPlaceholder')}
                         rows={2}
                       />
@@ -2930,17 +2930,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   const percentageDisplay = percentages.map(p => `${p}%`).join(' / ')
 
                   return (
-                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="text-sm font-bold text-blue-900 mb-2">📊 {t('scenarios.paymentSummary')}</h4>
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+                      <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 mb-2">📊 {t('scenarios.paymentSummary')}</h4>
                       <div className="space-y-2 text-sm">
                         {hasPercentages && (
                           <>
                             <div className="flex justify-between">
-                              <span className="text-gray-700 font-medium">{t('scenarios.distribution')}</span>
-                              <span className="text-gray-900 font-mono">{percentageDisplay}</span>
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{t('scenarios.distribution')}</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-mono">{percentageDisplay}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-700 font-medium">{t('scenarios.totalPercentagesLabel')}</span>
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{t('scenarios.totalPercentagesLabel')}</span>
                               <span className={`font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
                                 {totalPercentage}% {totalPercentage === 100 ? '✓' : '⚠️'}
                               </span>
@@ -2949,13 +2949,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         )}
                         {hasFixedAmounts && !hasPercentages && (
                           <div className="flex justify-between">
-                            <span className="text-gray-700 font-medium">{t('scenarios.typeLabel')}</span>
-                            <span className="text-gray-900 font-mono">{t('scenarios.fixedAmounts')}</span>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{t('scenarios.typeLabel')}</span>
+                            <span className="text-gray-900 dark:text-gray-100 font-mono">{t('scenarios.fixedAmounts')}</span>
                           </div>
                         )}
                         <div className="flex justify-between border-t border-blue-300 pt-2">
-                          <span className="text-gray-700 font-medium">{t('scenarios.amountsLabel')}</span>
-                          <span className="text-gray-900 font-mono">
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">{t('scenarios.amountsLabel')}</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-mono">
                             {amountsAfterDeduction.map(a => a.toLocaleString('fr-CA', {
                               style: 'currency',
                               currency: 'USD',
@@ -2964,8 +2964,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           </span>
                         </div>
                         <div className="flex justify-between border-t border-blue-300 pt-2">
-                          <span className="text-gray-700 font-bold">{t('scenarios.totalToPay')}</span>
-                          <span className="text-blue-900 font-bold text-base">
+                          <span className="text-gray-700 dark:text-gray-300 font-bold">{t('scenarios.totalToPay')}</span>
+                          <span className="text-blue-900 dark:text-blue-300 font-bold text-base">
                             {totalAmount.toLocaleString('fr-CA', {
                               style: 'currency',
                               currency: 'USD',
@@ -2974,7 +2974,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           </span>
                         </div>
                         {formData.initial_fees > 0 && (
-                          <div className="text-xs text-gray-600 mt-2 italic">
+                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
                             * {t('scenarios.initialFeesPrefix')} {formData.initial_fees.toLocaleString('fr-CA', {
                               style: 'currency',
                               currency: 'USD',
@@ -3000,8 +3000,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">{t('scenarios.recurringFees')}</h3>
-                <p className="text-xs text-gray-600 mt-1">{t('scenarios.recurringFeesHint')}</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('scenarios.recurringFees')}</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('scenarios.recurringFeesHint')}</p>
               </div>
               <button
                 type="button"
@@ -3027,14 +3027,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             </div>
 
             {!formData.recurring_fees || formData.recurring_fees.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">{t('scenarios.noRecurringFees')}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('scenarios.noRecurringFees')}</p>
             ) : (
               <div className="space-y-3">
                 {formData.recurring_fees.map((fee, index) => (
-                  <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                  <div key={index} className="border border-green-200 dark:border-green-800/50 rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeType')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.feeType')}</label>
                         <input
                           type="text"
                           value={fee.label}
@@ -3043,13 +3043,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             newFees[index].label = e.target.value
                             setFormData({...formData, recurring_fees: newFees})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder={t('scenarios.feeTypePlaceholder')}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeAmount')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.feeAmount')}</label>
                         <input
                           type="number"
                           value={fee.amount || ''}
@@ -3058,14 +3058,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             newFees[index].amount = parseFloat(e.target.value) || 0
                             setFormData({...formData, recurring_fees: newFees})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           placeholder="150"
                           step="10"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.frequency')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.frequency')}</label>
                         <select
                           value={fee.frequency}
                           onChange={(e) => {
@@ -3073,7 +3073,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             newFees[index].frequency = e.target.value as 'monthly' | 'annual' | 'one-time'
                             setFormData({...formData, recurring_fees: newFees})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                         >
                           <option value="monthly">{t('scenarios.monthlyFreq')}</option>
                           <option value="annual">{t('scenarios.annualFreq')}</option>
@@ -3082,7 +3082,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('scenarios.feeCurrency')}</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('scenarios.feeCurrency')}</label>
                         <div className="flex gap-2">
                           <select
                             value={fee.currency}
@@ -3091,7 +3091,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               newFees[index].currency = e.target.value as 'USD' | 'CAD'
                               setFormData({...formData, recurring_fees: newFees})
                             }}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           >
                             <option value="USD">USD</option>
                             <option value="CAD">CAD</option>
@@ -3112,7 +3112,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                     {/* Afficher équivalent mensuel si annuel */}
                     {fee.frequency === 'annual' && fee.amount > 0 && (
-                      <div className="mt-2 text-xs text-gray-600">
+                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-300">
                         {t('scenarios.monthlyEquivalent')}: {(fee.amount / 12).toLocaleString('fr-CA', { style: 'currency', currency: fee.currency })}
                       </div>
                     )}
@@ -3128,7 +3128,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     <>
                       {recurringFees.length > 0 && (
                         <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-                          <div className="text-sm font-semibold text-green-900">
+                          <div className="text-sm font-semibold text-green-900 dark:text-green-300">
                             {t('scenarios.totalRecurringMonthly')}
                             {' '}
                             {recurringFees
@@ -3139,7 +3139,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                             {' USD'}{t('scenarios.perMonth')}
                           </div>
-                          <div className="text-xs text-green-700 mt-1">
+                          <div className="text-xs text-green-700 dark:text-green-300 mt-1">
                             {t('scenarios.totalAnnualLabel')}
                             {' '}
                             {recurringFees
@@ -3155,14 +3155,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                       {oneTimeFees.length > 0 && (
                         <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
-                          <div className="text-sm font-semibold text-blue-900">
+                          <div className="text-sm font-semibold text-blue-900 dark:text-blue-300">
                             {t('scenarios.totalOneTime')}
                             {' '}
                             {oneTimeFees
                               .reduce((total, fee) => total + fee.amount, 0)
                               .toLocaleString('fr-CA', { style: 'currency', currency: 'USD' })}
                           </div>
-                          <div className="text-xs text-blue-700 mt-1">
+                          <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             {oneTimeFees.map(f => f.label).join(', ')}
                           </div>
                         </div>
@@ -3174,10 +3174,10 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             )}
           </div>
 
-          <div className="flex gap-4 justify-end pt-4 border-t border-gray-200">
+          <div className="flex gap-4 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveView('list')}
-              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
             >
               {t('common.cancel')}
             </button>
@@ -3202,7 +3202,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
       <div className="space-y-6 mt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{getFullName(selectedScenario.name, selectedScenario.unit_number)}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{getFullName(selectedScenario.name, selectedScenario.unit_number)}</h2>
             <div className="flex items-center gap-2 mt-2">
               {getStatusBadge(selectedScenario.status)}
             </div>
@@ -3216,7 +3216,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               setDocuments([])
               setVoteStatus(null)
             }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
           >
             {t('scenarios.back')}
           </button>
@@ -3224,7 +3224,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Bandeau hero — photo principale du scénario */}
         {selectedScenario.main_photo_url && (
-          <div className="relative w-full h-56 sm:h-72 overflow-hidden rounded-lg shadow-md bg-gray-100">
+          <div className="relative w-full h-56 sm:h-72 overflow-hidden rounded-lg shadow-md bg-gray-100 dark:bg-gray-700">
             <img
               src={selectedScenario.main_photo_url}
               alt={selectedScenario.name}
@@ -3243,7 +3243,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         )}
 
         {/* Actions selon le statut */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex flex-wrap gap-3">
             {(selectedScenario.status === 'draft' || selectedScenario.status === 'purchased') && (
               <button
@@ -3345,18 +3345,18 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Formulaire éditable - Informations du projet */}
         {showEditForm && (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 space-y-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.basicInfo')}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.basicInfo')}</h3>
 
             {/* Photo principale et nom du projet */}
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               {/* Photo principale à gauche */}
               <div className="w-full md:w-64 flex-shrink-0">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.mainPhoto')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.mainPhoto')}</label>
                 {formData.main_photo_url ? (
                   <div className="relative group">
-                    <div className="w-full h-48 bg-gray-100 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
+                    <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden flex items-center justify-center">
                       <img
                         src={formData.main_photo_url}
                         alt={t('scenarios.mainPhoto')}
@@ -3386,12 +3386,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
               {/* Nom du projet à droite */}
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.name')} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.name')} *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Villa Punta Cana - Phase 2' : 'E.g.: Villa Punta Cana - Phase 2'}
                 />
               </div>
@@ -3400,57 +3400,57 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             {/* Autres champs */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.unitNumber')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.unitNumber')}</label>
                 <input
                   type="text"
                   value={formData.unit_number}
                   onChange={(e) => setFormData({...formData, unit_number: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: 305' : 'E.g.: 305'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.address')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.address')}</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: Avenida Barceló, Bávaro' : 'E.g.: Avenida Barceló, Bávaro'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.country')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.country')}</label>
                 <input
                   type="text"
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={language === 'fr' ? 'Ex: République Dominicaine' : 'E.g.: Dominican Republic'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.stateRegion')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.stateRegion')}</label>
                 <input
                   type="text"
                   value={formData.state_region}
                   onChange={(e) => setFormData({...formData, state_region: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="Ex: Punta Cana"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {language === 'fr' ? 'Type de propriété' : 'Property type'}
                 </label>
                 <select
                   value={formData.property_type}
                   onChange={(e) => setFormData({...formData, property_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="condo">{language === 'fr' ? 'Condo / Appartement' : 'Condo / Apartment'}</option>
                   <option value="maison">{language === 'fr' ? 'Maison / Villa' : 'House / Villa'}</option>
@@ -3464,34 +3464,34 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.promoterName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.promoterName')}</label>
                 <input
                   type="text"
                   value={formData.promoter_name}
                   onChange={(e) => setFormData({...formData, promoter_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="Ex: Groupe Punta Cana"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.brokerName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.brokerName')}</label>
                 <input
                   type="text"
                   value={formData.broker_name}
                   onChange={(e) => setFormData({...formData, broker_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="Ex: Jean Tremblay"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('scenarios.companyName')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scenarios.companyName')}</label>
                 <input
                   type="text"
                   value={formData.company_name}
                   onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder="Ex: Immobilier XYZ Inc."
                 />
               </div>
@@ -3501,7 +3501,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         )}
 
         {/* Onglets de navigation */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-2">
           {/* Desktop / tablette : onglets horizontaux */}
           <div className="hidden sm:flex gap-2">
             <button
@@ -3509,7 +3509,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                 detailTab === 'overview'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               Vue d'ensemble
@@ -3520,7 +3520,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   detailTab === 'bookings'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                 }`}
               >
                 Calendrier de bookings
@@ -3531,7 +3531,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                 detailTab === 'share'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               Partager
@@ -3558,24 +3558,24 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             {detailTabMenuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setDetailTabMenuOpen(false)} />
-                <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
                   <button
                     onClick={() => { setDetailTab('overview'); setDetailTabMenuOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'overview' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'overview' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}
                   >
                     Vue d'ensemble
                   </button>
                   {selectedScenario.status === 'purchased' && (
                     <button
                       onClick={() => { setDetailTab('bookings'); setDetailTabMenuOpen(false) }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'bookings' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'bookings' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}
                     >
                       Calendrier de bookings
                     </button>
                   )}
                   <button
                     onClick={() => { setDetailTab('share'); setDetailTabMenuOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'share' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'share' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}
                   >
                     Partager
                   </button>
@@ -3589,8 +3589,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         {detailTab === 'overview' && (
           <>
             {/* Documents */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.promoterDocuments')}</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.promoterDocuments')}</h3>
 
           {/* Zone de drag & drop pour documents */}
           {selectedScenario.status !== 'purchased' && (
@@ -3609,16 +3609,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
           {/* Liste des documents */}
           {documents.length === 0 ? (
-            <p className="text-gray-600 text-sm text-center py-8">{t('scenarioDocuments.noDocuments')}</p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm text-center py-8">{t('scenarioDocuments.noDocuments')}</p>
           ) : (
             <div className="space-y-2">
               {documents.map(doc => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <FileText size={20} className="text-gray-600" />
+                    <FileText size={20} className="text-gray-600 dark:text-gray-300" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
-                      <p className="text-xs text-gray-600">{(doc.file_size / 1024).toFixed(0)} KB</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{doc.file_name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">{(doc.file_size / 1024).toFixed(0)} KB</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -3648,14 +3648,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         {/* Résultats d'analyse */}
         {scenarioResults.length > 0 && (
           <>
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex gap-2 overflow-x-auto">
                 <button
                   onClick={() => setActiveScenarioType('conservative')}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                     activeScenarioType === 'conservative'
                       ? 'bg-orange-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   📉 {t('scenarioType.conservative')}
@@ -3665,7 +3665,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                     activeScenarioType === 'moderate'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   📊 {t('scenarioType.moderate')}
@@ -3675,7 +3675,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                     activeScenarioType === 'optimistic'
                       ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   📈 {t('scenarioType.optimistic')}
@@ -3686,12 +3686,12 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             {activeResult && (
               <>
                 {/* Note sur les taux de change */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800/50 mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <DollarSign size={16} className="text-blue-700" />
-                    <div className="text-sm font-bold text-blue-900">Projections en dollars canadiens (CAD)</div>
+                    <DollarSign size={16} className="text-blue-700 dark:text-blue-300" />
+                    <div className="text-sm font-bold text-blue-900 dark:text-blue-300">Projections en dollars canadiens (CAD)</div>
                   </div>
-                  <div className="text-xs text-blue-800 space-y-1">
+                  <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
                     <p>• <strong>Investissement initial:</strong> Converti au taux actuel USD→CAD: {exchangeRate.toFixed(4)}</p>
                     <p>• <strong>Revenus futurs:</strong> Convertis avec un taux ajusté (+5% risque change): {(exchangeRate * 1.05).toFixed(4)}</p>
                     <p className="text-blue-600 mt-2 italic">Les projections reflètent le risque de fluctuation du taux de change sur la durée du projet</p>
@@ -3700,8 +3700,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                 {/* Métriques clés - Ligne 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm mb-2">
                       <TrendingUp size={16} />
                       {t('scenarioResults.avgAnnualReturn')}
                     </div>
@@ -3713,47 +3713,47 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm mb-2">
                       <DollarSign size={16} />
                       {t('scenarioResults.totalReturn')}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {activeResult.summary.total_return.toFixed(1)}%
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm mb-2">
                       <Home size={16} />
                       {t('scenarioResults.finalValue')}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {activeResult.summary.final_property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow-md border-2 border-emerald-300 p-4">
-                    <div className="flex items-center gap-2 text-emerald-700 text-sm mb-2 font-semibold">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-sm mb-2 font-semibold">
                       <TrendingUp size={16} />
                       💰 {t('scenarioResults.investmentRecovered')}
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-emerald-700">
+                        <span className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
                           {t('scenarioResults.year')} {activeResult.summary.break_even_year}
                         </span>
                         <span className="text-sm text-emerald-600">
                           ({activeResult.summary.break_even_year * 12} {t('scenarioResults.months')})
                         </span>
                       </div>
-                      <div className="text-xs text-emerald-600 border-t border-emerald-200 pt-2">
+                      <div className="text-xs text-emerald-600 border-t border-emerald-200 dark:border-emerald-800/50 pt-2">
                         📊 {t('scenarioResults.totalInvested')}: {(() => {
                           const totalCost = calculateTotalCost(selectedScenario)
                           return totalCost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })
                         })()}
                       </div>
-                      <div className="text-xs font-semibold text-emerald-700">
+                      <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                         ✓ {t('scenarioResults.loanPaidOff')}
                       </div>
                     </div>
@@ -3762,8 +3762,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                 {/* 🆕 Métriques avancées - Ligne 2 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md border border-purple-200 p-4">
-                    <div className="flex items-center gap-2 text-purple-700 text-sm mb-2 font-medium">
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md border border-purple-200 dark:border-purple-800/50 p-4">
+                    <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 text-sm mb-2 font-medium">
                       <TrendingUp size={16} />
                       IRR (Taux Rendement Interne)
                     </div>
@@ -3778,8 +3778,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-md border border-indigo-200 p-4">
-                    <div className="flex items-center gap-2 text-indigo-700 text-sm mb-2 font-medium">
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-md border border-indigo-200 dark:border-indigo-800/50 p-4">
+                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 text-sm mb-2 font-medium">
                       <DollarSign size={16} />
                       NPV (Valeur Actuelle Nette)
                     </div>
@@ -3793,8 +3793,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md border border-green-200 p-4">
-                    <div className="flex items-center gap-2 text-green-700 text-sm mb-2 font-medium">
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md border border-green-200 dark:border-green-800/50 p-4">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm mb-2 font-medium">
                       <DollarSign size={16} />
                       Économies Dépréciation
                     </div>
@@ -3806,8 +3806,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md border border-orange-200 p-4">
-                    <div className="flex items-center gap-2 text-orange-700 text-sm mb-2 font-medium">
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md border border-orange-200 dark:border-orange-800/50 p-4">
+                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-sm mb-2 font-medium">
                       <AlertCircle size={16} />
                       Impôt Plus-Value
                     </div>
@@ -3821,18 +3821,18 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 </div>
 
                 {/* Évaluation écrite */}
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.evaluation')}</h3>
-                  <div className="prose prose-sm max-w-none whitespace-pre-line text-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarioResults.evaluation')}</h3>
+                  <div className="prose prose-sm max-w-none whitespace-pre-line text-gray-700 dark:text-gray-300">
                     {activeResult.evaluation_text}
                   </div>
                 </div>
 
                 {/* Tableau projection ENRICHI */}
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarioResults.projection')} - Détaillé</h3>
-                  <div className="mb-3 text-xs text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
-                    <strong className="text-blue-800">📊 Métriques financières complètes:</strong>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarioResults.projection')} - Détaillé</h3>
+                  <div className="mb-3 text-xs text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800/50">
+                    <strong className="text-blue-800 dark:text-blue-300">📊 Métriques financières complètes:</strong>
                     <ul className="list-disc ml-5 mt-1 space-y-1">
                       <li><strong>Frais récurrents:</strong> HOA, taxes foncières, assurance (avec inflation 2.5%/an)</li>
                       <li><strong>Dépréciation fiscale:</strong> {selectedScenario.country === 'USA' ? '3.636%/an (USA)' : '4%/an (Canada)'} - Économies d'impôts</li>
@@ -3845,29 +3845,29 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                   </div>
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b-2 border-gray-300 bg-gray-50">
-                        <th className="text-left p-2 font-medium text-gray-700">An</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Valeur Bien</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Revenus Loc.</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Gestion</th>
-                        <th className="text-right p-2 font-medium text-blue-700">Frais Réc.</th>
-                        <th className="text-right p-2 font-medium text-orange-700">Impôts</th>
-                        <th className="text-right p-2 font-medium text-green-700">Éco. Dépr.</th>
-                        <th className="text-right p-2 font-medium text-emerald-700">Net</th>
-                        <th className="text-right p-2 font-medium text-gray-700">Cashflow Cum.</th>
-                        <th className="text-right p-2 font-medium text-purple-700">ROI</th>
-                        <th className="text-right p-2 font-medium text-indigo-700">Cap Rate</th>
-                        <th className="text-right p-2 font-medium text-pink-700">CoC</th>
+                      <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
+                        <th className="text-left p-2 font-medium text-gray-700 dark:text-gray-300">An</th>
+                        <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">Valeur Bien</th>
+                        <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">Revenus Loc.</th>
+                        <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">Gestion</th>
+                        <th className="text-right p-2 font-medium text-blue-700 dark:text-blue-300">Frais Réc.</th>
+                        <th className="text-right p-2 font-medium text-orange-700 dark:text-orange-300">Impôts</th>
+                        <th className="text-right p-2 font-medium text-green-700 dark:text-green-300">Éco. Dépr.</th>
+                        <th className="text-right p-2 font-medium text-emerald-700 dark:text-emerald-300">Net</th>
+                        <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">Cashflow Cum.</th>
+                        <th className="text-right p-2 font-medium text-purple-700 dark:text-purple-300">ROI</th>
+                        <th className="text-right p-2 font-medium text-indigo-700 dark:text-indigo-300">Cap Rate</th>
+                        <th className="text-right p-2 font-medium text-pink-700 dark:text-pink-300">CoC</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activeResult.yearly_data.map((data) => (
-                        <tr key={data.year} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="p-2 font-bold text-gray-900">{data.year}</td>
-                          <td className="p-2 text-right text-gray-700">
+                        <tr key={data.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                          <td className="p-2 font-bold text-gray-900 dark:text-gray-100">{data.year}</td>
+                          <td className="p-2 text-right text-gray-700 dark:text-gray-300">
                             {data.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
-                          <td className="p-2 text-right text-gray-900">
+                          <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                             {data.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                           </td>
                           <td className="p-2 text-right text-red-600">
@@ -3901,28 +3901,28 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       ))}
                     </tbody>
                   </table>
-                  <div className="mt-3 text-xs text-gray-500 italic">
+                  <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 italic">
                     * ROI corrigé sans double-comptage | Cap Rate = Revenu Net / Valeur Propriété | CoC = Revenu Net / Investissement Initial
                   </div>
                 </div>
 
                 {/* 🆕 TABLEAU ANALYSE DE SENSIBILITÉ (STRESS TESTS) */}
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">📊 Analyse de Sensibilité - Stress Tests</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">📊 Analyse de Sensibilité - Stress Tests</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     Impact de variations des paramètres clés sur le ROI final du scénario <span className="font-bold">{activeScenarioType}</span>
                   </p>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Sensibilité Taux d'Occupation */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <span className="text-2xl">🏠</span>
                         Variation Taux d'Occupation
                       </h4>
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-gray-300 bg-gray-50">
+                          <tr className="border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
                             <th className="text-left p-2">Taux Occupation</th>
                             <th className="text-right p-2">ROI Final</th>
                             <th className="text-right p-2">Δ vs Base</th>
@@ -3943,7 +3943,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             const delta = variedROI - baseROI
 
                             return (
-                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                              <tr key={variation} className={`border-b border-gray-100 dark:border-gray-700 ${variation === 0 ? 'bg-blue-50 dark:bg-blue-900/20 font-bold' : ''}`}>
                                 <td className="p-2">{variedOccupancy.toFixed(0)}% {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
                                 <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
                                   {variedROI.toFixed(1)}%
@@ -3959,14 +3959,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
 
                     {/* Sensibilité Appréciation */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <span className="text-2xl">📈</span>
                         Variation Appréciation Annuelle
                       </h4>
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-gray-300 bg-gray-50">
+                          <tr className="border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
                             <th className="text-left p-2">Appréciation</th>
                             <th className="text-right p-2">ROI Final</th>
                             <th className="text-right p-2">Δ vs Base</th>
@@ -3986,7 +3986,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             const delta = variedROI - baseROI
 
                             return (
-                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                              <tr key={variation} className={`border-b border-gray-100 dark:border-gray-700 ${variation === 0 ? 'bg-blue-50 dark:bg-blue-900/20 font-bold' : ''}`}>
                                 <td className="p-2">{variedAppreciation.toFixed(1)}% {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
                                 <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
                                   {variedROI.toFixed(1)}%
@@ -4002,14 +4002,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
 
                     {/* Sensibilité Taux de Change */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <span className="text-2xl">💱</span>
                         Variation Taux de Change USD→CAD
                       </h4>
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-gray-300 bg-gray-50">
+                          <tr className="border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
                             <th className="text-left p-2">Taux Change</th>
                             <th className="text-right p-2">ROI Final</th>
                             <th className="text-right p-2">Δ vs Base</th>
@@ -4027,7 +4027,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             const delta = variedROI - baseROI
 
                             return (
-                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                              <tr key={variation} className={`border-b border-gray-100 dark:border-gray-700 ${variation === 0 ? 'bg-blue-50 dark:bg-blue-900/20 font-bold' : ''}`}>
                                 <td className="p-2">{variedRate.toFixed(4)} {variation === 0 ? '(Base)' : `(${variation > 0 ? '+' : ''}${variation}%)`}</td>
                                 <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
                                   {variedROI.toFixed(1)}%
@@ -4043,14 +4043,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
 
                     {/* Sensibilité Frais de Gestion */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <span className="text-2xl">💼</span>
                         Variation Frais de Gestion
                       </h4>
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-gray-300 bg-gray-50">
+                          <tr className="border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
                             <th className="text-left p-2">Frais Gestion</th>
                             <th className="text-right p-2">ROI Final</th>
                             <th className="text-right p-2">Δ vs Base</th>
@@ -4068,7 +4068,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                             const delta = variedROI - baseROI
 
                             return (
-                              <tr key={variation} className={`border-b border-gray-100 ${variation === 0 ? 'bg-blue-50 font-bold' : ''}`}>
+                              <tr key={variation} className={`border-b border-gray-100 dark:border-gray-700 ${variation === 0 ? 'bg-blue-50 dark:bg-blue-900/20 font-bold' : ''}`}>
                                 <td className="p-2">{variedFees.toFixed(1)}% {variation === 0 ? '(Base)' : `(+${variation}%)`}</td>
                                 <td className={`p-2 text-right font-medium ${variedROI >= baseROI ? 'text-green-600' : 'text-red-600'}`}>
                                   {variedROI.toFixed(1)}%
@@ -4084,17 +4084,17 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     </div>
                   </div>
 
-                  <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-gray-700">
-                    <strong className="text-yellow-800">⚠️ Note:</strong> Ces calculs sont des approximations basées sur l'impact proportionnel de chaque paramètre.
+                  <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/50 rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300">
+                    <strong className="text-yellow-800 dark:text-yellow-300">⚠️ Note:</strong> Ces calculs sont des approximations basées sur l'impact proportionnel de chaque paramètre.
                     Pour une analyse précise, réalisez un nouveau scénario avec les paramètres ajustés.
                   </div>
                 </div>
 
                 {/* Tableau comparatif Projections vs Réelles (uniquement pour projets achetés) */}
                 {selectedScenario.status === 'purchased' && (
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 overflow-x-auto">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-gray-900">Projections vs Valeurs Réelles</h3>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Projections vs Valeurs Réelles</h3>
                       <button
                         onClick={() => setEditingActualYear(editingActualYear ? null : 1)}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
@@ -4105,19 +4105,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b-2 border-gray-300 bg-gray-50">
-                          <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
-                          <th colSpan={3} className="text-center p-2 font-medium text-blue-700 border-r-2 border-gray-300">PROJECTION</th>
-                          <th colSpan={3} className="text-center p-2 font-medium text-green-700">VALEURS RÉELLES</th>
+                        <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
+                          <th className="text-left p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarioResults.year')}</th>
+                          <th colSpan={3} className="text-center p-2 font-medium text-blue-700 dark:text-blue-300 border-r-2 border-gray-300 dark:border-gray-600">PROJECTION</th>
+                          <th colSpan={3} className="text-center p-2 font-medium text-green-700 dark:text-green-300">VALEURS RÉELLES</th>
                         </tr>
-                        <tr className="border-b border-gray-200 bg-gray-50">
+                        <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
                           <th className="text-left p-2"></th>
-                          <th className="text-right p-2 text-xs text-gray-600">Valeur bien</th>
-                          <th className="text-right p-2 text-xs text-gray-600">Revenus</th>
-                          <th className="text-right p-2 text-xs text-gray-600 border-r-2 border-gray-300">Net</th>
-                          <th className="text-right p-2 text-xs text-gray-600">Valeur bien</th>
-                          <th className="text-right p-2 text-xs text-gray-600">Revenus</th>
-                          <th className="text-right p-2 text-xs text-gray-600">Net</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300">Valeur bien</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300">Revenus</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300 border-r-2 border-gray-300 dark:border-gray-600">Net</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300">Valeur bien</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300">Revenus</th>
+                          <th className="text-right p-2 text-xs text-gray-600 dark:text-gray-300">Net</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4126,8 +4126,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           const isEditing = editingActualYear === projected.year
 
                           return (
-                            <tr key={projected.year} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="p-2 font-medium text-gray-900">
+                            <tr key={projected.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                              <td className="p-2 font-medium text-gray-900 dark:text-gray-100">
                                 {projected.year}
                                 {!actual && editingActualYear && (
                                   <button
@@ -4140,13 +4140,13 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               </td>
 
                               {/* PROJECTION */}
-                              <td className="p-2 text-right text-gray-700 text-xs">
+                              <td className="p-2 text-right text-gray-700 dark:text-gray-300 text-xs">
                                 {projected.property_value.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
-                              <td className="p-2 text-right text-gray-700 text-xs">
+                              <td className="p-2 text-right text-gray-700 dark:text-gray-300 text-xs">
                                 {projected.rental_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
-                              <td className="p-2 text-right text-gray-700 text-xs border-r-2 border-gray-300">
+                              <td className="p-2 text-right text-gray-700 dark:text-gray-300 text-xs border-r-2 border-gray-300 dark:border-gray-600">
                                 {projected.net_income.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
                               </td>
 
@@ -4253,7 +4253,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       </tbody>
                     </table>
 
-                    <div className="mt-4 text-xs text-gray-600">
+                    <div className="mt-4 text-xs text-gray-600 dark:text-gray-300">
                       <p>💡 <strong>Code couleur:</strong></p>
                       <p className="text-green-600">• Vert = Valeur réelle ≥ Projection (bon)</p>
                       <p className="text-red-600">• Rouge = Valeur réelle &lt; Projection (attention)</p>
@@ -4264,14 +4264,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                 {/* Graphiques comparatifs Projections vs Réelles */}
                 {selectedScenario.status === 'purchased' && actualValues.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6">Graphiques comparatifs</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">Graphiques comparatifs</h3>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Graphique Valeur du bien */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Valeur du bien</h4>
-                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Valeur du bien</h4>
+                        <div className="relative h-64 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                           {(() => {
                             const maxValue = Math.max(
                               ...activeResult.yearly_data.map(d => d.property_value),
@@ -4395,19 +4395,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         <div className="flex items-center justify-center gap-4 mt-2 text-xs">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-blue-500"></div>
-                            <span className="text-gray-600">Projection</span>
+                            <span className="text-gray-600 dark:text-gray-300">Projection</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
-                            <span className="text-gray-600">Réel</span>
+                            <span className="text-gray-600 dark:text-gray-300">Réel</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Graphique Revenus locatifs */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Revenus locatifs</h4>
-                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Revenus locatifs</h4>
+                        <div className="relative h-64 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                           {(() => {
                             const maxValue = Math.max(
                               ...activeResult.yearly_data.map(d => d.rental_income),
@@ -4531,19 +4531,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         <div className="flex items-center justify-center gap-4 mt-2 text-xs">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-blue-500"></div>
-                            <span className="text-gray-600">Projection</span>
+                            <span className="text-gray-600 dark:text-gray-300">Projection</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
-                            <span className="text-gray-600">Réel</span>
+                            <span className="text-gray-600 dark:text-gray-300">Réel</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Graphique Revenu net */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Revenu net</h4>
-                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Revenu net</h4>
+                        <div className="relative h-64 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                           {(() => {
                             const maxValue = Math.max(
                               ...activeResult.yearly_data.map(d => d.net_income),
@@ -4667,19 +4667,19 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         <div className="flex items-center justify-center gap-4 mt-2 text-xs">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-blue-500"></div>
-                            <span className="text-gray-600">Projection</span>
+                            <span className="text-gray-600 dark:text-gray-300">Projection</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
-                            <span className="text-gray-600">Réel</span>
+                            <span className="text-gray-600 dark:text-gray-300">Réel</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Graphique Cashflow cumulatif */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Cashflow cumulatif</h4>
-                        <div className="relative h-64 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Cashflow cumulatif</h4>
+                        <div className="relative h-64 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                           {(() => {
                             const maxValue = Math.max(
                               ...activeResult.yearly_data.map(d => d.cumulative_cashflow),
@@ -4901,33 +4901,33 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                         <div className="flex items-center justify-center gap-4 mt-2 text-xs flex-wrap">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-blue-500"></div>
-                            <span className="text-gray-600">Projection</span>
+                            <span className="text-gray-600 dark:text-gray-300">Projection</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-green-500 border-dashed border-t-2 border-green-500"></div>
-                            <span className="text-gray-600">Réel</span>
+                            <span className="text-gray-600 dark:text-gray-300">Réel</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-0.5 bg-red-500 border-dashed border-t-2 border-red-500"></div>
-                            <span className="text-gray-600">Break-even (0$)</span>
+                            <span className="text-gray-600 dark:text-gray-300">Break-even (0$)</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-3 h-3 bg-red-100 border border-red-300"></div>
-                            <span className="text-gray-600">Zone négative</span>
+                            <span className="text-gray-600 dark:text-gray-300">Zone négative</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-3 h-3 bg-green-100 border border-green-300"></div>
-                            <span className="text-gray-600">Zone positive</span>
+                            <span className="text-gray-600 dark:text-gray-300">Zone positive</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm text-blue-900">
+                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50">
+                      <p className="text-sm text-blue-900 dark:text-blue-300">
                         <strong>💡 Interprétation:</strong>
                       </p>
-                      <ul className="mt-2 text-sm text-blue-800 space-y-1">
+                      <ul className="mt-2 text-sm text-blue-800 dark:text-blue-300 space-y-1">
                         <li>• <strong className="text-green-600">Points verts</strong> = Performance réelle ≥ projection (objectif atteint ou dépassé)</li>
                         <li>• <strong className="text-red-600">Points rouges</strong> = Performance réelle &lt; projection (sous-performance)</li>
                         <li>• <strong className="text-blue-600">Ligne continue</strong> = Projections initiales du scénario</li>
@@ -4938,8 +4938,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 )}
 
                 {/* Analyse des revenus locatifs */}
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.rentalIncomeAnalysis')}</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.rentalIncomeAnalysis')}</h3>
 
                   {(() => {
                     // Calculate nightly rate
@@ -4998,14 +4998,14 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                     return (
                       <>
                         {/* Bandeau récapitulatif du scénario actif */}
-                        <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 transition-all duration-500">
-                          <div className="text-sm font-bold text-blue-900">
+                        <div className="mb-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 transition-all duration-500">
+                          <div className="text-sm font-bold text-blue-900 dark:text-blue-300">
                             📊 {t('scenarios.scenarioActiveBanner').replace('{type}', scenarioLabel)}
                           </div>
-                          <div className="text-xs text-blue-700 mt-1">
+                          <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             {t('scenarios.occupancyRange')}: {occMin}% – {occMax}%
                           </div>
-                          <div className="text-xs text-blue-700">
+                          <div className="text-xs text-blue-700 dark:text-blue-300">
                             {t('scenarios.estimatedNetIncome')}: {fmtCur(netMin, currency)} – {fmtCur(netMax, currency)}
                           </div>
                           <div className="text-xs text-blue-600">
@@ -5015,35 +5015,35 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                       <table className="w-full text-xs sm:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 bg-gray-50">
-                            <th className="text-left p-2 font-medium text-gray-700">{t('scenarios.occupancyRate')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.numberOfNights')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.accommodationPrice')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualIncome')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.managementFees')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualRevenue')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.tax')}</th>
-                            <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.netIncome')}</th>
+                          <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                            <th className="text-left p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.occupancyRate')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.numberOfNights')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.accommodationPrice')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.annualIncome')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.managementFees')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.annualRevenue')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.tax')}</th>
+                            <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.netIncome')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {analysisData.map((data, idx) => {
                             const active = isActiveRow(data.occupancy)
                             return (
-                            <tr key={idx} className={`transition-all duration-500 ${active ? 'bg-blue-50 border-l-4 border-blue-500 font-semibold' : 'border-b border-gray-100 opacity-40 hover:opacity-70'}`}>
-                              <td className="p-2 font-medium text-gray-900">
+                            <tr key={idx} className={`transition-all duration-500 ${active ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 font-semibold' : 'border-b border-gray-100 dark:border-gray-700 opacity-40 hover:opacity-70'}`}>
+                              <td className="p-2 font-medium text-gray-900 dark:text-gray-100">
                                 {active && <span className="mr-1">📍</span>}{data.occupancy}%
                                 {active && <span className="ml-1 text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full align-middle">{t('scenarios.active')}</span>}
                               </td>
-                              <td className="p-2 text-right text-gray-900">{data.nights.toFixed(2)}</td>
-                              <td className="p-2 text-right text-gray-900">
+                              <td className="p-2 text-right text-gray-900 dark:text-gray-100">{data.nights.toFixed(2)}</td>
+                              <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                                 {data.nightlyRate.toLocaleString('fr-CA', {
                                   style: 'currency',
                                   currency: currency,
                                   minimumFractionDigits: 2
                                 })}
                               </td>
-                              <td className="p-2 text-right text-gray-900">
+                              <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                                 {data.annualIncome.toLocaleString('fr-CA', {
                                   style: 'currency',
                                   currency: currency,
@@ -5057,7 +5057,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                   minimumFractionDigits: 2
                                 })})
                               </td>
-                              <td className="p-2 text-right text-gray-900">
+                              <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                                 {data.annualRevenue.toLocaleString('fr-CA', {
                                   style: 'currency',
                                   currency: currency,
@@ -5089,7 +5089,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                   {/* Simple visualization */}
                   <div className="mt-6">
-                    <h4 className="text-sm font-bold text-gray-900 mb-3">{t('scenarios.netIncomeComparison')}</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">{t('scenarios.netIncomeComparison')}</h4>
                     <div className="space-y-2">
                       {(() => {
                         const baseRent = selectedScenario.promoter_data.monthly_rent || 0
@@ -5124,7 +5124,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                           const active = activeOccupancies.includes(data.occupancy)
                           return (
                           <div key={idx} className={`flex items-center gap-3 transition-all duration-500 ${active ? '' : 'opacity-30'}`}>
-                            <span className={`text-xs font-medium w-12 ${active ? 'text-gray-900 font-bold' : 'text-gray-400'}`}>{data.occupancy}%</span>
+                            <span className={`text-xs font-medium w-12 ${active ? 'text-gray-900 dark:text-gray-100 font-bold' : 'text-gray-400'}`}>{data.occupancy}%</span>
                             <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
                               <div
                                 className={`h-6 rounded-full flex items-center justify-end pr-2 transition-all duration-500 ease-in-out ${
@@ -5134,7 +5134,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                                 }`}
                                 style={{ width: `${(data.netIncome / maxIncome) * 100}%` }}
                               >
-                                <span className={`text-xs font-bold ${active ? 'text-white' : 'text-gray-500'}`}>
+                                <span className={`text-xs font-bold ${active ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                   {data.netIncome.toLocaleString('fr-CA', {
                                     style: 'currency',
                                     currency: selectedScenario.promoter_data.rent_currency || 'USD',
@@ -5152,8 +5152,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                 </div>
 
                 {/* ROI Timeline avec augmentation locative */}
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 overflow-x-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('scenarios.roiTimeline')}</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('scenarios.roiTimeline')}</h3>
 
                   {(() => {
                     const purchasePrice = calculateTotalCost(selectedScenario)
@@ -5205,27 +5205,27 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                       <>
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-gray-200 bg-gray-50">
-                              <th className="text-left p-2 font-medium text-gray-700">{t('scenarioResults.year')}</th>
-                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.nightlyRate')}</th>
-                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.annualIncome')}</th>
-                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.netIncome')}</th>
-                              <th className="text-right p-2 font-medium text-gray-700">{t('scenarios.cumulativeIncome')}</th>
-                              <th className="text-right p-2 font-medium text-gray-700">ROI</th>
+                            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                              <th className="text-left p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarioResults.year')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.nightlyRate')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.annualIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.netIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">{t('scenarios.cumulativeIncome')}</th>
+                              <th className="text-right p-2 font-medium text-gray-700 dark:text-gray-300">ROI</th>
                             </tr>
                           </thead>
                           <tbody>
                             {timelineData.map((data) => (
-                              <tr key={data.year} className="border-b border-gray-100 hover:bg-gray-50">
-                                <td className="p-2 font-medium text-gray-900">{data.year}</td>
-                                <td className="p-2 text-right text-gray-900">
+                              <tr key={data.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                <td className="p-2 font-medium text-gray-900 dark:text-gray-100">{data.year}</td>
+                                <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                                   {data.nightlyRate.toLocaleString('fr-CA', {
                                     style: 'currency',
                                     currency: currency,
                                     minimumFractionDigits: 2
                                   })}
                                 </td>
-                                <td className="p-2 text-right text-gray-900">
+                                <td className="p-2 text-right text-gray-900 dark:text-gray-100">
                                   {data.annualIncome.toLocaleString('fr-CA', {
                                     style: 'currency',
                                     currency: currency,
@@ -5256,7 +5256,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
                         {/* ROI Progress Visualization — timeline Recharts */}
                         <div className="mt-6">
-                          <h4 className="text-sm font-bold text-gray-900 mb-3">{t('scenarios.roiProgress')}</h4>
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">{t('scenarios.roiProgress')}</h4>
                           {(() => {
                             // Données pour le graphique : ROI cumulatif + gain de l'année
                             const chartData = timelineData.map((d) => ({
@@ -5274,8 +5274,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
                               if (!active || !payload || !payload.length) return null
                               const p = payload[0].payload
                               return (
-                                <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
-                                  <p className="font-bold text-gray-900 mb-1">{p.year}</p>
+                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs">
+                                  <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">{p.year}</p>
                                   <p className="text-blue-600">
                                     {t('scenarios.roiCumulative')}: <span className="font-bold">{p.roi.toFixed(2)}%</span>
                                   </p>
@@ -5353,7 +5353,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
         {detailTab === 'bookings' && selectedScenario.status === 'purchased' && (
           <div className="space-y-6">
             {/* Stats d'occupation */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
               <OccupationStats
                 type="project"
                 id={selectedScenario.id}
@@ -5375,7 +5375,7 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Contenu de l'onglet Partage */}
         {detailTab === 'share' && (
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
             <ShareLinkManager
               scenarioId={selectedScenario.id}
               scenarioName={getFullName(selectedScenario.name, selectedScenario.unit_number)}
@@ -5385,31 +5385,31 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Section de vote */}
         {selectedScenario.status === 'pending_vote' && voteStatus && (
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('voting.status')}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('voting.status')}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-700 font-medium">{t('voting.votesReceived')}</p>
-                <p className="text-2xl font-bold text-blue-900">{voteStatus.total_votes} / {voteStatus.total_eligible_voters}</p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">{t('voting.votesReceived')}</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">{voteStatus.total_votes} / {voteStatus.total_eligible_voters}</p>
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-700 font-medium">{t('voting.approvals')}</p>
-                <p className="text-2xl font-bold text-green-900">{voteStatus.approve_votes}</p>
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium">{t('voting.approvals')}</p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{voteStatus.approve_votes}</p>
               </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <p className="text-sm text-red-700 font-medium">{t('voting.rejections')}</p>
-                <p className="text-2xl font-bold text-red-900">{voteStatus.reject_votes}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium">{t('voting.rejections')}</p>
+                <p className="text-2xl font-bold text-red-900 dark:text-red-300">{voteStatus.reject_votes}</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm text-purple-700 font-medium">{t('voting.approvalRate')}</p>
-                <p className="text-2xl font-bold text-purple-900">{voteStatus.approval_percentage.toFixed(1)}%</p>
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">{t('voting.approvalRate')}</p>
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{voteStatus.approval_percentage.toFixed(1)}%</p>
               </div>
             </div>
 
             {canVote && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-900 mb-3">
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                   {currentUserVote ? t('voting.yourVote') + ': ' + (currentUserVote.vote === 'approve' ? '✅ ' + t('voting.approve') : '❌ ' + t('voting.reject')) : t('voting.yourVote') + ':'}
                 </p>
                 <div className="flex gap-3">
@@ -5430,16 +5430,16 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             )}
 
             <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-3">{t('voting.individualVotes')} ({votes.length})</h4>
+              <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">{t('voting.individualVotes')} ({votes.length})</h4>
               <div className="space-y-2">
                 {votes.map(vote => (
-                  <div key={vote.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={vote.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{vote.investor_name}</p>
-                      {vote.comment && <p className="text-xs text-gray-600 mt-1">{vote.comment}</p>}
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{vote.investor_name}</p>
+                      {vote.comment && <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{vote.comment}</p>}
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      vote.vote === 'approve' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      vote.vote === 'approve' ? 'bg-green-100 text-green-700 dark:text-green-300' : 'bg-red-100 text-red-700 dark:text-red-300'
                     }`}>
                       {vote.vote === 'approve' ? '✅ ' + t('voting.approve') : '❌ ' + t('voting.reject')}
                     </span>

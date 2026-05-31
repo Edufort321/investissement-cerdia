@@ -295,7 +295,7 @@ export default function TransactionsTab() {
       depense:                   { bg: 'bg-red-100',    text: 'text-red-800',    label: t('transactionType.expense') },
       transfert:                 { bg: 'bg-indigo-100', text: 'text-indigo-800', label: t('transactions.typeTransfert') },
     }
-    const b = badges[type] ?? { bg: 'bg-gray-100', text: 'text-gray-800', label: type }
+    const b = badges[type] ?? { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-100', label: type }
     return <span className={`px-3 py-1 rounded-full text-xs font-medium ${b.bg} ${b.text}`}>{b.label}</span>
   }
 
@@ -349,9 +349,9 @@ export default function TransactionsTab() {
       {/* Barre d'actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Filter size={20} className="text-gray-600" />
+          <Filter size={20} className="text-gray-600 dark:text-gray-300" />
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
             <option value="all">{t('transactions.allTypes')}</option>
             <option value="investissement">{t('transactionType.investment')}</option>
             <option value="loyer">{t('transactions.typeLoyer')}</option>
@@ -363,7 +363,7 @@ export default function TransactionsTab() {
             <option value="transfert">{t('transactions.typeTransfert')}</option>
           </select>
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
             <option value="all">{t('transactions.allCategories')}</option>
             <option value="capital">{t('category.capital')}</option>
             <option value="operation">{t('category.operation')}</option>
@@ -380,14 +380,14 @@ export default function TransactionsTab() {
 
       {/* ── Formulaire ── */}
       {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
             {editingId ? t('transactions.edit') : t('transactions.new')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
 
             {/* ── Direction toggle ── */}
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
               {([
                 { key: 'revenu',  label: fr ? '↑ Revenu'  : '↑ Revenue', active: 'bg-green-500',  inactive: 'hover:text-green-700' },
                 { key: 'depense', label: fr ? '↓ Dépense' : '↓ Expense', active: 'bg-red-500',    inactive: 'hover:text-red-700'   },
@@ -396,7 +396,7 @@ export default function TransactionsTab() {
                 <button key={key} type="button"
                   onClick={() => switchDirection(key)}
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    direction === key ? `${active} text-white shadow-sm` : `text-gray-500 ${inactive}`
+                    direction === key ? `${active} text-white shadow-sm` : `text-gray-500 dark:text-gray-400 ${inactive}`
                   }`}>
                   {label}
                 </button>
@@ -407,19 +407,19 @@ export default function TransactionsTab() {
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {formData.type === 'paiement' && formData.occurrence_type === 'recurrent'
                     ? t('transactions.dateStart')
                     : t('transactions.dateLabel')}
                 </label>
                 <input type="date" required value={formData.date}
                   onChange={e => set({ date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100" />
               </div>
 
               {/* Type — filtré par direction */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.typeLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.typeLabel')}</label>
                 <select required value={formData.type}
                   onChange={e => set({
                     type: e.target.value,
@@ -430,7 +430,7 @@ export default function TransactionsTab() {
                     recurrence_end_date: null,
                     recurrence_no_end: false,
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                   {direction === 'revenu' && <>
                     <option value="investissement">{t('transactionType.investment')}</option>
                     <option value="loyer">{t('transactions.typeLoyer')}</option>
@@ -455,8 +455,8 @@ export default function TransactionsTab() {
 
             {/* ── Revenu locatif : compte destination ── */}
             {formData.type === 'loyer_locatif' && (
-              <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                <label className="block text-sm font-medium text-teal-800 mb-3">
+              <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800/50 rounded-lg">
+                <label className="block text-sm font-medium text-teal-800 dark:text-teal-300 mb-3">
                   {t('transactions.destinationAccount')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -466,7 +466,7 @@ export default function TransactionsTab() {
                       className={`p-3 border-2 rounded-lg text-sm font-medium transition-all ${
                         formData.target_account === acc
                           ? 'border-teal-500 bg-teal-100 text-teal-800'
-                          : 'border-gray-300 hover:border-teal-300 text-gray-700'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-teal-300 text-gray-700 dark:text-gray-300'
                       }`}>
                       {acc === 'compte_courant' ? `🏢 ${t('transactions.compteCourant')}` : `🏗️ ${t('transactions.typeCapex')}`}
                     </button>
@@ -477,9 +477,9 @@ export default function TransactionsTab() {
 
             {/* ── Paiement : unique / récurrent ── */}
             {formData.type === 'paiement' && (
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-lg space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.occurrence')}</label>
+                  <label className="block text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">{t('transactions.occurrence')}</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['unique', 'recurrent'] as const).map(occ => (
                       <button key={occ} type="button"
@@ -487,7 +487,7 @@ export default function TransactionsTab() {
                         className={`p-3 border-2 rounded-lg text-sm font-medium transition-all ${
                           formData.occurrence_type === occ
                             ? 'border-orange-500 bg-orange-100 text-orange-800'
-                            : 'border-gray-300 hover:border-orange-300 text-gray-700'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-orange-300 text-gray-700 dark:text-gray-300'
                         }`}>
                         {occ === 'unique'
                           ? `1️⃣ ${t('transactions.occurrenceUnique')}`
@@ -498,12 +498,12 @@ export default function TransactionsTab() {
                 </div>
 
                 {formData.occurrence_type === 'recurrent' && (
-                  <div className="space-y-3 pt-2 border-t border-orange-200">
+                  <div className="space-y-3 pt-2 border-t border-orange-200 dark:border-orange-800/50">
                     <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.frequency')}</label>
+                      <label className="block text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">{t('transactions.frequency')}</label>
                       <select required value={formData.recurrence_frequency ?? ''}
                         onChange={e => set({ recurrence_frequency: e.target.value as any })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 bg-white">
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-400 bg-white dark:bg-gray-700 dark:text-gray-100">
                         <option value="">{t('transactions.freqChoose')}</option>
                         <option value="quotidien">{t('transactions.freqQuotidien')}</option>
                         <option value="hebdomadaire">{t('transactions.freqHebdomadaire')}</option>
@@ -513,14 +513,14 @@ export default function TransactionsTab() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-2">{t('transactions.endDate')}</label>
+                      <label className="block text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">{t('transactions.endDate')}</label>
                       <div className="flex items-center gap-3">
                         <input type="date"
                           disabled={formData.recurrence_no_end}
                           value={formData.recurrence_end_date ?? ''}
                           onChange={e => set({ recurrence_end_date: e.target.value })}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100 disabled:text-gray-400" />
-                        <label className="flex items-center gap-2 text-sm text-orange-700 whitespace-nowrap cursor-pointer">
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-400 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400" />
+                        <label className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300 whitespace-nowrap cursor-pointer">
                           <input type="checkbox" checked={formData.recurrence_no_end}
                             onChange={e => set({ recurrence_no_end: e.target.checked, recurrence_end_date: null })}
                             className="w-4 h-4 rounded" />
@@ -529,7 +529,7 @@ export default function TransactionsTab() {
                       </div>
                     </div>
                     {previewCount !== null && (
-                      <p className="text-sm text-orange-700 font-medium">
+                      <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">
                         {fr ? 'Aperçu :' : 'Preview:'} <strong>{previewCount}</strong> {fr ? 'transaction(s) seront créées' : 'transaction(s) will be created'}
                       </p>
                     )}
@@ -540,8 +540,8 @@ export default function TransactionsTab() {
 
             {/* ── Transfert : source / destination ── */}
             {formData.type === 'transfert' && (
-              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <label className="block text-sm font-medium text-indigo-800 mb-3">{t('transactions.sourceAccount')}</label>
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-lg">
+                <label className="block text-sm font-medium text-indigo-800 dark:text-indigo-300 mb-3">{t('transactions.sourceAccount')}</label>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {(['compte_courant', 'capex'] as const).map(acc => (
                     <button key={acc} type="button"
@@ -549,14 +549,14 @@ export default function TransactionsTab() {
                       className={`p-3 border-2 rounded-lg text-sm font-medium transition-all ${
                         formData.transfer_source === acc
                           ? 'border-indigo-500 bg-indigo-100 text-indigo-800'
-                          : 'border-gray-300 hover:border-indigo-300 text-gray-700'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-indigo-300 text-gray-700 dark:text-gray-300'
                       }`}>
                       {acc === 'compte_courant' ? `🏢 ${t('transactions.compteCourant')}` : `🏗️ ${t('transactions.typeCapex')}`}
                     </button>
                   ))}
                 </div>
                 {formData.transfer_source && (
-                  <p className="text-sm text-indigo-700">
+                  <p className="text-sm text-indigo-700 dark:text-indigo-300">
                     {t('transactions.toAccount')} <strong>{transferDest}</strong>
                   </p>
                 )}
@@ -566,7 +566,7 @@ export default function TransactionsTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Montant avec indicateur de signe */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.amountLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.amountLabel')}</label>
                 <div className="relative">
                   <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold text-base select-none ${
                     direction === 'revenu' ? 'text-green-600' : direction === 'depense' ? 'text-red-600' : 'text-indigo-600'
@@ -582,17 +582,17 @@ export default function TransactionsTab() {
                       set({ amount: isNaN(n) ? 0 : Math.abs(n) })
                     }}
                     placeholder={fr ? 'Ex: 1 500,00' : 'E.g. 1500.00'}
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100" />
                 </div>
               </div>
 
               {/* Catégorie — filtrée par direction, masquée pour neutre/transfert */}
               {direction !== 'neutre' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.categoryLabel')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.categoryLabel')}</label>
                   <select required value={formData.category}
                     onChange={e => set({ category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                     {direction === 'revenu' ? <>
                       <option value="capital">{t('category.capital')}</option>
                       <option value="operation">{t('category.operation')}</option>
@@ -608,10 +608,10 @@ export default function TransactionsTab() {
 
               {/* Méthode paiement */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.paymentMethodLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.paymentMethodLabel')}</label>
                 <select required value={formData.payment_method}
                   onChange={e => set({ payment_method: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                   <option value="virement">{t('paymentMethod.transfer')}</option>
                   <option value="cheque">{t('paymentMethod.check')}</option>
                   <option value="especes">{t('paymentMethod.cash')}</option>
@@ -621,10 +621,10 @@ export default function TransactionsTab() {
 
               {/* Statut */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.statusLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.statusLabel')}</label>
                 <select required value={formData.status}
                   onChange={e => set({ status: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                   <option value="complete">{t('status.complete')}</option>
                   <option value="pending">{t('status.pending')}</option>
                   <option value="cancelled">{t('status.cancelled')}</option>
@@ -634,10 +634,10 @@ export default function TransactionsTab() {
               {/* Investisseur (masqué pour transfert) */}
               {formData.type !== 'transfert' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.investor')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.investor')}</label>
                   <select value={formData.investor_id ?? ''}
                     onChange={e => set({ investor_id: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                     <option value="">{t('transactions.noInvestor')}</option>
                     {investors.map(inv => (
                       <option key={inv.id} value={inv.id}>{inv.first_name} {inv.last_name}</option>
@@ -649,10 +649,10 @@ export default function TransactionsTab() {
               {/* Propriété */}
               {formData.type !== 'transfert' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.property')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.property')}</label>
                   <select value={formData.property_id ?? ''}
                     onChange={e => set({ property_id: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white">
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] bg-white dark:bg-gray-700 dark:text-gray-100">
                     <option value="">{t('transactions.noProperty')}</option>
                     {properties.map(prop => (
                       <option key={prop.id} value={prop.id}>{prop.name}</option>
@@ -663,10 +663,10 @@ export default function TransactionsTab() {
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.descriptionLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.descriptionLabel')}</label>
                 <textarea required rows={2} value={formData.description}
                   onChange={e => set({ description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] resize-none min-h-[72px] max-h-[120px]" />
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100 resize-none min-h-[72px] max-h-[120px]" />
               </div>
 
               {/* ── Devise étrangère (si propriété hors Canada) ── */}
@@ -684,19 +684,19 @@ export default function TransactionsTab() {
                 const flStateTax = (isShortTermFL && formData.amount > 0) ? Math.round(formData.amount * 6 / 100 * 100) / 100 : null
                 if (!isInternational && !isRentalIncome) return null
                 return (
-                  <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-                    <p className="text-sm font-semibold text-blue-800">
+                  <div className="md:col-span-2 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg space-y-3">
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
                       {cc === 'US' ? '🇺🇸 Fiscal USA' : cc === 'DO' ? '🇩🇴 Fiscal République Dominicaine' : cc === 'MX' ? '🇲🇽 Fiscal Mexique' : '🌎 Fiscal international'}
-                      {linkedProp?.name && <span className="text-blue-600 font-normal ml-2">— {linkedProp.name}</span>}
+                      {linkedProp?.name && <span className="text-blue-600 dark:text-blue-400 font-normal ml-2">— {linkedProp.name}</span>}
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                           {fr ? 'Devise d\'origine' : 'Source currency'}
                         </label>
                         <select value={formData.source_currency ?? ''}
                           onChange={e => set({ source_currency: e.target.value || null })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400">
+                          className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-400">
                           <option value="">CAD (par défaut)</option>
                           <option value="USD">USD — Dollar américain</option>
                           <option value="DOP">DOP — Peso dominicain</option>
@@ -705,34 +705,34 @@ export default function TransactionsTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                           {fr ? 'Montant devise d\'origine' : 'Amount in source currency'}
                         </label>
                         <input type="number" step="0.01"
                           value={formData.source_amount ?? ''}
                           onChange={e => set({ source_amount: e.target.value ? parseFloat(e.target.value) : null })}
                           placeholder={fr ? '0.00' : '0.00'}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
+                          className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-gray-100" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                           {fr ? 'Impôt étranger payé (T2209)' : 'Foreign tax paid (T2209)'}
                         </label>
                         <input type="number" step="0.01"
                           value={formData.foreign_tax_paid ?? ''}
                           onChange={e => set({ foreign_tax_paid: e.target.value ? parseFloat(e.target.value) : null })}
                           placeholder={fr ? 'Impôt payé à l\'étranger' : 'Tax paid abroad'}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
-                        <p className="text-xs text-gray-400 mt-0.5">{fr ? 'Pour crédit T2209 / ligne 40500' : 'For T2209 credit / line 40500'}</p>
+                          className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-gray-100" />
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{fr ? 'Pour crédit T2209 / ligne 40500' : 'For T2209 credit / line 40500'}</p>
                       </div>
                     </div>
 
                     {/* Durée location pour calcul Sales Tax / ITBIS */}
                     {isRentalIncome && (cc === 'US' || cc === 'DO') && (
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                           {fr ? 'Durée de la location (jours)' : 'Rental duration (days)'}
-                          <span className="text-gray-400 ml-1">
+                          <span className="text-gray-400 dark:text-gray-500 ml-1">
                             {cc === 'US' ? `Court terme ≤ ${FL_SHORT_TERM_DAYS}j → Sales Tax + TDT applicables` : `Court terme ≤ ${DR_SHORT_TERM_DAYS}j → ITBIS 18% applicable`}
                           </span>
                         </label>
@@ -740,39 +740,39 @@ export default function TransactionsTab() {
                           value={formData.rental_duration_days ?? ''}
                           onChange={e => set({ rental_duration_days: e.target.value ? parseInt(e.target.value) : null })}
                           placeholder={fr ? 'Ex: 7 (1 semaine)' : 'E.g. 7 (1 week)'}
-                          className="w-full sm:w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400" />
+                          className="w-full sm:w-32 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-gray-100" />
                       </div>
                     )}
 
                     {/* Alerte TDT Florida */}
                     {cc === 'US' && isRentalIncome && (
-                      <div className={`rounded-lg p-3 text-xs ${isShortTermFL && tdtRate ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'}`}>
+                      <div className={`rounded-lg p-3 text-xs ${isShortTermFL && tdtRate ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50' : 'bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700'}`}>
                         {isShortTermFL && tdtRate ? (
                           <div className="space-y-1">
-                            <p className="font-semibold text-amber-800">⚠️ Florida — Taxes applicables (location court terme)</p>
+                            <p className="font-semibold text-amber-800 dark:text-amber-300">⚠️ Florida — Taxes applicables (location court terme)</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                              <div className="bg-white rounded p-2 text-center">
-                                <p className="text-gray-500">State Sales Tax</p>
-                                <p className="font-bold text-orange-700">{flStateTax != null ? `${flStateTax.toFixed(2)} $` : '—'}</p>
-                                <p className="text-gray-400">6% (DR-15)</p>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+                                <p className="text-gray-500 dark:text-gray-400">State Sales Tax</p>
+                                <p className="font-bold text-orange-700 dark:text-orange-300">{flStateTax != null ? `${flStateTax.toFixed(2)} $` : '—'}</p>
+                                <p className="text-gray-400 dark:text-gray-500">6% (DR-15)</p>
                               </div>
-                              <div className="bg-white rounded p-2 text-center">
-                                <p className="text-gray-500">TDT {countyCode?.replace('FL-', '')}</p>
-                                <p className="font-bold text-red-700">{tdtAmount != null ? `${tdtAmount.toFixed(2)} $` : '—'}</p>
-                                <p className="text-gray-400">{tdtRate}% (mensuel)</p>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+                                <p className="text-gray-500 dark:text-gray-400">TDT {countyCode?.replace('FL-', '')}</p>
+                                <p className="font-bold text-red-700 dark:text-red-300">{tdtAmount != null ? `${tdtAmount.toFixed(2)} $` : '—'}</p>
+                                <p className="text-gray-400 dark:text-gray-500">{tdtRate}% (mensuel)</p>
                               </div>
-                              <div className="bg-orange-50 rounded p-2 text-center">
-                                <p className="text-gray-500">Total taxes</p>
-                                <p className="font-bold text-orange-900">
+                              <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-2 text-center">
+                                <p className="text-gray-500 dark:text-gray-400">Total taxes</p>
+                                <p className="font-bold text-orange-900 dark:text-orange-300">
                                   {flStateTax != null && tdtAmount != null ? `${(flStateTax + tdtAmount).toFixed(2)} $` : '—'}
                                 </p>
-                                <p className="text-gray-400">{6 + (tdtRate || 0)}%</p>
+                                <p className="text-gray-400 dark:text-gray-500">{6 + (tdtRate || 0)}%</p>
                               </div>
                             </div>
-                            <p className="text-amber-700 mt-1">DR-15 (Sales Tax) → déclaration mensuelle/trimestrielle à l'État. TDT → déclaration mensuelle au comté.</p>
+                            <p className="text-amber-700 dark:text-amber-300 mt-1">DR-15 (Sales Tax) → déclaration mensuelle/trimestrielle à l'État. TDT → déclaration mensuelle au comté.</p>
                           </div>
                         ) : (
-                          <p className="text-gray-500">
+                          <p className="text-gray-500 dark:text-gray-400">
                             {fr ? `Entrez la durée de location pour voir les taxes applicables (Sales Tax État 6% + TDT comté ${tdtRate ?? '?'}%)` : `Enter rental duration to see applicable taxes`}
                           </p>
                         )}
@@ -781,26 +781,26 @@ export default function TransactionsTab() {
 
                     {/* Alerte ITBIS République Dominicaine */}
                     {cc === 'DO' && isRentalIncome && (
-                      <div className={`rounded-lg p-3 text-xs ${isShortTermDR && itbisAmount ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'}`}>
+                      <div className={`rounded-lg p-3 text-xs ${isShortTermDR && itbisAmount ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50' : 'bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700'}`}>
                         {isShortTermDR && itbisAmount ? (
                           <div className="space-y-1">
-                            <p className="font-semibold text-amber-800">⚠️ République Dominicaine — ITBIS applicable</p>
+                            <p className="font-semibold text-amber-800 dark:text-amber-300">⚠️ République Dominicaine — ITBIS applicable</p>
                             <div className="grid grid-cols-2 gap-2 mt-2">
-                              <div className="bg-white rounded p-2 text-center">
-                                <p className="text-gray-500">ITBIS 18%</p>
-                                <p className="font-bold text-red-700">{itbisAmount.toFixed(2)} $</p>
-                                <p className="text-gray-400">Location touristique court terme</p>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+                                <p className="text-gray-500 dark:text-gray-400">ITBIS 18%</p>
+                                <p className="font-bold text-red-700 dark:text-red-300">{itbisAmount.toFixed(2)} $</p>
+                                <p className="text-gray-400 dark:text-gray-500">Location touristique court terme</p>
                               </div>
-                              <div className="bg-blue-50 rounded p-2 text-center">
-                                <p className="text-gray-500">Confotur</p>
-                                <p className="font-bold text-blue-700">{(linkedProp as any)?.confotur_certification_date ? '✅ Exonéré' : '❌ Vérifier'}</p>
-                                <p className="text-gray-400">Loi 158-01 (si certifié)</p>
+                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-center">
+                                <p className="text-gray-500 dark:text-gray-400">Confotur</p>
+                                <p className="font-bold text-blue-700 dark:text-blue-300">{(linkedProp as any)?.confotur_certification_date ? '✅ Exonéré' : '❌ Vérifier'}</p>
+                                <p className="text-gray-400 dark:text-gray-500">Loi 158-01 (si certifié)</p>
                               </div>
                             </div>
-                            <p className="text-amber-700 mt-1">ITBIS à déclarer mensuellement à la DGII. Si propriété Confotur certifiée : exonération possible.</p>
+                            <p className="text-amber-700 dark:text-amber-300 mt-1">ITBIS à déclarer mensuellement à la DGII. Si propriété Confotur certifiée : exonération possible.</p>
                           </div>
                         ) : (
-                          <p className="text-gray-500">
+                          <p className="text-gray-500 dark:text-gray-400">
                             {fr ? `Entrez la durée de location pour voir si ITBIS 18% s'applique (court terme ≤ ${DR_SHORT_TERM_DAYS} nuits)` : `Enter rental duration to check if ITBIS 18% applies`}
                           </p>
                         )}
@@ -813,29 +813,29 @@ export default function TransactionsTab() {
                         const irnrEstimate = formData.amount > 0 ? Math.round(formData.amount * 0.27 * 100) / 100 : null
                         const hasForeignTax = (formData.foreign_tax_paid ?? 0) > 0
                         return (
-                          <div className={`rounded-lg p-3 text-xs ${!hasForeignTax && irnrEstimate ? 'bg-rose-50 border border-rose-200' : 'bg-green-50 border border-green-200'}`}>
+                          <div className={`rounded-lg p-3 text-xs ${!hasForeignTax && irnrEstimate ? 'bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50' : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50'}`}>
                             {!hasForeignTax && irnrEstimate ? (
                               <div className="space-y-1">
-                                <p className="font-semibold text-rose-800">🏛️ IRNR — Retenue non-résidents (27%) estimée</p>
+                                <p className="font-semibold text-rose-800 dark:text-rose-300">🏛️ IRNR — Retenue non-résidents (27%) estimée</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                                  <div className="bg-white rounded p-2 text-center">
-                                    <p className="text-gray-500">Revenu brut</p>
-                                    <p className="font-bold text-gray-800">{formData.amount.toFixed(2)} $</p>
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">Revenu brut</p>
+                                    <p className="font-bold text-gray-800 dark:text-gray-100">{formData.amount.toFixed(2)} $</p>
                                   </div>
-                                  <div className="bg-white rounded p-2 text-center">
-                                    <p className="text-gray-500">IRNR 27%</p>
-                                    <p className="font-bold text-rose-700">{irnrEstimate.toFixed(2)} $</p>
-                                    <p className="text-gray-400">Retenu par locataire</p>
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">IRNR 27%</p>
+                                    <p className="font-bold text-rose-700 dark:text-rose-300">{irnrEstimate.toFixed(2)} $</p>
+                                    <p className="text-gray-400 dark:text-gray-500">Retenu par locataire</p>
                                   </div>
-                                  <div className="bg-rose-100 rounded p-2 text-center">
-                                    <p className="text-gray-500">Net reçu</p>
-                                    <p className="font-bold text-rose-900">{(formData.amount - irnrEstimate).toFixed(2)} $</p>
+                                  <div className="bg-rose-100 dark:bg-rose-900/30 rounded p-2 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">Net reçu</p>
+                                    <p className="font-bold text-rose-900 dark:text-rose-300">{(formData.amount - irnrEstimate).toFixed(2)} $</p>
                                   </div>
                                 </div>
-                                <p className="text-rose-700 mt-1">Retenu mensuellement par le locataire → versé à la DGII. Saisissez le montant retenu dans « Impôt étranger payé » pour crédit T2209.</p>
+                                <p className="text-rose-700 dark:text-rose-300 mt-1">Retenu mensuellement par le locataire → versé à la DGII. Saisissez le montant retenu dans « Impôt étranger payé » pour crédit T2209.</p>
                               </div>
                             ) : (
-                              <p className="text-green-700 font-medium">
+                              <p className="text-green-700 dark:text-green-300 font-medium">
                                 ✅ IRNR — Impôt étranger saisi ({(formData.foreign_tax_paid ?? 0).toFixed(2)} $) → crédit T2209 applicable
                               </p>
                             )}
@@ -849,11 +849,11 @@ export default function TransactionsTab() {
 
               {/* Référence */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('transactions.referenceLabel')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactions.referenceLabel')}</label>
                 <input type="text" value={formData.reference_number}
                   onChange={e => set({ reference_number: e.target.value })}
                   placeholder={fr ? 'Ex: TRX-2025-001' : 'E.g. TRX-2025-001'}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5e5e5e]" />
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#5e5e5e] dark:bg-gray-700 dark:text-gray-100" />
               </div>
             </div>
 
@@ -869,7 +869,7 @@ export default function TransactionsTab() {
                       : t('common.add')}
               </button>
               <button type="button" onClick={resetForm}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-full transition-colors">
+                className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 px-6 py-2 rounded-full transition-colors">
                 {t('common.cancel')}
               </button>
             </div>
@@ -879,40 +879,40 @@ export default function TransactionsTab() {
 
       {/* ── Liste des transactions ── */}
       {filteredTransactions.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow-md text-center">
-          <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('transactions.noTransactions')}</h3>
-          <p className="text-gray-600">
+        <div className="bg-white dark:bg-gray-800 p-12 rounded-lg shadow-md text-center">
+          <DollarSign size={48} className="mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('transactions.noTransactions')}</h3>
+          <p className="text-gray-600 dark:text-gray-300">
             {filterType !== 'all' || filterCategory !== 'all'
               ? t('transactions.noMatch')
               : t('transactions.addFirst')}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.date')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.type')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.description')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.amount')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('transactions.status')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('transactions.date')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('transactions.type')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('transactions.description')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('transactions.amount')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('transactions.status')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTransactions.map(transaction => {
                   const investor = investors.find(i => i.id === transaction.investor_id)
                   const property = properties.find(p => p.id === transaction.property_id)
                   const isInflow = INFLOW_TYPES.includes(transaction.type)
 
                   return (
-                    <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
+                          <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
                           {new Date(transaction.date).toLocaleDateString(dateLocale)}
                         </div>
                       </td>
@@ -921,7 +921,7 @@ export default function TransactionsTab() {
                         {/* Description tronquée + tooltip complet au survol */}
                         <div className="group relative">
                           <div
-                            className="text-sm font-medium text-gray-900 truncate cursor-default"
+                            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate cursor-default"
                             title={transaction.description}
                           >
                             {transaction.description}
@@ -930,8 +930,8 @@ export default function TransactionsTab() {
                             {transaction.description}
                           </div>
                         </div>
-                        {investor && <div className="text-xs text-gray-500 truncate mt-0.5">{t('transactions.investorRow')} {investor.first_name} {investor.last_name}</div>}
-                        {property && <div className="text-xs text-gray-500 truncate">{t('transactions.propertyRow')} {property.name}</div>}
+                        {investor && <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{t('transactions.investorRow')} {investor.first_name} {investor.last_name}</div>}
+                        {property && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('transactions.propertyRow')} {property.name}</div>}
                         {(transaction as any).target_account && (
                           <div className="text-xs text-teal-600 truncate">
                             {t('transactions.toRow')} {(transaction as any).target_account === 'compte_courant' ? t('transactions.compteCourant') : t('transactions.typeCapex')}
