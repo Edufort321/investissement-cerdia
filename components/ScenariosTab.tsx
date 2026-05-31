@@ -236,6 +236,7 @@ export default function ScenariosTab() {
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [detailTab, setDetailTab] = useState<'overview' | 'bookings' | 'share'>('overview')
+  const [detailTabMenuOpen, setDetailTabMenuOpen] = useState(false)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35) // Taux USD→CAD
   const [showEditForm, setShowEditForm] = useState(false) // Toggle pour afficher le formulaire de modification
 
@@ -3501,7 +3502,8 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
 
         {/* Onglets de navigation */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
-          <div className="flex gap-2">
+          {/* Desktop / tablette : onglets horizontaux */}
+          <div className="hidden sm:flex gap-2">
             <button
               onClick={() => setDetailTab('overview')}
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -3534,6 +3536,52 @@ ${breakEven <= 5 ? '✅ ' + translate('scenarioResults.quickBreakEven') : breakE
             >
               Partager
             </button>
+          </div>
+
+          {/* Mobile : menu déroulant (hamburger) — évite des onglets serrés/illisibles */}
+          <div className="sm:hidden relative">
+            {(() => {
+              const detailTabLabel =
+                detailTab === 'overview' ? "Vue d'ensemble"
+                : detailTab === 'bookings' ? 'Calendrier de bookings'
+                : 'Partager'
+              return (
+                <button
+                  onClick={() => setDetailTabMenuOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-2 rounded-lg bg-blue-600 text-white font-medium"
+                >
+                  <span>{detailTabLabel}</span>
+                  <ChevronDown size={18} className={`transition-transform ${detailTabMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+              )
+            })()}
+            {detailTabMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setDetailTabMenuOpen(false)} />
+                <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => { setDetailTab('overview'); setDetailTabMenuOpen(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'overview' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    Vue d'ensemble
+                  </button>
+                  {selectedScenario.status === 'purchased' && (
+                    <button
+                      onClick={() => { setDetailTab('bookings'); setDetailTabMenuOpen(false) }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'bookings' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Calendrier de bookings
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setDetailTab('share'); setDetailTabMenuOpen(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${detailTab === 'share' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    Partager
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
