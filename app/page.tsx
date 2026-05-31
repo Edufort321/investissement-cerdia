@@ -451,11 +451,23 @@ export default function Home() {
                       : 'Portfolios, tenants, yields, tax reports and AI — all included, per organization.'}
                   </p>
                 </div>
-                <Link href="/investir" className="block">
-                  <button className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-full text-xs tracking-wide transition-all">
-                    {fr ? 'Nous contacter' : 'Contact us'}
-                  </button>
-                </Link>
+                {(() => {
+                  // Ouvre le client courriel avec un message pré-rempli prêt à envoyer.
+                  const subject = fr
+                    ? 'Demande d\'abonnement — Plateforme de gestion CERDIA'
+                    : 'Platform subscription inquiry — CERDIA'
+                  const body = fr
+                    ? `Bonjour,\n\nJe souhaite obtenir plus d'informations afin d'abonner mon organisation à la plateforme de gestion CERDIA.\n\nNom de l'organisation : \nNombre de propriétés / portefeuilles : \nTéléphone : \n\nMerci de me recontacter.\n\nCordialement,`
+                    : `Hello,\n\nI would like more information about subscribing my organization to the CERDIA management platform.\n\nOrganization name: \nNumber of properties / portfolios: \nPhone: \n\nPlease get back to me.\n\nBest regards,`
+                  const mailto = `mailto:eric.dufort@cerdia.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                  return (
+                    <a href={mailto} className="block">
+                      <button className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-full text-xs tracking-wide transition-all">
+                        {fr ? 'Nous contacter' : 'Contact us'}
+                      </button>
+                    </a>
+                  )
+                })()}
               </div>
             )
           })()}
