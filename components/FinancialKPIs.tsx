@@ -66,9 +66,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: summary.total_investisseurs,
       format: 'currency' as const,
       icon: DollarSign,
-      color: 'from-green-50 to-green-100',
-      borderColor: 'border-green-200',
-      iconColor: 'text-green-600',
+      color: 'from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-800/20',
+      borderColor: 'border-green-200 dark:border-green-800/50',
+      iconColor: 'text-green-600 dark:text-green-400',
       subtitle: null as string | null,
     },
     {
@@ -76,9 +76,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: summary.compte_courant_balance,
       format: 'currency' as const,
       icon: Wallet,
-      color: summary.compte_courant_balance >= 0 ? 'from-blue-50 to-blue-100' : 'from-orange-50 to-orange-100',
-      borderColor: summary.compte_courant_balance >= 0 ? 'border-blue-200' : 'border-orange-200',
-      iconColor: summary.compte_courant_balance >= 0 ? 'text-blue-600' : 'text-orange-600',
+      color: summary.compte_courant_balance >= 0 ? 'from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/20' : 'from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/20',
+      borderColor: summary.compte_courant_balance >= 0 ? 'border-blue-200 dark:border-blue-800/50' : 'border-orange-200 dark:border-orange-800/50',
+      iconColor: summary.compte_courant_balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
       subtitle: null,
     },
     {
@@ -86,9 +86,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: summary.capex_balance,
       format: 'currency' as const,
       icon: TrendingUp,
-      color: 'from-purple-50 to-purple-100',
-      borderColor: 'border-purple-200',
-      iconColor: 'text-purple-600',
+      color: 'from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-800/20',
+      borderColor: 'border-purple-200 dark:border-purple-800/50',
+      iconColor: 'text-purple-600 dark:text-purple-400',
       subtitle: null,
     },
     {
@@ -96,9 +96,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: summary.depenses_projets,
       format: 'currency' as const,
       icon: Building2,
-      color: 'from-orange-50 to-orange-100',
-      borderColor: 'border-orange-200',
-      iconColor: 'text-orange-600',
+      color: 'from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/20',
+      borderColor: 'border-orange-200 dark:border-orange-800/50',
+      iconColor: 'text-orange-600 dark:text-orange-400',
       subtitle: null,
     },
     {
@@ -106,9 +106,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: navCurrent?.nav_per_share ?? 1,
       format: 'nav' as const,
       icon: BarChart3,
-      color: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100' : 'from-red-50 to-red-100',
-      borderColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'border-teal-200' : 'border-red-200',
-      iconColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'text-teal-600' : 'text-red-600',
+      color: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'from-teal-50 to-teal-100 dark:from-teal-900/40 dark:to-teal-800/20' : 'from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/20',
+      borderColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'border-teal-200 dark:border-teal-800/50' : 'border-red-200 dark:border-red-800/50',
+      iconColor: (navCurrent?.nav_per_share ?? 1) >= 1 ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400',
       subtitle: navCurrent ? `${(navPct ?? 0) >= 0 ? '+' : ''}${(navPct ?? 0).toFixed(2)}% ${t('dashboard.sinceLaunch')}` : null,
     },
     {
@@ -116,9 +116,9 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
       value: navCurrent?.net_asset_value ?? 0,
       format: 'currency' as const,
       icon: BarChart3,
-      color: 'from-indigo-50 to-indigo-100',
-      borderColor: 'border-indigo-200',
-      iconColor: 'text-indigo-600',
+      color: 'from-indigo-50 to-indigo-100 dark:from-indigo-900/40 dark:to-indigo-800/20',
+      borderColor: 'border-indigo-200 dark:border-indigo-800/50',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
       subtitle: navCurrent ? `${(navCurrent.total_shares ?? 0).toLocaleString('fr-CA', { maximumFractionDigits: 0 })} ${t('dashboard.shares')}` : null,
     },
   ]
@@ -148,10 +148,10 @@ export default function FinancialKPIs({ year = null, className = '' }: Financial
             className={`bg-gradient-to-br ${kpi.color} p-4 rounded-lg border ${kpi.borderColor} transition-transform hover:scale-105`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-gray-700 leading-tight">{kpi.title}</p>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">{kpi.title}</p>
               <Icon className={`w-4 h-4 flex-shrink-0 ${kpi.iconColor}`} />
             </div>
-            <p className="text-lg font-bold text-gray-900 leading-tight">{displayValue}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{displayValue}</p>
             {kpi.subtitle && (
               <p className={`text-xs mt-1 font-medium ${
                 kpi.subtitle.startsWith('+') ? 'text-green-600' :

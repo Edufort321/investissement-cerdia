@@ -114,14 +114,14 @@ export default function CompteCourantDashboard() {
 
       {/* Solde cumulatif toutes années */}
       <div className={`rounded-xl p-6 border-2 ${(globalBalance ?? 0) >= 0
-        ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-300'
-        : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300'}`}>
+        ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-800/20 border-green-300 dark:border-green-800/60'
+        : 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/20 border-red-300 dark:border-red-800/60'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
               {t('compteCourant.cumulativeBalance')}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {t('compteCourant.cumulativeDesc')}
             </p>
           </div>
@@ -133,48 +133,48 @@ export default function CompteCourantDashboard() {
 
       {/* KPIs période sélectionnée */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-3">
           {t('compteCourant.summary')} — {periodLabel}
         </h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-800/20 p-4 rounded-lg border border-green-200 dark:border-green-800/50">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{t('transactions.totalIn')}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('transactions.totalIn')}</p>
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-600">+{fmt(periodInflow)}</p>
-            <p className="text-xs text-gray-500 mt-1">{periodLabel}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{periodLabel}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-800/50">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{t('transactions.totalOut')}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('transactions.totalOut')}</p>
               <TrendingDown className="w-5 h-5 text-red-600" />
             </div>
             <p className="text-2xl font-bold text-red-600">-{fmt(periodOutflow)}</p>
-            <p className="text-xs text-gray-500 mt-1">{periodLabel}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{periodLabel}</p>
           </div>
 
           <div className={`bg-gradient-to-br p-4 rounded-lg border ${periodBalance >= 0
-            ? 'from-blue-50 to-blue-100 border-blue-200'
-            : 'from-orange-50 to-orange-100 border-orange-200'}`}>
+            ? 'from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/20 border-blue-200 dark:border-blue-800/50'
+            : 'from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/20 border-orange-200 dark:border-orange-800/50'}`}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{t('capex.balance')}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('capex.balance')}</p>
               <Wallet className={`w-5 h-5 ${periodBalance >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
             </div>
             <p className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {fmtSigned(periodBalance)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">{periodLabel}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{periodLabel}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-800/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800/50">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{t('compteCourant.transactions')}</p>
-              <Calendar className="w-5 h-5 text-purple-600" />
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('compteCourant.transactions')}</p>
+              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{periodCount}</p>
-            <p className="text-xs text-gray-500 mt-1">{periodLabel}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{periodCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{periodLabel}</p>
           </div>
         </div>
       </div>

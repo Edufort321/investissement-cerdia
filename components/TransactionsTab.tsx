@@ -317,30 +317,30 @@ export default function TransactionsTab() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-800/20 p-4 rounded-lg border border-green-200 dark:border-green-800/50">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-green-700">{t('transactions.totalIn')}</span>
-            <TrendingUp className="text-green-600" size={20} />
+            <span className="text-sm font-medium text-green-700 dark:text-green-300">{t('transactions.totalIn')}</span>
+            <TrendingUp className="text-green-600 dark:text-green-400" size={20} />
           </div>
-          <p className="text-2xl font-bold text-green-900">
+          <p className="text-2xl font-bold text-green-900 dark:text-green-200">
             {totalIn.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-800/50">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-red-700">{t('transactions.totalOut')}</span>
-            <TrendingDown className="text-red-600" size={20} />
+            <span className="text-sm font-medium text-red-700 dark:text-red-300">{t('transactions.totalOut')}</span>
+            <TrendingDown className="text-red-600 dark:text-red-400" size={20} />
           </div>
-          <p className="text-2xl font-bold text-red-900">
+          <p className="text-2xl font-bold text-red-900 dark:text-red-200">
             {totalOut.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
-        <div className={`bg-gradient-to-br p-4 rounded-lg border ${balance >= 0 ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'}`}>
+        <div className={`bg-gradient-to-br p-4 rounded-lg border ${balance >= 0 ? 'from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/20 border-blue-200 dark:border-blue-800/50' : 'from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/20 border-orange-200 dark:border-orange-800/50'}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>{t('transactions.balance')}</span>
-            <DollarSign className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={20} />
+            <span className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>{t('transactions.balance')}</span>
+            <DollarSign className={balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'} size={20} />
           </div>
-          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
+          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-900 dark:text-blue-200' : 'text-orange-900 dark:text-orange-200'}`}>
             {balance.toLocaleString(dateLocale, { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
           </p>
         </div>
