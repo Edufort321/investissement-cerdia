@@ -709,6 +709,9 @@ export default function DashboardPage() {
                         const totalCostCAD = property.total_cost * exchangeRate
 
                         const progress = (paidFromTransactions / property.total_cost) * 100
+                        const isFullyPaid = progress >= 99.5          // payé au complet
+                        const barWidth = Math.min(progress, 100)      // la barre ne déborde jamais
+                        const surplusCAD = paidAmountCAD - totalCostCAD // trop-perçu (revenus entrés)
 
                         return (
                           <div key={property.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -727,14 +730,20 @@ export default function DashboardPage() {
                               </span>
                             </div>
                             <div className="mt-3">
-                              <div className="flex justify-between text-sm mb-1">
+                              <div className="flex justify-between items-center text-sm mb-1">
                                 <span className="text-gray-600">{t('dashboard.progress')}</span>
-                                <span className="font-semibold">{progress.toFixed(1)}%</span>
+                                {isFullyPaid ? (
+                                  <span className="font-semibold text-green-700 flex items-center gap-1">
+                                    ✓ {language === 'fr' ? 'Payé' : 'Paid'} (100%)
+                                  </span>
+                                ) : (
+                                  <span className="font-semibold">{progress.toFixed(1)}%</span>
+                                )}
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                                 <div
-                                  className="bg-blue-600 h-2 rounded-full transition-all"
-                                  style={{ width: `${progress}%` }}
+                                  className={`${isFullyPaid ? 'bg-green-600' : 'bg-blue-600'} h-2 rounded-full transition-all`}
+                                  style={{ width: `${barWidth}%` }}
                                 ></div>
                               </div>
                               <div className="flex justify-between text-xs mt-2 text-gray-600">
@@ -748,6 +757,11 @@ export default function DashboardPage() {
                               <div className="text-xs text-gray-500 mt-1">
                                 ({paidFromTransactions.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} / {property.total_cost.toLocaleString('fr-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })} USD)
                               </div>
+                              {isFullyPaid && surplusCAD > 1 && (
+                                <div className="text-xs text-green-600 mt-1">
+                                  {language === 'fr' ? 'Surplus encaissé (revenus)' : 'Surplus received (income)'} : +{surplusCAD.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 })}
+                                </div>
+                              )}
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-100">
                               <div className="flex items-center justify-between text-sm">

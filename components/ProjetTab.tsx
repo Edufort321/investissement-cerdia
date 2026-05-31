@@ -1591,7 +1591,10 @@ export default function ProjetTab() {
 
             // Calculer la progression basée sur les transactions
             const progress = property.total_cost > 0 ? (totalPaidInPropertyCurrency / property.total_cost) * 100 : 0
-            const remaining = property.total_cost - totalPaidInPropertyCurrency
+            const isFullyPaid = progress >= 99.5            // payé au complet
+            const barWidth = Math.min(progress, 100)         // la barre ne déborde jamais
+            const remaining = Math.max(property.total_cost - totalPaidInPropertyCurrency, 0)
+            const surplus = totalPaidInPropertyCurrency - property.total_cost  // trop-perçu (revenus)
 
             const propertyPayments = getPropertyPayments(property.id)
             const pendingPayments = propertyPayments.filter(p => p.status === 'pending').length
@@ -1796,14 +1799,18 @@ export default function ProjetTab() {
                 <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                   {/* Progression */}
                   <div>
-                    <div className="flex justify-between text-sm mb-2">
+                    <div className="flex justify-between items-center text-sm mb-2">
                       <span className="text-gray-600 font-medium">{t('dashboard.progress')}</span>
-                      <span className="font-bold text-gray-900">{progress.toFixed(1)}%</span>
+                      {isFullyPaid ? (
+                        <span className="font-bold text-green-700 flex items-center gap-1">✓ {fr ? 'Payé' : 'Paid'} (100%)</span>
+                      ) : (
+                        <span className="font-bold text-gray-900">{progress.toFixed(1)}%</span>
+                      )}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div
-                        className="bg-blue-600 h-3 rounded-full transition-all"
-                        style={{ width: `${progress}%` }}
+                        className={`${isFullyPaid ? 'bg-green-600' : 'bg-blue-600'} h-3 rounded-full transition-all`}
+                        style={{ width: `${barWidth}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between text-xs mt-2 text-gray-600">
@@ -1811,7 +1818,9 @@ export default function ProjetTab() {
                         {totalPaidInPropertyCurrency.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {t('dashboard.paid')}
                       </span>
                       <span>
-                        {remaining.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {t('dashboard.remaining')}
+                        {isFullyPaid && surplus > 1
+                          ? <span className="text-green-600">+{surplus.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {fr ? 'surplus' : 'surplus'}</span>
+                          : <>{remaining.toLocaleString('fr-CA', { style: 'currency', currency: property.currency || 'USD', minimumFractionDigits: 0 })} {t('dashboard.remaining')}</>}
                       </span>
                     </div>
                   </div>
