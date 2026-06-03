@@ -29,7 +29,6 @@ import SharePriceCalculator from '@/components/SharePriceCalculator'
 import InstallPWAPrompt from '@/components/InstallPWAPrompt'
 import CorporateBookTab from '@/components/CorporateBookTab'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
-import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
 import FinancialKPIs from '@/components/FinancialKPIs'
 import CAPEXDashboard from '@/components/CAPEXDashboard'
 import CompteCourantDashboard from '@/components/CompteCourantDashboard'
@@ -38,7 +37,7 @@ import NAVTimelineChart from '@/components/NAVTimelineChart'
 import { useOwnerDays } from '@/hooks/useOwnerDays'
 
 type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'administration'
-type AdminSubTabType = 'investisseurs' | 'transactions' | 'factures_gmail' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes' | 'factures' | 'support'
+type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes' | 'factures' | 'support'
 
 export default function DashboardPage() {
   const { currentUser, isAuthenticated, logout } = useAuth()
@@ -389,19 +388,6 @@ export default function DashboardPage() {
                         }`}
                       >
                         {t('admin.subtab.transactions')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setAdminSubTab('factures_gmail')
-                          if (isMobile) setSidebarOpen(false)
-                        }}
-                        className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
-                          adminSubTab === 'factures_gmail'
-                            ? 'bg-gray-200 dark:bg-gray-700 text-[#5e5e5e] dark:text-gray-100 font-medium'
-                            : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {t('admin.subtab.facturesEmail')}
                       </button>
                       <button
                         onClick={() => {
@@ -1260,15 +1246,7 @@ export default function DashboardPage() {
               )}
               {adminSubTab === 'bloc_notes' && <NotesManager />}
               {adminSubTab === 'factures' && <InvoiceGenerator module="investor" />}
-              {adminSubTab === 'factures_gmail' && (
-                <div className="p-4 sm:p-6">
-                  <GmailFacturesTab
-                    filterCompanies={['CERDIA Globale', 'CERDIA S.E.C.']}
-                    title={language === 'fr' ? 'Factures Courriel — Investissement' : 'Gmail Invoices — Investment'}
-                  />
-                </div>
-              )}
-              {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes', 'factures', 'factures_gmail', 'support'].includes(adminSubTab) && (
+              {!['capex', 'compte_courant', 'nav', 'tresorerie', 'gestion_projet', 'budgetisation', 'evaluations', 'prix_parts', 'livre_entreprise', 'mode_emploi', 'bloc_notes', 'factures', 'support'].includes(adminSubTab) && (
                 <AdministrationTab activeSubTab={adminSubTab as 'investisseurs' | 'transactions' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues'} />
               )}
             </>

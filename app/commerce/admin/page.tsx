@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import InvoiceGenerator from '@/components/admin/InvoiceGenerator'
-import GmailFacturesTab from '@/components/admin/GmailFacturesTab'
 import OrganisationsTab from '@/components/admin/OrganisationsTab'
 import PortfolioTab from '@/components/admin/PortfolioTab'
 import HomeSlidesTab from '@/components/admin/HomeSlidesTab'
@@ -221,7 +220,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'factures_gmail' | 'organisations' | 'artiste' | 'accueil' | 'csecur360'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -470,7 +469,6 @@ export default function CommerceAdminPage() {
               { key: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
               { key: 'rapports', label: 'Rapports', icon: BarChart2 },
               { key: 'factures', label: 'Factures', icon: FileText },
-              { key: 'factures_gmail', label: 'Courriel', icon: Mail },
               { key: 'artiste', label: 'Artiste', icon: Sparkles },
               { key: 'accueil', label: 'Page d\'accueil', icon: Home },
               { key: 'csecur360', label: 'C-Secur360', icon: Shield },
@@ -502,12 +500,6 @@ export default function CommerceAdminPage() {
         {tab === 'artiste' && <PortfolioTab />}
         {tab === 'accueil' && <HomeSlidesTab toast={setToast} />}
         {tab === 'csecur360' && <CSecur360Tab />}
-        {tab === 'factures_gmail' && (
-          <GmailFacturesTab
-            filterCompanies={['Commerce CERDIA']}
-            title="Factures Courriel — Commerce CERDIA"
-          />
-        )}
       </div>
     </div>
   )
