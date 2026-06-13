@@ -693,9 +693,11 @@ function ProduitsTab({ toast, onNavigate }: {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const newThisMonth = externalOrgs.filter(o => new Date(o.created_at) >= monthStart).length
 
-    // CERDIA SaaS
-    const cerdiaBillable  = externalOrgs.filter(o => o.status === 'active' && o.is_billable && !o.is_demo)
-    const cerdiaDemo      = externalOrgs.filter(o => o.is_demo || !o.is_billable)
+    // CERDIA SaaS — le décompte facturable est piloté par la case « facturable »
+    // (is_billable), sans exclure l'org interne CERDIA : si elle est cochée
+    // facturable + active + non-démo, elle compte dans l'ARR.
+    const cerdiaBillable  = orgs.filter(o => o.status === 'active' && o.is_billable && !o.is_demo)
+    const cerdiaDemo      = orgs.filter(o => o.is_demo || !o.is_billable)
     const cerdiaARR       = unitPrice * cerdiaBillable.length
     const cerdiaComm      = cerdiaBillable.reduce((sum, org) => {
       const v = saasVendors.find(x => x.id === (org as any).vendor_id)
@@ -744,7 +746,7 @@ function ProduitsTab({ toast, onNavigate }: {
       // Pour les lignes module table (compatibilité)
       activeOrgs: cerdiaBillable.length,
       arr: cerdiaARR,
-      totalClients: externalOrgs.length,
+      totalClients: orgs.length,
     }
   })()
 
