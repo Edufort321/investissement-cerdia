@@ -739,6 +739,10 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       await fetchTransactions()
       await fetchInvestorInvestments()
       await fetchInvestorSummaries()
+      // Le trigger SQL recalcule payment_schedules.status (mig.217 — INSERT) :
+      // il faut recharger l'échéancier pour que dashboard/ProjetTab voient le
+      // nouveau statut sans rechargement manuel.
+      await fetchPaymentSchedules()
 
       return { success: true, data: txData }
     } catch (error: any) {
@@ -772,6 +776,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       await fetchTransactions()
       await fetchInvestorInvestments()
       await fetchInvestorSummaries()
+      await fetchPaymentSchedules() // recalcul statut paiement (mig.96 — UPDATE)
 
       return { success: true }
     } catch (error: any) {
@@ -793,6 +798,7 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
       await fetchTransactions()
       await fetchInvestorInvestments()
       await fetchInvestorSummaries()
+      await fetchPaymentSchedules() // recalcul statut paiement (mig.96 — DELETE)
 
       return { success: true }
     } catch (error: any) {
