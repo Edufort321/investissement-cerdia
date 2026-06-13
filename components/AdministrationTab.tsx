@@ -3462,19 +3462,25 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     >
                       <option value="">{fr ? 'Aucun paiement lié' : 'No linked payment'}</option>
                       {paymentSchedules
-                        .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue' || ps.status === 'partial'))
+                        .filter(ps => ps.property_id === transactionFormData.property_id)
                         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
                         .map(payment => {
                           const dueDate = new Date(payment.due_date)
                           const today = new Date()
-                          const isOverdue = dueDate < today
+                          const isPaid = payment.status === 'paid'
                           const isPartial = payment.status === 'partial'
+                          const isCancelled = payment.status === 'cancelled'
+                          const isOverdue = !isPaid && !isCancelled && dueDate < today
+                          const badge = isPaid ? (fr ? ' ✅ PAYÉ' : ' ✅ PAID')
+                            : isCancelled ? (fr ? ' ⚪ ANNULÉ' : ' ⚪ CANCELLED')
+                            : isPartial ? (fr ? ` 🟡 PARTIEL${isOverdue ? ' · EN RETARD' : ''}` : ` 🟡 PARTIAL${isOverdue ? ' · OVERDUE' : ''}`)
+                            : isOverdue ? (fr ? ' 🔴 EN RETARD' : ' 🔴 OVERDUE')
+                            : ''
                           return (
                             <option key={payment.id} value={payment.id}>
                               {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
                               {' '}({dueDate.toLocaleDateString('fr-CA')})
-                              {isPartial ? (fr ? ' 🟡 PARTIEL' : ' 🟡 PARTIAL') : ''}
-                              {isOverdue ? (fr ? ' 🔴 EN RETARD' : ' 🔴 OVERDUE') : ''}
+                              {badge}
                             </option>
                           )
                         })
