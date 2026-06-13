@@ -3462,16 +3462,18 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
                     >
                       <option value="">{fr ? 'Aucun paiement lié' : 'No linked payment'}</option>
                       {paymentSchedules
-                        .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue'))
+                        .filter(ps => ps.property_id === transactionFormData.property_id && (ps.status === 'pending' || ps.status === 'overdue' || ps.status === 'partial'))
                         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
                         .map(payment => {
                           const dueDate = new Date(payment.due_date)
                           const today = new Date()
                           const isOverdue = dueDate < today
+                          const isPartial = payment.status === 'partial'
                           return (
                             <option key={payment.id} value={payment.id}>
                               {payment.term_label} - {payment.amount.toLocaleString('fr-CA', { style: 'currency', currency: payment.currency })}
                               {' '}({dueDate.toLocaleDateString('fr-CA')})
+                              {isPartial ? (fr ? ' 🟡 PARTIEL' : ' 🟡 PARTIAL') : ''}
                               {isOverdue ? (fr ? ' 🔴 EN RETARD' : ' 🔴 OVERDUE') : ''}
                             </option>
                           )

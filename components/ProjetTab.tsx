@@ -75,6 +75,7 @@ export default function ProjetTab() {
   const [showPerformancePropertyId, setShowPerformancePropertyId] = useState<string | null>(null)
   const [showPaymentManagerPropertyId, setShowPaymentManagerPropertyId] = useState<string | null>(null)
   const [showFinancialSummaryPropertyId, setShowFinancialSummaryPropertyId] = useState<string | null>(null)
+  const [showLinksPropertyId, setShowLinksPropertyId] = useState<string | null>(null)
   const [openMenuPropertyId, setOpenMenuPropertyId] = useState<string | null>(null)
   const [exchangeRate, setExchangeRate] = useState<number>(1.35)
   const [loadingRate, setLoadingRate] = useState(false)
@@ -1753,6 +1754,14 @@ export default function ProjetTab() {
                               </button>
 
                               <button
+                                onClick={() => { setShowLinksPropertyId(property.id); setOpenMenuPropertyId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors"
+                              >
+                                <Link2 size={15} className="text-sky-500" />
+                                {t('projects.hyperlinks')}
+                              </button>
+
+                              <button
                                 onClick={() => { setShowPerformancePropertyId(showPerformancePropertyId === property.id ? null : property.id); setOpenMenuPropertyId(null) }}
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
                               >
@@ -2597,6 +2606,32 @@ export default function ProjetTab() {
                 propertyId={showAttachmentsPropertyId}
                 onClose={() => setShowAttachmentsPropertyId(null)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hyperliens Modal — accès lecture/clic depuis la carte (édition dans Modifier) */}
+      {showLinksPropertyId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('projects.hyperlinks')}</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {properties.find(p => p.id === showLinksPropertyId)?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowLinksPropertyId(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
+              <PropertyLinksManager propertyId={showLinksPropertyId} isAdmin={false} />
             </div>
           </div>
         </div>

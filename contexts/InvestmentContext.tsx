@@ -263,9 +263,13 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Investors
   const fetchInvestors = useCallback(async () => {
     try {
-      let q: any = supabase.from('investors').select('*').order('created_at', { ascending: false })
       const orgId = effectiveOrgIdRef.current
-      if (orgId) q = q.eq('organization_id', orgId)
+      // Fail-closed : sans org résolue, ne JAMAIS ramener toutes les orgs.
+      // (super_admin n'est pas restreint par la RLS RESTRICTIVE → fuite démo↔tenant)
+      if (!orgId) { setInvestors([]); return }
+      const q: any = supabase.from('investors').select('*')
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false })
       const { data, error } = await q
 
       if (error) throw error
@@ -278,9 +282,11 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Properties
   const fetchProperties = useCallback(async () => {
     try {
-      let q: any = supabase.from('properties').select('*').order('created_at', { ascending: false })
       const orgId = effectiveOrgIdRef.current
-      if (orgId) q = q.eq('organization_id', orgId)
+      if (!orgId) { setProperties([]); return }
+      const q: any = supabase.from('properties').select('*')
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false })
       const { data, error } = await q
 
       if (error) throw error
@@ -293,9 +299,11 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Transactions
   const fetchTransactions = useCallback(async () => {
     try {
-      let q: any = supabase.from('transactions').select('*').order('date', { ascending: false })
       const orgId = effectiveOrgIdRef.current
-      if (orgId) q = q.eq('organization_id', orgId)
+      if (!orgId) { setTransactions([]); return }
+      const q: any = supabase.from('transactions').select('*')
+        .eq('organization_id', orgId)
+        .order('date', { ascending: false })
       const { data, error } = await q
 
       if (error) throw error
@@ -309,7 +317,8 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   const fetchAccounts = useCallback(async () => {
     try {
       const orgId = effectiveOrgIdRef.current
-      const filter = (q: any) => orgId ? q.eq('organization_id', orgId) : q
+      if (!orgId) { setCapexAccounts([]); setCurrentAccounts([]); setRnDAccounts([]); return }
+      const filter = (q: any) => q.eq('organization_id', orgId)
       const [capexResult, currentResult, rndResult] = await Promise.all([
         filter(supabase.from('capex_accounts').select('*')).order('year', { ascending: false }),
         filter(supabase.from('current_accounts').select('*')).order('year', { ascending: false }),
@@ -597,13 +606,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Investor Investments
   const fetchInvestorInvestments = useCallback(async (investorId?: string) => {
     try {
+      const orgId = effectiveOrgIdRef.current
+      if (!orgId) { setInvestorInvestments([]); return }
       let query: any = supabase
         .from('investor_investments')
         .select('*')
+        .eq('organization_id', orgId)
         .order('investment_date', { ascending: false })
 
-      const orgId = effectiveOrgIdRef.current
-      if (orgId) query = query.eq('organization_id', orgId)
       if (investorId) query = query.eq('investor_id', investorId)
 
       const { data, error } = await query
@@ -793,13 +803,14 @@ export function InvestmentProvider({ children }: { children: React.ReactNode }) 
   // Fetch Payment Schedules
   const fetchPaymentSchedules = useCallback(async (propertyId?: string) => {
     try {
+      const orgId = effectiveOrgIdRef.current
+      if (!orgId) { setPaymentSchedules([]); return }
       let query: any = supabase
         .from('payment_schedules')
         .select('*')
+        .eq('organization_id', orgId)
         .order('due_date', { ascending: true })
 
-      const orgId = effectiveOrgIdRef.current
-      if (orgId) query = query.eq('organization_id', orgId)
       if (propertyId) query = query.eq('property_id', propertyId)
 
       const { data, error } = await query
