@@ -9,6 +9,7 @@ import OrganisationsTab from '@/components/admin/OrganisationsTab'
 import PortfolioTab from '@/components/admin/PortfolioTab'
 import HomeSlidesTab from '@/components/admin/HomeSlidesTab'
 import CSecur360Tab from '@/components/admin/CSecur360Tab'
+import LivreEntrepriseTab from '@/components/admin/LivreEntrepriseTab'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -17,7 +18,7 @@ import {
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
   Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail,
-  Building2, Sparkles, RefreshCw, Layers,
+  Building2, Sparkles, RefreshCw, Layers, BookOpen,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -220,7 +221,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -456,6 +457,15 @@ export default function CommerceAdminPage() {
               <Link href="/commerce" className="text-xs text-gray-500 hover:text-gray-700 transition-colors hidden sm:block">
                 ← Boutique
               </Link>
+              {/* Pont bidirectionnel : aller vers l'admin C-Secur360 */}
+              <a
+                href={`${process.env.NEXT_PUBLIC_CSECUR360_URL || 'https://www.c-secur360.ca'}/admin/dashboard`}
+                target="_blank" rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs text-cyan-700 hover:bg-cyan-50 px-3 py-1.5 rounded-full transition-colors border border-cyan-200"
+                title="Ouvrir l'administration C-Secur360"
+              >
+                <Shield size={13} /> C-Secur360 →
+              </a>
               <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-200">
                 <LogOut size={13} /> Déconnexion
               </button>
@@ -472,6 +482,7 @@ export default function CommerceAdminPage() {
               { key: 'artiste', label: 'Artiste', icon: Sparkles },
               { key: 'accueil', label: 'Page d\'accueil', icon: Home },
               { key: 'csecur360', label: 'C-Secur360', icon: Shield },
+              ...(isSuperAdmin ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
               ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
@@ -500,6 +511,7 @@ export default function CommerceAdminPage() {
         {tab === 'artiste' && <PortfolioTab />}
         {tab === 'accueil' && <HomeSlidesTab toast={setToast} />}
         {tab === 'csecur360' && <CSecur360Tab />}
+        {tab === 'livre' && <LivreEntrepriseTab toast={setToast} />}
       </div>
     </div>
   )
