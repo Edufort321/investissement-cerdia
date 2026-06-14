@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { authorizeCommerce } from '@/lib/auth/commerce-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,10 +12,15 @@ const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET
 const CSECUR360_API_URL = process.env.CSECUR360_API_URL || 'http://localhost:3000'
 
 // POST /api/commerce/csecur360/sync
-// Tire tous les tenants + vendeurs depuis C-Secur360 et upsert localement
+// Tire tous les tenants + vendeurs depuis C-Secur360 et upsert localement.
+// Déclencheur : admin commerce connecté (session) OU secret de pont. L'appel SORTANT vers C-Secur360,
+// lui, utilise toujours le secret de pont serveur→serveur (jamais la session du navigateur).
 export async function POST(req: NextRequest) {
-  if (!SYNC_SECRET || req.headers.get('authorization') !== `Bearer ${SYNC_SECRET}`) {
+  if (!(await authorizeCommerce(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!SYNC_SECRET) {
+    return NextResponse.json({ error: 'CSECUR360_SYNC_SECRET non configuré côté serveur — synchronisation impossible.' }, { status: 503 })
   }
 
   const headers = {

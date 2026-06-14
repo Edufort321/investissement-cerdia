@@ -7,6 +7,7 @@ import {
   BadgeCheck, AlertTriangle, ArrowDownToLine, Package, Calendar,
   FileCheck, ClipboardList, Layers, HardHat, BoxesIcon,
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface CSVendor {
   id: string
@@ -47,9 +48,15 @@ interface CSClient {
   created_at: string
 }
 
-const SYNC_SECRET = process.env.NEXT_PUBLIC_CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
 const CSECUR360_URL = process.env.NEXT_PUBLIC_CSECUR360_URL || 'http://localhost:3000'
-const authHeader = { Authorization: `Bearer ${SYNC_SECRET}` }
+
+// Auth par SESSION admin connectée (le token est validé côté serveur — rôle super_admin … org_commerce).
+// On n'embarque plus de secret de pont dans le navigateur (fragile + risque de fuite).
+async function authHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token || ''
+  return { Authorization: `Bearer ${token}`, ...(extra || {}) }
+}
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(n)
@@ -127,10 +134,11 @@ export default function CSecur360Tab() {
     setLoading(true)
     setError(null)
     try {
+      const h = await authHeaders()
       const [cRes, vRes, mRes] = await Promise.all([
-        fetch('/api/commerce/csecur360', { headers: authHeader }),
-        fetch('/api/commerce/csecur360/vendors', { headers: authHeader }),
-        fetch('/api/commerce/csecur360/modules', { headers: authHeader }),
+        fetch('/api/commerce/csecur360', { headers: h }),
+        fetch('/api/commerce/csecur360/vendors', { headers: h }),
+        fetch('/api/commerce/csecur360/modules', { headers: h }),
       ])
       if (!cRes.ok) throw new Error(`clients HTTP ${cRes.status}`)
       const cData = await cRes.json()
@@ -158,7 +166,7 @@ export default function CSecur360Tab() {
     try {
       const res = await fetch('/api/commerce/csecur360/sync', {
         method: 'POST',
-        headers: authHeader,
+        headers: await authHeaders(),
       })
       const d = await res.json()
       if (d.ok) {
@@ -180,7 +188,7 @@ export default function CSecur360Tab() {
     try {
       const res = await fetch('/api/commerce/csecur360/vendors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ ...newVendor, commission_rate: newVendor.commission_rate / 100 }),
       })
       const d = await res.json()
@@ -197,7 +205,7 @@ export default function CSecur360Tab() {
 
   const deactivateVendor = async (id: string, name: string) => {
     if (!confirm(`Désactiver ${name} ?`)) return
-    await fetch(`/api/commerce/csecur360/vendors?id=${id}`, { method: 'DELETE', headers: authHeader })
+    await fetch(`/api/commerce/csecur360/vendors?id=${id}`, { method: 'DELETE', headers: await authHeaders() })
     loadAll()
   }
 
