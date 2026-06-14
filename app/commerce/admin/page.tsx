@@ -344,8 +344,9 @@ export default function CommerceAdminPage() {
   // email/mot de passe (un seul champ « mot de passe », pas d'identifiant) et exposait un secret en clair.
   const [tab, setTab] = useState<Tab>('produits')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const { isSuperAdmin, profile } = useOrganization()
-  // Admin commerce voit tout le commerce comme le super_admin (sauf onglets de propriété ci-dessous).
+  const { profile } = useOrganization()
+  // Admin commerce (org_commerce) = accès COMPLET à l'admin Commerce CERDIA (tous les onglets, dont
+  // Livre d'entreprise et Admins commerce). Seule la zone Investisseur reste interdite (CommerceRoleGuard).
   const canSeeCommerce = COMMERCE_FULL_ROLES.includes(profile?.role || '')
 
   useEffect(() => {
@@ -409,8 +410,8 @@ export default function CommerceAdminPage() {
               { key: 'artiste', label: 'Artiste', icon: Sparkles },
               { key: 'accueil', label: 'Page d\'accueil', icon: Home },
               { key: 'csecur360', label: 'C-Secur360', icon: Shield },
-              ...(isSuperAdmin ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
-              ...(isSuperAdmin ? [{ key: 'admins' as Tab, label: 'Admins commerce', icon: Shield }] : []),
+              ...(canSeeCommerce ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
+              ...(canSeeCommerce ? [{ key: 'admins' as Tab, label: 'Admins commerce', icon: Shield }] : []),
               ...(canSeeCommerce ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button

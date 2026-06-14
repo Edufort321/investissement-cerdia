@@ -126,10 +126,20 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
     return c > 0 && n > 0 ? c / n : 0
   }, [f.purchase_cost, f.shares_count])
 
+  // Accès au livre via route serveur (service_role + session admin, incl. org_commerce) — le RLS
+  // direct de company_shareholders est limité à super_admin/org_admin.
+  async function authH(extra?: Record<string, string>): Promise<Record<string, string>> {
+    const { data } = await supabase.auth.getSession()
+    return { Authorization: `Bearer ${data.session?.access_token || ''}`, ...(extra || {}) }
+  }
+
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('company_shareholders').select('*').order('created_at', { ascending: false })
-    setRows((data as Shareholder[]) || [])
+    try {
+      const res = await fetch('/api/commerce/shareholder', { headers: await authH() })
+      const j = await res.json()
+      setRows((j.shareholders as Shareholder[]) || [])
+    } catch { setRows([]) }
     setLoading(false)
   }
   useEffect(() => { load() }, [])
@@ -165,8 +175,8 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
         president_name: PRESIDENT_NAME, president_title: 'Président', president_signature: prSig, president_signed_at: now,
         document_hash, status: 'signed',
       }
-      const { error } = await supabase.from('company_shareholders').insert(payload)
-      if (error) throw error
+      const res = await fetch('/api/commerce/shareholder', { method: 'POST', headers: await authH({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload) })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`)
       toast({ msg: '✓ Actionnaire enregistré et signé.', type: 'success' })
       reset(); setOpen(false); load()
     } catch (e: any) {
@@ -176,7 +186,7 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
 
   async function remove(id: string) {
     if (!confirm('Supprimer définitivement cet enregistrement du livre ?')) return
-    await supabase.from('company_shareholders').delete().eq('id', id)
+    await fetch(`/api/commerce/shareholder?id=${id}`, { method: 'DELETE', headers: await authH() })
     load()
   }
 
