@@ -877,7 +877,7 @@ function ProduitsTab({ toast, onNavigate }: {
                   </div>
                   <span className="text-sm font-bold text-gray-900 dark:text-white">C-Secur360 — Modules SaaS</span>
                 </div>
-                <span className="text-xs text-orange-600 font-semibold">{csModules.filter(m => m.is_active && m.monthly_price > 0).length} modules payants</span>
+                <span className="text-xs text-orange-600 font-semibold">{csModules.filter(m => m.is_active && m.monthly_price > 0 && m.key !== 'site_additionnel').length} modules payants</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -899,10 +899,14 @@ function ProduitsTab({ toast, onNavigate }: {
                   <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{fmtCAD(metrics.csNET)}</p>
                 </div>
               </div>
+              {/* Site additionnel (1 site inclus) — remonté du prix par site C-Secur360 */}
+              {(() => { const ps = csModules.find(m => m.key === 'site_additionnel'); return ps ? (
+                <p className="mt-3 text-[11px] font-semibold text-orange-700 dark:text-orange-300">🏢 1 site inclus · site additionnel +{fmtCAD(ps.monthly_price)}/an</p>
+              ) : null })()}
               {/* Mini breakdown modules */}
-              {csModules.filter(m => m.is_active && m.monthly_price > 0 && m.billable_tenants > 0).length > 0 && (
+              {csModules.filter(m => m.is_active && m.monthly_price > 0 && m.billable_tenants > 0 && m.key !== 'site_additionnel').length > 0 && (
                 <div className="mt-3 pt-3 border-t border-orange-100 dark:border-orange-900/30 flex flex-wrap gap-1.5">
-                  {csModules.filter(m => m.is_active && m.monthly_price > 0).map(m => (
+                  {csModules.filter(m => m.is_active && m.monthly_price > 0 && m.key !== 'site_additionnel').map(m => (
                     <span key={m.key} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
                       <span className="font-bold text-orange-800 dark:text-orange-300">{m.key}</span>
                       <span className="text-orange-600 dark:text-orange-400">
