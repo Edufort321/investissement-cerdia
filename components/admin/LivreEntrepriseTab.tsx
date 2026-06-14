@@ -8,7 +8,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
-import { BookOpen, Plus, Trash2, Save, X, Download, Eraser, FileSignature } from 'lucide-react'
+import { BookOpen, Plus, Trash2, Save, X, Download, Eraser, FileSignature, Mail, Users, FolderOpen, Check } from 'lucide-react'
+import CorporateBookTab from '@/components/CorporateBookTab'
 
 type Shareholder = {
   id: string
@@ -19,6 +20,7 @@ type Shareholder = {
   shareholder_signature?: string; shareholder_signed_at?: string
   president_name?: string; president_title?: string; president_signature?: string; president_signed_at?: string
   document_hash?: string; effective_date?: string; status?: string; created_at?: string
+  certificate_path?: string; certificate_sent_at?: string; certificate_sent_to?: string
 }
 
 const PRESIDENT_NAME = 'Eric Dufort'
@@ -42,6 +44,21 @@ function fmtTs(iso?: string) {
 async function sha256(text: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Logo CERDIA chargé en base64 pour l'en-tête PDF (fichier public).
+async function loadLogo(): Promise<string | null> {
+  try {
+    const res = await fetch('/logo-cerdia3.png')
+    if (!res.ok) return null
+    const blob = await res.blob()
+    return await new Promise<string | null>((resolve) => {
+      const r = new FileReader()
+      r.onloadend = () => resolve(typeof r.result === 'string' ? r.result : null)
+      r.onerror = () => resolve(null)
+      r.readAsDataURL(blob)
+    })
+  } catch { return null }
 }
 
 // ── Pad de signature (dessin souris/tactile) ──
@@ -89,10 +106,12 @@ function SignaturePad({ value, onChange, label }: { value: string; onChange: (da
 }
 
 export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string; type: 'success' | 'error' }) => void }) {
+  const [sub, setSub] = useState<'actionnaires' | 'corporate'>('actionnaires')
   const [rows, setRows] = useState<Shareholder[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   const [f, setF] = useState({
     full_name: '', title: '', email: '', address: '',
@@ -161,11 +180,16 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
     load()
   }
 
-  function exportPdf(s: Shareholder) {
+  // Construit le PDF du certificat (avec logo) — réutilisé pour le téléchargement ET l'envoi.
+  async function buildPdf(s: Shareholder): Promise<jsPDF> {
     const doc = new jsPDF({ unit: 'pt', format: 'letter' })
     const W = doc.internal.pageSize.getWidth(); const M = 56; let y = 60
+    // En-tête : logo CERDIA à gauche, titre à droite.
+    const logo = await loadLogo()
+    if (logo) { try { doc.addImage(logo, 'PNG', M, y - 26, 38, 38) } catch {} }
+    const titleX = logo ? M + 50 : M
     doc.setFont('helvetica', 'bold'); doc.setFontSize(16)
-    doc.text(`${COMPANY} — Certificat de souscription d'actions`, M, y); y += 8
+    doc.text(`${COMPANY} — Certificat de souscription d'actions`, titleX, y); y += 8
     doc.setDrawColor(230); doc.line(M, y, W - M, y); y += 24
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5)
     const line = (k: string, v: string) => { doc.setFont('helvetica', 'bold'); doc.text(k, M, y); doc.setFont('helvetica', 'normal'); doc.text(v || '—', M + 150, y); y += 18 }
@@ -197,11 +221,54 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
     doc.text(`Signé : ${fmtTs(s.shareholder_signed_at)}`, M, ly); doc.text(`Signé : ${fmtTs(s.president_signed_at)}`, M + colW + 24, ly); ly += 18
     doc.setFontSize(7.4); doc.setTextColor(120)
     doc.text(`Empreinte d'intégrité (SHA-256) : ${s.document_hash || ''}`, M, ly, { maxWidth: W - 2 * M })
+    return doc
+  }
+
+  async function exportPdf(s: Shareholder) {
+    const doc = await buildPdf(s)
     doc.save(`certificat-${s.full_name.replace(/[^a-z0-9]/gi, '_')}.pdf`)
   }
 
+  // Archive le PDF (bucket corporate-documents) + envoie par courriel à l'actionnaire.
+  async function sendCertificate(s: Shareholder) {
+    if (!s.email) { toast({ msg: 'Cet actionnaire n\'a pas de courriel.', type: 'error' }); return }
+    setSendingId(s.id)
+    try {
+      const doc = await buildPdf(s)
+      const pdfBase64 = doc.output('datauristring') // data URL base64
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) { toast({ msg: 'Session expirée — reconnecte-toi.', type: 'error' }); return }
+      const res = await fetch('/api/commerce/shareholder/send-certificate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ shareholderId: s.id, pdfBase64 }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) { toast({ msg: 'Erreur : ' + (json.error || res.status), type: 'error' }); return }
+      if (json.emailed) toast({ msg: `✓ Certificat archivé et envoyé à ${s.email}.`, type: 'success' })
+      else toast({ msg: `Certificat archivé. Courriel non envoyé (${json.emailError || 'inconnu'}).`, type: 'error' })
+      load()
+    } catch (e: any) {
+      toast({ msg: 'Erreur : ' + (e?.message || 'envoi'), type: 'error' })
+    } finally { setSendingId(null) }
+  }
+
+  const subBtn = (active: boolean) =>
+    `inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+      active ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`
+
   return (
     <div>
+      {/* Sous-navigation : registre des actionnaires | documentation d'entreprise & notes de décision */}
+      <div className="flex gap-1 mb-6 border-b border-gray-200">
+        <button onClick={() => setSub('actionnaires')} className={subBtn(sub === 'actionnaires')}><Users size={15} /> Actionnaires</button>
+        <button onClick={() => setSub('corporate')} className={subBtn(sub === 'corporate')}><FolderOpen size={15} /> Documents &amp; décisions</button>
+      </div>
+
+      {sub === 'corporate' ? <CorporateBookTab /> : (
+      <>
       <div className="flex items-center justify-between mb-4">
         <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><BookOpen size={18} /> Livre d'entreprise — Actionnaires</h2>
         <button onClick={() => { reset(); setOpen(o => !o) }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg">
@@ -275,9 +342,24 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
                   <td className="px-4 py-3 text-right">{s.shares_count ?? '—'}</td>
                   <td className="px-4 py-3 text-right">{s.shares_pct != null ? `${s.shares_pct} %` : '—'}</td>
                   <td className="px-4 py-3 text-right">{s.purchase_cost != null ? `${s.purchase_cost.toLocaleString('fr-CA')} ${s.currency || 'CAD'}` : '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{fmtTs(s.shareholder_signed_at)}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">
+                    {fmtTs(s.shareholder_signed_at)}
+                    {s.certificate_sent_at && (
+                      <span className="ml-2 inline-flex items-center gap-0.5 text-emerald-600" title={`Envoyé à ${s.certificate_sent_to || ''} le ${fmtTs(s.certificate_sent_at)}`}>
+                        <Check size={12} /> envoyé
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button onClick={() => exportPdf(s)} className="inline-flex items-center gap-1 text-xs text-cyan-700 hover:underline mr-3"><Download size={13} /> PDF</button>
+                    <button
+                      onClick={() => sendCertificate(s)}
+                      disabled={sendingId === s.id || !s.email}
+                      title={!s.email ? 'Aucun courriel pour cet actionnaire' : 'Archiver et envoyer le certificat par courriel'}
+                      className="inline-flex items-center gap-1 text-xs text-orange-700 hover:underline mr-3 disabled:opacity-40 disabled:no-underline"
+                    >
+                      <Mail size={13} /> {sendingId === s.id ? 'Envoi…' : 'Envoyer'}
+                    </button>
                     <button onClick={() => remove(s.id)} className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"><Trash2 size={13} /></button>
                   </td>
                 </tr>
@@ -285,6 +367,8 @@ export default function LivreEntrepriseTab({ toast }: { toast: (t: { msg: string
             </tbody>
           </table>
         </div>
+      )}
+      </>
       )}
     </div>
   )
