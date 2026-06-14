@@ -836,7 +836,7 @@ export default function UserGuide() {
         <Info size={16} className="text-blue-600 shrink-0" />
         <p className="text-xs text-blue-700">
           Ce guide est maintenu à jour avec le code source. Dernière mise à jour : 2026-05-28.
-          Pour toute question technique, contacter eric.dufort@cerdia.ai.
+          Pour toute question technique, contacter info@cerdia.ai.
         </p>
       </div>
     </div>

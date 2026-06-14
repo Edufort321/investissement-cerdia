@@ -5,7 +5,7 @@
  * - Auth : org_admin du tenant (token Bearer). Le grant est TOUJOURS scopé à
  *   l'organisation du caller (anti-BOLA) — on ignore tout organization_id du body.
  * - À l'activation : insère un support_access_grant + envoie un courriel à
- *   eric.dufort@cerdia.ai (notification d'accès accordé).
+ *   info@cerdia.ai (notification d'accès accordé).
  *
  * Sécurité : sans grant actif, le super_admin ne voit PAS les données du tenant
  * (cf. migration 211, fonction super_admin_can_access).
@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminToken, adminAuthError } from '@/lib/auth/require-admin-token'
 
-const SUPPORT_EMAIL = 'eric.dufort@cerdia.ai'
+const SUPPORT_EMAIL = 'info@cerdia.ai'
 const DURATION_HOURS: Record<string, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }
 
 export async function POST(request: NextRequest) {

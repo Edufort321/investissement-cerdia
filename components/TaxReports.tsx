@@ -975,7 +975,7 @@ export default function TaxReports() {
       doc.text(pdfSafe(fr ? 'Signature / Date : ____________________________' : 'Signature / Date: ____________________________'), 18, y + 24)
 
       doc.setFontSize(7); doc.setTextColor(160, 160, 160)
-      doc.text(pdfSafe('CERDIA SEC — eric.dufort@cerdia.ai — ' + (fr ? 'Confidentiel' : 'Confidential')), 105, 287, { align: 'center' })
+      doc.text(pdfSafe('CERDIA SEC — info@cerdia.ai — ' + (fr ? 'Confidentiel' : 'Confidential')), 105, 287, { align: 'center' })
 
       doc.save(`controle_fiscal_CPA_${selectedYear}_${filterPeriod}_CERDIA.pdf`)
     } catch (e: any) {

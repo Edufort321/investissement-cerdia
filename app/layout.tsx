@@ -94,7 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   name: 'CERDIA',
                   url: SITE_URL,
                   logo: `${SITE_URL}/logo-cerdia3.png`,
-                  email: 'eric.dufort@cerdia.ai',
+                  email: 'info@cerdia.ai',
                   description: SITE_DESCRIPTION,
                   areaServed: ['CA', 'DO', 'US', 'MX'],
                   sameAs: [],

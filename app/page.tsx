@@ -459,7 +459,7 @@ export default function Home() {
                   const body = fr
                     ? `Bonjour,\n\nJe souhaite obtenir plus d'informations afin d'abonner mon organisation à la plateforme de gestion CERDIA.\n\nNom de l'organisation : \nNombre de propriétés / portefeuilles : \nTéléphone : \n\nMerci de me recontacter.\n\nCordialement,`
                     : `Hello,\n\nI would like more information about subscribing my organization to the CERDIA management platform.\n\nOrganization name: \nNumber of properties / portfolios: \nPhone: \n\nPlease get back to me.\n\nBest regards,`
-                  const mailto = `mailto:eric.dufort@cerdia.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                  const mailto = `mailto:info@cerdia.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
                   return (
                     <a href={mailto} className="block">
                       <button className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-full text-xs tracking-wide transition-all">

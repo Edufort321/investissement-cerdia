@@ -12,7 +12,7 @@ import { MessageCircle, X, Send, Sparkles, PlayCircle, Mail } from 'lucide-react
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
-const CONTACT_EMAIL = 'eric.dufort@cerdia.ai'
+const CONTACT_EMAIL = 'info@cerdia.ai'
 
 const SUGGESTIONS = [
   'C’est quoi CERDIA ?',

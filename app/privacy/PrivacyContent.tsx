@@ -69,10 +69,10 @@ export default function PrivacyContent() {
             <p className="text-gray-700 dark:text-gray-300">
               {fr ? 'Pour toute question concernant la confidentialité, contacter' : 'For any privacy-related questions, contact'}{' '}
               <a
-                href="mailto:eric.dufort@cerdia.ai"
+                href="mailto:info@cerdia.ai"
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                eric.dufort@cerdia.ai
+                info@cerdia.ai
               </a>
               .
             </p>

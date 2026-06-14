@@ -8,7 +8,7 @@
  * aucun rendement. Redirige vers la démo et le courriel pour devenir investisseur.
  */
 
-const CONTACT_EMAIL = 'eric.dufort@cerdia.ai'
+const CONTACT_EMAIL = 'info@cerdia.ai'
 
 export const PUBLIC_KNOWLEDGE = `
 # CERDIA — Plateforme d'investissement immobilier international

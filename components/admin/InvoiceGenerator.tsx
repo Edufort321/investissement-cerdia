@@ -344,7 +344,7 @@ export default function InvoiceGenerator({ module = 'investor' }: { module?: 'in
       ``,
       `Cordialement,`,
       `${company.name}`,
-      ...(company.email ? [company.email] : ['eric.dufort@cerdia.ai']),
+      ...(company.email ? [company.email] : ['info@cerdia.ai']),
       ...(company.phone ? [company.phone] : []),
     ].join('\n')
 

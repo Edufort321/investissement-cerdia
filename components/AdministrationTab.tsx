@@ -4892,7 +4892,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
       doc.setFontSize(11); doc.setTextColor(20, 20, 20)
       doc.text('CERDIA SEC', 120, y + 6)
       doc.setFontSize(9); doc.setTextColor(100, 100, 100)
-      doc.text('eric.dufort@cerdia.ai', 120, y + 12)
+      doc.text('info@cerdia.ai', 120, y + 12)
       doc.text('Québec, Canada', 120, y + 17)
 
       y += 28
@@ -5075,7 +5075,7 @@ export default function AdministrationTab({ activeSubTab }: AdministrationTabPro
     doc.setFontSize(9); doc.setTextColor(100, 100, 100)
     if (inv.email) doc.text(inv.email, 15, y + 12)
     doc.setFontSize(10); doc.setTextColor(80, 80, 80); doc.text('CERDIA SEC', 120, y + 6)
-    doc.setFontSize(8); doc.setTextColor(100, 100, 100); doc.text('eric.dufort@cerdia.ai', 120, y + 12)
+    doc.setFontSize(8); doc.setTextColor(100, 100, 100); doc.text('info@cerdia.ai', 120, y + 12)
     y += 24
     doc.setDrawColor(220, 220, 220); doc.line(15, y, 195, y); y += 7
 

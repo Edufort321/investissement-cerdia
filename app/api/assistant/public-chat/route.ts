@@ -36,15 +36,15 @@ export async function POST(request: NextRequest) {
   const quota = checkPublicQuota(ip)
   if (!quota.ok) {
     const msg = quota.reason === 'global_cap'
-      ? 'Notre assistant est très sollicité aujourd’hui. Écrivez-nous à eric.dufort@cerdia.ai ou essayez la démo.'
-      : 'Vous avez envoyé beaucoup de messages. Réessayez un peu plus tard, ou écrivez à eric.dufort@cerdia.ai.'
+      ? 'Notre assistant est très sollicité aujourd’hui. Écrivez-nous à info@cerdia.ai ou essayez la démo.'
+      : 'Vous avez envoyé beaucoup de messages. Réessayez un peu plus tard, ou écrivez à info@cerdia.ai.'
     return NextResponse.json({ reply: msg, limited: true }, { status: 200 })
   }
 
   const client = getClient()
   if (!client) {
     return NextResponse.json(
-      { reply: 'Assistant momentanément indisponible. Écrivez-nous à eric.dufort@cerdia.ai.' },
+      { reply: 'Assistant momentanément indisponible. Écrivez-nous à info@cerdia.ai.' },
       { status: 200 }
     )
   }
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   } catch (e: any) {
     console.error('[public-chat] error:', e?.message)
     return NextResponse.json(
-      { reply: 'Une erreur est survenue. Écrivez-nous à eric.dufort@cerdia.ai.' },
+      { reply: 'Une erreur est survenue. Écrivez-nous à info@cerdia.ai.' },
       { status: 200 }
     )
   }

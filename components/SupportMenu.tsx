@@ -14,7 +14,7 @@ import { Monitor, ShieldCheck, ShieldOff, Clock, ExternalLink } from 'lucide-rea
  *  2. ACCÈS DÉLÉGUÉ (secours, sur consentement explicite) : le client AUTORISE
  *     CERDIA à accéder à ses données (lecture+écriture) pour une durée limitée.
  *     Tant que ce n'est pas activé, le support CERDIA ne voit rien de ce tenant.
- *     À l'activation, eric.dufort@cerdia.ai reçoit un courriel.
+ *     À l'activation, info@cerdia.ai reçoit un courriel.
  */
 
 // Lien de session de support (visio). Configurable via env publique.

@@ -177,10 +177,10 @@ export default function ImmobilierPage() {
         <h3 className="text-2xl font-bold text-gray-900 mb-3">{language === 'fr' ? "Besoin d'informations?" : 'Need more information?'}</h3>
         <p className="text-gray-600 mb-4">{tr.contact}</p>
         <a
-          href="mailto:eric.dufort@cerdia.ai"
+          href="mailto:info@cerdia.ai"
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#5e5e5e] text-white rounded-full hover:bg-[#3e3e3e] transition-colors font-medium"
         >
-          <span>eric.dufort@cerdia.ai</span>
+          <span>info@cerdia.ai</span>
           <span className="text-lg">✉️</span>
         </a>
       </div>

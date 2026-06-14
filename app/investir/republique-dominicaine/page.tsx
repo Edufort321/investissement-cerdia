@@ -103,7 +103,7 @@ export default function RepubliqueDominicainePage() {
                 Voir la démo
               </span>
             </Link>
-            <a href="mailto:eric.dufort@cerdia.ai?subject=Investir en République Dominicaine">
+            <a href="mailto:info@cerdia.ai?subject=Investir en République Dominicaine">
               <span className="inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm border border-white/20 transition-colors">
                 Nous écrire
               </span>
