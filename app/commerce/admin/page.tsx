@@ -494,7 +494,13 @@ const CS_MODULE_COLORS: Record<string, string> = {
   timesheets:  'bg-indigo-100 text-indigo-700',
   todo:        'bg-emerald-100 text-emerald-700',
 }
-const CS_SYNC_SECRET = process.env.NEXT_PUBLIC_CSECUR360_SYNC_SECRET || 'csecur360-cerdia-bridge'
+// Auth des appels au pont C-Secur360 par la SESSION admin connectée (le serveur valide le rôle,
+// incl. org_commerce). On n'embarque plus de secret de pont dans le navigateur (fragile, role-indépendant
+// -> 401 quand NEXT_PUBLIC_CSECUR360_SYNC_SECRET ≠ secret serveur, et fuite du secret dans le bundle).
+async function csAuthHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  return { Authorization: `Bearer ${data.session?.access_token || ''}` }
+}
 
 function ProduitsTab({ toast, onNavigate }: {
   toast: (t: { msg: string; type: 'success' | 'error' }) => void
@@ -523,8 +529,9 @@ function ProduitsTab({ toast, onNavigate }: {
 
   const loadCsData = async () => {
     try {
+      const csh = await csAuthHeader()
       const [mRes, { data: cc }, { data: cv }, { data: sv }] = await Promise.all([
-        fetch('/api/commerce/csecur360/modules', { headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` } }),
+        fetch('/api/commerce/csecur360/modules', { headers: csh }),
         supabase.from('csecur360_clients').select('id, annual_revenue, monthly_revenue, status, vendor_id, billable'),
         supabase.from('csecur360_vendors').select('id, commission_rate, is_active'),
         supabase.from('saas_vendors').select('id, commission_rate, is_active'),
@@ -542,7 +549,7 @@ function ProduitsTab({ toast, onNavigate }: {
   const loadCsModules = async () => {
     try {
       const res = await fetch('/api/commerce/csecur360/modules', {
-        headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` },
+        headers: await csAuthHeader(),
       })
       if (res.ok) {
         const d = await res.json()
@@ -556,7 +563,7 @@ function ProduitsTab({ toast, onNavigate }: {
     try {
       const res = await fetch('/api/commerce/csecur360/sync', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${CS_SYNC_SECRET}` },
+        headers: await csAuthHeader(),
       })
       const d = await res.json()
       await loadCsData()

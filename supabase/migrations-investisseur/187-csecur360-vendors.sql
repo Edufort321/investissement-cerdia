@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS csecur360_vendors (
 );
 
 ALTER TABLE csecur360_vendors ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "csecur360_vendors_service_all" ON csecur360_vendors;
 CREATE POLICY "csecur360_vendors_service_all" ON csecur360_vendors FOR ALL USING (true);
 
 -- Colonnes supplémentaires sur csecur360_clients

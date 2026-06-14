@@ -15,5 +15,6 @@ CREATE TABLE IF NOT EXISTS csecur360_clients (
 
 ALTER TABLE csecur360_clients ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "csecur360_service_role_all" ON csecur360_clients;
 CREATE POLICY "csecur360_service_role_all"
   ON csecur360_clients FOR ALL USING (true);
