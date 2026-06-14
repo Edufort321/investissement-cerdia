@@ -222,6 +222,11 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
 
 type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre' | 'admins'
 
+// Rôles qui voient TOUT le commerce (comme le super_admin) : l'admin commerce (org_commerce) inclus.
+// La PROPRIÉTÉ (Livre d'entreprise, Admins commerce) reste réservée au vrai super_admin ; la zone
+// investisseur de CERDIA reste bloquée pour org_commerce par CommerceRoleGuard.
+const COMMERCE_FULL_ROLES = ['super_admin', 'owner', 'org_admin', 'admin', 'org_commerce']
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
   const m: Record<string, string> = {
@@ -339,7 +344,9 @@ export default function CommerceAdminPage() {
   // email/mot de passe (un seul champ « mot de passe », pas d'identifiant) et exposait un secret en clair.
   const [tab, setTab] = useState<Tab>('produits')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const { isSuperAdmin } = useOrganization()
+  const { isSuperAdmin, profile } = useOrganization()
+  // Admin commerce voit tout le commerce comme le super_admin (sauf onglets de propriété ci-dessous).
+  const canSeeCommerce = COMMERCE_FULL_ROLES.includes(profile?.role || '')
 
   useEffect(() => {
     if (toast) { const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t) }
@@ -404,7 +411,7 @@ export default function CommerceAdminPage() {
               { key: 'csecur360', label: 'C-Secur360', icon: Shield },
               ...(isSuperAdmin ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
               ...(isSuperAdmin ? [{ key: 'admins' as Tab, label: 'Admins commerce', icon: Shield }] : []),
-              ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
+              ...(canSeeCommerce ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -506,8 +513,11 @@ function ProduitsTab({ toast, onNavigate }: {
   toast: (t: { msg: string; type: 'success' | 'error' }) => void
   onNavigate?: (tab: Tab) => void
 }) {
-  const { isSuperAdmin, organization } = useOrganization()
+  const { profile, organization } = useOrganization()
   const overrideOrgId = organization?.id || null
+  // Ici « isSuperAdmin » = peut voir TOUT le commerce (super_admin OU admin commerce org_commerce).
+  // Les onglets de propriété (Livre/Admins) restent gérés sur le vrai super_admin dans le parent.
+  const isSuperAdmin = COMMERCE_FULL_ROLES.includes(profile?.role || '')
   const [products, setProducts] = useState<Product[]>([])
   const [orgs, setOrgs] = useState<OrgRow[]>([])
   const [loading, setLoading] = useState(true)
