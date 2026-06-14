@@ -15,9 +15,9 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
-  Lock, Eye, EyeOff, LogOut, Package, ArrowLeftRight, BarChart2,
+  LogOut, Package, ArrowLeftRight, BarChart2,
   FileText, Plus, Edit2, Trash2, Save, X, Star, Tag, Search,
-  TrendingUp, TrendingDown, DollarSign, ShoppingCart, AlertCircle,
+  TrendingUp, TrendingDown, DollarSign, ShoppingCart,
   Check, ChevronDown, Shield, Home, Paperclip, Download, FileDown, Menu, Mail,
   Building2, Sparkles, RefreshCw, Layers, BookOpen,
 } from 'lucide-react'
@@ -164,8 +164,6 @@ function toDirectImg(url: string): string {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const ADMIN_PASSWORD = '321Eduf!$'
-const SESSION_KEY = 'commerce_admin_auth'
 
 const TX_TYPES = [
   'vente',
@@ -336,100 +334,21 @@ function Stars({ r }: { r: number }) {
 // PAGE PRINCIPALE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CommerceAdminPage() {
-  // Auth gerée côté server par app/commerce/admin/layout.tsx (requireAdmin via Supabase).
-  // L'ancien gate par mot de passe partage est conserve ici uniquement pour
-  // retro-compat (en cas de bypass du layout). Defaut authed=true.
-  const [authed, setAuthed] = useState(true)
-  const [pwd, setPwd] = useState('')
-  const [showPwd, setShowPwd] = useState(false)
-  const [pwdError, setPwdError] = useState('')
+  // Accès géré par app/commerce/admin/layout.tsx (session Supabase : super_admin … org_commerce).
+  // L'ancien gate par mot de passe PARTAGÉ a été retiré : il piégeait l'admin commerce connecté par
+  // email/mot de passe (un seul champ « mot de passe », pas d'identifiant) et exposait un secret en clair.
   const [tab, setTab] = useState<Tab>('produits')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const { isSuperAdmin } = useOrganization()
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem(SESSION_KEY) === '1') {
-      setAuthed(true)
-    }
-  }, [])
-
-  useEffect(() => {
     if (toast) { const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t) }
   }, [toast])
 
-  const handleLogin = () => {
-    if (pwd === ADMIN_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, '1')
-      setAuthed(true)
-      setPwdError('')
-    } else {
-      setPwdError('Mot de passe incorrect.')
-    }
-  }
-
-  const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_KEY)
-    setAuthed(false)
-    setPwd('')
-  }
-
-  // ── Login screen ─────────────────────────────────────────────────────────────
-  if (!authed) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 pt-24">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <Image src="/logo-cerdia3.png" alt="CERDIA" width={80} height={40} className="mx-auto mb-4 h-10 w-auto" />
-            <h1 className="text-2xl font-bold text-white">Administration Commerce</h1>
-            <p className="text-gray-400 text-sm mt-1">Zone réservée — CERDIA Commerce</p>
-          </div>
-
-          <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700 shadow-2xl">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-                <Shield size={18} className="text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-white text-sm">Accès sécurisé</p>
-                <p className="text-xs text-gray-400">Entrez votre mot de passe administrateur</p>
-              </div>
-            </div>
-
-            {pwdError && (
-              <div className="mb-4 p-3 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm flex items-center gap-2">
-                <AlertCircle size={14} /> {pwdError}
-              </div>
-            )}
-
-            <div className="relative mb-4">
-              <Lock size={16} className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type={showPwd ? 'text' : 'password'}
-                className="w-full pl-9 pr-10 py-2.5 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 outline-none"
-                placeholder="Mot de passe"
-                value={pwd}
-                onChange={e => { setPwd(e.target.value); setPwdError('') }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                autoFocus
-              />
-              <button type="button" className="absolute right-3 top-3 text-gray-400 hover:text-gray-200" onClick={() => setShowPwd(v => !v)}>
-                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-
-            <button onClick={handleLogin} className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition-colors">
-              Accéder à l'administration
-            </button>
-
-            <div className="mt-4 pt-4 border-t border-gray-700 text-center">
-              <Link href="/commerce" className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center justify-center gap-1.5">
-                <Home size={12} /> Retour à la boutique
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  // Déconnexion = vraie déconnexion Supabase puis retour à la page de connexion (email + mot de passe).
+  const handleLogout = async () => {
+    try { await supabase.auth.signOut() } catch {}
+    if (typeof window !== 'undefined') window.location.href = '/connexion'
   }
 
   // ── Dashboard ────────────────────────────────────────────────────────────────
