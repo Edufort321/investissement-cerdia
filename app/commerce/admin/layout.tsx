@@ -65,7 +65,7 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
       // Multi-tenant : super_admin (Eric, cross-org) ou org_admin (boss du tenant)
       // Compat : on accepte aussi les anciens noms 'owner'/'admin' au cas où
       // un user n'aurait pas encore été migré (ne devrait pas arriver post-mig 145).
-      if (profile && ['super_admin', 'org_admin', 'owner', 'admin'].includes(profile.role)) {
+      if (profile && ['super_admin', 'org_admin', 'owner', 'admin', 'org_commerce'].includes(profile.role)) {
         setState('allowed')
       } else {
         setState('denied')

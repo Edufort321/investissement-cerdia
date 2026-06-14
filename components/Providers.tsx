@@ -6,6 +6,7 @@ import { InvestmentProvider } from '@/contexts/InvestmentContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ExchangeRateProvider } from '@/contexts/ExchangeRateContext'
+import { CommerceRoleGuard } from '@/components/CommerceRoleGuard'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,7 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ExchangeRateProvider>
           <AuthProvider>
             <OrganizationProvider>
-              <InvestmentProvider>{children}</InvestmentProvider>
+              <InvestmentProvider><CommerceRoleGuard>{children}</CommerceRoleGuard></InvestmentProvider>
             </OrganizationProvider>
           </AuthProvider>
         </ExchangeRateProvider>

@@ -10,6 +10,7 @@ import PortfolioTab from '@/components/admin/PortfolioTab'
 import HomeSlidesTab from '@/components/admin/HomeSlidesTab'
 import CSecur360Tab from '@/components/admin/CSecur360Tab'
 import LivreEntrepriseTab from '@/components/admin/LivreEntrepriseTab'
+import AdminsCommerceTab from '@/components/admin/AdminsCommerceTab'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -221,7 +222,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre' | 'admins'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function badgeColor(badge?: string) {
@@ -483,6 +484,7 @@ export default function CommerceAdminPage() {
               { key: 'accueil', label: 'Page d\'accueil', icon: Home },
               { key: 'csecur360', label: 'C-Secur360', icon: Shield },
               ...(isSuperAdmin ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
+              ...(isSuperAdmin ? [{ key: 'admins' as Tab, label: 'Admins commerce', icon: Shield }] : []),
               ...(isSuperAdmin ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
@@ -512,6 +514,7 @@ export default function CommerceAdminPage() {
         {tab === 'accueil' && <HomeSlidesTab toast={setToast} />}
         {tab === 'csecur360' && <CSecur360Tab />}
         {tab === 'livre' && <LivreEntrepriseTab toast={setToast} />}
+        {tab === 'admins' && <AdminsCommerceTab toast={setToast} />}
       </div>
     </div>
   )

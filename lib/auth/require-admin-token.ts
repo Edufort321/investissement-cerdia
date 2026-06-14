@@ -38,7 +38,7 @@ export class AdminTokenError extends Error {
   }
 }
 
-const ADMIN_ROLES = ['super_admin', 'owner', 'org_admin', 'admin']
+const ADMIN_ROLES = ['super_admin', 'owner', 'org_admin', 'admin', 'org_commerce']
 const SUPER_ROLES = ['super_admin', 'owner']
 
 function getServiceClient(): SupabaseClient {
