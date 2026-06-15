@@ -6,12 +6,15 @@ import { requireAdminToken } from '@/lib/auth/require-admin-token'
 // Gestion des ADMINISTRATEURS COMMERCE. Crée un vrai compte Supabase Auth (connexion DIRECTE sur CERDIA
 // avec email + mot de passe) + profil rôle COMMERCE par défaut (`org_commerce` = accès /commerce SANS la
 // zone investisseur). Appelable : (a) par le pont C-Secur360 (secret), (b) directement depuis l'admin
-// CERDIA par un admin commerce connecté (super_admin OU org_commerce). org rattachée à CERDIA Globale.
+// CERDIA par un admin commerce connecté (super_admin OU org_commerce). Org rattachée = C-Secur360
+// (dédiée commerce, ISOLÉE de CERDIA Globale / zone investisseur).
 // ANTI-ÉLÉVATION : un appelant non super_admin ne peut créer/gérer que des comptes org_commerce
 // (jamais org_admin/super_admin) et ne peut pas rétrograder un super_admin.
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const SYNC_SECRET = process.env.CSECUR360_SYNC_SECRET
-const CERDIA_ORG = 'c0000000-0000-0000-0000-000000000001'
+// Org DÉDIÉE C-Secur360 (commerce seulement) — les admins commerce y sont rattachés pour être ISOLÉS
+// de « CERDIA Globale » (c0000000-…-0001, autre compagnie / zone investisseur). Créée par migration 221.
+const CSECUR360_ORG = 'c5ec0360-0000-0000-0000-000000000001'
 const ALLOWED_ROLES = ['org_commerce', 'org_admin', 'super_admin']
 
 function isSync(req: NextRequest) { return !!SYNC_SECRET && req.headers.get('authorization') === `Bearer ${SYNC_SECRET}` }
@@ -77,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Profil : rôle + organisation (CERDIA Globale). Upsert (le trigger a pu créer la ligne).
-    const { error: pe } = await supabase.from('profiles').upsert({ id: userId, role, full_name: name, organization_id: CERDIA_ORG }, { onConflict: 'id' })
+    const { error: pe } = await supabase.from('profiles').upsert({ id: userId, role, full_name: name, organization_id: CSECUR360_ORG }, { onConflict: 'id' })
     if (pe) return NextResponse.json({ error: 'Profil : ' + pe.message }, { status: 500 })
 
     let recoveryLink: string | undefined
