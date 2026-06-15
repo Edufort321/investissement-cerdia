@@ -22,7 +22,11 @@
 - ⚠️ Ce repo a souvent des fichiers modifiés non commités (ProjetTab, InvestmentContext, sw.js) → **ne committer QUE les fichiers ciblés**, jamais `git add -A` à l'aveugle.
 - **Type-check `npx tsc --noEmit` avant de pousser.**
 
+## Synchronisation Git (jamais de zip)
+Le code de référence est sur **GitHub**, pas un zip. **Au début d'une session : `git pull`** pour partir de la dernière version, et `git push` (fichiers ciblés) sur `main` avec l'accord d'Eric. Nouveau portable = installer Node/Git/Claude Code + `gh auth login`, puis `git clone` une fois ; ensuite pull/push fonctionnent (push exige l'auth GitHub).
+
 ## Workflow à l'arrivée sur une tâche
+0. **`git pull`** d'abord (partir de la dernière version).
 1. Lire ce CLAUDE.md (+ la mémoire persistante de la session si présente).
 2. Explorer `app/`, `app/commerce/admin/`, `supabase/migrations-investisseur/`, `lib/`, `components/`.
 3. Demander : « **DÉPANNAGE ou DÉVELOPPEMENT** ? », attendre la consigne, proposer un plan.

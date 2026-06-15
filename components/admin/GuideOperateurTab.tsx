@@ -87,6 +87,18 @@ export default function GuideOperateurTab() {
         </ul>
       </div>
 
+      {/* Synchronisation Git (commun) */}
+      <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: 14, marginBottom: 18 }}>
+        <div style={{ fontWeight: 700, color: '#3730a3', marginBottom: 6 }}>🔄 Toujours à jour via Git — JAMAIS de zip</div>
+        <ul style={{ margin: 0, paddingLeft: 18, color: '#312e81', fontSize: 13, lineHeight: 1.7 }}>
+          <li>Le code de référence vit sur <b>GitHub</b>, pas dans un fichier zip. On se synchronise avec <code>git pull</code> (récupérer la dernière version) et <code>git push</code> (envoyer ses modifs).</li>
+          <li><b>Au début de chaque session</b>, on part de la dernière version : <code>cd</code> dans le dossier puis <code>git pull</code>. (Claude le fait aussi automatiquement avant de travailler.)</li>
+          <li><b>Nouveau portable / pas d'environnement ?</b> Fais l'<b>Étape 0</b> (installer + s'authentifier à GitHub), puis <code>git clone</code> <b>une seule fois</b>. Ensuite <code>git pull</code>/<code>git push</code> marchent comme partout.</li>
+          <li>Pour que <code>git push</code> (et donc Claude) puisse pousser sur <code>main</code>, l'<b>authentification GitHub</b> doit être faite : <code>gh auth login</code> (recommandé) ou le gestionnaire d'identifiants Windows à la 1re opération. Sans ça, le push est refusé.</li>
+        </ul>
+      </div>
+      <Code>{`# Démarrer une session (déjà cloné) : RÉCUPÉRER la dernière version de GitHub\ncd C:\\C-Secur360        # ou  cd C:\\CERDIA\\investissement-cerdia-main\ngit pull\n\n# Si "git pull" coince (tu as des modifs locales en conflit) :\ngit stash        # met tes modifs locales de côté\ngit pull         # récupère la dernière version\n# git stash pop  # (pour reprendre tes modifs, sinon demande à Eric)\n\n# ⚠️ FORCER exactement la version GitHub (efface tes modifs locales NON commitées) :\n# git fetch origin && git reset --hard origin/main\n\n# Une seule fois, pour autoriser le push (nouveau portable) :\ngh auth login`}</Code>
+
       {who === '' && <p style={{ color: '#6b7280' }}>👆 Choisis qui travaille pour afficher les consignes adaptées.</p>}
 
       {/* ───────── ERIC ───────── */}
