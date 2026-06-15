@@ -19,20 +19,21 @@ ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
     'super_admin','system','user'
   )) NOT VALID;
 
-INSERT INTO organizations (id, name, slug, plan, status, settings)
-VALUES (
-  'c5ec0360-0000-0000-0000-000000000001'::uuid,
-  'C-Secur360',
-  'c-secur360',
-  'enterprise',  -- CORRIGÉ (était 'partner', invalide pour le CHECK organizations.plan) — voir migration 222
-  'active',
-  jsonb_build_object(
-    'currency_primary', 'CAD',
-    'tax_jurisdiction', 'CA',
-    -- Commerce SEULEMENT : pas d'investissement -> aucun accès à la zone/aux données investisseur de Globale.
-    'modules', jsonb_build_object('investment', false, 'commerce', true)
-  )
-) ON CONFLICT (id) DO NOTHING;
+-- Org dédiée C-Secur360 — SEULEMENT si la table organizations existe (mig 145 multi-tenant pas
+-- appliquée sur tous les projets ; sans elle, aucune FK sur profiles.organization_id, l'org n'est pas
+-- requise). plan='enterprise' (était 'partner', invalide pour le CHECK organizations.plan). Voir mig 222.
+DO $$
+BEGIN
+  IF to_regclass('public.organizations') IS NOT NULL THEN
+    INSERT INTO organizations (id, name, slug, plan, status, settings)
+    VALUES (
+      'c5ec0360-0000-0000-0000-000000000001'::uuid,
+      'C-Secur360', 'c-secur360', 'enterprise', 'active',
+      jsonb_build_object('currency_primary', 'CAD', 'tax_jurisdiction', 'CA',
+        'modules', jsonb_build_object('investment', false, 'commerce', true))
+    ) ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
 
 insert into schema_migrations (version) values ('221') on conflict (version) do nothing;
 NOTIFY pgrst, 'reload schema';
