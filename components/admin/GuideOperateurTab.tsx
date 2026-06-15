@@ -111,7 +111,50 @@ export default function GuideOperateurTab() {
             Salut Benjamin 👋 Suis les étapes dans l'ordre. <b>En cas de doute sur une migration ou un déploiement, écris à Eric avant de cliquer.</b> Claude t'expliquera chaque étape si tu lui demandes.
           </div>
 
-          <h3 style={{ fontWeight: 700, fontSize: 16 }}>1) Vérifier les outils (une seule fois)</h3>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>🧭 Avant de commencer (notions de base)</div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7 }}>
+              <li><b>PowerShell</b> = la fenêtre noire où on tape des commandes. Pour l'ouvrir : touche <b>Windows</b> → tape « <b>PowerShell</b> » → <b>Entrée</b>.</li>
+              <li>Tu <b>tapes ou colles</b> une ligne, puis <b>Entrée</b> pour l'exécuter. Pour <b>coller</b> : <b>clic droit</b> dans la fenêtre (ou Ctrl+V).</li>
+              <li>Après avoir <b>installé</b> un outil (Node, Git, Claude), <b>ferme et rouvre</b> PowerShell pour qu'il soit reconnu.</li>
+              <li><b>Tu ne peux RIEN casser en production</b> tant que tu ne fais pas <code>git push</code> ni appliquer une migration. Explore sans crainte.</li>
+              <li>Bloqué ? <b>Copie-colle le message d'erreur à Claude</b> et demande « explique-moi », ou écris à Eric.</li>
+            </ul>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>📖 Petit lexique</div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7 }}>
+              <li><b>Repo / dépôt</b> : le dossier du code (versionné par Git).</li>
+              <li><b>Commit</b> : enregistrer une modif (en local seulement).</li>
+              <li><b>Push</b> : envoyer sur GitHub → <b>déclenche le déploiement</b> en prod (Vercel).</li>
+              <li><b>Migration</b> : un fichier SQL qui modifie la base de données (Supabase).</li>
+              <li><b>RLS</b> : règles de sécurité (qui peut lire/écrire les données).</li>
+              <li><b>Tenant</b> : un client/entreprise isolé dans la plateforme.</li>
+            </ul>
+          </div>
+
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, color: '#166534', marginBottom: 6 }}>🔑 Ce qu'Eric doit t'avoir donné (accès)</div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: '#14532d', fontSize: 13, lineHeight: 1.6 }}>
+              <li>Un accès <b>Claude (Anthropic)</b> : soit un compte avec abonnement <b>Claude Pro/Max</b>, soit une <b>clé API</b> de la console Anthropic.</li>
+              <li><b>Collaborateur GitHub</b> sur les 2 dépôts privés (c-secur360-ast et investissement-cerdia).</li>
+              <li><b>Membre des 2 projets Supabase</b> (pour l'éditeur SQL).</li>
+              <li>(optionnel) Accès <b>Vercel</b> pour surveiller les déploiements.</li>
+            </ul>
+          </div>
+
+          <h3 style={{ fontWeight: 700, fontSize: 16 }}>0) Première installation & connexion à Claude (une seule fois)</h3>
+          <p><b>a.</b> Installe les outils de base : <a href="https://nodejs.org" target="_blank" rel="noreferrer">Node.js (LTS)</a> (fournit <code>npm</code>) et <a href="https://git-scm.com" target="_blank" rel="noreferrer">Git</a>. (PowerShell est déjà sur Windows.)</p>
+          <p><b>b.</b> Installe Claude Code :</p>
+          <Code>{`npm install -g @anthropic-ai/claude-code`}</Code>
+          <p><b>c.</b> Connecte Claude Code à Anthropic — lance simplement :</p>
+          <Code>{`claude`}</Code>
+          <p style={{ marginTop: 0 }}>Au tout premier lancement, Claude ouvre le <b>navigateur</b> pour t'authentifier : connecte-toi avec le <b>compte Claude (Anthropic)</b> fourni par Eric (abonnement Pro/Max), ou choisis « API key » et colle la clé de la console Anthropic. Suis les instructions à l'écran. Ensuite <code>claude</code> est prêt.</p>
+          <p><b>d.</b> Première commande Git : à ton premier <code>git clone</code> ou <code>git push</code>, une fenêtre GitHub te demandera de te connecter (ou fais <code>gh auth login</code>). Comme les dépôts sont <b>privés</b>, il faut qu'Eric t'ait ajouté comme collaborateur.</p>
+          <p><b>e.</b> Supabase : connecte-toi sur <code>supabase.com/dashboard</code> avec le compte invité par Eric (tu y appliqueras le SQL des migrations).</p>
+
+          <h3 style={{ fontWeight: 700, fontSize: 16 }}>1) Vérifier que tout est installé</h3>
           <Code>{`git --version\nnode --version\nclaude --version`}</Code>
 
           <h3 style={{ fontWeight: 700, fontSize: 16 }}>2) Ouvrir le projet (dans PowerShell)</h3>
@@ -146,6 +189,22 @@ export default function GuideOperateurTab() {
           <Code>{`git add .\ngit commit -m "fix: courte description"\ngit push\n# Vercel redéploie automatiquement (surveiller vercel.com/dashboard)`}</Code>
           <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 10, color: '#7f1d1d', fontSize: 13 }}>
             🚫 Ne pousse jamais en prod sans qu'Eric ait dit « ok ». En cas de doute : commit en local, demande à Eric, ne push pas.
+          </div>
+
+          <h3 style={{ fontWeight: 700, fontSize: 16, marginTop: 16 }}>🆘 En cas de pépin (problèmes fréquents)</h3>
+          <ul style={{ paddingLeft: 18, fontSize: 13.5, lineHeight: 1.8 }}>
+            <li><b>« git/node/claude n'est pas reconnu »</b> → l'outil n'est pas installé, OU tu n'as pas <b>fermé/rouvert</b> PowerShell après l'installation. Rouvre-le ; sinon réinstalle (étape 0).</li>
+            <li><b>Erreur de permission (EACCES / accès refusé)</b> → rouvre PowerShell <b>« en tant qu'administrateur »</b> (clic droit sur PowerShell → Exécuter en administrateur).</li>
+            <li><b>`git clone` demande un mot de passe / refuse</b> → les dépôts sont <b>privés</b> : Eric doit t'avoir ajouté comme collaborateur GitHub. Connecte-toi (fenêtre GitHub) ou fais <code>gh auth login</code>.</li>
+            <li><b>`npm install` échoue</b> → vérifie ta connexion internet, puis réessaie ; en dernier recours supprime le dossier <code>node_modules</code> et relance <code>npm install</code>.</li>
+            <li><b>`npm run dev` : « port 3000 déjà utilisé »</b> → une autre fenêtre tourne déjà ; ferme-la (Ctrl+C) ou ouvre l'app affichée (souvent http://localhost:3001).</li>
+            <li><b>Claude demande de se reconnecter</b> → relance <code>claude</code> et refais l'authentification (étape 0c). Vérifie que l'abonnement/clé Anthropic est actif.</li>
+            <li><b>Migration : « already exists » dans l'éditeur SQL</b> → c'est <b>OK</b>, la migration était déjà appliquée (elles sont idempotentes). Continue.</li>
+            <li><b>N'importe quelle erreur incomprise</b> → <b>copie-colle le message complet à Claude</b> : « explique-moi cette erreur et comment la régler ». Si ça touche la prod/une migration : écris à Eric.</li>
+          </ul>
+
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginTop: 8, fontSize: 13 }}>
+            ✅ <b>Règle d'or</b> : tant que tu ne fais ni <code>git push</code> ni migration, tu ne risques rien. Explore, demande à Claude, et garde Eric dans la boucle pour la prod.
           </div>
         </div>
       )}
