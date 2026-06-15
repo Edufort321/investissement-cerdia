@@ -11,6 +11,7 @@ import HomeSlidesTab from '@/components/admin/HomeSlidesTab'
 import CSecur360Tab from '@/components/admin/CSecur360Tab'
 import LivreEntrepriseTab from '@/components/admin/LivreEntrepriseTab'
 import AdminsCommerceTab from '@/components/admin/AdminsCommerceTab'
+import GuideOperateurTab from '@/components/admin/GuideOperateurTab'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -220,7 +221,7 @@ const EMPTY_TX: Omit<CommerceTx, 'id' | 'created_at'> = {
   transfer_to_account: '',
 }
 
-type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre' | 'admins'
+type Tab = 'produits' | 'transactions' | 'rapports' | 'factures' | 'organisations' | 'artiste' | 'accueil' | 'csecur360' | 'livre' | 'admins' | 'guide'
 
 // Rôles qui voient TOUT le commerce (comme le super_admin) : l'admin commerce (org_commerce) inclus.
 // La PROPRIÉTÉ (Livre d'entreprise, Admins commerce) reste réservée au vrai super_admin ; la zone
@@ -413,6 +414,7 @@ export default function CommerceAdminPage() {
               ...(canSeeCommerce ? [{ key: 'livre' as Tab, label: "Livre d'entreprise", icon: BookOpen }] : []),
               ...(canSeeCommerce ? [{ key: 'admins' as Tab, label: 'Admins commerce', icon: Shield }] : []),
               ...(canSeeCommerce ? [{ key: 'organisations' as Tab, label: 'Organisations', icon: Building2 }] : []),
+              { key: 'guide' as Tab, label: 'Guide opérateur', icon: BookOpen },
             ]) as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -442,6 +444,7 @@ export default function CommerceAdminPage() {
         {tab === 'csecur360' && <CSecur360Tab />}
         {tab === 'livre' && <LivreEntrepriseTab toast={setToast} />}
         {tab === 'admins' && <AdminsCommerceTab toast={setToast} />}
+        {tab === 'guide' && <GuideOperateurTab />}
       </div>
     </div>
   )
