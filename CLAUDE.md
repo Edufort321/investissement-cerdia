@@ -19,6 +19,8 @@
 - **RLS obligatoire** sur toute nouvelle table. service_role jamais appelé côté client.
 - **Jamais `git push` ni migration en prod sans l'accord d'Eric.**
 - **Migrations** : appliquées en **collant le SQL dans l'éditeur SQL du BON projet Supabase** (`svwolnvknfmakgmjhoml` pour CERDIA), puis Run (PAS `supabase db push`). Fichiers idempotents dans `supabase/migrations-investisseur/`.
+- **Journal des migrations** (depuis 220) : table `schema_migrations` propre à CE projet. **Chaque nouvelle migration prend le prochain numéro libre et s'auto-enregistre** : `insert into schema_migrations (version) values ('NNN') on conflict (version) do nothing;`. État : `select version from schema_migrations order by version;`.
+- ⚠️ **Ne PAS renuméroter les migrations déjà appliquées** (réécrit l'historique). Nettoyage = baseline + archive, pas de renommage rétroactif.
 - ⚠️ Ce repo a souvent des fichiers modifiés non commités (ProjetTab, InvestmentContext, sw.js) → **ne committer QUE les fichiers ciblés**, jamais `git add -A` à l'aveugle.
 - **Type-check `npx tsc --noEmit` avant de pousser.**
 
