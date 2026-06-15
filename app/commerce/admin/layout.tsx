@@ -104,10 +104,10 @@ export default function CommerceAdminLayout({ children }: { children: React.Reac
             vérifie ton rôle dans la table <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs">profiles</code>.
           </p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_CSECUR360_URL || 'https://www.c-secur360.ca'}/admin/dashboard` }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            Retour au dashboard
+            Retour à l’admin C-Secur360
           </button>
         </div>
       </div>

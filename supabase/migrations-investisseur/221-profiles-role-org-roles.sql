@@ -24,7 +24,7 @@ VALUES (
   'c5ec0360-0000-0000-0000-000000000001'::uuid,
   'C-Secur360',
   'c-secur360',
-  'partner',
+  'enterprise',  -- CORRIGÉ (était 'partner', invalide pour le CHECK organizations.plan) — voir migration 222
   'active',
   jsonb_build_object(
     'currency_primary', 'CAD',

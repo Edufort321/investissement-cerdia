@@ -38,22 +38,26 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, company_name, admin_email, plan, monthly_revenue, annual_revenue, modules_count, sites_count, status } = body
+    const { id, company_name, admin_email, plan, monthly_revenue, annual_revenue, modules_count, sites_count, status, billable } = body
 
     if (!id || !company_name) {
       return NextResponse.json({ error: 'id et company_name requis' }, { status: 400 })
     }
 
+    // billable transmis par C-Secur (démo/non-facturable => false). Si non-facturable, revenu forcé à 0
+    // dans le miroir (évite l'ARR fantôme). Défaut true seulement si le champ est absent (compat).
+    const isBillable = billable !== false
     const { error } = await supabase.from('csecur360_clients').upsert({
       id,
       company_name,
       admin_email: admin_email || null,
       plan: plan || 'professional',
-      monthly_revenue: Number(monthly_revenue || 0),
-      annual_revenue: Number(annual_revenue || 0),
+      monthly_revenue: isBillable ? Number(monthly_revenue || 0) : 0,
+      annual_revenue: isBillable ? Number(annual_revenue || 0) : 0,
       modules_count: Number(modules_count || 0),
       sites_count: Number(sites_count || 1),
       status: status || 'active',
+      billable: isBillable,
       synced_at: new Date().toISOString(),
     }, { onConflict: 'id' })
 
