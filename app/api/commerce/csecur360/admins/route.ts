@@ -75,13 +75,23 @@ export async function POST(req: NextRequest) {
     if (cr?.user) { userId = cr.user.id; created = true }
     else {
       userId = await findUserIdByEmail(email)
-      if (!userId) return NextResponse.json({ error: ce?.message || 'Création/identification impossible' }, { status: 500 })
+      if (!userId) return NextResponse.json({ error: `Auth (création) : ${ce?.message || 'introuvable'}${(ce as any)?.status ? ` [${(ce as any).status}]` : ''}` }, { status: 500 })
       if (providedPwd) await supabase.auth.admin.updateUserById(userId, { password, email_confirm: true, user_metadata: { full_name: name } })
     }
 
-    // Profil : rôle + organisation (CERDIA Globale). Upsert (le trigger a pu créer la ligne).
-    const { error: pe } = await supabase.from('profiles').upsert({ id: userId, role, full_name: name, organization_id: CSECUR360_ORG }, { onConflict: 'id' })
-    if (pe) return NextResponse.json({ error: 'Profil : ' + pe.message }, { status: 500 })
+    // Profil : rôle (+ organisation si possible). On tente AVEC organization_id ; si ça échoue (colonne
+    // absente, trigger, contrainte…), on RÉESSAIE SANS — l'org dédiée n'est pas requise pour l'accès
+    // commerce (isolation = rôle + CommerceRoleGuard ; aucune FK organization_id dans ce projet).
+    let { error: pe } = await supabase.from('profiles').upsert({ id: userId, role, full_name: name, organization_id: CSECUR360_ORG }, { onConflict: 'id' })
+    if (pe) {
+      const first = pe
+      console.error('[admins] upsert avec org_id échoué:', first.code, first.message, first.details, first.hint)
+      ;({ error: pe } = await supabase.from('profiles').upsert({ id: userId, role, full_name: name }, { onConflict: 'id' }))
+      if (pe) {
+        console.error('[admins] upsert sans org_id échoué:', pe.code, pe.message, pe.details, pe.hint)
+        return NextResponse.json({ error: `Profil : [${pe.code || '?'}] ${pe.message}${pe.details ? ' — ' + pe.details : ''}${pe.hint ? ' (' + pe.hint + ')' : ''} | 1er essai (avec org_id): [${first.code || '?'}] ${first.message}` }, { status: 500 })
+      }
+    }
 
     let recoveryLink: string | undefined
     if (!providedPwd) {
@@ -89,7 +99,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ ok: true, created, role, email, samePassword: !!providedPwd, recoveryLink })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Erreur' }, { status: 500 })
+    console.error('[admins] exception:', e)
+    return NextResponse.json({ error: `Exception : ${e?.message || e}${e?.status ? ` [${e.status}]` : ''}` }, { status: 500 })
   }
 }
 
