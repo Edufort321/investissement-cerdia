@@ -172,8 +172,8 @@ export default function GuideOperateurTab() {
           <h3 style={{ fontWeight: 700, fontSize: 16 }}>2) Ouvrir le projet (dans PowerShell)</h3>
           <p><b>Première fois</b> (le dossier n'existe pas encore) — exemple C-Secur360 :</p>
           <Code>{`cd C:\\\ngit clone https://github.com/Edufort321/c-secur360-ast.git C-Secur360\ncd C:\\C-Secur360\nnpm install`}</Code>
-          <p>Pour CERDIA :</p>
-          <Code>{`cd C:\\CERDIA\ngit clone https://github.com/Edufort321/investissement-cerdia.git investissement-cerdia-main\ncd C:\\CERDIA\\investissement-cerdia-main\nnpm install`}</Code>
+          <p>Pour CERDIA (git crée le dossier C:\\CERDIA au besoin) :</p>
+          <Code>{`cd C:\\\ngit clone https://github.com/Edufort321/investissement-cerdia.git C:\\CERDIA\\investissement-cerdia-main\ncd C:\\CERDIA\\investissement-cerdia-main\nnpm install`}</Code>
           <p><b>Le dossier existe déjà</b> (mise à jour) :</p>
           <Code>{`cd C:\\C-Secur360        # ou  cd C:\\CERDIA\\investissement-cerdia-main\ngit pull\nnpm install`}</Code>
 
