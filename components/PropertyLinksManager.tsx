@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, X, ExternalLink, Camera, HardHat, FileText, Globe } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 
 interface PropertyLink {
   id: string
@@ -36,6 +37,7 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
   const [category, setCategory] = useState<PropertyLink['category']>('general')
   const [saving, setSaving] = useState(false)
   const { language } = useLanguage()
+  const { organization } = useOrganization()
   const fr = language === 'fr'
 
   useEffect(() => {
@@ -54,11 +56,21 @@ export default function PropertyLinksManager({ propertyId, isAdmin }: PropertyLi
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !url.trim()) return
+    // organization_id requis par la policy RLS tenant_isolation (mig.147/211) —
+    // plus de DEFAULT fiable depuis la mig.208, on doit toujours le fournir.
+    const orgId = organization?.id
+    if (!orgId) {
+      alert(fr
+        ? 'Organisation introuvable : impossible d\'ajouter le lien. Reconnectez-vous puis réessayez.'
+        : 'Organization not resolved: cannot add the link. Please sign in again and retry.')
+      return
+    }
     setSaving(true)
     try {
       let finalUrl = url.trim()
       if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl
       const { error } = await supabase.from('property_links').insert([{
+        organization_id: orgId, // requis par tenant_isolation (mig.147/211)
         property_id: propertyId,
         title: title.trim(),
         url: finalUrl,

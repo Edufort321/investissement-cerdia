@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Upload, FileText, Download, Trash2, X, Image as ImageIcon, FileCheck, FileSpreadsheet } from 'lucide-react'
 
 interface Attachment {
@@ -25,6 +26,7 @@ interface ProjectAttachmentsProps {
 
 export default function ProjectAttachments({ propertyId, onClose }: ProjectAttachmentsProps) {
   const { t, language } = useLanguage()
+  const { organization } = useOrganization()
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,18 @@ export default function ProjectAttachments({ propertyId, onClose }: ProjectAttac
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !propertyId) return
 
+    // organization_id est OBLIGATOIRE : la policy RLS tenant_isolation
+    // (mig.147/211) exige organization_id = auth_get_org_id(). Depuis la mig.208
+    // la colonne n'a plus de DEFAULT fiable → on doit toujours le fournir, sinon
+    // l'INSERT échoue en 403 (« new row violates row-level security policy »).
+    const orgId = organization?.id
+    if (!orgId) {
+      alert(language === 'fr'
+        ? 'Organisation introuvable : impossible d\'ajouter la pièce jointe. Reconnectez-vous puis réessayez.'
+        : 'Organization not resolved: cannot add the attachment. Please sign in again and retry.')
+      return
+    }
+
     setUploading(true)
 
     try {
@@ -87,6 +101,7 @@ export default function ProjectAttachments({ propertyId, onClose }: ProjectAttac
         const { error: dbError } = await supabase
           .from('property_attachments')
           .insert([{
+            organization_id: orgId, // requis par la policy tenant_isolation (mig.147/211)
             property_id: propertyId,
             file_name: file.name,
             file_type: file.type || null,
