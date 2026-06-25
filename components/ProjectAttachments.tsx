@@ -266,7 +266,12 @@ export default function ProjectAttachments({ propertyId, onClose }: ProjectAttac
         {categories.map(cat => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => {
+              setSelectedCategory(cat)
+              // Sélectionner un onglet (autre que « Tout ») cible aussi la
+              // catégorie d'enregistrement → l'upload suit l'onglet actif.
+              if (cat !== 'all') setUploadCategory(cat as Attachment['attachment_category'])
+            }}
             className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
               selectedCategory === cat
                 ? 'bg-blue-600 text-white'
@@ -292,7 +297,9 @@ export default function ProjectAttachments({ propertyId, onClose }: ProjectAttac
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-        <div className="mb-3">
+        {/* relative z-10 : le select doit rester cliquable AU-DESSUS de l'input
+            fichier invisible (absolute inset-0) qui recouvre toute la zone. */}
+        <div className="mb-3 relative z-10">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {language === 'fr' ? 'Catégorie' : 'Category'}
           </label>
