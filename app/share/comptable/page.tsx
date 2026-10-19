@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { FileText, Download, AlertCircle, Lock, Building2, Calendar } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -14,6 +13,8 @@ interface TokenConfig {
   filter_period: string
   label: string | null
   expires_at: string
+  org_name: string | null
+  transactions: TxRow[]
 }
 
 interface TxRow {
@@ -70,29 +71,9 @@ function AccountantShareContent() {
       setFilterPeriod(cfg.filter_period || 'annual')
       if (cfg.tabs.length > 0) setActiveTab(cfg.tabs[0])
 
-      // Load org name
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', cfg.organization_id)
-        .single()
-      setOrgName(org?.name || 'CERDIA')
-
-      // Load transactions
-      let query = supabase
-        .from('transactions')
-        .select('*')
-        .eq('organization_id', cfg.organization_id)
-        .order('date', { ascending: false })
-
-      if (cfg.selected_year) {
-        query = query
-          .gte('date', `${cfg.selected_year}-01-01`)
-          .lte('date', `${cfg.selected_year}-12-31`)
-      }
-
-      const { data: txData } = await query
-      setTransactions(txData || [])
+      // Org name + transactions come from the API route (server-side, token-scoped)
+      setOrgName(cfg.org_name || 'CERDIA')
+      setTransactions(cfg.transactions || [])
     } catch {
       setError('Erreur de chargement')
     } finally {

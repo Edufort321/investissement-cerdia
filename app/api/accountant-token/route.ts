@@ -88,6 +88,29 @@ export async function GET(req: NextRequest) {
     .update({ access_count: (data.access_count || 0) + 1, last_accessed: new Date().toISOString() })
     .eq('id', data.id)
 
+  // 🔒 Les données sont chargées ICI (service_role, scopées au token) : la page
+  // /share/comptable est anonyme et ne doit jamais lire les tables directement
+  // (la clé anon est bloquée par RLS depuis la mig.223).
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('name')
+    .eq('id', data.organization_id)
+    .single()
+
+  let txQuery = supabase
+    .from('transactions')
+    .select('*')
+    .eq('organization_id', data.organization_id)
+    .order('date', { ascending: false })
+
+  if (data.selected_year) {
+    txQuery = txQuery
+      .gte('date', `${data.selected_year}-01-01`)
+      .lte('date', `${data.selected_year}-12-31`)
+  }
+
+  const { data: transactions } = await txQuery
+
   return NextResponse.json({
     organization_id: data.organization_id,
     tabs: data.tabs,
@@ -95,6 +118,8 @@ export async function GET(req: NextRequest) {
     filter_period: data.filter_period,
     label: data.label,
     expires_at: data.expires_at,
+    org_name: org?.name || null,
+    transactions: transactions || [],
   })
 }
 
