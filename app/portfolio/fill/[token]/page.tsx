@@ -12,6 +12,20 @@ import {
   Share2, FileDown, Copy, Globe
 } from 'lucide-react'
 
+// Upload via URL signée délivrée par le serveur après validation du jeton (mig.224/225).
+async function signedUpload(token: string, kind: 'headshot_url' | 'cover_url' | 'item' | 'crop', file: Blob, ext: string): Promise<string> {
+  const contentType = file.type || (kind === 'item' ? 'application/octet-stream' : 'image/jpeg')
+  const res = await fetch('/api/portfolio/fill-upload', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, kind, ext, contentType }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  const { error } = await supabase.storage.from('portfolio').uploadToSignedUrl(data.path, data.signedToken, file, { contentType })
+  if (error) throw new Error(error.message)
+  return data.publicUrl as string
+}
+
 interface Profile {
   id: string
   slug: string
@@ -208,7 +222,7 @@ export default function PortfolioFillPage() {
       // Utilise sendBeacon pour garantir la livraison meme si la page se ferme
       // Fallback: appel Supabase normal (fonctionne si la page reste ouverte)
       const payload = buildPayload(formRef.current)
-      supabase.from('portfolio_profiles').update(payload).eq('fill_token', p.fill_token)
+      supabase.rpc('portfolio_fill_update', { p_token: p.fill_token, p_patch: payload })
         .then(({ error }) => { if (error) console.error('[flush]', error.message) })
     }
     document.addEventListener('visibilitychange', flush)
@@ -226,7 +240,7 @@ export default function PortfolioFillPage() {
       setAutoSaving(true)
       try {
         const { error } = await supabase
-          .from('portfolio_profiles').update(payload).eq('fill_token', p.fill_token)
+          .rpc('portfolio_fill_update', { p_token: p.fill_token, p_patch: payload })
         if (error) {
           console.error('[auto-save]', error.message)
           showToast('Sauvegarde echouee: ' + error.message, false)
@@ -244,8 +258,8 @@ export default function PortfolioFillPage() {
   }
 
   const load = async (tk: string) => {
-    const { data, error } = await supabase
-      .from('portfolio_profiles').select('*').eq('fill_token', tk).single()
+    const { data: res, error } = await supabase.rpc('portfolio_fill_get', { p_token: tk })
+    const data = (res as any)?.profile
     if (error || !data) { setLoading(false); return }
     setProfile(data as Profile)
     setForm({
@@ -262,9 +276,7 @@ export default function PortfolioFillPage() {
       shoe_size: data.shoe_size ?? '', clothing_size: data.clothing_size ?? '',
       languages: data.languages ?? [], special_skills: data.special_skills ?? '',
     })
-    const { data: its } = await supabase.from('portfolio_items').select('*')
-      .eq('profile_id', data.id).order('sort_order').order('created_at')
-    setItems(its ?? [])
+    setItems((res as any)?.items ?? [])
     setLoading(false)
     setTimeout(() => { loadedRef.current = true }, 400)
   }
@@ -289,9 +301,8 @@ export default function PortfolioFillPage() {
   const togglePublish = async () => {
     if (!profile) return
     const next = !profile.is_published
-    const { error } = await supabase.from('portfolio_profiles')
-      .update({ is_published: next })
-      .eq('fill_token', profile.fill_token ?? '')
+    const { error } = await supabase
+      .rpc('portfolio_fill_update', { p_token: profile.fill_token ?? '', p_patch: { is_published: next } })
     if (!error) {
       setProfile(p => p ? { ...p, is_published: next } : p)
       showToast(next
@@ -512,7 +523,7 @@ export default function PortfolioFillPage() {
       const fillTok = profile.fill_token
       if (!fillTok) { showToast('Token manquant — recharge la page', false); return }
       const { error } = await supabase
-        .from('portfolio_profiles').update(payload).eq('fill_token', fillTok)
+        .rpc('portfolio_fill_update', { p_token: fillTok, p_patch: payload })
       if (error) {
         console.error('[save]', error)
         setSaveError(error.message)
@@ -590,12 +601,10 @@ export default function PortfolioFillPage() {
     if (!profile) return
     setUploadProgress(field === 'headshot_url' ? t.upload_headshot : t.upload_cover)
     const ext  = file.name.split('.').pop() ?? 'jpg'
-    const path = `${profile.id}/${field}-${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
-    if (upErr) { showToast(t.err_upload + upErr.message, false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
-    await supabase.from('portfolio_profiles').update({ [field]: publicUrl })
-      .eq('fill_token', profile.fill_token ?? '')
+    let publicUrl = ''
+    try { publicUrl = await signedUpload(profile.fill_token, field, file, ext) }
+    catch (e: any) { showToast(t.err_upload + (e?.message ?? ''), false); setUploadProgress(null); return }
+    await supabase.rpc('portfolio_fill_update', { p_token: profile.fill_token ?? '', p_patch: { [field]: publicUrl } })
     setProfile(p => p ? { ...p, [field]: publicUrl } : p)
     setUploadProgress(null)
     showToast(t.photo_updated)
@@ -606,18 +615,13 @@ export default function PortfolioFillPage() {
     const isVideo = file.type.startsWith('video/')
     setUploadProgress(isVideo ? (lang === 'fr' ? 'Upload video...' : 'Uploading video...') : t.upload_photo)
     const ext  = file.name.split('.').pop() ?? (isVideo ? 'mp4' : 'jpg')
-    const path = `${profile.id}/items/${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, file, { upsert: true })
-    if (upErr) { showToast(t.err_upload + upErr.message, false); setUploadProgress(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
-    const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
-    const { error } = await supabase.from('portfolio_items').insert([{
-      profile_id: profile.id,
-      type: isVideo ? 'video' : 'photo',
-      url: publicUrl,
-      thumbnail_url: isVideo ? '' : publicUrl,
-      sort_order: maxOrder + 1, category: 'portfolio'
-    }])
+    let publicUrl = ''
+    try { publicUrl = await signedUpload(profile.fill_token, 'item', file, ext) }
+    catch (e: any) { showToast(t.err_upload + (e?.message ?? ''), false); setUploadProgress(null); return }
+    const { error } = await supabase.rpc('portfolio_fill_add_item', {
+      p_token: profile.fill_token, p_type: isVideo ? 'video' : 'photo', p_url: publicUrl,
+      p_title: null, p_thumbnail_url: isVideo ? '' : publicUrl, p_category: 'portfolio',
+    })
     setUploadProgress(null)
     if (error) { showToast(t.err_prefix + error.message, false); return }
     showToast(isVideo ? (lang === 'fr' ? 'Video ajoutee!' : 'Video added!') : t.photo_added)
@@ -635,11 +639,10 @@ export default function PortfolioFillPage() {
     if (!profile || !photoCropId) return
     setPhotoCropUrl(null)
     setUploadProgress(t.cropping)
-    const path = `${profile.id}/items/${Date.now()}-crop.jpg`
-    const { error: upErr } = await supabase.storage.from('portfolio').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-    if (upErr) { showToast(t.err_upload + upErr.message, false); setUploadProgress(null); setPhotoCropId(null); return }
-    const { data: { publicUrl } } = supabase.storage.from('portfolio').getPublicUrl(path)
-    await supabase.from('portfolio_items').update({ url: publicUrl, thumbnail_url: publicUrl }).eq('id', photoCropId)
+    let publicUrl = ''
+    try { publicUrl = await signedUpload(profile.fill_token, 'crop', new Blob([blob], { type: 'image/jpeg' }), 'jpg') }
+    catch (e: any) { showToast(t.err_upload + (e?.message ?? ''), false); setUploadProgress(null); setPhotoCropId(null); return }
+    await supabase.rpc('portfolio_fill_update_item', { p_token: profile.fill_token, p_item_id: photoCropId, p_url: publicUrl, p_thumbnail_url: publicUrl })
     setPhotoCropId(null)
     setUploadProgress(null)
     showToast(t.photo_updated)
@@ -647,7 +650,8 @@ export default function PortfolioFillPage() {
   }
 
   const deleteItem = async (id: string) => {
-    await supabase.from('portfolio_items').delete().eq('id', id)
+    const { error } = await supabase.rpc('portfolio_fill_delete_item', { p_token: profile?.fill_token ?? '', p_item_id: id })
+    if (error) { showToast(t.err_prefix + error.message, false); return }
     setItems(its => its.filter(i => i.id !== id))
     setLightboxIdx(null)
     showToast(t.deleted)
@@ -655,11 +659,9 @@ export default function PortfolioFillPage() {
 
   const addLink = async (url: string, title: string) => {
     if (!profile || !url) return
-    const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
-    const { error } = await supabase.from('portfolio_items').insert([{
-      profile_id: profile.id, type: 'link', url, title,
-      sort_order: maxOrder + 1, category: 'portfolio'
-    }])
+    const { error } = await supabase.rpc('portfolio_fill_add_item', {
+      p_token: profile.fill_token, p_type: 'link', p_url: url, p_title: title, p_thumbnail_url: null, p_category: 'portfolio',
+    })
     if (error) { showToast(t.err_prefix + error.message, false); return }
     showToast(t.link_added)
     await load(token as string)
@@ -667,11 +669,9 @@ export default function PortfolioFillPage() {
 
   const addService = async (name: string, rate: string) => {
     if (!profile || !name.trim()) return
-    const maxOrder = Math.max(0, ...items.map(i => i.sort_order))
-    const { error } = await supabase.from('portfolio_items').insert([{
-      profile_id: profile.id, type: 'service', title: name.trim(),
-      url: null, sort_order: maxOrder + 1, category: rate.trim()
-    }])
+    const { error } = await supabase.rpc('portfolio_fill_add_item', {
+      p_token: profile.fill_token, p_type: 'service', p_url: null, p_title: name.trim(), p_thumbnail_url: null, p_category: rate.trim(),
+    })
     if (error) { showToast(t.err_prefix + error.message, false); return }
     showToast(lang === 'fr' ? 'Service ajoute!' : 'Service added!')
     await load(token as string)
