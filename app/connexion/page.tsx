@@ -57,8 +57,8 @@ function ConnexionForm() {
 
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-10">
-          <Image src="/logo-cerdia3.png" alt="CERDIA" width={36} height={36} className="rounded-lg" />
-          <span className="text-white font-semibold tracking-wide">CERDIA</span>
+          {/* Le nom CERDIA fait partie du logo : pas de texte répété à côté */}
+          <Image src="/logo-cerdia3.png" alt="CERDIA" width={88} height={88} />
         </div>
 
         {/* Card */}
