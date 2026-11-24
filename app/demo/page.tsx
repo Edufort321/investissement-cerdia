@@ -62,6 +62,8 @@ export default function DemoPage() {
     setStatus(fr ? 'Connexion au mode démo…' : 'Logging into demo mode…')
     try {
       await supabase.auth.signOut()
+      // Purger une échéance périmée AVANT le signIn (sinon SIGNED_IN => signOut immédiat)
+      try { localStorage.removeItem('cerdia_session_expires') } catch {}
       const { error } = await supabase.auth.signInWithPassword({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,

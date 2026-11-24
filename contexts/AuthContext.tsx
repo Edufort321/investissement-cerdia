@@ -74,13 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return investorLoadPromise.current[userId]
     }
 
-    let timeoutId: NodeJS.Timeout
-    const timeoutPromise = new Promise<null>(resolve => {
-      timeoutId = setTimeout(() => {
-        console.warn('[AUTH] Timeout 5s — investor data')
-        resolve(null)
-      }, 5000)
-    })
+    // Pas de Promise.race avec un timeout : l'UI s'affiche déjà sans investorData,
+    // et un timeout qui renvoie null laissait le user bloqué en rôle « investisseur »
+    // (au lieu d'admin) même quand la réponse arrivait 1 s plus tard. On se contente
+    // d'avertir si c'est lent, et on attend la vraie réponse.
+    const timeoutId = setTimeout(() => {
+      console.warn('[AUTH] investor data lent (>5s) — en attente de la réponse')
+    }, 5000)
 
     const dataPromise = Promise.resolve(
       supabase.from('investors').select('*').eq('user_id', userId).maybeSingle()
@@ -102,9 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .finally(() => { delete investorLoadPromise.current[userId] })
 
-    const promise = Promise.race([dataPromise, timeoutPromise])
-    investorLoadPromise.current[userId] = promise
-    return promise
+    investorLoadPromise.current[userId] = dataPromise
+    return dataPromise
   }, [])
 
   const createUserObject = useCallback(
@@ -148,8 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
 
           // Chargement en arrière-plan — ne bloque pas l'UI
+          // Ne met à jour que si c'est toujours le même user connecté
+          // (évite de « ressusciter » un user après une déconnexion entre-temps).
           loadInvestorData(session.user.id).then(investorData => {
-            setCurrentUser(createUserObject(session.user, investorData))
+            setCurrentUser(prev =>
+              prev?.id === session.user.id ? createUserObject(session.user, investorData) : prev
+            )
           })
         } else {
           setSupabaseUser(null)
@@ -165,6 +168,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Connexion — retourne immédiatement après signIn, sans attendre investor data
   const login = useCallback(async (email: string, password: string) => {
     try {
+      // IMPORTANT : SIGNED_IN est émis PENDANT signInWithPassword, avant que la page
+      // de connexion n'écrive la nouvelle échéance. Si une ancienne échéance périmée
+      // traîne dans localStorage, le listener ci-dessus déconnecterait aussitôt le
+      // user (=> obligé de se connecter 2 fois). On la purge donc avant le signIn.
+      localStorage.removeItem('cerdia_session_expires')
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
