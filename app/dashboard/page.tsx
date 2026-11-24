@@ -40,7 +40,7 @@ type TabType = 'dashboard' | 'projet' | 'evaluateur' | 'reservations' | 'adminis
 type AdminSubTabType = 'investisseurs' | 'transactions' | 'capex' | 'compte_courant' | 'nav' | 'rd_dividendes' | 'rapports_fiscaux' | 'performance' | 'sync_revenues' | 'tresorerie' | 'gestion_projet' | 'budgetisation' | 'evaluations' | 'prix_parts' | 'livre_entreprise' | 'mode_emploi' | 'bloc_notes' | 'factures' | 'support'
 
 export default function DashboardPage() {
-  const { currentUser, isAuthenticated, logout } = useAuth()
+  const { currentUser, isAuthenticated, logout, loading: authLoading } = useAuth()
   const { investors, properties, transactions, capexAccounts, currentAccounts, rndAccounts, paymentSchedules, shareSettings, investorSummaries, loading } = useInvestment()
   const { t, language } = useLanguage()
   const { rate: exchangeRate } = useExchangeRate()
@@ -116,11 +116,14 @@ export default function DashboardPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Attendre la fin de la restauration de session (INITIAL_SESSION) avant de
+  // rediriger : sinon un simple rechargement renvoyait vers /connexion alors que
+  // la session était valide.
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/connexion')
     }
-  }, [isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router])
 
   // NOTE : le redirect vers /onboarding pour les tenants non-configures est
   // gere depuis la page /connexion (apres login), pas ici. Faire le redirect

@@ -122,14 +122,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Un seul listener — couvre INITIAL_SESSION + SIGNED_IN + SIGNED_OUT
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      // ⚠️ Callback SYNCHRONE : supabase-js attend ce callback en tenant son verrou
+      // d'auth. Tout `await supabase.*` ici (ex. signOut) = DEADLOCK : toutes les
+      // requêtes suivantes restent bloquées (aucune donnée) jusqu'au rechargement.
+      // Les appels Supabase doivent être différés via setTimeout(…, 0).
+      (event, session) => {
         if (session?.user) {
           // Vérifier expiration session custom
           const sessionExpires = localStorage.getItem('cerdia_session_expires')
           if (sessionExpires && Date.now() > parseInt(sessionExpires, 10)) {
             localStorage.removeItem('cerdia_session_expires')
             localStorage.removeItem('cerdia_remember_me')
-            await supabase.auth.signOut()
+            investorDataCache.current = {}
+            investorLoadPromise.current = {}
+            setTimeout(() => { supabase.auth.signOut() }, 0)
             setCurrentUser(null)
             setSupabaseUser(null)
             setLoading(false)
